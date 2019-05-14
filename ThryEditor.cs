@@ -393,7 +393,7 @@ public class ThryEditor : ShaderGUI
 
 		//shader name + presets
 		EditorGUILayout.BeginHorizontal();
-        byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("poiSettigsIcon")[0]));
+        byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
         Texture2D tex = new Texture2D(2, 2);
         tex.LoadImage(fileData);
         if (GUILayout.Button(tex, new GUILayoutOption[] { GUILayout.MaxWidth(24), GUILayout.MaxHeight(18) })) { sendActiveShader = true;
