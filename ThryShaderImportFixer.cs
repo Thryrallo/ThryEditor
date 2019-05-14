@@ -19,7 +19,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
         foreach (string str in importedAssets)
         {
            Object asset = AssetDatabase.LoadAssetAtPath<Object>(str);
-            if (asset.GetType() == typeof(Shader))
+            if (asset!=null&&asset.GetType() == typeof(Shader))
             {
                 Shader shader = (Shader)asset;
                 importedShaders.Add(shader.name);
@@ -89,6 +89,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void restoreAllMaterials()
     {
+        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH)) backupAllMaterials();
         StreamReader reader = new StreamReader(MATERIALS_BACKUP_FILE_PATH);
 
         string l;

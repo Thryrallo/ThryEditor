@@ -16,6 +16,7 @@ public class ThrySettings : EditorWindow
 
     ThryHelper.Config config;
     public static Shader activeShader = null;
+    public static Material activeShaderMaterial = null;
     public static ThryPresetHandler presetHandler = null;
 
     private void OnSelectionChange()
@@ -42,6 +43,7 @@ public class ThrySettings : EditorWindow
     {
         activeShader = shader;
         presetHandler = new ThryPresetHandler(shader);
+        activeShaderMaterial = new Material(shader);
     }
 
     private void drawLine()

@@ -202,7 +202,7 @@ public class ThryPresetHandler {
                     break;
                 case MaterialProperty.PropType.Color:
                     if (defaultValues != null && defaultValues.GetColor(Shader.PropertyToID(set[0])).Equals(p.colorValue)) empty = true;
-                    set[1] = "" + p.colorValue.r + "," + p.colorValue.g + "," + p.colorValue.b;
+                    set[1] = "" + p.colorValue.r + "," + p.colorValue.g + "," + p.colorValue.b + "," + p.colorValue.a;
                     break;
             }
             if (p.flags != MaterialProperty.PropFlags.HideInInspector && !empty) sets.Add(set);
@@ -274,12 +274,13 @@ public class ThryPresetHandler {
                     }
                     else if (p.type == MaterialProperty.PropType.Color)
                     {
-                        float[] rgb = new float[3];
-                        string[] rgbString = set[1].Split(',');
-                        float.TryParse(rgbString[0], out rgb[0]);
-                        float.TryParse(rgbString[1], out rgb[1]);
-                        float.TryParse(rgbString[2], out rgb[2]);
-                        foreach (Material m in materials) m.SetColor(Shader.PropertyToID(set[0]), new Color(rgb[0], rgb[1], rgb[2]));
+                        float[] rgba = new float[4];
+                        string[] rgbaString = set[1].Split(',');
+                        float.TryParse(rgbaString[0], out rgba[0]);
+                        float.TryParse(rgbaString[1], out rgba[1]);
+                        float.TryParse(rgbaString[2], out rgba[2]);
+                        if (rgbaString.Length > 3) float.TryParse(rgbaString[3], out rgba[3]); else rgba[3] = 1;
+                        foreach (Material m in materials) m.SetColor(Shader.PropertyToID(set[0]), new Color(rgba[0], rgba[1], rgba[2], rgba[3]));
                     }
                 }else if (set[0] == "render_queue")
                 {

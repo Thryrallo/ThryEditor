@@ -109,7 +109,52 @@ public class ThryPresetEditor : EditorWindow
                 {
                     GUILayout.BeginHorizontal();
                     properties[i][0]=GUILayout.TextField(properties[i][0], GUILayout.MaxWidth(200));
-                    properties[i][1]=GUILayout.TextField(properties[i][1], GUILayout.MaxWidth(200));
+
+                    bool typeFound = false;
+                    ShaderUtil.ShaderPropertyType propertyType = ShaderUtil.ShaderPropertyType.Float;
+                    for (int p = 0; p < ShaderUtil.GetPropertyCount(activeShader); p++)
+                        if (ShaderUtil.GetPropertyName(activeShader, p) == properties[i][0])
+                        {
+                            propertyType = ShaderUtil.GetPropertyType(activeShader, p);
+                            typeFound = true;
+                            break;
+                        }
+                    if (typeFound)
+                    {
+                        switch (propertyType)
+                        {
+                            case ShaderUtil.ShaderPropertyType.Color:
+                                float[] rgba = new float[4];
+                                string[] rgbaString = properties[i][1].Split(',');
+                                float.TryParse(rgbaString[0], out rgba[0]);
+                                float.TryParse(rgbaString[1], out rgba[1]);
+                                float.TryParse(rgbaString[2], out rgba[2]);
+                                if (rgbaString.Length > 3) float.TryParse(rgbaString[3], out rgba[3]); else rgba[3] = 1;
+                                Color p = EditorGUI.ColorField(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(204)), new Color(rgba[0], rgba[1], rgba[2], rgba[3]));
+                                properties[i][1] = "" + p.r + "," + p.g + "," + p.b + "," + p.a;
+                                break;
+                            case ShaderUtil.ShaderPropertyType.TexEnv:
+                                string[] guids = AssetDatabase.FindAssets(properties[i][1]);
+                                Texture texture = null;
+                                if (guids.Length > 0)
+                                texture = AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                                texture = (Texture)EditorGUI.ObjectField(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(100)), texture, typeof(Texture));
+                                if(texture!=null) properties[i][1] = texture.name;
+                                GUILayout.Label("("+properties[i][1]+")",GUILayout.MaxWidth(100));
+                                break;
+                            case ShaderUtil.ShaderPropertyType.Vector:
+                                string[] xyzw = properties[i][1].Split(",".ToCharArray());
+                                Vector4 vector = new Vector4(float.Parse(xyzw[0]), float.Parse(xyzw[1]), float.Parse(xyzw[2]), float.Parse(xyzw[3]));
+                                vector = EditorGUI.Vector4Field(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(204)), "", vector);
+                                properties[i][1] = "" + vector.x + "," + vector.y + "," + vector.z + "," + vector.w;
+                                break;
+                            default:
+                                properties[i][1] = GUILayout.TextField(properties[i][1], GUILayout.MaxWidth(204));
+                                break;
+                        }
+                    }else{
+                        properties[i][1] = GUILayout.TextField(properties[i][1], GUILayout.MaxWidth(204));
+                    }
                     if (i < properties.Count - 1)
                     {
                         if (GUILayout.Button("Delete", GUILayout.MaxWidth(80)))
@@ -121,6 +166,7 @@ public class ThryPresetEditor : EditorWindow
                     GUILayout.EndHorizontal();
                 }
                 GUILayout.EndScrollView();
+                if(GUILayout.Button("Save",GUILayout.MinWidth(50))) saveProperties(presetHandler, presetStrings);
                 Event e = Event.current;
                 if (e.isKey) {
                     if (Event.current.keyCode == (KeyCode.Return))
