@@ -52,6 +52,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void backupAllMaterials()
     {
+        if(!File.Exists(MATERIALS_BACKUP_FILE_PATH))File.CreateText(MATERIALS_BACKUP_FILE_PATH).Close();
         EditorUtility.DisplayProgressBar("Backup materials", "", 0);
         StreamWriter writer = new StreamWriter(MATERIALS_BACKUP_FILE_PATH, false);
 
@@ -89,7 +90,11 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void restoreAllMaterials()
     {
-        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH)) backupAllMaterials();
+        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH))
+        {
+            backupAllMaterials();
+            return;
+        }
         StreamReader reader = new StreamReader(MATERIALS_BACKUP_FILE_PATH);
 
         string l;

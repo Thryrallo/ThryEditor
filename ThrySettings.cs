@@ -31,7 +31,6 @@ public class ThrySettings : EditorWindow
                 Material m = new Material(shader);
                 if (m.HasProperty(Shader.PropertyToID("shader_is_using_thry_editor")))
                 {
-                    MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new Material[] { m });
                     setActiveShader(shader);
                 }
             }
