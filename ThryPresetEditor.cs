@@ -54,13 +54,13 @@ public class ThryPresetEditor : EditorWindow
         {
             selectedShaderIndex = newIndex;
             selectedPreset = 0;
-            ThrySettings.activeShader = Shader.Find(shaders[selectedShaderIndex]);
+            ThrySettings.setActiveShader(Shader.Find(shaders[selectedShaderIndex]));
             activeShader = ThrySettings.activeShader;
             reloadProperties = true;
         }
         if (activeShader != null)
         {
-            ThryPresetHandler presetHandler = new ThryPresetHandler(activeShader);
+            ThryPresetHandler presetHandler = ThrySettings.presetHandler;
             if (presetHandler.shaderHasPresetPath())
             {
                 Dictionary<string, List<string[]>> presets = presetHandler.getPresets();
