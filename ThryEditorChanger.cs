@@ -20,40 +20,56 @@ public class ThryEditorChanger : EditorWindow
     bool[] setEditor;
     bool[] wasEditor;
 
+    List<string> paths = null;
+
     void OnGUI()
     {
         scrollPos = GUILayout.BeginScrollView(scrollPos);
 
-        string[] shaderGuids = AssetDatabase.FindAssets("t:shader");
         bool init = false;
-        if (setEditor == null || setEditor.Length!=shaderGuids.Length)
+
+        if (paths == null)
         {
-            setEditor = new bool[shaderGuids.Length];
-            wasEditor = new bool[shaderGuids.Length];
+            paths = new List<string>();
+            string[] shaderGuids = AssetDatabase.FindAssets("t:shader");
+
+            for (int sguid = 0; sguid < shaderGuids.Length; sguid++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(shaderGuids[sguid]);
+                if (!path.Contains("_differentQueues/")) paths.Add(path);
+            }
+
+            if (setEditor == null || setEditor.Length != shaderGuids.Length)
+            {
+                setEditor = new bool[paths.Count];
+                wasEditor = new bool[paths.Count];
+            }
             init = true;
         }
-        for (int sguid = 0; sguid < shaderGuids.Length; sguid++)
+
+        for (int p = 0; p < paths.Count; p++)
         {
-            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(shaderGuids[sguid]));
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(paths[p]);
 
             if (init)
             {
-                setEditor[sguid] = (new Material(shader)).HasProperty("shader_is_using_thry_editor");
-                wasEditor[sguid] = setEditor[sguid];
+                EditorUtility.DisplayProgressBar("Load all shaders...", "", (float)p / paths.Count);
+                setEditor[p] = (new Material(shader)).HasProperty("shader_is_using_thry_editor");
+                wasEditor[p] = setEditor[p];
             }
-            setEditor[sguid] = GUILayout.Toggle(setEditor[sguid], shader.name);
-
+            setEditor[p] = GUILayout.Toggle(setEditor[p], shader.name);
         }
+        if(init)EditorUtility.ClearProgressBar();
 
         GUILayout.EndScrollView();
 
         if (GUILayout.Button("Apply"))
         {
-            for (int sguid = 0; sguid < shaderGuids.Length; sguid++)
+            for (int sguid = 0; sguid < paths.Count; sguid++)
             {
                 if (wasEditor[sguid] != setEditor[sguid])
                 {
-                    string path = AssetDatabase.GUIDToAssetPath(shaderGuids[sguid]);
+                    string path = paths[sguid];
                     if (setEditor[sguid]) addThryEditor(path);
                     else removeThryEditor(path);
                 }
@@ -82,7 +98,7 @@ public class ThryEditorChanger : EditorWindow
         string shaderCode = ThryHelper.readFileIntoString(path);
         string pattern = @"Properties.*\n?\s*{";
         RegexOptions options = RegexOptions.Multiline;
-        shaderCode = Regex.Replace(shaderCode, pattern, "Properties \n  {"+" \n      "+ property + "=" + value, options);
+        shaderCode = Regex.Replace(shaderCode, pattern, "Properties \r\n  {"+" \r\n      "+ property + "=" + value, options);
 
         ThryHelper.writeStringToFile(shaderCode, path);
     }
@@ -90,13 +106,8 @@ public class ThryEditorChanger : EditorWindow
     private void removeProperty(string path, string property, string value)
     {
         string shaderCode = ThryHelper.readFileIntoString(path);
-        string pattern = @"\n.*"+Regex.Escape(property)+" ?= ?" + value;
-        Debug.Log(pattern);
+        string pattern = @"\r?\n.*"+Regex.Escape(property)+" ?= ?" + value;
         RegexOptions options = RegexOptions.Multiline;
-        foreach (Match m in Regex.Matches(shaderCode, pattern, options))
-        {
-            Debug.Log(m.Value+" found at index "+m.Index);
-        }
 
         shaderCode = Regex.Replace(shaderCode, pattern, "", options);
 
@@ -120,18 +131,18 @@ public class ThryEditorChanger : EditorWindow
     private void replaceEditorInShader(string path, string newEditor)
     {
         string shaderCode = ThryHelper.readFileIntoString(path);
-        string pattern = @"CustomEditor ?"".*""";
+        string pattern = @"CustomEditor ?.*\n";
         Match m = Regex.Match(shaderCode, pattern);
         if (m.Success)
         {
-            string oldEditor = "//originalEditor" + m.Value + "\n";
-            shaderCode = Regex.Replace(shaderCode, pattern, oldEditor+"CustomEditor \"" + newEditor + "\"");
+            string oldEditor = "//originalEditor" + m.Value;
+            shaderCode = Regex.Replace(shaderCode, pattern, oldEditor+"CustomEditor \"" + newEditor + "\"\r\n");
         }
         else
         {
             pattern = @"SubShader.*{";
             RegexOptions options = RegexOptions.Multiline | RegexOptions.Singleline;
-            shaderCode = Regex.Replace(shaderCode, pattern, "CustomEditor \""+ newEditor + "\" \n    SubShader \n  {", options);
+            shaderCode = Regex.Replace(shaderCode, pattern, "CustomEditor \""+ newEditor + "\" \r\n    SubShader \r\n  {", options);
         }
 
         ThryHelper.writeStringToFile(shaderCode, path);
