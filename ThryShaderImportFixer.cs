@@ -26,6 +26,11 @@ public class ThryShaderImportFixer : AssetPostprocessor
             }
         }
 
+        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH))
+        {
+            backupAllMaterials();
+            return;
+        }
         StreamReader reader = new StreamReader(MATERIALS_BACKUP_FILE_PATH);
 
         string l;
@@ -48,7 +53,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
     }
 
     //save mats
-    public const string MATERIALS_BACKUP_FILE_PATH = "./Assets/.materialsBackup.json";
+    public const string MATERIALS_BACKUP_FILE_PATH = "./Assets/.materialsBackup.txt";
 
     public static void backupAllMaterials()
     {
