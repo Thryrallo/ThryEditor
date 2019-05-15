@@ -27,7 +27,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
         void OnGUI()
         {
-            if(GUILayout.Button("Thry and fix materials"))
+            if(GUILayout.Button("Fix queue shaders and materials"))
             {
                 fixMaterials();
             }
@@ -36,6 +36,8 @@ public class ThryShaderImportFixer : AssetPostprocessor
                 ignore = true;
                 this.Close();
             }
+            GUILayout.Label("Imported shaders:",EditorStyles.boldLabel);
+            foreach (string s in importedShaderPaths) GUILayout.Label(s);
         }
         
     }
