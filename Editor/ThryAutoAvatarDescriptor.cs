@@ -16,6 +16,7 @@ public class AutoAvatarDescriptor : MonoBehaviour {
     static void Init()
     {
         GameObject parent = Selection.activeGameObject;
+        if (parent == null) return;
         VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
         if (descriptor != null)
         {
