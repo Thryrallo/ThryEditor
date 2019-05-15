@@ -15,8 +15,15 @@ public class ThryShaderImportFixer : AssetPostprocessor
         backupAllMaterials();
     }
 
+    private static bool ignore = false;
+
     private class ThryShaderImportFixerGui : EditorWindow
     {
+        [MenuItem("Thry/Fix Materials")]
+        static void Init()
+        {
+            fixMaterials();
+        }
 
         void OnGUI()
         {
@@ -24,9 +31,31 @@ public class ThryShaderImportFixer : AssetPostprocessor
             {
                 fixMaterials();
             }
+            if (GUILayout.Button("I'm working on shaders today, don't bother me!"))
+            {
+                ignore = true;
+                this.Close();
+            }
         }
         
     }
+
+    /*private static List<string> allShaderPaths = new List<string>();
+
+    [InitializeOnLoad]
+    public class Startup
+    {
+        static Startup()
+        {
+            loadAllShaderPaths();
+        }
+    }
+
+    private static void loadAllShaderPaths()
+    {
+        allShaderPaths.Clear();
+        foreach (string g in AssetDatabase.FindAssets("t:shader")) allShaderPaths.Add(AssetDatabase.GUIDToAssetPath(g));
+    }*/
 
     public static void fixMaterials()
     {
@@ -82,6 +111,8 @@ public class ThryShaderImportFixer : AssetPostprocessor
                 scriptImportedAssetPaths.Remove(str);
                 continue;
             }
+            //if (allShaderPaths.Contains(str)) continue;
+            //else allShaderPaths.Add(str);
             Object asset = AssetDatabase.LoadAssetAtPath<Object>(str);
             if (asset!=null&&asset.GetType() == typeof(Shader))
             {
@@ -92,7 +123,9 @@ public class ThryShaderImportFixer : AssetPostprocessor
         }
         if (importedShaderPaths.Count == 0) return;
 
-        EditorWindow window = EditorWindow.CreateInstance<ThryShaderImportFixerGui>();
+        if (ignore) return;
+        EditorWindow window = ThryHelper.FindEditorWindow(typeof(ThryShaderImportFixerGui));
+        if(window==null) window = EditorWindow.CreateInstance<ThryShaderImportFixerGui>();
         window.Show();
     }
 
