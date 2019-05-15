@@ -27,6 +27,8 @@ public class ThryEditor : ShaderGUI
 
     private int customQueueFieldInput = -1;
 
+    private Material[] materials;
+
     private class ThryEditorHeader
 	{
 		private List<MaterialProperty> propertyes;
@@ -107,7 +109,6 @@ public class ThryEditor : ShaderGUI
 			{
 				this.Toggle();
 				e.Use();
-                gui.sendActiveShader = true;
 			}
         }
 	}
@@ -234,13 +235,14 @@ public class ThryEditor : ShaderGUI
 
     //-------------Functions------------------
 
-    public static void UpdateRenderQueue(Material material, Shader defaultShader)
+    public void UpdateRenderQueueInstance(Shader defaultShader)
     {
-        if (material.shader.renderQueue != material.renderQueue)
+        if (materials[0].shader.renderQueue != materials[0].renderQueue)
         {
-            Shader renderQueueShader = defaultShader;
-            if (material.renderQueue != renderQueueShader.renderQueue) renderQueueShader = ThryHelper.createRenderQueueShaderIfNotExists(defaultShader, material.renderQueue,true);
-            material.shader = renderQueueShader;
+            if (materials != null) foreach (Material m in materials) {
+                    ThryHelper.UpdateRenderQueue(m, defaultShader);
+                    ThryShaderImportFixer.backupSingleMaterial(m);
+                }
         }
     }
 
@@ -370,19 +372,21 @@ public class ThryEditor : ShaderGUI
 			Application.OpenURL(link);
 		}
 	}
-    
+
+    void OnApplicationFocus(bool hasFocus)
+    {
+         if(materials!=null) foreach (Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
+    }
+
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
-        ThryHelper.updateQueueShadersIfNessecary();
         Object[] targets = materialEditor.targets;
-        Material[] materials = new Material[targets.Length];
+        materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
-        foreach(Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
-
+        
         config = ThryHelper.GetConfig();
-		if (presetHandler == null) presetHandler = new ThryPresetHandler(props);
-        else presetHandler.testPresetsChanged(props);
+        if (presetHandler == null) presetHandler = new ThryPresetHandler(materials[0].shader);
 
         SetupStyle();
 
@@ -396,7 +400,7 @@ public class ThryEditor : ShaderGUI
         byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
         Texture2D tex = new Texture2D(2, 2);
         tex.LoadImage(fileData);
-        if (GUILayout.Button(tex, new GUILayoutOption[] { GUILayout.MaxWidth(24), GUILayout.MaxHeight(18) })) { sendActiveShader = true;
+        if (GUILayout.Button(tex, new GUILayoutOption[] { GUILayout.MaxWidth(24), GUILayout.MaxHeight(18) })) {
             ThrySettings window = ThrySettings.getInstance();
             window.Show();
             window.Focus();
@@ -446,25 +450,12 @@ public class ThryEditor : ShaderGUI
         EditorGUILayout.EndHorizontal();
 
         if (!config.useRenderQueueSelection) materials[0].renderQueue = defaultShader.renderQueue;
-        UpdateRenderQueue(materials[0], defaultShader);
-        if (sendActiveShader) {
-            ThrySettings.activeShader = defaultShader;
-            ThrySettings.presetHandler = presetHandler;
-            EditorWindow win = ThryHelper.FindEditorWindow(typeof(ThrySettings));
-			if(win != null)
-			{
-				win.Repaint();
-			}
-            sendActiveShader = false;
-        }
+        UpdateRenderQueueInstance(defaultShader);
     }
-
-    bool sendActiveShader = true;
 
     public override void OnClosed(Material material)
     {
         base.OnClosed(material);
-        sendActiveShader = true;
     }
 
     //----------Static Helper Functions

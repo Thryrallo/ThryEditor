@@ -24,8 +24,11 @@ public class ThryHelper
         if (renderQueue == 1000) replacementQueue = "Background";
         else if (renderQueue < 1000) replacementQueue = "Background-" + (1000 - renderQueue);
         shaderCode = Regex.Replace(shaderCode, pattern, "\"Queue\" = \"" + replacementQueue + "\"");
-        pattern = @"Shader ?""(\w|\/|\.)+""";
-        shaderCode = Regex.Replace(shaderCode, pattern, "Shader \"" + newShaderName + "\"");
+        pattern = @"Shader *""(\w|\/|\.)+";
+        string ogShaderName = Regex.Match(shaderCode, pattern).Value;
+        ogShaderName = Regex.Replace(ogShaderName, @"Shader *""", "");
+        string newerShaderName = ".differentQueues/" + ogShaderName + "-queue" + renderQueue;
+        shaderCode = Regex.Replace(shaderCode, pattern, "Shader \""+newerShaderName);
         pattern = @"#include ""(?!.*(AutoLight)|(UnityCG)|(UnityShaderVariables)|(HLSLSupport)|(TerrainEngine))";
         shaderCode = Regex.Replace(shaderCode, pattern, "#include \"../", RegexOptions.Multiline);
         string[] pathParts = defaultPath.Split('/');
@@ -34,9 +37,20 @@ public class ThryHelper
         Directory.CreateDirectory(newPath);
         newPath = newPath + "/" + fileName.Replace(".shader", "-queue" + renderQueue + ".shader");
         writeStringToFile(shaderCode, newPath);
+        ThryShaderImportFixer.scriptImportedAssetPaths.Add(newPath);
         if (import) AssetDatabase.ImportAsset(newPath);
+        
+        return Shader.Find(newerShaderName);
+    }
 
-        return Shader.Find(newShaderName);
+    public static void UpdateRenderQueue(Material material, Shader defaultShader)
+    {
+        if (material.shader.renderQueue != material.renderQueue)
+        {
+            Shader renderQueueShader = defaultShader;
+            if (material.renderQueue != renderQueueShader.renderQueue) renderQueueShader = createRenderQueueShaderIfNotExists(defaultShader, material.renderQueue, true);
+            material.shader = renderQueueShader;
+        }
     }
 
     public static string readFileIntoString(string path)
@@ -67,49 +81,6 @@ public class ThryHelper
             return ret;
         }
         return 0;
-    }
-
-    public static void updateQueueShadersIfNessecary()
-    {
-        string[] guids = AssetDatabase.FindAssets("poiUpdatedShaders");
-        if (guids.Length == 0) return;
-        string file_path = AssetDatabase.GUIDToAssetPath(guids[0]);
-        if (!file_path.Contains("/poiUpdatedShaders")) return;
-        StreamReader reader = new StreamReader(file_path);
-        string shader_file_name;
-        List<Material> materialsToUpdate = new List<Material>();
-        List<int> renderQueues = new List<int>();
-        while ((shader_file_name = reader.ReadLine()) != null)
-        {
-            //for each updated shader
-            string[] shaderGuids = AssetDatabase.FindAssets(shader_file_name);
-            string defaultShaderGuid = null;
-            foreach (string g in shaderGuids) if (AssetDatabase.GUIDToAssetPath(g).EndsWith(shader_file_name + ".shader")) defaultShaderGuid = g;
-            if (defaultShaderGuid == null) continue;
-            Shader defaultShader = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(defaultShaderGuid));
-            string[] matGuids = AssetDatabase.FindAssets("t:material");
-            materialsToUpdate.Clear();
-            renderQueues.Clear();
-            foreach (string mG in matGuids)
-            {
-                Material material = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(mG));
-                if (material.shader.name.Contains(defaultShader.name) && material.shader.name.Length > defaultShader.name.Length)
-                {
-                    materialsToUpdate.Add(material);
-                    renderQueues.Add(material.renderQueue);
-                    material.shader = defaultShader;
-                }
-            }
-            for (int i = 0; i < shaderGuids.Length; i++) if (shaderGuids[i] != defaultShaderGuid) AssetDatabase.DeleteAsset(AssetDatabase.GUIDToAssetPath(shaderGuids[i]));
-            for (int i = 0; i < materialsToUpdate.Count; i++)
-            {
-                materialsToUpdate[i].renderQueue = renderQueues[i];
-                ThryEditor.UpdateRenderQueue(materialsToUpdate[i], defaultShader);
-            }
-        }
-        reader.Close();
-        File.Delete(file_path);
-        AssetDatabase.DeleteAsset(file_path);
     }
 
     public static string getDefaultShaderName(string shaderName)
