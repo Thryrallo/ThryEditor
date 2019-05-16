@@ -21,6 +21,8 @@ public class ThryEditorChanger : EditorWindow
     bool[] wasEditor;
 
     List<string> paths = null;
+    List<Shader> shaders = null;
+    Dictionary<string, List<string>> differentQueueShaderPaths = null;
 
     void OnGUI()
     {
@@ -31,12 +33,30 @@ public class ThryEditorChanger : EditorWindow
         if (paths == null)
         {
             paths = new List<string>();
+            shaders = new List<Shader>();
+            differentQueueShaderPaths = new Dictionary<string, List<string>>();
             string[] shaderGuids = AssetDatabase.FindAssets("t:shader");
 
             for (int sguid = 0; sguid < shaderGuids.Length; sguid++)
             {
                 string path = AssetDatabase.GUIDToAssetPath(shaderGuids[sguid]);
-                if (!path.Contains("_differentQueues/")) paths.Add(path);
+                Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+                if (!path.Contains("_differentQueues/"))
+                {
+                    paths.Add(path);
+                    shaders.Add(shader);
+                }
+                else
+                {
+                    List<string> differentQueueShaderPaths;
+                    this.differentQueueShaderPaths.TryGetValue(ThryHelper.getDefaultShaderName(shader.name),out differentQueueShaderPaths);
+                    if (differentQueueShaderPaths == null)
+                    {
+                        differentQueueShaderPaths = new List<string>();
+                        this.differentQueueShaderPaths.Add(ThryHelper.getDefaultShaderName(shader.name), differentQueueShaderPaths);
+                    }
+                    differentQueueShaderPaths.Add(path);
+                }
             }
 
             if (setEditor == null || setEditor.Length != shaderGuids.Length)
@@ -49,15 +69,13 @@ public class ThryEditorChanger : EditorWindow
 
         for (int p = 0; p < paths.Count; p++)
         {
-            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(paths[p]);
-
             if (init)
             {
                 EditorUtility.DisplayProgressBar("Load all shaders...", "", (float)p / paths.Count);
-                setEditor[p] = (new Material(shader)).HasProperty("shader_is_using_thry_editor");
+                setEditor[p] = (new Material(shaders[p])).HasProperty("shader_is_using_thry_editor");
                 wasEditor[p] = setEditor[p];
             }
-            setEditor[p] = GUILayout.Toggle(setEditor[p], shader.name);
+            setEditor[p] = GUILayout.Toggle(setEditor[p], shaders[p].name);
         }
         if(init)EditorUtility.ClearProgressBar();
 
@@ -65,17 +83,27 @@ public class ThryEditorChanger : EditorWindow
 
         if (GUILayout.Button("Apply"))
         {
-            for (int sguid = 0; sguid < paths.Count; sguid++)
+            for (int i = 0; i < paths.Count; i++)
             {
-                if (wasEditor[sguid] != setEditor[sguid])
+                if (wasEditor[i] != setEditor[i])
                 {
-                    string path = paths[sguid];
+                    string path = paths[i];
                     ThryShaderImportFixer.scriptImportedAssetPaths.Add(path);
-                    if (setEditor[sguid]) addThryEditor(path);
+                    if (setEditor[i]) addThryEditor(path);
                     else removeThryEditor(path);
+
+                    List<string> differentQueueShaderPaths;
+                    this.differentQueueShaderPaths.TryGetValue(shaders[i].name, out differentQueueShaderPaths);
+                    if(differentQueueShaderPaths!=null)
+                        foreach (string queueShaderPath in differentQueueShaderPaths)
+                            {
+                                ThryShaderImportFixer.scriptImportedAssetPaths.Add(queueShaderPath);
+                                if (setEditor[i]) addThryEditor(queueShaderPath);
+                                else removeThryEditor(queueShaderPath);
+                            }
                 }
 
-                wasEditor[sguid] = setEditor[sguid];
+                wasEditor[i] = setEditor[i];
             }
             AssetDatabase.Refresh();
             ThryHelper.RepaintAllMaterialEditors();
