@@ -62,7 +62,28 @@ public class AutoAvatarDescriptor : MonoBehaviour {
         viewPointPos = vectorAddWeightedVector(viewPointPos, parent.transform.position, -1);
         descriptor.ViewPosition = viewPointPos;
 
-        descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
+        //descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
+        int probabilityFemale = 0;
+        int probabilityMale = 0;
+        if (searchGameObjectsByName(parent, "breast").Count > 0) probabilityFemale += 2;
+        else
+        {
+            List<GameObject> hair = searchGameObjectsByName(parent, "hair");
+            if ((hair.Count == 1 && allChildsCount(hair[0]) > 20) || hair.Count > 15) probabilityFemale++;
+            else switch (GenderGuesser.guessGender(parent.name))
+                {
+                    case GenderGuesser.Gender.Female:
+                        probabilityFemale++;
+                        break;
+                    case GenderGuesser.Gender.Male:
+                        probabilityMale++;
+                        break;
+                }
+        }
+        if(probabilityFemale > probabilityMale) descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
+        else if(probabilityFemale < probabilityMale) descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Male;
+        else descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.None;
+
         if (descriptor.VisemeSkinnedMesh == null)
         {
             SkinnedMeshRenderer body = null;
@@ -113,6 +134,17 @@ public class AutoAvatarDescriptor : MonoBehaviour {
     public static Vector3 vectorAddWeightedVector(Vector3 baseVec, Vector3 add, float weight)
     {
         return new Vector3(baseVec.x + add.x * weight, baseVec.y + add.y * weight, baseVec.z + add.z * weight);
+    }
+
+    public static int allChildsCount(GameObject parent)
+    {
+        int count = 0;
+        for (int i = 0; i < parent.transform.childCount; i++)
+        {
+            GameObject child = parent.transform.GetChild(i).gameObject;
+            count += allChildsCount(child);
+        }
+        return count + 1;
     }
 
     public static List<GameObject> searchGameObjectsByName(GameObject parent, string name)
