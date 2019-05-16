@@ -20,60 +20,88 @@ public class AutoAvatarDescriptor : MonoBehaviour {
         VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
         if (descriptor != null)
         {
-            if (parent != null)
-            {
-                List<GameObject> eyeObjects = searchGameObjectsByName(parent, "eye");
-                Vector3 viewPointPos = new Vector3();
-                foreach (GameObject eyeO in eyeObjects) viewPointPos = vectorAddWeightedVector(viewPointPos, eyeO.transform.position, 1.0 / eyeObjects.Count);
-                viewPointPos = vectorAddWeightedVector(viewPointPos, parent.transform.position, -1);
-                descriptor.ViewPosition = viewPointPos;
-
-                descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
-            }
-            if (parent != null && descriptor.VisemeSkinnedMesh == null)
-            {
-                SkinnedMeshRenderer body = null;
-                SkinnedMeshRenderer head = null;
-                foreach (Transform child in parent.transform)
-                {
-                    SkinnedMeshRenderer skinnedMeshRenderer = child.gameObject.GetComponent<SkinnedMeshRenderer>();
-                    if (skinnedMeshRenderer != null && child.name.ToLower() == "body") body = skinnedMeshRenderer;
-                    if (skinnedMeshRenderer != null && (child.name.ToLower() == "head" || child.name.ToLower() == "face")) head = skinnedMeshRenderer;
-
-                }
-                if (head != null | body != null) descriptor.lipSync = VRCSDK2.VRC_AvatarDescriptor.LipSyncStyle.VisemeBlendShape;
-                if (head != null) descriptor.VisemeSkinnedMesh = head;
-                else if (body != null) descriptor.VisemeSkinnedMesh = body;
-                descriptor.VisemeBlendShapes = new string[15];
-            }
-            if (descriptor.VisemeSkinnedMesh != null && descriptor.VisemeBlendShapes.Length > 0)
-            {
-                Mesh mesh = descriptor.VisemeSkinnedMesh.sharedMesh;
-                for (int i = 0; i < BLEND_SHAPE_NAMES.Length; i++)
-                {
-                    float closestScore = 0;
-                    for (int b = 0; b < mesh.blendShapeCount; b++)
-                    {
-                        if (mesh.GetBlendShapeName(b).Contains(BLEND_SHAPE_NAMES[i]))
-                        {
-                            string compareBlendName = mesh.GetBlendShapeName(b).Replace("vrc.", "");
-                            float score = ((float)BLEND_SHAPE_NAMES[i].Length / compareBlendName.Length);
-                            if (score > closestScore)
-                            {
-                                descriptor.VisemeBlendShapes[i] = mesh.GetBlendShapeName(b);
-                                closestScore = score;
-                            }
-
-
-                        }
-                    }
-                }
-            }
+            autoFillDescriptor(parent, descriptor);
         }
         else
         {
             if (parent != null) parent.AddComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
             Init();
+        }
+    }
+
+    [InitializeOnLoadAttribute]
+    public static class HierarchyMonitor
+    {
+        static HierarchyMonitor()
+        {
+            EditorApplication.hierarchyWindowChanged += OnHierarchyChanged;
+        }
+
+        static void OnHierarchyChanged()
+        {
+            AutoAvatarDescriptor.OnHierarchyChange();
+        }
+    }
+
+    static void OnHierarchyChange()
+    {
+        GameObject parent = Selection.activeGameObject;
+        if (parent == null) return;
+        VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
+        if (descriptor != null)
+        {
+            autoFillDescriptor(parent, descriptor);
+        }
+    }
+
+    private static void autoFillDescriptor(GameObject parent, VRCSDK2.VRC_AvatarDescriptor descriptor)
+    {
+        List<GameObject> eyeObjects = searchGameObjectsByName(parent, "eye");
+        Vector3 viewPointPos = new Vector3();
+        foreach (GameObject eyeO in eyeObjects) viewPointPos = vectorAddWeightedVector(viewPointPos, eyeO.transform.position, 1.0 / eyeObjects.Count);
+        viewPointPos = vectorAddWeightedVector(viewPointPos, parent.transform.position, -1);
+        descriptor.ViewPosition = viewPointPos;
+
+        descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
+        if (descriptor.VisemeSkinnedMesh == null)
+        {
+            SkinnedMeshRenderer body = null;
+            SkinnedMeshRenderer head = null;
+            foreach (Transform child in parent.transform)
+            {
+                SkinnedMeshRenderer skinnedMeshRenderer = child.gameObject.GetComponent<SkinnedMeshRenderer>();
+                if (skinnedMeshRenderer != null && child.name.ToLower() == "body") body = skinnedMeshRenderer;
+                if (skinnedMeshRenderer != null && (child.name.ToLower() == "head" || child.name.ToLower() == "face")) head = skinnedMeshRenderer;
+
+            }
+            if (head != null | body != null) descriptor.lipSync = VRCSDK2.VRC_AvatarDescriptor.LipSyncStyle.VisemeBlendShape;
+            if (head != null) descriptor.VisemeSkinnedMesh = head;
+            else if (body != null) descriptor.VisemeSkinnedMesh = body;
+            descriptor.VisemeBlendShapes = new string[15];
+        }
+        if (descriptor.VisemeSkinnedMesh != null && descriptor.VisemeBlendShapes.Length > 0)
+        {
+            Mesh mesh = descriptor.VisemeSkinnedMesh.sharedMesh;
+            for (int i = 0; i < BLEND_SHAPE_NAMES.Length; i++)
+            {
+                float closestScore = 0;
+                for (int b = 0; b < mesh.blendShapeCount; b++)
+                {
+                    if (mesh.GetBlendShapeName(b).Contains(BLEND_SHAPE_NAMES[i]))
+                    {
+                        string compareBlendName = mesh.GetBlendShapeName(b).Replace("vrc.v_", "");
+                        compareBlendName = compareBlendName.Replace("vrc.", "");
+                        float score = ((float)BLEND_SHAPE_NAMES[i].Length / compareBlendName.Length);
+                        if (score > closestScore)
+                        {
+                            descriptor.VisemeBlendShapes[i] = mesh.GetBlendShapeName(b);
+                            closestScore = score;
+                        }
+
+
+                    }
+                }
+            }
         }
     }
 
