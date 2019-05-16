@@ -70,6 +70,7 @@ public class ThryEditorChanger : EditorWindow
                 if (wasEditor[sguid] != setEditor[sguid])
                 {
                     string path = paths[sguid];
+                    ThryShaderImportFixer.scriptImportedAssetPaths.Add(path);
                     if (setEditor[sguid]) addThryEditor(path);
                     else removeThryEditor(path);
                 }

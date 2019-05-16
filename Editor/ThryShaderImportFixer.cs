@@ -17,12 +17,14 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     private static bool ignore = false;
 
+    private static bool restoring_in_progress = false;
+
     private class ThryShaderImportFixerGui : EditorWindow
     {
-        [MenuItem("Thry/Fix Materials")]
+        [MenuItem("Thry/Fix All Materials")]
         static void Init()
         {
-            fixMaterials();
+            fixAllMaterials();
         }
 
         void OnGUI()
@@ -75,7 +77,33 @@ public class ThryShaderImportFixer : AssetPostprocessor
             importedShaders.Add(shader);
             importedShaderNames.Add(shader.name);
         }
-        
+        fixMaterials(importedShaders,importedShaderNames);
+    }
+
+    public static void fixAllMaterials()
+    {
+        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH))
+        {
+            backupAllMaterials();
+            return;
+        }
+        string[] guids = AssetDatabase.FindAssets("t:shader");
+        List<string> importedShaderNames = new List<string>();
+        List<Shader> importedShaders = new List<Shader>();
+        foreach (string g in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(g);
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+            importedShaders.Add(shader);
+            importedShaderNames.Add(shader.name);
+        }
+        fixMaterials(importedShaders, importedShaderNames);
+    }
+
+    private static void fixMaterials(List<Shader> shaders, List<string> importedShaderNames)
+    {
+        restoring_in_progress = true;
+
         StreamReader reader = new StreamReader(MATERIALS_BACKUP_FILE_PATH);
 
         string l;
@@ -86,9 +114,9 @@ public class ThryShaderImportFixer : AssetPostprocessor
             Material material = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(materialData[0]));
             if (importedShaderNames.Contains(materialData[1]))
             {
-                Debug.Log("Restore this shader: " + materialData[1]);
-                Shader shader = importedShaders[importedShaderNames.IndexOf(materialData[1])];
-                Debug.Log("Shader: " + shader.name);
+                //Debug.Log("Restore this shader: " + materialData[1]);
+                Shader shader = shaders[importedShaderNames.IndexOf(materialData[1])];
+                //Debug.Log("Shader: " + shader.name);
                 material.shader = shader;
                 material.renderQueue = int.Parse(materialData[2]);
                 ThryHelper.UpdateRenderQueue(material, shader);
@@ -96,6 +124,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
         }
         reader.Close();
 
+        restoring_in_progress = false;
         ThryHelper.RepaintAllMaterialEditors();
     }
 
@@ -165,6 +194,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void backupAllMaterials()
     {
+        if (restoring_in_progress) return;
         if(!File.Exists(MATERIALS_BACKUP_FILE_PATH))File.CreateText(MATERIALS_BACKUP_FILE_PATH).Close();
         EditorUtility.DisplayProgressBar("Backup materials", "", 0);
         StreamWriter writer = new StreamWriter(MATERIALS_BACKUP_FILE_PATH, false);
@@ -183,6 +213,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void backupSingleMaterial(Material m)
     {
+        if (restoring_in_progress) return;
         string[] mats = new string[0];
         if (!File.Exists(MATERIALS_BACKUP_FILE_PATH)) File.CreateText(MATERIALS_BACKUP_FILE_PATH).Close();
         else mats = ThryHelper.readFileIntoString(MATERIALS_BACKUP_FILE_PATH).Split(new string[] { "\n" }, System.StringSplitOptions.None);
