@@ -55,6 +55,7 @@ public class ThryHelper
             Shader renderQueueShader = defaultShader;
             if (material.renderQueue != renderQueueShader.renderQueue) renderQueueShader = createRenderQueueShaderIfNotExists(defaultShader, material.renderQueue, true);
             material.shader = renderQueueShader;
+            ThryShaderImportFixer.backupSingleMaterial(material);
         }
     }
 

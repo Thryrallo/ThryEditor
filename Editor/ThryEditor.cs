@@ -237,13 +237,9 @@ public class ThryEditor : ShaderGUI
 
     public void UpdateRenderQueueInstance(Shader defaultShader)
     {
-        if (materials[0].shader.renderQueue != materials[0].renderQueue)
-        {
-            if (materials != null) foreach (Material m in materials) {
-                    ThryHelper.UpdateRenderQueue(m, defaultShader);
-                    ThryShaderImportFixer.backupSingleMaterial(m);
-                }
-        }
+        if (materials != null) foreach (Material m in materials)
+            if (m.shader.renderQueue != m.renderQueue)
+                ThryHelper.UpdateRenderQueue(m, defaultShader);
     }
 
     //-------------Draw Functions----------------
@@ -334,10 +330,10 @@ public class ThryEditor : ShaderGUI
 	}
 
     //draw the render queue selector
-    private void drawRenderQueueSelector(Material material, Shader defaultShader)
+    private void drawRenderQueueSelector(Shader defaultShader)
     {
         EditorGUILayout.BeginHorizontal();
-        if (customQueueFieldInput == -1) customQueueFieldInput = material.renderQueue;
+        if (customQueueFieldInput == -1) customQueueFieldInput = materials[0].renderQueue;
         int[] queueOptionsQueues = new int[] { defaultShader.renderQueue, 2000, 2450, 3000, customQueueFieldInput };
         string[] queueOptions = new string[] { "From Shader", "Geometry", "Alpha Test", "Transparency" };
         int queueSelection = 4;
@@ -359,8 +355,9 @@ public class ThryEditor : ShaderGUI
         int newCustomQueueFieldInput = EditorGUILayout.IntField(customQueueFieldInput, GUILayout.MaxWidth(65));
         bool isInput = customQueueFieldInput!=newCustomQueueFieldInput || queueSelection != newQueueSelection;
         customQueueFieldInput = newCustomQueueFieldInput;
-        if (customQueueFieldInput != material.renderQueue && isInput) material.renderQueue = customQueueFieldInput;
-        if (customQueueFieldInput != material.renderQueue && !isInput) customQueueFieldInput = material.renderQueue;
+        foreach(Material m in materials)
+            if (customQueueFieldInput != m.renderQueue && isInput) m.renderQueue = customQueueFieldInput;
+        if (customQueueFieldInput != materials[0].renderQueue && !isInput) customQueueFieldInput = materials[0].renderQueue;
         EditorGUILayout.EndHorizontal();
     }
 
@@ -423,7 +420,7 @@ public class ThryEditor : ShaderGUI
         //Render Queue
         if (config.useRenderQueueSelection)
         {
-            drawRenderQueueSelector(materials[0], defaultShader);
+            drawRenderQueueSelector(defaultShader);
             EditorGUILayout.LabelField("Default: " + defaultShaderName);
             EditorGUILayout.LabelField("Shader: " + shader.name);
         }

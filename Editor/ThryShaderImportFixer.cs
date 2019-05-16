@@ -183,7 +183,9 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     public static void backupSingleMaterial(Material m)
     {
-        string[] mats = ThryHelper.readFileIntoString(MATERIALS_BACKUP_FILE_PATH).Split(new string[] { "\n" }, System.StringSplitOptions.None);
+        string[] mats = new string[0];
+        if (!File.Exists(MATERIALS_BACKUP_FILE_PATH)) File.CreateText(MATERIALS_BACKUP_FILE_PATH).Close();
+        else mats = ThryHelper.readFileIntoString(MATERIALS_BACKUP_FILE_PATH).Split(new string[] { "\n" }, System.StringSplitOptions.None);
         bool updated = false;
         string matGuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m.GetInstanceID()));
         string newString = "";
