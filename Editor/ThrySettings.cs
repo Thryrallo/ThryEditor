@@ -40,9 +40,12 @@ public class ThrySettings : EditorWindow
 
     public static void setActiveShader(Shader shader)
     {
-        activeShader = shader;
-        presetHandler = new ThryPresetHandler(shader);
-        activeShaderMaterial = new Material(shader);
+        if (shader != activeShader)
+        {
+            activeShader = shader;
+            presetHandler = new ThryPresetHandler(shader);
+            activeShaderMaterial = new Material(shader);
+        }
     }
 
     private void drawLine()

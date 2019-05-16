@@ -12,6 +12,8 @@ public class ThryPresetEditor : EditorWindow
         // Get existing open window or if none, make a new one:
         ThryPresetEditor window = (ThryPresetEditor)EditorWindow.GetWindow(typeof(ThryPresetEditor));
         window.Show();
+        window.loadActiveShader();
+
     }
 
     public static void open()
@@ -20,7 +22,7 @@ public class ThryPresetEditor : EditorWindow
     }
 
     private string[] shaders;
-    private int selectedShaderIndex = 0;
+    private static int selectedShaderIndex = 0;
 
     private bool newPreset = false;
     private string newPresetName;
@@ -40,6 +42,12 @@ public class ThryPresetEditor : EditorWindow
         for (int i = 0; i < shaders.Count; i++) this.shaders[i] = ar[i].name;
     }
 
+    private void loadActiveShader()
+    {
+        Shader activeShader = ThrySettings.activeShader;
+        if (activeShader != null) for (int i = 0; i < this.shaders.Length; i++) if (this.shaders[i] == activeShader.name) selectedShaderIndex = i;
+    }
+
     private int selectedPreset = 0;
     Vector2 scrollPos;
     private List<string[]> properties = new List<string[]>();
@@ -47,6 +55,8 @@ public class ThryPresetEditor : EditorWindow
 
     void OnGUI()
     {
+        if (ThrySettings.activeShader != null) Debug.Log(ThrySettings.activeShader.name);
+        else Debug.Log("Active shader is null");
         if (shaders == null) loadShaders();
         Shader activeShader = ThrySettings.activeShader;
         int newIndex = EditorGUILayout.Popup(selectedShaderIndex, shaders, GUILayout.MaxWidth(500));

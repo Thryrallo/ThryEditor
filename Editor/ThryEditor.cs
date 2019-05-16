@@ -372,7 +372,7 @@ public class ThryEditor : ShaderGUI
 
     void OnApplicationFocus(bool hasFocus)
     {
-         if(materials!=null) foreach (Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
+        if(materials!=null) foreach (Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
     }
 
     //-------------Main Function--------------
@@ -383,7 +383,8 @@ public class ThryEditor : ShaderGUI
         for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
         
         config = ThryHelper.GetConfig();
-        if (presetHandler == null) presetHandler = new ThryPresetHandler(materials[0].shader);
+        ThrySettings.setActiveShader(materials[0].shader);
+        presetHandler = ThrySettings.presetHandler;
 
         SetupStyle();
 

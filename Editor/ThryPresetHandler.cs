@@ -85,14 +85,15 @@ public class ThryPresetHandler {
     {
         if (hasPresets && presetsLoaded)
         {
-            int newSelectedPreset = EditorGUILayout.Popup(selectedPreset, presetOptions, GUILayout.MaxWidth(100));
-            if (newSelectedPreset != selectedPreset)
-            {
-                selectedPreset = newSelectedPreset;
-                if (selectedPreset < presetOptions.Length - 2) applyPreset(presetOptions[selectedPreset], props, materials);
-                if (selectedPreset == presetOptions.Length - 2) ThryPresetEditor.open();
+            int pressetPreset = EditorGUILayout.Popup(selectedPreset, presetOptions, GUILayout.MaxWidth(100));
+            if (pressetPreset != selectedPreset)
+            {;
+                if (pressetPreset < presetOptions.Length - 2) applyPreset(presetOptions[pressetPreset], props, materials);
+                if (pressetPreset == presetOptions.Length - 2) ThryPresetEditor.open();
             }
-            if (selectedPreset == presetOptions.Length - 1) drawNewPreset(props, materials);
+            if (pressetPreset == presetOptions.Length - 1) selectedPreset = pressetPreset;
+            else selectedPreset = 0;
+            if (pressetPreset == presetOptions.Length - 1) drawNewPreset(props, materials);
         }
     }
 
