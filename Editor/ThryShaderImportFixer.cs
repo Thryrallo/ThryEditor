@@ -21,7 +21,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     private class ThryShaderImportFixerGui : EditorWindow
     {
-        [MenuItem("Thry/Fix All Materials")]
+        [MenuItem("Thry/Restore All Materials")]
         static void Init()
         {
             fixAllMaterials();
@@ -90,13 +90,15 @@ public class ThryShaderImportFixer : AssetPostprocessor
         string[] guids = AssetDatabase.FindAssets("t:shader");
         List<string> importedShaderNames = new List<string>();
         List<Shader> importedShaders = new List<Shader>();
-        foreach (string g in guids)
+        for(int g=0; g<guids.Length;g++)
         {
-            string path = AssetDatabase.GUIDToAssetPath(g);
+            string path = AssetDatabase.GUIDToAssetPath(guids[g]);
             Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+            EditorUtility.DisplayProgressBar("Restoring materials...", shader.name, (float)(g + 1) / guids.Length);
             importedShaders.Add(shader);
             importedShaderNames.Add(shader.name);
         }
+        EditorUtility.ClearProgressBar();
         fixMaterials(importedShaders, importedShaderNames);
     }
 
