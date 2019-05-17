@@ -32,7 +32,7 @@ public class ThryHelper
         ogShaderName = Regex.Replace(ogShaderName, @"Shader *""", "");
         string newerShaderName = ".differentQueues/" + ogShaderName + "-queue" + renderQueue;
         shaderCode = Regex.Replace(shaderCode, pattern, "Shader \""+newerShaderName);
-        pattern = @"#include ""(?!.*(AutoLight)|(UnityCG)|(UnityShaderVariables)|(HLSLSupport)|(TerrainEngine))";
+        pattern = @"#include\s*""(?!(Lighting.cginc)|(AutoLight)|(UnityCG)|(UnityShaderVariables)|(HLSLSupport)|(TerrainEngine))";
         shaderCode = Regex.Replace(shaderCode, pattern, "#include \"../", RegexOptions.Multiline);
         string[] pathParts = defaultPath.Split('/');
         string fileName = pathParts[pathParts.Length - 1];

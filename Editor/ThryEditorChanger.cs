@@ -169,7 +169,7 @@ public class ThryEditorChanger : EditorWindow
         }
         else
         {
-            pattern = @"SubShader.*\r?\n?.*{";
+            pattern = @"SubShader.*\r?\n?\s*{";
             RegexOptions options = RegexOptions.Multiline;
             shaderCode = Regex.Replace(shaderCode, pattern, "CustomEditor \""+ newEditor + "\" \r\n    SubShader \r\n  {", options);
         }
