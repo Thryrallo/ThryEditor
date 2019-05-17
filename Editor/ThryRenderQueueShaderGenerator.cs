@@ -45,6 +45,8 @@ public class ThryRenderQueueShaderGenerator : EditorWindow
             for (int i = 0; i < poiShaders.Count; i++) this.poiShaders[i + 1] = poiShaders[i];
         }
 
+        GUILayout.Label("With thry editor the render queue selection in the material editor creates copies of the shader with different queues to make it work in vrchat. \n With this tool you can pre create those shader files so you don't have to wait.");
+
         Shader activeShader = ThrySettings.activeShader;
 
         if (activeShader != null) poiShaders[0] = ThryHelper.getDefaultShaderName(activeShader.name);
@@ -67,6 +69,7 @@ public class ThryRenderQueueShaderGenerator : EditorWindow
             EditorGUILayout.LabelField("<size=16>" + defaultShaderName + "</size>", style, GUILayout.MinHeight(18));
 
             GUILayout.Label("Generate Render Queue Shaders", EditorStyles.boldLabel);
+
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Generate All Queues", GUILayout.MaxWidth(200)))
             {
