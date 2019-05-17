@@ -79,18 +79,21 @@ public class ThrySettings : EditorWindow
             if (GUILayout.Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
         {
             config.useBigTextures = !config.useBigTextures;
+            config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
 
         if (GUILayout.Toggle(config.useRenderQueueSelection, "Use Render Queue Selection") != config.useRenderQueueSelection)
         {
             config.useRenderQueueSelection = !config.useRenderQueueSelection;
+            config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
  
         if (GUILayout.Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
         {
             config.isVrchatUser = !config.isVrchatUser;
+            config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
     }
