@@ -45,12 +45,15 @@ public class AutoAvatarDescriptor : MonoBehaviour {
 
     static void OnHierarchyChange()
     {
-        GameObject parent = Selection.activeGameObject;
-        if (parent == null) return;
-        VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
-        if (descriptor != null)
+        if (ThryConfig.GetConfig().isVrchatUser)
         {
-            autoFillDescriptor(parent, descriptor);
+            GameObject parent = Selection.activeGameObject;
+            if (parent == null) return;
+            VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
+            if (descriptor != null)
+            {
+                autoFillDescriptor(parent, descriptor);
+            }
         }
     }
 
