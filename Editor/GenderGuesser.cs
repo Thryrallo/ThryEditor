@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class GenderGuesser : EditorWindow
 {
-    // Add menu named "My Window" to the Window menu
+    /*
     [MenuItem("Thry/GenderGuesser")]
     static void Init()
     {
@@ -14,13 +14,13 @@ public class GenderGuesser : EditorWindow
         window.Show();
     }
 
-    string name = "";
+    private string guessname = "";
 
     private void OnGUI()
     {
-        name = EditorGUI.TextField(EditorGUILayout.GetControlRect(), name);
+        guessname = EditorGUI.TextField(EditorGUILayout.GetControlRect(), guessname);
         GUILayout.Label("is male: "+(guessGender(name).ToString()));
-    }
+    }*/
 
     public enum Gender { Male, Female, UNDEFINED};
 

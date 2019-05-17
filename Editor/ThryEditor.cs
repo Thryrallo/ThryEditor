@@ -10,9 +10,6 @@ public class ThryEditor : ShaderGUI
 {
 
 	public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
-	public const string CONFIG_FILE_PATH = "./Assets/.ThryEditorEditorConfig.json"; //location of config file
-
-	public static ThryHelper.Config config;
 
 	private ShaderHeader shaderparts; //stores headers and properties in correct order
 	private GUIStyle m_sectionStyle;
@@ -296,7 +293,7 @@ public class ThryEditor : ShaderGUI
 	//draw property
 	void drawShaderProperty(ShaderProperty property, MaterialEditor materialEditor)
 	{
-		if (property.materialProperty.type == MaterialProperty.PropType.Texture && config.bigTextures == false)
+		if (property.materialProperty.type == MaterialProperty.PropType.Texture && ThryConfig.GetConfig().useBigTextures == false)
 		{
 			int oldIndentLevel = EditorGUI.indentLevel;
 			EditorGUI.indentLevel = property.xOffset * 2 + 1;
@@ -381,8 +378,8 @@ public class ThryEditor : ShaderGUI
         Object[] targets = materialEditor.targets;
         materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
-        
-        config = ThryHelper.GetConfig();
+
+        ThryConfig.Config config = ThryConfig.GetConfig();
         ThrySettings.setActiveShader(materials[0].shader);
         presetHandler = ThrySettings.presetHandler;
 

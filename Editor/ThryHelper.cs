@@ -13,8 +13,6 @@ using UnityEngine;
 public class ThryHelper
 {
 
-    public static Config config;
-
     //copys og shader and changed render queue and name in there
     public static Shader createRenderQueueShaderIfNotExists(Shader defaultShader, int renderQueue, bool import)
     {
@@ -92,61 +90,6 @@ public class ThryHelper
     public static string getDefaultShaderName(string shaderName)
     {
         return shaderName.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-    }
-
-    //---------------config functions---------------
-
-    //Config class
-    public class Config
-    {
-        public bool bigTextures = false;
-        public bool useRenderQueueSelection = true;
-
-        public string SaveToString()
-        {
-            return JsonUtility.ToJson(this);
-        }
-
-        public static Config GetDefaultConfig()
-        {
-            Config config = new Config();
-            config.bigTextures = false;
-            config.useRenderQueueSelection = true;
-            return config;
-        }
-
-        //save the config to the file
-        public void save()
-        {
-            StreamWriter writer = new StreamWriter(ThryEditor.CONFIG_FILE_PATH, false);
-            writer.WriteLine(this.SaveToString());
-            writer.Close();
-        }
-    }
-
-    public static Config GetConfig()
-    {
-        if (config == null) config = LoadConfig();
-        return config;
-    }
-
-    //load the config from file
-    private static Config LoadConfig()
-    {
-        Config config = null;
-        if (File.Exists(ThryEditor.CONFIG_FILE_PATH))
-        {
-            StreamReader reader = new StreamReader(ThryEditor.CONFIG_FILE_PATH);
-            config = JsonUtility.FromJson<Config>(reader.ReadToEnd());
-            reader.Close();
-        }
-        else
-        {
-            File.CreateText(ThryEditor.CONFIG_FILE_PATH).Close();
-            config = Config.GetDefaultConfig();
-            config.save();
-        }
-        return config;
     }
 
     public static void RepaintInspector(System.Type t)

@@ -14,10 +14,18 @@ public class ThrySettings : EditorWindow
         window.Show();
     }
 
-    ThryHelper.Config config;
+    public static void firstTimePopup()
+    {
+        ThrySettings window = (ThrySettings)EditorWindow.GetWindow(typeof(ThrySettings));
+        window.isFirstPopop = true;
+        window.Show();
+    }
+
     public static Shader activeShader = null;
     public static Material activeShaderMaterial = null;
     public static ThryPresetHandler presetHandler = null;
+
+    private bool isFirstPopop = false;
 
     private void OnSelectionChange()
     {
@@ -58,19 +66,31 @@ public class ThrySettings : EditorWindow
     void OnGUI()
     {
         GUILayout.Label("Config", EditorStyles.boldLabel);
-        config = ThryHelper.GetConfig();
+        ThryConfig.Config config = ThryConfig.GetConfig();
 
-        if (GUILayout.Toggle(config.bigTextures, "Big Texture Fields") != config.bigTextures)
+        if (isFirstPopop)
         {
-            config.bigTextures = !config.bigTextures;
-            config.save();
+            GUIStyle style = new GUIStyle();
+            style.normal.textColor = Color.red;
+            style.fontSize = 16;
+            GUILayout.Label(" Please review your thry editor configuration", style);
+        }
+
+            if (GUILayout.Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
+        {
+            config.useBigTextures = !config.useBigTextures;
             ThryHelper.RepaintAllMaterialEditors();
         }
 
         if (GUILayout.Toggle(config.useRenderQueueSelection, "Use Render Queue Selection") != config.useRenderQueueSelection)
         {
             config.useRenderQueueSelection = !config.useRenderQueueSelection;
-            config.save();
+            ThryHelper.RepaintAllMaterialEditors();
+        }
+ 
+        if (GUILayout.Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
+        {
+            config.isVrchatUser = !config.isVrchatUser;
             ThryHelper.RepaintAllMaterialEditors();
         }
     }
