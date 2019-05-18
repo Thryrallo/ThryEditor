@@ -145,7 +145,7 @@ public class ThryPresetEditor : EditorWindow
                                     if (rgbaString.Length > 1) float.TryParse(rgbaString[1], out rgba[1]);
                                     if (rgbaString.Length > 2) float.TryParse(rgbaString[2], out rgba[2]);
                                     if (rgbaString.Length > 3) float.TryParse(rgbaString[3], out rgba[3]);
-                                    Color p = EditorGUI.ColorField(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(204)), new Color(rgba[0], rgba[1], rgba[2], rgba[3]));
+                                    Color p = EditorGUI.ColorField(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(204)), new GUIContent(),new Color(rgba[0], rgba[1], rgba[2], rgba[3]),true,true,true, new ColorPickerHDRConfig(0,1000,0,1000));
                                     properties[i][1] = "" + p.r + "," + p.g + "," + p.b + "," + p.a;
                                     break;
                                 case ShaderUtil.ShaderPropertyType.TexEnv:
