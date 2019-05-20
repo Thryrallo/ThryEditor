@@ -7,26 +7,37 @@ using UnityEngine;
 public class ThryConfig : MonoBehaviour {
 
     public const string CONFIG_FILE_PATH = "./Assets/.ThryConfig.json";
+    public const string VERSION = "0.2.7";
     private static Config config;
+
+
 
     [InitializeOnLoad]
     public class Startup
     {
         static Startup()
         {
-            if (!File.Exists(CONFIG_FILE_PATH))
+            if (!File.Exists(CONFIG_FILE_PATH)) ThrySettings.firstTimePopup();
+            else
             {
-                ThrySettings.firstTimePopup();
+                int versionComparision = ThryHelper.compareVersions(VERSION, GetConfig().verion);
+                if (versionComparision != 0)
+                {
+                    config.verion = VERSION;
+                    config.save();
+                    ThrySettings.updatedPopup(versionComparision);
+                }
             }
         }
     }
-
 
     public class Config
     {
         public bool useBigTextures = false;
         public bool useRenderQueueSelection = true;
         public bool isVrchatUser = true;
+        public bool showImportPopup = false;
+        public string verion = "0";
 
         public void save()
         {

@@ -21,11 +21,19 @@ public class ThrySettings : EditorWindow
         window.Show();
     }
 
+    public static void updatedPopup(int compare)
+    {
+        ThrySettings window = (ThrySettings)EditorWindow.GetWindow(typeof(ThrySettings));
+        window.updatedVersion = compare;
+        window.Show();
+    }
+
     public static Shader activeShader = null;
     public static Material activeShaderMaterial = null;
     public static ThryPresetHandler presetHandler = null;
 
     private bool isFirstPopop = false;
+    private int updatedVersion = 0;
 
     private void OnSelectionChange()
     {
@@ -65,18 +73,22 @@ public class ThrySettings : EditorWindow
 
     void OnGUI()
     {
+        GUILayout.Label("ThryEditor v" + ThryConfig.VERSION);
         GUILayout.Label("Config", EditorStyles.boldLabel);
         ThryConfig.Config config = ThryConfig.GetConfig();
 
-        if (isFirstPopop)
-        {
-            GUIStyle style = new GUIStyle();
-            style.normal.textColor = Color.red;
-            style.fontSize = 16;
-            GUILayout.Label(" Please review your thry editor configuration", style);
-        }
+        GUIStyle redInfostyle = new GUIStyle();
+        redInfostyle.normal.textColor = Color.red;
+        redInfostyle.fontSize = 16;
 
-            if (GUILayout.Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
+        if (isFirstPopop)
+            GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
+        else if (updatedVersion==-1)
+            GUILayout.Label(" Thry editor has been updated", redInfostyle);
+        else if (updatedVersion == 1)
+            GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+
+        if (GUILayout.Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
         {
             config.useBigTextures = !config.useBigTextures;
             config.save();
@@ -89,7 +101,14 @@ public class ThrySettings : EditorWindow
             config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
- 
+
+        if (GUILayout.Toggle(config.showImportPopup, "Show popup on shader import") != config.showImportPopup)
+        {
+            config.showImportPopup = !config.showImportPopup;
+            config.save();
+            ThryHelper.RepaintAllMaterialEditors();
+        }
+
         if (GUILayout.Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
         {
             config.isVrchatUser = !config.isVrchatUser;

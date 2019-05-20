@@ -157,6 +157,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
         if (importedShaderPaths.Count == 0) return;
 
         if (ignore) return;
+        if (!ThryConfig.GetConfig().showImportPopup) return;
         EditorWindow window = ThryHelper.FindEditorWindow(typeof(ThryShaderImportFixerGui));
         if(window==null) window = EditorWindow.CreateInstance<ThryShaderImportFixerGui>();
         window.Show();

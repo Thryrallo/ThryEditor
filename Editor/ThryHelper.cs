@@ -141,4 +141,20 @@ public class ThryHelper
             ed[i].Repaint();
         }
     }
+
+    public static int compareVersions(string v1, string v2)
+    {
+        string[] v1Parts = v1.Split(new char[] { '.' });
+        string[] v2Parts = v2.Split(new char[] { '.' });
+        for(int i = 0; i < Math.Max(v1Parts.Length, v2Parts.Length); i++)
+        {
+            if (i >= v1Parts.Length) return 1;
+            else if (i >= v2Parts.Length) return -1;
+            int v1P = int.Parse(v1Parts[i]);
+            int v2P = int.Parse(v2Parts[i]);
+            if (v1P > v2P) return -1;
+            else if (v1P < v2P) return 1;
+        }
+        return 0;
+    }
 }
