@@ -10,9 +10,12 @@ public class ThryEditor : ShaderGUI
 {
 
 	public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
+    public const string HOVER_OPTION = "hover";
+    public const string ON_ALT_CLICK_OPTION = "onAlt";
 
-	private ShaderHeader shaderparts; //stores headers and properties in correct order
+    private ShaderHeader shaderparts; //stores headers and properties in correct order
 	private GUIStyle m_sectionStyle;
+    private GUIStyle propertyHeight;
 
 	private List<string> footer; //footers
 
@@ -25,6 +28,8 @@ public class ThryEditor : ShaderGUI
     private int customQueueFieldInput = -1;
 
     private Material[] materials;
+
+    private bool altDown = false;
 
     private class ThryEditorHeader
 	{
@@ -114,6 +119,15 @@ public class ThryEditor : ShaderGUI
 	private class ShaderPart
 	{
 		public int xOffset = 0;
+        public string onHover = "";
+        public string altClick = "";
+
+        public ShaderPart(int xOffset, string onHover, string altClick)
+        {
+            this.xOffset = xOffset;
+            this.onHover = onHover;
+            this.altClick = altClick;
+        }
 	}
 
 	private class ShaderHeader : ShaderPart
@@ -122,16 +136,15 @@ public class ThryEditor : ShaderGUI
 		public List<ShaderPart> parts = new List<ShaderPart>();
 		public string name;
 
-		public ShaderHeader()
+		public ShaderHeader() : base(0,"","")
 		{
-
+            
 		}
 
-		public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, int xOffset)
+		public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string onHover, string altClick) : base(xOffset,onHover,altClick)
 		{
 			this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
-			this.name = prop.displayName;
-			this.xOffset = xOffset;
+			this.name = displayName;
 		}
 
 		public void addPart(ShaderPart part)
@@ -145,11 +158,10 @@ public class ThryEditor : ShaderGUI
 		public MaterialProperty materialProperty;
 		public GUIContent style;
 
-		public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset)
-		{
-			this.xOffset = xOffset;
+		public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
+        {
 			this.materialProperty = materialProperty;
-			this.style = new GUIContent(displayName, materialProperty.name + materialProperty.type);
+			this.style = new GUIContent(displayName, onHover);
 		}
 	}
 
@@ -167,39 +179,44 @@ public class ThryEditor : ShaderGUI
 		int headerCount = 0;
 		for (int i = 0; i < props.Length; i++)
 		{
-			if (props[i].name.StartsWith("m_end") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-			{
-				headerStack.Pop();
-				headerCount--;
-			}
-			else if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-			{
-				headerCount++;
-				ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, headerCount);
-				headerStack.Peek().addPart(newHeader);
-				headerStack.Push(newHeader);
-			}
-			else if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-			{
-				ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, headerCount);
-				headerStack.Pop();
-				headerStack.Peek().addPart(newHeader);
-				headerStack.Push(newHeader);
-			}
-			else if (props[i].name.StartsWith("footer_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-			{
-				footer.Add(props[i].displayName);
-			}
-			else if (props[i].flags != MaterialProperty.PropFlags.HideInInspector)
-			{
-				int extraOffset = 0;
-				extraOffset = ThryHelper.propertyOptionToInt(EXTRA_OFFSET_OPTION, props[i]);
-				string displayName = props[i].displayName.Replace("-" + EXTRA_OFFSET_OPTION + "=" + extraOffset, "");
-				ShaderProperty newPorperty = new ShaderProperty(props[i], displayName, headerCount + extraOffset);
-				headerStack.Peek().addPart(newPorperty);
-				if (props[i].type == MaterialProperty.PropType.Texture) textureFieldsCount++;
-			}
-
+            if (props[i].name.StartsWith("footer_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+            {
+                footer.Add(props[i].displayName);
+            }else if (props[i].name.StartsWith("m_end") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+            {
+                headerStack.Pop();
+                headerCount--;
+            } else
+            {
+                int extraOffset = 0;
+                extraOffset = ThryHelper.propertyOptionToInt(EXTRA_OFFSET_OPTION, props[i]);
+                int offset = extraOffset + headerCount;
+                string displayName = props[i].displayName.Replace("-" + EXTRA_OFFSET_OPTION + "=" + extraOffset, "");
+                string onHover = ThryHelper.getPropertyOptionValue(HOVER_OPTION, props[i]);
+                displayName = displayName.Replace("-" + HOVER_OPTION + "=" + onHover, "");
+                string altClick = ThryHelper.getPropertyOptionValue(ON_ALT_CLICK_OPTION, props[i]);
+                displayName = displayName.Replace("-" + ON_ALT_CLICK_OPTION + "=" + altClick, "");
+                if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+                {
+                    headerCount++;
+                    ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, displayName, offset, onHover,altClick);
+                    headerStack.Peek().addPart(newHeader);
+                    headerStack.Push(newHeader);
+                }
+                else if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+                {
+                    ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, displayName, offset, onHover, altClick);
+                    headerStack.Pop();
+                    headerStack.Peek().addPart(newHeader);
+                    headerStack.Push(newHeader);
+                }
+                else if (props[i].flags != MaterialProperty.PropFlags.HideInInspector)
+                {
+                    ShaderProperty newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
+                    headerStack.Peek().addPart(newPorperty);
+                    if (props[i].type == MaterialProperty.PropType.Texture) textureFieldsCount++;
+                }
+            }
 		}
 	}
 
@@ -208,6 +225,10 @@ public class ThryEditor : ShaderGUI
 	{
 		m_sectionStyle = new GUIStyle(EditorStyles.boldLabel);
 		m_sectionStyle.alignment = TextAnchor.MiddleCenter;
+
+        propertyHeight = new GUIStyle();
+        propertyHeight.padding = new RectOffset(0, 0, 1, 1);
+        propertyHeight.margin = new RectOffset(0, 0, 4, 4);
 	}
 
 	private void ToggleDefine(Material mat, string define, bool state)
@@ -293,15 +314,16 @@ public class ThryEditor : ShaderGUI
 	//draw property
 	void drawShaderProperty(ShaderProperty property, MaterialEditor materialEditor)
 	{
-		if (property.materialProperty.type == MaterialProperty.PropType.Texture && ThryConfig.GetConfig().useBigTextures == false)
+        var e = Event.current;
+        Rect rect;
+        if (property.materialProperty.type == MaterialProperty.PropType.Texture && ThryConfig.GetConfig().useBigTextures == false)
 		{
 			int oldIndentLevel = EditorGUI.indentLevel;
 			EditorGUI.indentLevel = property.xOffset * 2 + 1;
-			Rect rect = materialEditor.TexturePropertySingleLine(new GUIContent(property.materialProperty.displayName, "Click here for scale / offset"), property.materialProperty);
+			rect = materialEditor.TexturePropertySingleLine(new GUIContent(property.materialProperty.displayName, "Click here for scale / offset"), property.materialProperty);
 
-			var e = Event.current;
 			bool value = false;
-			if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
 			{
 				if (showTextureScaleOffset.TryGetValue(property.materialProperty.name, out value))
 				{
@@ -322,9 +344,16 @@ public class ThryEditor : ShaderGUI
 		}
 		else
 		{
-			materialEditor.ShaderProperty(property.materialProperty, property.style.text, property.xOffset * 2 + 1);
-		}
-	}
+            rect = GUILayoutUtility.GetRect(property.style, propertyHeight);
+            if (altDown && e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+            {
+                if(property.altClick!="")
+                    Application.OpenURL(property.altClick);
+            }
+            materialEditor.ShaderProperty(rect,property.materialProperty, property.style, property.xOffset * 2 + 1);
+        }
+        
+    }
 
     //draw the render queue selector
     private void drawRenderQueueSelector(Shader defaultShader)
@@ -375,6 +404,9 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
+        var e = Event.current;
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.LeftAlt) altDown = true;
+        if (e.type == EventType.KeyUp && e.keyCode == KeyCode.LeftAlt) altDown = false;
         Object[] targets = materialEditor.targets;
         materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;

@@ -75,16 +75,22 @@ public class ThryHelper
     //used to parse extra options in display name like offset
     public static int propertyOptionToInt(string optionName, MaterialProperty p)
     {
-        string pattern = @"-" + optionName + "=\\d+";
+        int ret = 0;
+        string value = getPropertyOptionValue(optionName,p);
+        int.TryParse(value, out ret);
+        return ret;
+    }
+
+    public static string getPropertyOptionValue(string optionName, MaterialProperty p)
+    {
+        string pattern = @"-" + optionName + "=[^-]+";
         Match match = Regex.Match(p.displayName, pattern);
         if (match.Success)
         {
-            int ret = 0;
             string value = match.Value.Replace("-" + optionName + "=", "");
-            int.TryParse(value, out ret);
-            return ret;
+            return value;
         }
-        return 0;
+        return "";
     }
 
     public static string getDefaultShaderName(string shaderName)
