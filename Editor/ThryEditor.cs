@@ -347,8 +347,10 @@ public class ThryEditor : ShaderGUI
             rect = GUILayoutUtility.GetRect(property.style, propertyHeight);
             if (altDown && e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
             {
-                if(property.altClick!="")
-                    Application.OpenURL(property.altClick);
+                if (property.altClick != "")
+                {
+                    if(property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:",""));
+                }
             }
             materialEditor.ShaderProperty(rect,property.materialProperty, property.style, property.xOffset * 2 + 1);
         }
