@@ -8,8 +8,9 @@ using UnityEngine;
 
 public class ThryEditor : ShaderGUI
 {
-
-	public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
+    public const string EXTRA_OPTION_PREFIX = "--";
+    public const string EXTRA_OPTION_INFIX = "=";
+    public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
     public const string HOVER_OPTION = "hover";
     public const string ON_ALT_CLICK_OPTION = "altClick";
 
@@ -28,8 +29,6 @@ public class ThryEditor : ShaderGUI
     private int customQueueFieldInput = -1;
 
     private Material[] materials;
-
-    private bool altDown = false;
 
     private class ThryEditorHeader
 	{
@@ -191,11 +190,11 @@ public class ThryEditor : ShaderGUI
                 int extraOffset = 0;
                 extraOffset = ThryHelper.propertyOptionToInt(EXTRA_OFFSET_OPTION, props[i]);
                 int offset = extraOffset + headerCount;
-                string displayName = props[i].displayName.Replace("-" + EXTRA_OFFSET_OPTION + "=" + extraOffset, "");
+                string displayName = props[i].displayName.Replace(EXTRA_OPTION_PREFIX + EXTRA_OFFSET_OPTION + EXTRA_OPTION_INFIX + extraOffset, "");
                 string onHover = ThryHelper.getPropertyOptionValue(HOVER_OPTION, props[i]);
-                displayName = displayName.Replace("-" + HOVER_OPTION + "=" + onHover, "");
+                displayName = displayName.Replace(EXTRA_OPTION_PREFIX + HOVER_OPTION + EXTRA_OPTION_INFIX + onHover, "");
                 string altClick = ThryHelper.getPropertyOptionValue(ON_ALT_CLICK_OPTION, props[i]);
-                displayName = displayName.Replace("-" + ON_ALT_CLICK_OPTION + "=" + altClick, "");
+                displayName = displayName.Replace(EXTRA_OPTION_PREFIX + ON_ALT_CLICK_OPTION + EXTRA_OPTION_INFIX + altClick, "");
                 if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
                 {
                     headerCount++;
@@ -320,9 +319,9 @@ public class ThryEditor : ShaderGUI
 		{
 			int oldIndentLevel = EditorGUI.indentLevel;
 			EditorGUI.indentLevel = property.xOffset * 2 + 1;
-			rect = materialEditor.TexturePropertySingleLine(new GUIContent(property.materialProperty.displayName, "Click here for scale / offset"), property.materialProperty);
-
-			bool value = false;
+            rect = materialEditor.TexturePropertySingleLine(new GUIContent(property.style.text, "Click here for scale / offset" + (property.style.tooltip!="" ? " | " : "") +property.style.tooltip), property.materialProperty);
+            testAltClick(rect, property);
+            bool value = false;
             if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
 			{
 				if (showTextureScaleOffset.TryGetValue(property.materialProperty.name, out value))
@@ -345,16 +344,21 @@ public class ThryEditor : ShaderGUI
 		else
 		{
             rect = GUILayoutUtility.GetRect(property.style, propertyHeight);
-            if (altDown && e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
-            {
-                if (property.altClick != "")
-                {
-                    if(property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:",""));
-                }
-            }
             materialEditor.ShaderProperty(rect,property.materialProperty, property.style, property.xOffset * 2 + 1);
+            testAltClick(rect, property);
         }
-        
+    }
+
+    private void testAltClick(Rect rect, ShaderProperty property)
+    {
+        var e = Event.current;
+        if (e.alt && e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+        {
+            if (property.altClick != "")
+            {
+                if (property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:", ""));
+            }
+        }
     }
 
     //draw the render queue selector
@@ -406,9 +410,6 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
-        var e = Event.current;
-        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.LeftAlt) altDown = true;
-        if (e.type == EventType.KeyUp && e.keyCode == KeyCode.LeftAlt) altDown = false;
         Object[] targets = materialEditor.targets;
         materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;

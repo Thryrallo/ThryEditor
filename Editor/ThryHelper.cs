@@ -83,11 +83,11 @@ public class ThryHelper
 
     public static string getPropertyOptionValue(string optionName, MaterialProperty p)
     {
-        string pattern = @"-" + optionName + "=[^-]+";
+        string pattern = @""+ ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX+"[^-]+";
         Match match = Regex.Match(p.displayName, pattern);
         if (match.Success)
         {
-            string value = match.Value.Replace("-" + optionName + "=", "");
+            string value = match.Value.Replace(ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX, "");
             return value;
         }
         return "";
