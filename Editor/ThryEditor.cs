@@ -11,7 +11,7 @@ public class ThryEditor : ShaderGUI
 
 	public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
     public const string HOVER_OPTION = "hover";
-    public const string ON_ALT_CLICK_OPTION = "onAlt";
+    public const string ON_ALT_CLICK_OPTION = "altClick";
 
     private ShaderHeader shaderparts; //stores headers and properties in correct order
 	private GUIStyle m_sectionStyle;
