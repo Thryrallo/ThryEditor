@@ -10,6 +10,7 @@ public class ThryPresetHandler {
     private bool hasPresets = false;
     private bool presetsLoaded = false;
     private string presetsFilePath = null;
+    private string[] propertyNames;
     private Dictionary<string, List<string[]>> presets = new Dictionary<string, List<string[]>>(); //presets
 
     //variabled for the preset selector
@@ -38,8 +39,10 @@ public class ThryPresetHandler {
     public void testPresetsChanged(MaterialProperty[] props)
     {
         MaterialProperty presetsProperty = ThryEditor.FindProperty(props, "shader_presets");
-        if (!(presetsProperty == null))
+        loadProperties(props);
+        if (presetsProperty != null)
         {
+            hasPresets = true;
             testPresetsChanged(presetsProperty);
         }
         else {
@@ -54,7 +57,9 @@ public class ThryPresetHandler {
         if (presetsFilePath != newPath)
         {
             presetsFilePath = newPath;
-            if (hasPresets) { loadPresets(); }
+            if (newPath!=null) {
+                loadPresets();
+            }
         }
     }
 
@@ -64,7 +69,6 @@ public class ThryPresetHandler {
         string[] guid = AssetDatabase.FindAssets(name, null);
         if (guid.Length > 0)
         {
-            hasPresets = true;
             return AssetDatabase.GUIDToAssetPath(guid[0]);
         }
         return null;
@@ -94,6 +98,9 @@ public class ThryPresetHandler {
             if (pressetPreset == presetOptions.Length - 1) selectedPreset = pressetPreset;
             else selectedPreset = 0;
             if (pressetPreset == presetOptions.Length - 1) drawNewPreset(props, materials);
+        }else if(hasPresets&& !presetsLoaded)
+        {
+            GUILayout.Label("Presets File Missing");
         }
     }
 
@@ -137,6 +144,21 @@ public class ThryPresetHandler {
         int i = 1;
         foreach (string k in presets.Keys) presetOptions[i++] = k;
         presetsLoaded = true;
+    }
+
+    private void loadProperties(MaterialProperty[] props)
+    {
+        List<string> propertyNames = new List<string>();
+        for(int i = 0; i < props.Length; i++)
+        {
+            if(props[i].flags!=MaterialProperty.PropFlags.HideInInspector) propertyNames.Add(props[i].name);
+        }
+        this.propertyNames = propertyNames.ToArray();
+    }
+
+    public string[] getPropertyNames()
+    {
+        return propertyNames;
     }
 
     public List<string[]> getPropertiesOfPreset(string presetName)

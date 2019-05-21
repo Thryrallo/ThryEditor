@@ -163,4 +163,12 @@ public class ThryHelper
         }
         return 0;
     }
+
+    public static Vector4 stringToVector(string s)
+    {
+        string[] split = s.Split(",".ToCharArray());
+        float[] xyzw = new float[4];
+        for (int i = 0; i < 4; i++) if (i < split.Length && split[i].Replace(" ","")!="") xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
+        return new Vector4(xyzw[0], xyzw[1], xyzw[2], xyzw[3]);
+    }
 }

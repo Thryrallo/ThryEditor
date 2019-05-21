@@ -9,11 +9,14 @@ public class ThryPresetEditor : EditorWindow
     [MenuItem("Thry/Preset Editor")]
     static void Init()
     {
+        propertyBackground = new GUIStyle();
+        Texture2D bg = new Texture2D(1, 1);
+        bg.SetPixel(1, 1, Color.yellow);
+        propertyBackground.normal.background = bg;
         // Get existing open window or if none, make a new one:
         ThryPresetEditor window = (ThryPresetEditor)EditorWindow.GetWindow(typeof(ThryPresetEditor));
         window.Show();
         window.loadActiveShader();
-
     }
 
     public static void open()
@@ -22,7 +25,7 @@ public class ThryPresetEditor : EditorWindow
     }
 
     private string[] shaders;
-    private static int selectedShaderIndex = 0;
+    private static int selectedShaderIndex = -1;
 
     private bool newPreset = false;
     private string newPresetName;
@@ -34,7 +37,7 @@ public class ThryPresetEditor : EditorWindow
         foreach(string g in sguids)
         {
             Shader s = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g));
-            if (new Material(s).HasProperty("shader_presets")) shaders.Add(s);
+            if (new Material(s).HasProperty("shader_presets")&& !s.name.Contains("-queue")) shaders.Add(s);
             if (s == ThrySettings.activeShader) selectedShaderIndex = shaders.Count - 1;
         }
         this.shaders = new string[shaders.Count];
@@ -42,24 +45,27 @@ public class ThryPresetEditor : EditorWindow
         for (int i = 0; i < shaders.Count; i++) this.shaders[i] = ar[i].name;
     }
 
+    private static GUIStyle propertyBackground;
+
     private void loadActiveShader()
     {
         Shader activeShader = ThrySettings.activeShader;
-        if (activeShader != null) for (int i = 0; i < this.shaders.Length; i++) if (this.shaders[i] == activeShader.name) selectedShaderIndex = i;
+        if (activeShader != null && this.shaders!=null) for (int i = 0; i < this.shaders.Length; i++) if (this.shaders[i] == activeShader.name) selectedShaderIndex = i;
     }
 
     private int selectedPreset = 0;
+    private int addPropertyIndex = 0;
     Vector2 scrollPos;
     private List<string[]> properties = new List<string[]>();
+    private string[] unusedProperties;
     bool reloadProperties = true;
 
     void OnGUI()
     {
-        if (ThrySettings.activeShader != null) Debug.Log(ThrySettings.activeShader.name);
-        else Debug.Log("Active shader is null");
         if (shaders == null) loadShaders();
         Shader activeShader = ThrySettings.activeShader;
         int newIndex = EditorGUILayout.Popup(selectedShaderIndex, shaders, GUILayout.MaxWidth(500));
+        if (selectedShaderIndex == -1) newIndex = 0;
         if (newIndex != selectedShaderIndex)
         {
             selectedShaderIndex = newIndex;
@@ -90,7 +96,6 @@ public class ThryPresetEditor : EditorWindow
                 if (newSelectedPreset != selectedPreset || reloadProperties)
                 {
                     this.selectedPreset = newSelectedPreset;
-                    removeNewPropertyField();
                     if (newSelectedPreset == presetStrings.Length - 1)
                     {
                         newPreset = true;
@@ -100,6 +105,14 @@ public class ThryPresetEditor : EditorWindow
                     else
                     {
                         this.properties = presetHandler.getPropertiesOfPreset(presetStrings[selectedPreset]);
+                        List<string> unusedProperties = new List<string>();
+                        foreach(string pName in presetHandler.getPropertyNames())
+                        {
+                            bool unused = true;
+                            foreach (string[] p in this.properties) if (p[0] == pName) unused = false;
+                            if (unused) unusedProperties.Add(pName);
+                        }
+                        this.unusedProperties = unusedProperties.ToArray();
                         reloadProperties = false;
                         newPreset = false;
                     }
@@ -107,7 +120,7 @@ public class ThryPresetEditor : EditorWindow
                 if (newPreset)
                 {
                     GUILayout.BeginHorizontal();
-                    newPresetName = GUILayout.TextField(newPresetName, GUILayout.MaxWidth(200));
+                    newPresetName = GUILayout.TextField(newPresetName, GUILayout.MaxWidth(150));
                     if(GUILayout.Button("Add Preset",GUILayout.MaxWidth(80))){
                         presetHandler.addNewPreset(newPresetName);
                         reloadProperties = true;
@@ -119,11 +132,12 @@ public class ThryPresetEditor : EditorWindow
                 scrollPos = GUILayout.BeginScrollView(scrollPos);
                 if (properties != null)
                 {
-                    addNewPropertyField();
                     for (i = 0; i < properties.Count; i++)
                     {
-                        GUILayout.BeginHorizontal();
-                        properties[i][0] = GUILayout.TextField(properties[i][0], GUILayout.MaxWidth(200));
+                        if(i%2==0) GUILayout.BeginHorizontal(propertyBackground);
+                        else GUILayout.BeginHorizontal();
+                        //properties[i][0] = GUILayout.TextField(properties[i][0], GUILayout.MaxWidth(200));
+                        GUILayout.Label(properties[i][0], GUILayout.MaxWidth(150));
 
                         bool typeFound = false;
                         ShaderUtil.ShaderPropertyType propertyType = ShaderUtil.ShaderPropertyType.Float;
@@ -160,8 +174,7 @@ public class ThryPresetEditor : EditorWindow
                                     GUILayout.Label("(" + properties[i][1] + ")", GUILayout.MaxWidth(100));
                                     break;
                                 case ShaderUtil.ShaderPropertyType.Vector:
-                                    string[] xyzw = properties[i][1].Split(",".ToCharArray());
-                                    Vector4 vector = new Vector4(float.Parse(xyzw[0]), float.Parse(xyzw[1]), float.Parse(xyzw[2]), float.Parse(xyzw[3]));
+                                    Vector4 vector = ThryHelper.stringToVector(properties[i][1]);
                                     vector = EditorGUI.Vector4Field(EditorGUILayout.GetControlRect(GUILayout.MaxWidth(204)), "", vector);
                                     properties[i][1] = "" + vector.x + "," + vector.y + "," + vector.z + "," + vector.w;
                                     break;
@@ -174,16 +187,24 @@ public class ThryPresetEditor : EditorWindow
                         {
                             properties[i][1] = GUILayout.TextField(properties[i][1], GUILayout.MaxWidth(204));
                         }
-                        if (i < properties.Count - 1)
+                        if (GUILayout.Button("Delete", GUILayout.MaxWidth(80)))
                         {
-                            if (GUILayout.Button("Delete", GUILayout.MaxWidth(80)))
-                            {
-                                properties.RemoveAt(i);
-                                saveProperties(presetHandler, presetStrings);
-                            }
+                            properties.RemoveAt(i);
+                            this.reloadProperties = true;
+                            saveProperties(presetHandler, presetStrings);
                         }
                         GUILayout.EndHorizontal();
                     }
+                    //new preset gui
+                    GUILayout.BeginHorizontal();
+                    addPropertyIndex = EditorGUILayout.Popup(addPropertyIndex, unusedProperties, GUILayout.MaxWidth(150));
+                    if (GUILayout.Button("Add",GUILayout.MaxWidth(80)))
+                    {
+                        this.reloadProperties = true;
+                        properties.Add(new string[] { unusedProperties[addPropertyIndex], "" });
+                        saveProperties(presetHandler,presetStrings);
+                    }
+                    GUILayout.EndHorizontal();
                 }
                 GUILayout.EndScrollView();
                 if(GUILayout.Button("Save",GUILayout.MinWidth(50))) saveProperties(presetHandler, presetStrings);
@@ -200,19 +221,8 @@ public class ThryPresetEditor : EditorWindow
 
     private void saveProperties(ThryPresetHandler presetHandler, string[] presetStrings)
     {
-        removeNewPropertyField();
         Debug.Log("Preset saved");
         presetHandler.setPreset(presetStrings[selectedPreset], properties);
         Repaint();
-    }
-
-    private void addNewPropertyField()
-    {
-        if (properties != null && properties.Count > 0 && !"new property".Contains(properties[properties.Count - 1][0])) this.properties.Add(new string[] { "new property", "new value" });
-    }
-
-    private void removeNewPropertyField()
-    {
-        if(properties!=null&&properties.Count>0&& properties[properties.Count - 1][0] == "new property") properties.RemoveAt(properties.Count - 1);
     }
 }
