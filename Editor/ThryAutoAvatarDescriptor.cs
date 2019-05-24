@@ -39,7 +39,7 @@ public class AutoAvatarDescriptor : MonoBehaviour {
 
         static void OnHierarchyChanged()
         {
-            AutoAvatarDescriptor.OnHierarchyChange();
+            if(!EditorApplication.isPlayingOrWillChangePlaymode) AutoAvatarDescriptor.OnHierarchyChange();
         }
     }
 
@@ -52,7 +52,8 @@ public class AutoAvatarDescriptor : MonoBehaviour {
             VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
             if (descriptor != null)
             {
-                autoFillDescriptor(parent, descriptor);
+                if (descriptor.ViewPosition.Equals(new Vector3(0, (float)1.6, (float)0.2)))
+                    autoFillDescriptor(parent, descriptor);
             }
         }
     }
