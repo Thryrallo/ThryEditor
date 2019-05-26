@@ -37,6 +37,9 @@ public class ThryEditor : ShaderGUI
 
     private Material[] materials;
 
+    private Shader shader;
+    private Shader defaultShader;
+
     private class ThryEditorHeader
 	{
 		private List<MaterialProperty> propertyes;
@@ -248,14 +251,6 @@ public class ThryEditor : ShaderGUI
 		}
 	}
 
-	void ToggleDefines(Material mat)
-	{
-	}
-
-	void LoadDefaults(Material mat)
-	{
-	}
-
     //-------------Functions------------------
 
     public void UpdateRenderQueueInstance(Shader defaultShader)
@@ -456,7 +451,6 @@ public class ThryEditor : ShaderGUI
         CollectAllProperties(props, materialEditor);
 
         SetupStyle();
-        LoadDefaults(materials[0]);
 
         //init settings texture
         byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
@@ -470,9 +464,9 @@ public class ThryEditor : ShaderGUI
         //update render queue if render queue selection is deactivated
         if (!config.useRenderQueueSelection)
         {
-            Shader shader = materials[0].shader;
+            this.shader = materials[0].shader;
             string defaultShaderName = materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-            Shader defaultShader = Shader.Find(defaultShaderName);
+            this.defaultShader = Shader.Find(defaultShaderName);
             materials[0].renderQueue = defaultShader.renderQueue;
             UpdateRenderQueueInstance(defaultShader);
         }
@@ -535,22 +529,13 @@ public class ThryEditor : ShaderGUI
 			drawShaderPart(part, materialEditor);
 		}
 
-        Shader shader;
-        string defaultShaderName;
-        Shader defaultShader = null;
         //Render Queue selection
         if (config.useRenderQueueSelection)
         {
-            shader = materials[0].shader;
-            defaultShaderName = materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-            defaultShader = Shader.Find(defaultShaderName);
-
             drawRenderQueueSelector(defaultShader);
-            EditorGUILayout.LabelField("Default: " + defaultShaderName);
+            EditorGUILayout.LabelField("Default: " + defaultShader.name);
             EditorGUILayout.LabelField("Shader: " + shader.name);
         }
-        
-        ToggleDefines(materials[0]);
 
         //footer
         drawFooters();
