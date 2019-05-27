@@ -74,7 +74,6 @@ public class ThrySettings : EditorWindow
     void OnGUI()
     {
         GUILayout.Label("ThryEditor v" + ThryConfig.VERSION);
-        GUILayout.Label("Config", EditorStyles.boldLabel);
         ThryConfig.Config config = ThryConfig.GetConfig();
 
         GUIStyle redInfostyle = new GUIStyle();
@@ -88,33 +87,59 @@ public class ThrySettings : EditorWindow
         else if (updatedVersion == 1)
             GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
 
-        if (GUILayout.Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
+        GUILayout.Label("Editor", EditorStyles.boldLabel);
+
+        if (Toggle(config.useBigTextures, "Big Texture Fields") != config.useBigTextures)
         {
             config.useBigTextures = !config.useBigTextures;
             config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
 
-        if (GUILayout.Toggle(config.useRenderQueueSelection, "Use Render Queue Selection") != config.useRenderQueueSelection)
+        GUILayout.BeginHorizontal();
+        int newMaterialValuesUpdateRate = EditorGUILayout.IntField("",config.materialValuesUpdateRate,GUILayout.MaxWidth(50));
+        GUILayout.Label("Slider Update Rate (in milliseconds)");
+        GUILayout.EndHorizontal();
+        if (newMaterialValuesUpdateRate != config.materialValuesUpdateRate)
+        {
+            config.materialValuesUpdateRate = newMaterialValuesUpdateRate;
+            config.save();
+            ThryEditor.reload();
+            ThryHelper.RepaintAllMaterialEditors();
+        }
+
+        if (Toggle(config.useRenderQueueSelection, "Use Render Queue Selection") != config.useRenderQueueSelection)
         {
             config.useRenderQueueSelection = !config.useRenderQueueSelection;
             config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
 
-        if (GUILayout.Toggle(config.showImportPopup, "Show popup on shader import") != config.showImportPopup)
+        GUILayout.Label("Extras", EditorStyles.boldLabel);
+
+        if (Toggle(config.showImportPopup, "Show popup on shader import") != config.showImportPopup)
         {
             config.showImportPopup = !config.showImportPopup;
             config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
 
-        if (GUILayout.Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
+        if (Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
         {
             config.isVrchatUser = !config.isVrchatUser;
             config.save();
             ThryHelper.RepaintAllMaterialEditors();
         }
+    }
+
+    private static bool Toggle(bool val, string text)
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Space(35);
+        val = GUILayout.Toggle(val, "", GUILayout.ExpandWidth(false));
+        GUILayout.Label(text);
+        GUILayout.EndHorizontal();
+        return val;
     }
 
     public static ThrySettings getInstance()

@@ -7,7 +7,7 @@ using UnityEngine;
 public class ThryConfig : MonoBehaviour {
 
     public const string CONFIG_FILE_PATH = "./Assets/.ThryConfig.json";
-    public const string VERSION = "0.2.12";
+    public const string VERSION = "0.3.0";
     private static Config config;
 
 
@@ -37,6 +37,7 @@ public class ThryConfig : MonoBehaviour {
         public bool useRenderQueueSelection = true;
         public bool isVrchatUser = true;
         public bool showImportPopup = false;
+        public int materialValuesUpdateRate = 300;
         public string verion = "0";
 
         public void save()

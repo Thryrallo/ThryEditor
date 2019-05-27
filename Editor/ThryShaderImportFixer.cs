@@ -147,12 +147,13 @@ public class ThryShaderImportFixer : AssetPostprocessor
             //if (allShaderPaths.Contains(str)) continue;
             //else allShaderPaths.Add(str);
             Object asset = AssetDatabase.LoadAssetAtPath<Object>(str);
-            if (asset!=null&&asset.GetType() == typeof(Shader))
+            if (asset != null && asset.GetType() == typeof(Shader))
             {
                 Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(str);
                 importedShaderPaths.Add(str);
                 deleteQueueShaders(shader, str);
             }
+            else if (asset != null && asset.name == "ThryEditor") ThryEditor.reload();
         }
         if (importedShaderPaths.Count == 0) return;
 
