@@ -25,11 +25,6 @@ public class ThryEditor : ShaderGUI
 
 	private ThryPresetHandler presetHandler; //handles the presets
 
-	private int textureFieldsCount; //counts how many texture fields there are
-
-	private Dictionary<string, bool> showTextureScaleOffset = new Dictionary<string, bool>(); //if texture scale/offset fields are extended or not
-    private Dictionary<string, float> rangeValues;
-
     private long lastMaterialValuesUpdateTime = 0;
     private long currentTime = 0;
     private bool updateMaterialValues = true;
@@ -46,6 +41,8 @@ public class ThryEditor : ShaderGUI
 
     private static MaterialEditor currentEditor;
     private static MaterialProperty[] currentProperties;
+
+    private static ThryEditor currentThryGui;
 
     private Shader shader;
     private Shader defaultShader;
@@ -135,7 +132,7 @@ public class ThryEditor : ShaderGUI
 	}
 
 	//--------classes for storing property data---------
-	private class ShaderPart
+	private abstract class ShaderPart
 	{
 		public int xOffset = 0;
         public string onHover = "";
@@ -147,6 +144,8 @@ public class ThryEditor : ShaderGUI
             this.onHover = onHover;
             this.altClick = altClick;
         }
+
+        public abstract void Draw();
 	}
 
 	private class ShaderHeader : ShaderPart
@@ -170,9 +169,23 @@ public class ThryEditor : ShaderGUI
 		{
 			parts.Add(part);
 		}
-	}
 
-	private class ShaderProperty : ShaderPart
+        public override void Draw()
+        {
+            guiElement.Foldout(xOffset, name, currentThryGui);
+            if (guiElement.getState())
+            {
+                EditorGUILayout.Space();
+                foreach (ShaderPart part in parts)
+                {
+                    part.Draw();
+                }
+                EditorGUILayout.Space();
+            }
+        }
+    }
+
+	private abstract class ShaderProperty : ShaderPart
 	{
 		public MaterialProperty materialProperty;
 		public GUIContent style;
@@ -182,7 +195,97 @@ public class ThryEditor : ShaderGUI
 			this.materialProperty = materialProperty;
 			this.style = new GUIContent(displayName, onHover);
 		}
+
+        public override void Draw()
+        {
+            currentEditor.ShaderProperty(this.materialProperty, this.style, this.xOffset * 2 + 1);
+            Rect rect = GUILayoutUtility.GetLastRect();
+            currentThryGui.testAltClick(rect, this);
+        }
 	}
+
+    private class TextureShaderProperty : ShaderProperty
+    {
+
+        private bool showTextureScaleOffset = false;
+
+        public TextureShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        {
+            
+        }
+
+        public override void Draw()
+        {
+            Event e = Event.current;
+            if (ThryConfig.GetConfig().useBigTextures == false)
+            {
+                int oldIndentLevel = EditorGUI.indentLevel;
+                EditorGUI.indentLevel = xOffset * 2 + 1;
+                Rect rect = currentEditor.TexturePropertySingleLine(new GUIContent(style.text, "Click here for scale / offset" + (style.tooltip != "" ? " | " : "") + style.tooltip), materialProperty);
+                currentThryGui.testAltClick(rect, this);
+                if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+                {
+                    showTextureScaleOffset = !showTextureScaleOffset;
+                    e.Use();
+                }
+                if (showTextureScaleOffset) currentEditor.TextureScaleOffsetProperty(materialProperty);
+                EditorGUI.indentLevel = oldIndentLevel;
+            }
+            else
+            {
+                Rect rect = GUILayoutUtility.GetRect(style, currentThryGui.bigTextureStyle);
+                currentEditor.ShaderProperty(rect, materialProperty, style, xOffset * 2 + 1);
+                currentThryGui.testAltClick(rect, this);
+            }
+        }
+    }
+
+    private class RangeShaderProperty : ShaderProperty
+    {
+        float value;
+
+        public RangeShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        {
+            value = materialProperty.floatValue;
+        }
+
+        public override void Draw()
+        {
+            int oldIndentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = xOffset * 2 + 1;
+
+            if (reloadNextDraw) value = materialProperty.floatValue;
+            value = EditorGUILayout.Slider(style, value, materialProperty.rangeLimits.x, materialProperty.rangeLimits.y);
+
+            if (currentThryGui.updateMaterialValues) materialProperty.floatValue = value;
+
+            EditorGUI.indentLevel = oldIndentLevel;
+        }
+    }
+
+    private class FloatShaderProperty : ShaderProperty
+    {
+        public FloatShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        {
+
+        }
+    }
+
+    private class ColorShaderProperty : ShaderProperty
+    {
+        public ColorShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        {
+
+        }
+    }
+
+    private class VectorShaderProperty : ShaderProperty
+    {
+        public VectorShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        {
+
+        }
+    }
 
     //-------------Init functions--------------------
 
@@ -190,12 +293,10 @@ public class ThryEditor : ShaderGUI
 	private void CollectAllProperties(MaterialProperty[] props, MaterialEditor materialEditor)
 	{
 		shaderparts = new ShaderHeader();
-        rangeValues = new Dictionary<string, float>();
 		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>();
 		headerStack.Push(shaderparts);
 		headerStack.Push(shaderparts);
 		footer = new List<string>();
-		textureFieldsCount = 0;
 		int headerCount = 0;
 		for (int i = 0; i < props.Length; i++)
 		{
@@ -232,10 +333,26 @@ public class ThryEditor : ShaderGUI
                 }
                 else if (props[i].flags != MaterialProperty.PropFlags.HideInInspector)
                 {
-                    ShaderProperty newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
+                    ShaderProperty newPorperty = null;
+                    switch (props[i].type)
+                    {
+                        case MaterialProperty.PropType.Float:
+                            newPorperty = new FloatShaderProperty(props[i], displayName, offset, onHover, altClick);
+                            break;
+                        case MaterialProperty.PropType.Range:
+                            newPorperty = new RangeShaderProperty(props[i], displayName, offset, onHover, altClick);
+                            break;
+                        case MaterialProperty.PropType.Texture:
+                            newPorperty = new TextureShaderProperty(props[i], displayName, offset, onHover, altClick);
+                            break;
+                        case MaterialProperty.PropType.Color:
+                            newPorperty = new ColorShaderProperty(props[i], displayName, offset, onHover, altClick);
+                            break;
+                        case MaterialProperty.PropType.Vector:
+                            newPorperty = new VectorShaderProperty(props[i], displayName, offset, onHover, altClick);
+                            break;
+                    }
                     headerStack.Peek().addPart(newPorperty);
-                    if (props[i].type == MaterialProperty.PropType.Texture) textureFieldsCount++;
-                    else if (props[i].type == MaterialProperty.PropType.Range) rangeValues.Add(props[i].name, props[i].floatValue);
                 }
             }
 		}
@@ -291,107 +408,6 @@ public class ThryEditor : ShaderGUI
 
 		EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", style, GUILayout.MinHeight(18));
 	}
-
-	//function to handle the drawing of header or property
-	void drawShaderPart(ShaderPart part, MaterialEditor materialEditor)
-	{
-		if (part is ShaderHeader)
-		{
-			ShaderHeader header = (ShaderHeader)part;
-			drawShaderHeader(header, materialEditor);
-		}
-		else
-		{
-			ShaderProperty property = (ShaderProperty)part;
-			drawShaderProperty(property, materialEditor);
-		}
-	}
-
-	//draw header
-	void drawShaderHeader(ShaderHeader header, MaterialEditor materialEditor)
-	{
-		//header.header = ThryEditorUI.Foldout(header);
-		header.guiElement.Foldout(header.xOffset, header.name, this);
-		if (header.guiElement.getState())
-		{
-			EditorGUILayout.Space();
-			foreach (ShaderPart part in header.parts)
-			{
-				drawShaderPart(part, materialEditor);
-			}
-			EditorGUILayout.Space();
-		}
-	}
-
-	//draw property
-	void drawShaderProperty(ShaderProperty property, MaterialEditor materialEditor)
-	{
-        switch (property.materialProperty.type)
-        {
-            case MaterialProperty.PropType.Texture:
-                drawTextureProperty(property, materialEditor);
-                break;
-            case MaterialProperty.PropType.Range:
-                drawRangeProperty(property, materialEditor);
-                break;
-            default:
-                materialEditor.ShaderProperty(property.materialProperty, property.style, property.xOffset * 2 + 1); 
-                Rect rect = GUILayoutUtility.GetLastRect();
-                testAltClick(rect, property);
-                break;
-        }
-    }
-
-    private void drawRangeProperty(ShaderProperty property, MaterialEditor materialEditor)
-    {
-        int oldIndentLevel = EditorGUI.indentLevel;
-        EditorGUI.indentLevel = property.xOffset * 2 + 1;
-
-        float value = rangeValues[property.materialProperty.name];
-        if (reloadNextDraw) value = property.materialProperty.floatValue;
-        value = EditorGUILayout.Slider(property.style, value, property.materialProperty.rangeLimits.x, property.materialProperty.rangeLimits.y);
-        rangeValues[property.materialProperty.name] = value;
-
-        if (updateMaterialValues) property.materialProperty.floatValue = value;
-
-        EditorGUI.indentLevel = oldIndentLevel;
-    }
-
-    private void drawTextureProperty(ShaderProperty property, MaterialEditor materialEditor)
-    {
-        Event e = Event.current;
-        if (ThryConfig.GetConfig().useBigTextures == false)
-        {
-            int oldIndentLevel = EditorGUI.indentLevel;
-            EditorGUI.indentLevel = property.xOffset * 2 + 1;
-            Rect rect = materialEditor.TexturePropertySingleLine(new GUIContent(property.style.text, "Click here for scale / offset" + (property.style.tooltip != "" ? " | " : "") + property.style.tooltip), property.materialProperty);
-            testAltClick(rect, property);
-            bool showScaleOffset = false;
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
-            {
-                if (showTextureScaleOffset.TryGetValue(property.materialProperty.name, out showScaleOffset))
-                {
-                    showTextureScaleOffset.Remove(property.materialProperty.name);
-                }
-                showScaleOffset = !showScaleOffset;
-                showTextureScaleOffset.Add(property.materialProperty.name, showScaleOffset);
-
-                e.Use();
-            }
-            if (!showTextureScaleOffset.TryGetValue(property.materialProperty.name, out showScaleOffset))
-            {
-                showScaleOffset = false;
-            }
-            if (showScaleOffset) materialEditor.TextureScaleOffsetProperty(property.materialProperty);
-            EditorGUI.indentLevel = oldIndentLevel;
-        }
-        else
-        {
-            Rect rect = GUILayoutUtility.GetRect(property.style, bigTextureStyle);
-            materialEditor.ShaderProperty(rect, property.materialProperty, property.style, property.xOffset * 2 + 1);
-            testAltClick(rect, property);
-        }
-    }
 
     private void testAltClick(Rect rect, ShaderProperty property)
     {
@@ -537,6 +553,7 @@ public class ThryEditor : ShaderGUI
         if (firstOnGUICall || reloadNextDraw)
         {
             currentEditor = materialEditor;
+            currentThryGui = this;
             currentProperties = props;
         }
 
@@ -574,7 +591,7 @@ public class ThryEditor : ShaderGUI
 		//shader properties
 		foreach (ShaderPart part in shaderparts.parts)
 		{
-			drawShaderPart(part, currentEditor);
+            part.Draw();
 		}
 
         //Render Queue selection
@@ -588,7 +605,6 @@ public class ThryEditor : ShaderGUI
         //footer
         drawFooters();
 
-        //Debug.Log(e.type);
         if (updateMaterialValues) lastMaterialValuesUpdateTime = currentTime;
         if (reloadNextDraw) reloadNextDraw = false;
         if (config.useRenderQueueSelection) UpdateRenderQueueInstance(defaultShader);
