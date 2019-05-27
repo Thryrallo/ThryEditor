@@ -92,13 +92,6 @@ public class ThryPresetEditor : EditorWindow
                 presetStrings[presets.Count] = "<New Preset>";
                 GUILayout.BeginHorizontal();
                 int newSelectedPreset = EditorGUILayout.Popup(selectedPreset, presetStrings, GUILayout.MaxWidth(500));
-                if (GUILayout.Button("Delete", GUILayout.MaxWidth(80)))
-                {
-                    presetHandler.removePreset(presetStrings[selectedPreset]);
-                    reloadProperties = true;
-                    Repaint();
-                }
-                GUILayout.EndHorizontal();
                 if (newSelectedPreset != selectedPreset || reloadProperties)
                 {
                     this.selectedPreset = newSelectedPreset;
@@ -106,13 +99,13 @@ public class ThryPresetEditor : EditorWindow
                     {
                         newPreset = true;
                         newPresetName = "<name>";
-                        properties =null;
+                        properties = null;
                     }
                     else
                     {
                         this.properties = presetHandler.getPropertiesOfPreset(presetStrings[selectedPreset]);
                         List<string> unusedProperties = new List<string>();
-                        foreach(string pName in presetHandler.getPropertyNames())
+                        foreach (string pName in presetHandler.getPropertyNames())
                         {
                             bool unused = true;
                             foreach (string[] p in this.properties) if (p[0] == pName) unused = false;
@@ -123,6 +116,13 @@ public class ThryPresetEditor : EditorWindow
                         newPreset = false;
                     }
                 }
+                if (GUILayout.Button("Delete", GUILayout.MaxWidth(80)))
+                {
+                    presetHandler.removePreset(presetStrings[selectedPreset]);
+                    reloadProperties = true;
+                    Repaint();
+                }
+                GUILayout.EndHorizontal();
                 if (newPreset)
                 {
                     GUILayout.BeginHorizontal();

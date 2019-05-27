@@ -186,8 +186,10 @@ public class ThryPresetHandler {
 
     public void removePreset(string presetName)
     {
+        removeFromPresetOptions(presetName);
         presets.Remove(presetName);
         savePresets();
+        ThryEditor.repaint();
     }
 
     public void addNewPreset(string presetName)
@@ -218,15 +220,15 @@ public class ThryPresetHandler {
                     set[1] = "" + p.floatValue;
                     break;
                 case MaterialProperty.PropType.Texture:
-                    if (p.textureValue == null) empty = true;
+                    if (p.textureValue == null || (defaultValues != null && p.textureValue.Equals(defaultValues.GetTexture(Shader.PropertyToID(set[0]))))) empty = true;
                     else set[1] = "" + p.textureValue.name;
                     break;
                 case MaterialProperty.PropType.Vector:
-                    if (defaultValues != null && defaultValues.GetVector(Shader.PropertyToID(set[0])).Equals(p.vectorValue)) empty = true;
+                    if (p.vectorValue ==null || (defaultValues != null && p.vectorValue.Equals(defaultValues.GetVector(Shader.PropertyToID(set[0]))))) empty = true;
                     set[1] = "" + p.vectorValue.x + "," + p.vectorValue.y + "," + p.vectorValue.z + "," + p.vectorValue.w;
                     break;
                 case MaterialProperty.PropType.Color:
-                    if (defaultValues != null && defaultValues.GetColor(Shader.PropertyToID(set[0])).Equals(p.colorValue)) empty = true;
+                    if (p.colorValue ==null || (defaultValues != null && p.colorValue.Equals(defaultValues.GetColor(Shader.PropertyToID(set[0]))))) empty = true;
                     set[1] = "" + p.colorValue.r + "," + p.colorValue.g + "," + p.colorValue.b + "," + p.colorValue.a;
                     break;
             }
@@ -248,6 +250,14 @@ public class ThryPresetHandler {
         newPresetOptions[newPresetOptions.Length - 1] = presetOptions[newPresetOptions.Length - 2];
         newPresetOptions[newPresetOptions.Length - 2] = presetOptions[newPresetOptions.Length - 3];
         newPresetOptions[newPresetOptions.Length - 3] = name;
+        presetOptions = newPresetOptions;
+    }
+
+    private void removeFromPresetOptions(string name)
+    {
+        string[] newPresetOptions = new string[presetOptions.Length - 1];
+        int i = 0;
+        foreach (string p in presetOptions) if (p != name) newPresetOptions[i++] = p;
         presetOptions = newPresetOptions;
     }
 
