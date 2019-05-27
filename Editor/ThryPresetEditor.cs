@@ -9,14 +9,19 @@ public class ThryPresetEditor : EditorWindow
     [MenuItem("Thry/Preset Editor")]
     static void Init()
     {
-        propertyBackground = new GUIStyle();
-        Texture2D bg = new Texture2D(1, 1);
-        bg.SetPixel(1, 1, Color.yellow);
-        propertyBackground.normal.background = bg;
+        setupStyle();
         // Get existing open window or if none, make a new one:
         ThryPresetEditor window = (ThryPresetEditor)EditorWindow.GetWindow(typeof(ThryPresetEditor));
         window.Show();
         window.loadActiveShader();
+    }
+
+    private static void setupStyle()
+    {
+        propertyBackground = new GUIStyle();
+        Texture2D bg = new Texture2D(1, 1);
+        bg.SetPixel(1, 1, Color.yellow);
+        propertyBackground.normal.background = bg;
     }
 
     public static void open()
@@ -63,6 +68,7 @@ public class ThryPresetEditor : EditorWindow
     void OnGUI()
     {
         if (shaders == null) loadShaders();
+        if (propertyBackground == null) setupStyle();
         Shader activeShader = ThrySettings.activeShader;
         int newIndex = EditorGUILayout.Popup(selectedShaderIndex, shaders, GUILayout.MaxWidth(500));
         if (selectedShaderIndex == -1) newIndex = 0;

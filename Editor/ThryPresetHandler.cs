@@ -193,6 +193,7 @@ public class ThryPresetHandler {
     public void addNewPreset(string presetName)
     {
         presets.Add(presetName, new List<string[]>());
+        addToPresetOptions(presetName);
         savePresets();
     }
 
@@ -203,11 +204,12 @@ public class ThryPresetHandler {
         //add to presets list
         List<string[]> sets = new List<string[]>();
 
+        Material defaultValues = new Material(materials[0].shader);
+
         foreach (MaterialProperty p in props)
         {
             string[] set = new string[] { p.name, "" };
             bool empty = false;
-            Material defaultValues = new Material(materials[0].shader);
             switch (p.type)
             {
                 case MaterialProperty.PropType.Float:
@@ -233,15 +235,20 @@ public class ThryPresetHandler {
 
         //fix all preset variables
         presets.Add(name, sets);
-        string[] newPresetOptions = new string[presetOptions.Length + 1];
-        for (int i = 0; i < presetOptions.Length; i++) newPresetOptions[i] = presetOptions[i];
-        newPresetOptions[newPresetOptions.Length - 1] = presetOptions[newPresetOptions.Length - 2];
-        newPresetOptions[newPresetOptions.Length - 2] = name;
-        presetOptions = newPresetOptions;
+        addToPresetOptions(name);
         newPresetName = "Preset Name";
 
         //save all presets into file
         savePresets();
+    }
+
+    private void addToPresetOptions(string name) {
+        string[] newPresetOptions = new string[presetOptions.Length + 1];
+        for (int i = 0; i < presetOptions.Length; i++) newPresetOptions[i] = presetOptions[i];
+        newPresetOptions[newPresetOptions.Length - 1] = presetOptions[newPresetOptions.Length - 2];
+        newPresetOptions[newPresetOptions.Length - 2] = presetOptions[newPresetOptions.Length - 3];
+        newPresetOptions[newPresetOptions.Length - 3] = name;
+        presetOptions = newPresetOptions;
     }
 
     public void setPreset(string presetName, List<string[]> list)
@@ -265,6 +272,7 @@ public class ThryPresetHandler {
 
     public void applyPreset(string presetName, MaterialProperty[] props, Material[] materials)
     {
+        ThryEditor.addUndo("Apply preset: " + presetName);
         List<string[]> sets;
         if (presets.TryGetValue(presetName, out sets))
         {
@@ -276,7 +284,7 @@ public class ThryPresetHandler {
                     if (p.type == MaterialProperty.PropType.Texture)
                     {
                         string[] guids = AssetDatabase.FindAssets(set[1] + " t:Texture", null);
-                        if (guids.Length == 0) Debug.LogError("Couldn't find texture: " + set[1]);
+                        if (guids.Length == 0) Debug.Log("Couldn't find texture: " + set[1]);
                         else
                         {
                             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
@@ -297,13 +305,8 @@ public class ThryPresetHandler {
                     }
                     else if (p.type == MaterialProperty.PropType.Color)
                     {
-                        float[] rgba = new float[4];
-                        string[] rgbaString = set[1].Split(',');
-                        float.TryParse(rgbaString[0], out rgba[0]);
-                        float.TryParse(rgbaString[1], out rgba[1]);
-                        float.TryParse(rgbaString[2], out rgba[2]);
-                        if (rgbaString.Length > 3) float.TryParse(rgbaString[3], out rgba[3]); else rgba[3] = 1;
-                        foreach (Material m in materials) m.SetColor(Shader.PropertyToID(set[0]), new Color(rgba[0], rgba[1], rgba[2], rgba[3]));
+                        Color col = ThryHelper.stringToColor(set[1]);
+                        foreach (Material m in materials) m.SetColor(Shader.PropertyToID(set[0]), col);
                     }
                 }else if (set[0] == "render_queue")
                 {
@@ -315,5 +318,7 @@ public class ThryPresetHandler {
                 }
             }
         }
+        ThryEditor.loadValuesFromMaterial();
+        ThryEditor.repaint();
     }
 }

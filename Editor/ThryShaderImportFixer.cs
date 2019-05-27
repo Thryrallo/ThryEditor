@@ -127,7 +127,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
         reader.Close();
 
         restoring_in_progress = false;
-        ThryHelper.RepaintAllMaterialEditors();
+        ThryEditor.repaint();
     }
 
     public static List<string> scriptImportedAssetPaths = new List<string>();
@@ -153,7 +153,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
                 importedShaderPaths.Add(str);
                 deleteQueueShaders(shader, str);
             }
-            else if (asset != null && asset.name == "ThryEditor") ThryEditor.reload();
+            else if (asset != null && str.ToLower().Contains("ThryEditor")) ThryEditor.reload();
         }
         if (importedShaderPaths.Count == 0) return;
 
@@ -261,7 +261,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
             material.renderQueue = int.Parse(materialData[2]);
             ThryHelper.UpdateRenderQueue(material, shader);
         }
-        ThryHelper.RepaintAllMaterialEditors();
+        ThryEditor.repaint();
 
         reader.Close();
     }

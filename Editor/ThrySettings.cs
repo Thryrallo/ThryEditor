@@ -93,7 +93,7 @@ public class ThrySettings : EditorWindow
         {
             config.useBigTextures = !config.useBigTextures;
             config.save();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
 
         GUILayout.BeginHorizontal();
@@ -105,14 +105,14 @@ public class ThrySettings : EditorWindow
             config.materialValuesUpdateRate = newMaterialValuesUpdateRate;
             config.save();
             ThryEditor.reload();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
 
         if (Toggle(config.useRenderQueueSelection, "Use Render Queue Selection") != config.useRenderQueueSelection)
         {
             config.useRenderQueueSelection = !config.useRenderQueueSelection;
             config.save();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
 
         GUILayout.Label("Extras", EditorStyles.boldLabel);
@@ -121,14 +121,14 @@ public class ThrySettings : EditorWindow
         {
             config.showImportPopup = !config.showImportPopup;
             config.save();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
 
         if (Toggle(config.isVrchatUser, "Use vrchat specific features (Auto Avatar Descriptor)") != config.isVrchatUser)
         {
             config.isVrchatUser = !config.isVrchatUser;
             config.save();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
     }
 

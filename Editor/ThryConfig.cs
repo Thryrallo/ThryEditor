@@ -7,7 +7,7 @@ using UnityEngine;
 public class ThryConfig : MonoBehaviour {
 
     public const string CONFIG_FILE_PATH = "./Assets/.ThryConfig.json";
-    public const string VERSION = "0.3.0";
+    public const string VERSION = "0.3.1";
     private static Config config;
 
 

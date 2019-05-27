@@ -106,7 +106,7 @@ public class ThryEditorChanger : EditorWindow
                 wasEditor[i] = setEditor[i];
             }
             AssetDatabase.Refresh();
-            ThryHelper.RepaintAllMaterialEditors();
+            ThryEditor.repaint();
         }
     }
 

@@ -118,34 +118,10 @@ public class ThryHelper
         {
             if (ed[i].GetType() == t)
             {
-                ed[i].Repaint();
                 return ed[i];
             }
         }
         return null;
-    }
-
-    public static Editor FindEditor(System.Type t)
-    {
-        Editor[] ed = (Editor[])Resources.FindObjectsOfTypeAll<Editor>();
-        for (int i = 0; i < ed.Length; i++)
-        {
-            if (ed[i].GetType() == t)
-            {
-                ed[i].Repaint();
-                return ed[i];
-            }
-        }
-        return null;
-    }
-
-    public static void RepaintAllMaterialEditors()
-    {
-        MaterialEditor[] ed = (MaterialEditor[])Resources.FindObjectsOfTypeAll<MaterialEditor>();
-        for (int i = 0; i < ed.Length; i++)
-        {
-            ed[i].Repaint();
-        }
     }
 
     public static int compareVersions(string v1, string v2)
@@ -170,5 +146,14 @@ public class ThryHelper
         float[] xyzw = new float[4];
         for (int i = 0; i < 4; i++) if (i < split.Length && split[i].Replace(" ","")!="") xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
         return new Vector4(xyzw[0], xyzw[1], xyzw[2], xyzw[3]);
+    }
+
+    public static Color stringToColor(string s)
+    {
+        string[] split = s.Split(",".ToCharArray());
+        float[] rgba = new float[4] { 1, 1, 1, 1 };
+        for (int i = 0; i < split.Length; i++) if (split[i].Replace(" ", "") != "") rgba[i] = float.Parse(split[i]);
+        return new Color(rgba[0], rgba[1], rgba[2], rgba[3]);
+
     }
 }

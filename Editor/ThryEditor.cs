@@ -39,9 +39,13 @@ public class ThryEditor : ShaderGUI
 
     private bool isMouseClick = false;
 
-    private static bool firstOnGUICall = true;
+    private static bool reloadNextDraw = false;
+    private bool firstOnGUICall = true;
 
     private Material[] materials;
+
+    private static MaterialEditor currentEditor;
+    private static MaterialProperty[] currentProperties;
 
     private Shader shader;
     private Shader defaultShader;
@@ -344,6 +348,7 @@ public class ThryEditor : ShaderGUI
         EditorGUI.indentLevel = property.xOffset * 2 + 1;
 
         float value = rangeValues[property.materialProperty.name];
+        if (reloadNextDraw) value = property.materialProperty.floatValue;
         value = EditorGUILayout.Slider(property.style, value, property.materialProperty.rangeLimits.x, property.materialProperty.rangeLimits.y);
         rangeValues[property.materialProperty.name] = value;
 
@@ -477,6 +482,11 @@ public class ThryEditor : ShaderGUI
     {
         ThryConfig.Config config = ThryConfig.GetConfig();
 
+        //get material targets
+        Object[] targets = materialEditor.targets;
+        materials = new Material[targets.Length];
+        for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
+
         //collect shader properties
         CollectAllProperties(props, materialEditor);
 
@@ -524,6 +534,12 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
+        if (firstOnGUICall || reloadNextDraw)
+        {
+            currentEditor = materialEditor;
+            currentProperties = props;
+        }
+
         currentTime = System.DateTime.Now.Ticks;
         updateMaterialValues = currentTime - lastMaterialValuesUpdateTime > material_value_update_rate;
 
@@ -532,18 +548,13 @@ public class ThryEditor : ShaderGUI
         if (e.type == EventType.MouseDown) isMouseClick = true;
         else if (e.type == EventType.MouseUp) updateMaterialValues = true;
 
-        //get material targets
-        Object[] targets = materialEditor.targets;
-        materials = new Material[targets.Length];
-        for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
+        //first time call inits
+        if (firstOnGUICall || reloadNextDraw) OnOpen(currentEditor, currentProperties);
 
         //sync shader and get preset handler
         ThryConfig.Config config = ThryConfig.GetConfig();
         ThrySettings.setActiveShader(materials[0].shader);
         presetHandler = ThrySettings.presetHandler;
-
-        //first time call inits
-        if (firstOnGUICall) OnOpen(materialEditor,props);
 
 
         //editor settings button + shader name + presets
@@ -557,13 +568,13 @@ public class ThryEditor : ShaderGUI
         //draw master label if exists
 		if (masterLabelText != null) DrawMasterLabel(masterLabelText);
         //draw presets if exists
-		presetHandler.drawPresets(props, materials);
+		presetHandler.drawPresets(currentProperties, materials);
 		EditorGUILayout.EndHorizontal();
 
 		//shader properties
 		foreach (ShaderPart part in shaderparts.parts)
 		{
-			drawShaderPart(part, materialEditor);
+			drawShaderPart(part, currentEditor);
 		}
 
         //Render Queue selection
@@ -579,13 +590,94 @@ public class ThryEditor : ShaderGUI
 
         //Debug.Log(e.type);
         if (updateMaterialValues) lastMaterialValuesUpdateTime = currentTime;
+        if (reloadNextDraw) reloadNextDraw = false;
         if (config.useRenderQueueSelection) UpdateRenderQueueInstance(defaultShader);
         if (e.type == EventType.Repaint) isMouseClick = false;
     }
 
     public static void reload()
     {
-        firstOnGUICall = true;
+        reloadNextDraw = true;
+    }
+
+    public static void loadValuesFromMaterial()
+    {
+        if (currentEditor != null)
+        {
+            try
+            {
+                Material m = ((Material)currentEditor.target);
+                foreach (MaterialProperty property in currentProperties)
+                {
+                    switch (property.type)
+                    {
+                        case MaterialProperty.PropType.Float:
+                        case MaterialProperty.PropType.Range:
+                            property.floatValue = m.GetFloat(property.name);
+                            break;
+                        case MaterialProperty.PropType.Texture:
+                            property.textureValue = m.GetTexture(property.name);
+                            break;
+                        case MaterialProperty.PropType.Color:
+                            property.colorValue = m.GetColor(property.name);
+                            break;
+                        case MaterialProperty.PropType.Vector:
+                            property.vectorValue = m.GetVector(property.name);
+                            break;
+                    }
+
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log(e.ToString());
+            }
+        }
+    }
+
+    public static void propertiesChanged()
+    {
+        if (currentEditor != null)
+        {
+            try
+            {
+                currentEditor.PropertiesChanged();
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log(e.ToString());
+            }
+        }
+    }
+
+    public static void addUndo(string label)
+    {
+        if (currentEditor != null)
+        {
+            try
+            {
+                currentEditor.RegisterPropertyChangeUndo(label);
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log(e.ToString());
+            }
+        }
+    }
+
+    public static void repaint()
+    {
+        if (currentEditor != null)
+        {
+            try
+            {
+                currentEditor.Repaint();
+            }
+            catch(System.Exception e)
+            {
+                Debug.Log(e.ToString());
+            }
+        }
     }
 
     //----------Static Helper Functions
