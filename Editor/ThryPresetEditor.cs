@@ -6,7 +6,7 @@ using UnityEngine;
 public class ThryPresetEditor : EditorWindow
 {
     // Add menu named "My Window" to the Window menu
-    [MenuItem("Thry/Preset Editor")]
+    [MenuItem("Thry/Editor Tools/Preset Editor")]
     static void Init()
     {
         setupStyle();

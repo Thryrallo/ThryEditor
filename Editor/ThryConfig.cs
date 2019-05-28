@@ -7,7 +7,7 @@ using UnityEngine;
 public class ThryConfig : MonoBehaviour {
 
     public const string CONFIG_FILE_PATH = "./Assets/.ThryConfig.json";
-    public const string VERSION = "0.4.2";
+    public const string VERSION = "0.5.0";
     private static Config config;
 
 
@@ -34,8 +34,13 @@ public class ThryConfig : MonoBehaviour {
     public class Config
     {
         public bool useBigTextures = false;
-        public bool useRenderQueueSelection = true;
-        public bool isVrchatUser = false;
+        public bool showRenderQueue = true;
+        public bool renderQueueShaders = true;
+
+        public bool vrchatAutoFillAvatarDescriptor = false;
+        public int vrchatDefaultAnimationSetFallback = 2;
+        public bool vrchatForceFallbackAnimationSet = false;
+
         public bool showImportPopup = false;
         public int materialValuesUpdateRate = 200;
         public string verion = "0";

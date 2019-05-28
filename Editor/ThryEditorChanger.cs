@@ -7,7 +7,7 @@ using UnityEngine;
 public class ThryEditorChanger : EditorWindow
 {
     // Add menu named "My Window" to the Window menu
-    [MenuItem("Thry/Use Thry Editor for other shaders")]
+    [MenuItem("Thry/Editor Tools/Use Thry Editor for other shaders")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:

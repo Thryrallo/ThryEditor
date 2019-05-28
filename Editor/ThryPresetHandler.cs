@@ -216,19 +216,19 @@ public class ThryPresetHandler {
             {
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
-                    if (defaultValues != null && defaultValues.GetFloat(Shader.PropertyToID(set[0]))== p.floatValue) empty = true;
+                    if (defaultValues.GetFloat(Shader.PropertyToID(set[0]))== p.floatValue) empty = true;
                     set[1] = "" + p.floatValue;
                     break;
                 case MaterialProperty.PropType.Texture:
-                    if (p.textureValue == null || (defaultValues != null && p.textureValue.Equals(defaultValues.GetTexture(Shader.PropertyToID(set[0]))))) empty = true;
+                    if (p.textureValue == null || p.textureValue.Equals(defaultValues.GetTexture(Shader.PropertyToID(set[0])))) empty = true;
                     else set[1] = "" + p.textureValue.name;
                     break;
                 case MaterialProperty.PropType.Vector:
-                    if (p.vectorValue ==null || (defaultValues != null && p.vectorValue.Equals(defaultValues.GetVector(Shader.PropertyToID(set[0]))))) empty = true;
+                    if (p.vectorValue.Equals(defaultValues.GetVector(Shader.PropertyToID(set[0])))) empty = true;
                     set[1] = "" + p.vectorValue.x + "," + p.vectorValue.y + "," + p.vectorValue.z + "," + p.vectorValue.w;
                     break;
                 case MaterialProperty.PropType.Color:
-                    if (p.colorValue ==null || (defaultValues != null && p.colorValue.Equals(defaultValues.GetColor(Shader.PropertyToID(set[0]))))) empty = true;
+                    if (p.colorValue.Equals(defaultValues.GetColor(Shader.PropertyToID(set[0])))) empty = true;
                     set[1] = "" + p.colorValue.r + "," + p.colorValue.g + "," + p.colorValue.b + "," + p.colorValue.a;
                     break;
             }

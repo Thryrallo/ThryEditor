@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 public class ThryShaderImportFixer : AssetPostprocessor
 {
-    [MenuItem("Thry/Backup Materials")]
+    [MenuItem("Thry/Tools/Backup Materials")]
     static void Init()
     {
         backupAllMaterials();
@@ -21,7 +21,7 @@ public class ThryShaderImportFixer : AssetPostprocessor
 
     private class ThryShaderImportFixerGui : EditorWindow
     {
-        [MenuItem("Thry/Restore All Materials")]
+        [MenuItem("Thry/Tools/Restore All Materials")]
         static void Init()
         {
             fixAllMaterials();

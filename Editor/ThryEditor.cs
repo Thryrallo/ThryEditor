@@ -17,6 +17,7 @@ public class ThryEditor : ShaderGUI
     private ShaderHeader shaderparts; //stores headers and properties in correct order
 	private GUIStyle m_sectionStyle;
     private GUIStyle bigTextureStyle;
+    private GUIStyle vectorPropertyStyle;
     private Texture2D settingsTexture;
 
     private string masterLabelText = null;
@@ -285,6 +286,13 @@ public class ThryEditor : ShaderGUI
         {
 
         }
+
+        public override void Draw()
+        {
+            Rect rect = GUILayoutUtility.GetRect(this.style, currentThryGui.vectorPropertyStyle);
+            currentEditor.ShaderProperty(rect, this.materialProperty, this.style, this.xOffset * 2 + 1);
+            currentThryGui.testAltClick(rect, this);
+        }
     }
 
     //-------------Init functions--------------------
@@ -320,6 +328,7 @@ public class ThryEditor : ShaderGUI
                 if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
                 {
                     headerCount++;
+                    offset = extraOffset + headerCount;
                     ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, displayName, offset, onHover,altClick);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
@@ -366,6 +375,9 @@ public class ThryEditor : ShaderGUI
 
         bigTextureStyle = new GUIStyle();
         bigTextureStyle.fixedHeight = 65;
+
+        vectorPropertyStyle = new GUIStyle();
+        vectorPropertyStyle.padding = new RectOffset(0, 0, 2, 2);
 	}
 
 	private void ToggleDefine(Material mat, string define, bool state)
@@ -524,7 +536,7 @@ public class ThryEditor : ShaderGUI
         this.defaultShader = Shader.Find(defaultShaderName);
 
         //update render queue if render queue selection is deactivated
-        if (!config.useRenderQueueSelection)
+        if (!config.renderQueueShaders && !config.showRenderQueue)
         {
             materials[0].renderQueue = defaultShader.renderQueue;
             UpdateRenderQueueInstance(defaultShader);
@@ -563,7 +575,7 @@ public class ThryEditor : ShaderGUI
         //handle events
         Event e = Event.current;
         if (e.type == EventType.MouseDown) isMouseClick = true;
-        else if (e.type == EventType.MouseUp) updateMaterialValues = true;
+        else if (e.type == EventType.MouseUp || (e.type == EventType.MouseDrag && e.mousePosition.x<0.33*Screen.width)) updateMaterialValues = true;
 
         //first time call inits
         if (firstOnGUICall || reloadNextDraw) OnOpen(currentEditor, currentProperties);
@@ -595,11 +607,14 @@ public class ThryEditor : ShaderGUI
 		}
 
         //Render Queue selection
-        if (config.useRenderQueueSelection)
+        if (config.showRenderQueue)
         {
-            drawRenderQueueSelector(defaultShader);
-            EditorGUILayout.LabelField("Default: " + defaultShader.name);
-            EditorGUILayout.LabelField("Shader: " + shader.name);
+            if (config.renderQueueShaders)
+            {
+                drawRenderQueueSelector(defaultShader);
+                EditorGUILayout.LabelField("Default: " + defaultShader.name);
+                EditorGUILayout.LabelField("Shader: " + shader.name);
+            }
         }
 
         //footer
@@ -607,7 +622,7 @@ public class ThryEditor : ShaderGUI
 
         if (updateMaterialValues) lastMaterialValuesUpdateTime = currentTime;
         if (reloadNextDraw) reloadNextDraw = false;
-        if (config.useRenderQueueSelection) UpdateRenderQueueInstance(defaultShader);
+        if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance(defaultShader);
         if (e.type == EventType.Repaint) isMouseClick = false;
     }
 

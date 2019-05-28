@@ -1,12 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
 public class ThrySettings : EditorWindow
 {
     // Add menu named "My Window" to the Window menu
-    [MenuItem("Thry/Editor Settings")]
+    [MenuItem("Thry/Settings")]
     static void Init()
     {
         // Get existing open window or if none, make a new one:
@@ -80,6 +81,8 @@ public class ThrySettings : EditorWindow
         redInfostyle.normal.textColor = Color.red;
         redInfostyle.fontSize = 16;
 
+        GUIStyle normal = new GUIStyle();
+
         if (isFirstPopop)
             GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
         else if (updatedVersion==-1)
@@ -88,6 +91,29 @@ public class ThrySettings : EditorWindow
             GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
 
         drawLine();
+
+        bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
+        bool vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
+
+        if (hasVRCSdk)
+        {
+            //VRC.AccountEditorWindow window = (VRC.AccountEditorWindow)EditorWindow.GetWindow(typeof(VRC.AccountEditorWindow));
+            //window.Show();
+
+            EditorGUILayout.BeginHorizontal();
+
+            if (vrcIsLoggedIn)
+            {
+                GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
+            }
+            else
+            {
+                //GUILayout.Label("Not logged in", GUILayout.ExpandWidth(false));
+            }
+            EditorGUILayout.EndHorizontal();
+
+            drawLine();
+        }
 
         GUILayout.Label("Editor", EditorStyles.boldLabel);
 
@@ -110,15 +136,14 @@ public class ThrySettings : EditorWindow
             ThryEditor.repaint();
         }
 
-        if (Toggle(config.useRenderQueueSelection, "Use Render Queue Selection" ,"enable a render queue selector that works with vrchat by creating seperate shaders for the different queues") != config.useRenderQueueSelection)
+        if (Toggle(config.showRenderQueue, "Use Render Queue" ,"enable a render queue selector") != config.showRenderQueue)
         {
-            config.useRenderQueueSelection = !config.useRenderQueueSelection;
+            config.showRenderQueue = !config.showRenderQueue;
             config.save();
             ThryEditor.repaint();
         }
 
         drawLine();
-
         GUILayout.Label("Extras", EditorStyles.boldLabel);
 
         if (Toggle(config.showImportPopup, "Show popup on shader import", "This popup gives you the option to try to restore materials if they broke on importing") != config.showImportPopup)
@@ -128,14 +153,45 @@ public class ThrySettings : EditorWindow
             ThryEditor.repaint();
         }
 
-        if (Toggle(config.isVrchatUser, "Use vrchat specific features", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject") != config.isVrchatUser)
-        {
-            config.isVrchatUser = !config.isVrchatUser;
-            config.save();
-            ThryEditor.repaint();
-        }
+        if (config.showRenderQueue)
+            if (Toggle(config.renderQueueShaders, "Render Queue Shaders", "Have the render queue selector work with vrchat by creating seperate shaders for the different queues") != config.renderQueueShaders)
+            {
+                config.renderQueueShaders = !config.renderQueueShaders;
+                config.save();
+                ThryEditor.repaint();
+            }
 
         drawLine();
+
+        if (hasVRCSdk)
+        {
+            GUILayout.Label("VRChat features", EditorStyles.boldLabel);
+
+            if (Toggle(config.vrchatAutoFillAvatarDescriptor, "Auto setup avatar descriptor", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject") != config.vrchatAutoFillAvatarDescriptor)
+            {
+                config.vrchatAutoFillAvatarDescriptor = !config.vrchatAutoFillAvatarDescriptor;
+                config.save();
+            }
+
+            string[] options = new string[] { "Male", "Female", "None" };
+            GUILayout.BeginHorizontal();
+            int newVRCFallbackAnimationSet = EditorGUILayout.Popup(config.vrchatDefaultAnimationSetFallback, options, GUILayout.MaxWidth(45));
+            if (newVRCFallbackAnimationSet != config.vrchatDefaultAnimationSetFallback)
+            {
+                config.vrchatDefaultAnimationSetFallback = newVRCFallbackAnimationSet;
+                config.save();
+            }
+            GUILayout.Label(new GUIContent(" Fallback Default Animation Set", "is applied by auto avatar descriptor if gender of avatar couldn't be determend"), normal);
+            GUILayout.EndHorizontal();
+
+            if (Toggle(config.vrchatForceFallbackAnimationSet, "Force Fallback Default Animation Set", "always set default animation set as fallback set") != config.vrchatForceFallbackAnimationSet)
+            {
+                config.vrchatForceFallbackAnimationSet = !config.vrchatForceFallbackAnimationSet;
+                config.save();
+            }
+
+            drawLine();
+        }
     }
 
     private static bool Toggle(bool val, string text)
