@@ -256,10 +256,14 @@ public class ThryEditor : ShaderGUI
             EditorGUI.indentLevel = xOffset * 2 + 1;
 
             if (reloadNextDraw) value = materialProperty.floatValue;
-            value = EditorGUILayout.Slider(style, value, materialProperty.rangeLimits.x, materialProperty.rangeLimits.y);
+            if(materialProperty.hasMixedValue) currentEditor.ShaderProperty(this.materialProperty, this.style, this.xOffset * 2 + 1);
+            else value = EditorGUILayout.Slider(style, value, materialProperty.rangeLimits.x, materialProperty.rangeLimits.y);
 
-            if (currentThryGui.updateMaterialValues) materialProperty.floatValue = value;
-
+            if (currentThryGui.updateMaterialValues && materialProperty.floatValue != value)
+            {
+                materialProperty.floatValue = value;
+            }
+            
             EditorGUI.indentLevel = oldIndentLevel;
         }
     }
