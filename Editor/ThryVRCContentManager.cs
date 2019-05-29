@@ -20,7 +20,7 @@ namespace Thry
             window.Show();
         }
 
-        const int PageLimit = 20;
+        const int PageLimit = 100;
 
         static List<ApiAvatar> uploadedAvatars = null;
         static List<ApiWorld> uploadedWorlds = null;
@@ -238,6 +238,20 @@ namespace Thry
             EditorCoroutine.Start(VRCCachedWWW.Get(url, onDone));
         }
 
+        private class sortByUploadDateHelper : IComparer<ApiAvatar>
+        {
+            public int Compare(ApiAvatar a1, ApiAvatar a2)
+            {
+                if (a1.updated_at < a2.updated_at) return 1;
+                else if (a1.updated_at > a2.updated_at) return -1;
+                return 0;
+            }
+        }
+        private static IComparer<ApiAvatar> sortByUploadDate()
+        {
+            return new sortByUploadDateHelper();
+        }
+
         Vector2 scrollPos;
 
         bool OnGUIUserInfo()
@@ -247,8 +261,8 @@ namespace Thry
 
             if (APIUser.IsLoggedInWithCredentials && uploadedWorlds != null && uploadedAvatars != null)
             {
-                EditorGUILayout.LabelField(string.Format(fetchingWorlds != null ? "Fetching Worlds... {0}" : "{0} Worlds", uploadedWorlds.Count.ToString()), EditorStyles.helpBox);
                 EditorGUILayout.LabelField(string.Format(fetchingAvatars != null ? "Fetching Avatars... {0}" : "{0} Avatars", uploadedAvatars.Count.ToString()), EditorStyles.helpBox);
+                EditorGUILayout.LabelField(string.Format(fetchingWorlds != null ? "Fetching Worlds... {0}" : "{0} Worlds", uploadedWorlds.Count.ToString()), EditorStyles.helpBox);
 
                 scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
                 GUIStyle descriptionStyle = new GUIStyle(EditorStyles.wordWrappedLabel);
@@ -256,97 +270,7 @@ namespace Thry
 
                 int divideDescriptionWidth = (position.width > MAX_REDUCED_INFORMATION_WIDTH) ? 1 : 2;
 
-                if (uploadedWorlds.Count > 0)
-                {
-                    EditorGUILayout.Space();
-
-                    EditorGUILayout.LabelField("WORLDS", EditorStyles.boldLabel);
-                    EditorGUILayout.Space();
-                    EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                    EditorGUILayout.LabelField("Name", EditorStyles.boldLabel, GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
-                    EditorGUILayout.LabelField("Image", EditorStyles.boldLabel, GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH));
-                    EditorGUILayout.LabelField("Release Status", EditorStyles.boldLabel, GUILayout.Width(WORLD_RELEASE_STATUS_FIELD_WIDTH));
-                    EditorGUILayout.EndHorizontal();
-
-                    List<ApiWorld> tmpWorlds = new List<ApiWorld>();
-
-                    if (uploadedWorlds.Count > 0)
-                        tmpWorlds = new List<ApiWorld>(uploadedWorlds);
-
-                    foreach (ApiWorld w in tmpWorlds)
-                    {
-                        if (justDeletedContents != null && justDeletedContents.Contains(w.id))
-                        {
-                            uploadedWorlds.Remove(w);
-                            continue;
-                        }
-
-                        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                        EditorGUILayout.BeginHorizontal(GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
-
-                        EditorGUILayout.LabelField(w.name, descriptionStyle, GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
-                        if (ImageCache.ContainsKey(w.id))
-                        {
-                            if (GUILayout.Button(ImageCache[w.id], GUILayout.Height(100), GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH)))
-                            {
-                                Application.OpenURL(w.imageUrl);
-                            }
-                        }
-                        else
-                        {
-                            if (GUILayout.Button("", GUILayout.Height(100), GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH)))
-                            {
-                                Application.OpenURL(w.imageUrl);
-                            }
-                        }
-
-                        if (position.width > MAX_ALL_INFORMATION_WIDTH)
-                            EditorGUILayout.BeginHorizontal();
-                        else
-                            EditorGUILayout.BeginVertical();
-
-                        EditorGUILayout.LabelField(w.releaseStatus, GUILayout.Width(WORLD_RELEASE_STATUS_FIELD_WIDTH));
-                        if (GUILayout.Button("Copy ID", GUILayout.Width(COPY_WORLD_ID_BUTTON_WIDTH)))
-                        {
-                            TextEditor te = new TextEditor();
-                            te.text = w.id;
-                            te.SelectAll();
-                            te.Copy();
-                        }
-                        if (GUILayout.Button("Delete", GUILayout.Width(DELETE_WORLD_BUTTON_WIDTH)))
-                        {
-                            if (EditorUtility.DisplayDialog("Delete " + w.name + "?", "Are you sure you want to delete " + w.name + "? This cannot be undone.", "Delete", "Cancel"))
-                            {
-                                foreach (VRC.Core.PipelineManager pm in FindObjectsOfType<VRC.Core.PipelineManager>().Where(pm => pm.blueprintId == w.id))
-                                {
-                                    pm.blueprintId = "";
-                                    pm.completedSDKPipeline = false;
-
-                                    UnityEditor.EditorUtility.SetDirty(pm);
-                                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(pm.gameObject.scene);
-                                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(pm.gameObject.scene);
-                                }
-
-                                API.Delete<ApiWorld>(w.id);
-                                uploadedWorlds.RemoveAll(world => world.id == w.id);
-                                if (ImageCache.ContainsKey(w.id))
-                                    ImageCache.Remove(w.id);
-
-                                if (justDeletedContents == null) justDeletedContents = new List<string>();
-                                justDeletedContents.Add(w.id);
-                            }
-                        }
-                        if (position.width > MAX_ALL_INFORMATION_WIDTH)
-                            EditorGUILayout.EndHorizontal();
-                        else
-                            EditorGUILayout.EndVertical();
-                        EditorGUILayout.EndHorizontal();
-                        EditorGUILayout.EndHorizontal();
-                        EditorGUILayout.Space();
-                    }
-
-                }
-
+                //--paint avatar list--
                 if (uploadedAvatars.Count > 0)
                 {
                     EditorGUILayout.Space();
@@ -373,6 +297,8 @@ namespace Thry
                                 tmpAvatars[index] = a;
                         }
                     }
+
+                    tmpAvatars.Sort(sortByUploadDate());
 
                     foreach (ApiAvatar a in tmpAvatars)
                     {
@@ -466,6 +392,98 @@ namespace Thry
                         EditorGUILayout.EndHorizontal();
                         EditorGUILayout.Space();
                     }
+                }
+
+                //--paint worlds list--
+                if (uploadedWorlds.Count > 0)
+                {
+                    EditorGUILayout.Space();
+
+                    EditorGUILayout.LabelField("WORLDS", EditorStyles.boldLabel);
+                    EditorGUILayout.Space();
+                    EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                    EditorGUILayout.LabelField("Name", EditorStyles.boldLabel, GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
+                    EditorGUILayout.LabelField("Image", EditorStyles.boldLabel, GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH));
+                    EditorGUILayout.LabelField("Release Status", EditorStyles.boldLabel, GUILayout.Width(WORLD_RELEASE_STATUS_FIELD_WIDTH));
+                    EditorGUILayout.EndHorizontal();
+
+                    List<ApiWorld> tmpWorlds = new List<ApiWorld>();
+
+                    if (uploadedWorlds.Count > 0)
+                        tmpWorlds = new List<ApiWorld>(uploadedWorlds);
+
+                    foreach (ApiWorld w in tmpWorlds)
+                    {
+                        if (justDeletedContents != null && justDeletedContents.Contains(w.id))
+                        {
+                            uploadedWorlds.Remove(w);
+                            continue;
+                        }
+
+                        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                        EditorGUILayout.BeginHorizontal(GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
+
+                        EditorGUILayout.LabelField(w.name, descriptionStyle, GUILayout.Width(WORLD_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
+                        if (ImageCache.ContainsKey(w.id))
+                        {
+                            if (GUILayout.Button(ImageCache[w.id], GUILayout.Height(100), GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH)))
+                            {
+                                Application.OpenURL(w.imageUrl);
+                            }
+                        }
+                        else
+                        {
+                            if (GUILayout.Button("", GUILayout.Height(100), GUILayout.Width(WORLD_IMAGE_BUTTON_WIDTH)))
+                            {
+                                Application.OpenURL(w.imageUrl);
+                            }
+                        }
+
+                        if (position.width > MAX_ALL_INFORMATION_WIDTH)
+                            EditorGUILayout.BeginHorizontal();
+                        else
+                            EditorGUILayout.BeginVertical();
+
+                        EditorGUILayout.LabelField(w.releaseStatus, GUILayout.Width(WORLD_RELEASE_STATUS_FIELD_WIDTH));
+                        if (GUILayout.Button("Copy ID", GUILayout.Width(COPY_WORLD_ID_BUTTON_WIDTH)))
+                        {
+                            TextEditor te = new TextEditor();
+                            te.text = w.id;
+                            te.SelectAll();
+                            te.Copy();
+                        }
+                        if (GUILayout.Button("Delete", GUILayout.Width(DELETE_WORLD_BUTTON_WIDTH)))
+                        {
+                            if (EditorUtility.DisplayDialog("Delete " + w.name + "?", "Are you sure you want to delete " + w.name + "? This cannot be undone.", "Delete", "Cancel"))
+                            {
+                                foreach (VRC.Core.PipelineManager pm in FindObjectsOfType<VRC.Core.PipelineManager>().Where(pm => pm.blueprintId == w.id))
+                                {
+                                    pm.blueprintId = "";
+                                    pm.completedSDKPipeline = false;
+
+                                    UnityEditor.EditorUtility.SetDirty(pm);
+                                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(pm.gameObject.scene);
+                                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(pm.gameObject.scene);
+                                }
+
+                                API.Delete<ApiWorld>(w.id);
+                                uploadedWorlds.RemoveAll(world => world.id == w.id);
+                                if (ImageCache.ContainsKey(w.id))
+                                    ImageCache.Remove(w.id);
+
+                                if (justDeletedContents == null) justDeletedContents = new List<string>();
+                                justDeletedContents.Add(w.id);
+                            }
+                        }
+                        if (position.width > MAX_ALL_INFORMATION_WIDTH)
+                            EditorGUILayout.EndHorizontal();
+                        else
+                            EditorGUILayout.EndVertical();
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.Space();
+                    }
+
                 }
 
                 EditorGUILayout.EndScrollView();
