@@ -95,6 +95,13 @@ public class ThrySettings : EditorWindow
         bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
         bool vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
 
+        string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+            BuildTargetGroup.Standalone);
+        if (hasVRCSdk && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                      BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
+        else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+             BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS",""));
+
         if (hasVRCSdk)
         {
             //VRC.AccountEditorWindow window = (VRC.AccountEditorWindow)EditorWindow.GetWindow(typeof(VRC.AccountEditorWindow));

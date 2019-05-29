@@ -1,9 +1,9 @@
-﻿using System;
+﻿#if VRC_SDK_EXISTS
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Security;
-using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using UnityEditor;
 using UnityEngine;
@@ -13,52 +13,21 @@ public class AutoAvatarDescriptor : MonoBehaviour
 {
 
     private static string[] BLEND_SHAPE_NAMES = new string[] { "sil", "pp", "ff", "th", "dd", "kk", "ch", "ss", "nn", "rr", "aa", "e", "ih", "oh", "ou" };
-    private static Type avatarDescriptorType;
-    private static bool hasVRCSdk = false;
 
-    private enum AnimationSet { Male = 0, Female = 1, None = 2 };
-    private enum LipSyncStyle { Default = 0, JawFlapBone = 1, JawFlapBlendShape = 2, VisemeBlendShape = 3 };
-
-    private static FieldInfo viewPointPosInfo;
-    private static FieldInfo animationSetInfo;
-    private static FieldInfo lipSyncInfo;
-    private static FieldInfo visemeMeshInfo;
-    private static FieldInfo visemeBlendShapesInfo;
-
-    [MenuItem("Thry/VRC/Auto setup Avatar Descriptor")]
+    [MenuItem("Thry/Auto setup Avatar Descriptor")]
     static void Init()
     {
-        Debug.Log("has sdk: "+hasVRCSdk);
-        if (hasVRCSdk)
+        GameObject parent = Selection.activeGameObject;
+        if (parent == null) return;
+        VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
+        if (descriptor != null)
         {
-            GameObject parent = Selection.activeGameObject;
-            if (parent == null) return;
-            var descriptor = parent.GetComponent(avatarDescriptorType);
-            if (descriptor != null)
-            {
-                autoFillDescriptor(parent, descriptor);
-            }
-            else
-            {
-                parent.AddComponent(avatarDescriptorType);
-                Init();
-            }
+            autoFillDescriptor(parent, descriptor);
         }
-    }
-
-    [InitializeOnLoad]
-    public class Startup
-    {
-        static Startup()
+        else
         {
-            avatarDescriptorType = Type.GetType("VRCSDK2.VRC_AvatarDescriptor, VRCSDK2");
-            hasVRCSdk = avatarDescriptorType != null;
-            if (!hasVRCSdk) return;
-            viewPointPosInfo = avatarDescriptorType.GetField("ViewPosition");
-            animationSetInfo = avatarDescriptorType.GetField("Animations");
-            lipSyncInfo = avatarDescriptorType.GetField("lipSync");
-            visemeMeshInfo = avatarDescriptorType.GetField("VisemeSkinnedMesh");
-            visemeBlendShapesInfo = avatarDescriptorType.GetField("VisemeBlendShapes");
+            if (parent != null) parent.AddComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
+            Init();
         }
     }
 
@@ -78,36 +47,29 @@ public class AutoAvatarDescriptor : MonoBehaviour
 
     static void OnHierarchyChange()
     {
-        if (hasVRCSdk)
+        if (ThryConfig.GetConfig().vrchatAutoFillAvatarDescriptor)
         {
-            if (ThryConfig.GetConfig().vrchatAutoFillAvatarDescriptor)
+            GameObject parent = Selection.activeGameObject;
+            if (parent == null) return;
+            VRCSDK2.VRC_AvatarDescriptor descriptor = (VRCSDK2.VRC_AvatarDescriptor)parent.GetComponent(typeof(VRCSDK2.VRC_AvatarDescriptor));
+            if (descriptor != null)
             {
-                GameObject parent = Selection.activeGameObject;
-                if (parent == null) return;
-                var descriptor = parent.GetComponent(avatarDescriptorType);
-                if (descriptor != null)
-                {
-                    Vector3 ViewPosition = (Vector3)viewPointPosInfo.GetValue(descriptor);
-                    if (ViewPosition.Equals(new Vector3(0, (float)1.6, (float)0.2)))
-                        autoFillDescriptor(parent, descriptor);
-                }
+                if (descriptor.ViewPosition.Equals(new Vector3(0, (float)1.6, (float)0.2)))
+                    autoFillDescriptor(parent, descriptor);
             }
         }
     }
 
-    private static void autoFillDescriptor(GameObject parent, Component descriptor)
+    private static void autoFillDescriptor(GameObject parent, VRCSDK2.VRC_AvatarDescriptor descriptor)
     {
-        //set the viewpoint
         List<GameObject> eyeObjects = searchGameObjectsByName(parent, "eye");
         Vector3 viewPointPos = new Vector3();
         foreach (GameObject eyeO in eyeObjects) viewPointPos = vectorAddWeightedVector(viewPointPos, eyeO.transform.position, 1.0 / eyeObjects.Count);
         viewPointPos = vectorAddWeightedVector(viewPointPos, parent.transform.position, -1);
-        viewPointPosInfo.SetValue(descriptor, viewPointPos);
-        SkinnedMeshRenderer visemeMesh = (SkinnedMeshRenderer)visemeMeshInfo.GetValue(descriptor);
-        string[] vismeBlendShapes;
+        descriptor.ViewPosition = viewPointPos;
 
-        //set the default aniamtion set
         ThryConfig.Config config = ThryConfig.GetConfig();
+
         if (!config.vrchatForceFallbackAnimationSet)
         {
             int probabilityFemale = 0;
@@ -127,18 +89,16 @@ public class AutoAvatarDescriptor : MonoBehaviour
                             break;
                     }
             }
-            
-            if (probabilityFemale > probabilityMale) setIntEnum(descriptor,animationSetInfo,AnimationSet.Female);
-            else if (probabilityFemale < probabilityMale) setIntEnum(descriptor, animationSetInfo, AnimationSet.Male);
-            else setIntEnum(descriptor, animationSetInfo, config.vrchatDefaultAnimationSetFallback);
+            if (probabilityFemale > probabilityMale) descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Female;
+            else if (probabilityFemale < probabilityMale) descriptor.Animations = VRCSDK2.VRC_AvatarDescriptor.AnimationSet.Male;
+            else descriptor.Animations = (VRCSDK2.VRC_AvatarDescriptor.AnimationSet)config.vrchatDefaultAnimationSetFallback;
         }
         else
         {
-            setIntEnum(descriptor, animationSetInfo, config.vrchatDefaultAnimationSetFallback);
+            descriptor.Animations = (VRCSDK2.VRC_AvatarDescriptor.AnimationSet)config.vrchatDefaultAnimationSetFallback;
         }
 
-        //set the viseme mesh
-        if (visemeMesh == null)
+        if (descriptor.VisemeSkinnedMesh == null)
         {
             SkinnedMeshRenderer body = null;
             SkinnedMeshRenderer head = null;
@@ -149,17 +109,14 @@ public class AutoAvatarDescriptor : MonoBehaviour
                 if (skinnedMeshRenderer != null && (child.name.ToLower() == "head" || child.name.ToLower() == "face")) head = skinnedMeshRenderer;
 
             }
-            if (head != null | body != null) setIntEnum(descriptor, lipSyncInfo, LipSyncStyle.VisemeBlendShape);
-            if (head != null) visemeMeshInfo.SetValue(descriptor, head);
-            else if (body != null) visemeMeshInfo.SetValue(descriptor, body);
-            visemeBlendShapesInfo.SetValue(descriptor, new string[15]);
+            if (head != null | body != null) descriptor.lipSync = VRCSDK2.VRC_AvatarDescriptor.LipSyncStyle.VisemeBlendShape;
+            if (head != null) descriptor.VisemeSkinnedMesh = head;
+            else if (body != null) descriptor.VisemeSkinnedMesh = body;
+            descriptor.VisemeBlendShapes = new string[15];
         }
-        visemeMesh = (SkinnedMeshRenderer)visemeMeshInfo.GetValue(descriptor);
-        vismeBlendShapes = (string[])visemeBlendShapesInfo.GetValue(descriptor);
-        //set the visemes
-        if (visemeMesh != null && vismeBlendShapes.Length > 0)
+        if (descriptor.VisemeSkinnedMesh != null && descriptor.VisemeBlendShapes.Length > 0)
         {
-            Mesh mesh = visemeMesh.sharedMesh;
+            Mesh mesh = descriptor.VisemeSkinnedMesh.sharedMesh;
             for (int i = 0; i < BLEND_SHAPE_NAMES.Length; i++)
             {
                 float closestScore = 0;
@@ -172,7 +129,7 @@ public class AutoAvatarDescriptor : MonoBehaviour
                         float score = ((float)BLEND_SHAPE_NAMES[i].Length / compareBlendName.Length);
                         if (score > closestScore)
                         {
-                            vismeBlendShapes[i] = mesh.GetBlendShapeName(b);
+                            descriptor.VisemeBlendShapes[i] = mesh.GetBlendShapeName(b);
                             closestScore = score;
                         }
 
@@ -180,14 +137,7 @@ public class AutoAvatarDescriptor : MonoBehaviour
                     }
                 }
             }
-            visemeBlendShapesInfo.SetValue(descriptor, vismeBlendShapes);
         }
-    }
-
-    public static void setIntEnum(System.Object obj, FieldInfo field, System.Object value)
-    {
-        Type enumType = field.GetValue(obj).GetType();
-        field.SetValue(obj,Enum.Parse(enumType, "" + (int)value));
     }
 
     public static Vector3 vectorAddWeightedVector(Vector3 baseVec, Vector3 add, double weight)
@@ -233,3 +183,4 @@ public class AutoAvatarDescriptor : MonoBehaviour
     }
 
 }
+#endif
