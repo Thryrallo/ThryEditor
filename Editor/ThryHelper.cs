@@ -59,6 +59,7 @@ public class ThryHelper
 
     public static string readFileIntoString(string path)
     {
+        if (!File.Exists(path)) File.Create(path).Close();
         StreamReader reader = new StreamReader(path);
         string ret = reader.ReadToEnd();
         reader.Close();
@@ -67,6 +68,7 @@ public class ThryHelper
 
     public static void writeStringToFile(string s, string path)
     {
+        if (!File.Exists(path)) File.Create(path).Close();
         StreamWriter writer = new StreamWriter(path, false);
         writer.Write(s);
         writer.Close();

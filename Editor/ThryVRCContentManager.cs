@@ -5,6 +5,7 @@ using System.Linq;
 using VRC.Core;
 using UnityEditor;
 using UnityEngine;
+using System.Text.RegularExpressions;
 
 namespace Thry
 {
@@ -22,7 +23,9 @@ namespace Thry
 
         const int PageLimit = 100;
 
-        static List<ApiAvatar> uploadedAvatars = null;
+        private const string AVATAR_TAGS_FILE_PATH = "./Assets/.ThryAvatarTags";
+
+        static List<Avatar> uploadedAvatars = null;
         static List<ApiWorld> uploadedWorlds = null;
 
         public static Dictionary<string, Texture2D> ImageCache = new Dictionary<string, Texture2D>();
@@ -33,6 +36,11 @@ namespace Thry
         static EditorCoroutine fetchingAvatars = null, fetchingWorlds = null;
 
         static VRCContentManager window;
+
+        private enum ContentSortingMethod { alphabetical=0,upload_date=1,public_private=2 };
+        private static readonly string[] ContentSortingMethodNames = new string[] { "Alphabetical", "Upload Date" , "Public,Private" };
+        private ContentSortingMethod sortingMethod = ContentSortingMethod.alphabetical;
+        private string seach_term = "";
 
         const int SCROLLBAR_RESERVED_REGION_WIDTH = 50;
 
@@ -56,6 +64,80 @@ namespace Thry
         const int MAX_ALL_INFORMATION_WIDTH = WORLD_ALL_INFORMATION_MAX_WIDTH > AVATAR_ALL_INFORMATION_MAX_WIDTH ? WORLD_ALL_INFORMATION_MAX_WIDTH : AVATAR_ALL_INFORMATION_MAX_WIDTH;
         const int MAX_REDUCED_INFORMATION_WIDTH = WORLD_REDUCED_INFORMATION_MAX_WIDTH > AVATAR_REDUCED_INFORMATION_MAX_WIDTH ? WORLD_REDUCED_INFORMATION_MAX_WIDTH : AVATAR_REDUCED_INFORMATION_MAX_WIDTH;
 
+        private class Avatar
+        {
+            public ApiAvatar apiAvatar;
+            public string[] tags;
+            public string newtag;
+            private string lowerCaseName;
+            public Avatar(ApiAvatar apiAvatar)
+            {
+                this.apiAvatar = apiAvatar;
+                if (!getAllTags().TryGetValue(apiAvatar.id, out tags)) tags = new string[0];
+                newtag = "";
+                lowerCaseName = apiAvatar.name.ToLower();
+            }
+            public void addNewTag()
+            {
+                string[] newTags = new string[tags.Length + 1];
+                for (int i = 0; i < tags.Length; i++) newTags[i] = tags[i];
+                newTags[newTags.Length-1] = newtag;
+                tags = newTags;
+                getAllTags().Remove(apiAvatar.id);
+                getAllTags().Add(apiAvatar.id, newTags);
+                saveAllTags();
+                newtag = "";
+            }
+            public void deleteTag(string s)
+            {
+                if (!tags.Contains(s)) return;
+                string[] newTags = new string[tags.Length - 1];
+                for (int i = 0; i < tags.Length; i++) if(tags[i]!=s) newTags[i] = tags[i];
+                tags = newTags;
+                getAllTags().Remove(apiAvatar.id);
+                getAllTags().Add(apiAvatar.id, tags);
+                saveAllTags();
+            }
+            public bool search(string s)
+            {
+                if (lowerCaseName.StartsWith(s)) return true;
+                foreach (string t in tags) if (t.StartsWith(s)) return true;
+                return false;
+            }
+        }
+
+        private static Dictionary<string, string[]> allTags;
+        private static Dictionary<string, string[]> getAllTags()
+        {
+            if (allTags == null)
+            {
+                allTags = new Dictionary<string, string[]>();
+                string[] tagsStrings = Regex.Split(ThryHelper.readFileIntoString(AVATAR_TAGS_FILE_PATH), @"\r?\n");
+                foreach (string s in tagsStrings)
+                {
+                    string[] data = Regex.Split(s, @"==");
+                    if (data[0].Length < 1 || data.Length<2) continue;
+                    allTags.Add(data[0], Regex.Split(data[1], @"\|"));
+                }
+            }
+            return allTags;
+        }
+        private static void saveAllTags()
+        {
+            if (allTags != null)
+            {
+                string s = "";
+                foreach (KeyValuePair<string, string[]> data in allTags)
+                {
+                    if (data.Key.Replace(" ", "") == "" || data.Value.Length==0) continue;
+                    s += data.Key + "==";
+                    foreach (string tag in data.Value) s += tag + "|";
+                    if(data.Value.Length>0) s = s.Substring(0, s.Length - 1);
+                    s += "\n";
+                }
+                ThryHelper.writeStringToFile(s, AVATAR_TAGS_FILE_PATH);
+            }
+        }
 
         void Update()
         {
@@ -64,7 +146,7 @@ namespace Thry
                 if (uploadedWorlds == null)
                     uploadedWorlds = new List<ApiWorld>();
                 if (uploadedAvatars == null)
-                    uploadedAvatars = new List<ApiAvatar>();
+                    uploadedAvatars = new List<Avatar>();
 
                 EditorCoroutine.Start(window.FetchUploadedData());
             }
@@ -129,8 +211,8 @@ namespace Thry
                     else
                     {
                         fetchingAvatars = null;
-                        foreach (ApiAvatar a in uploadedAvatars)
-                            DownloadImage(a.id, a.thumbnailImageUrl);
+                        foreach (Avatar a in uploadedAvatars)
+                            DownloadImage(a.apiAvatar.id, a.apiAvatar.thumbnailImageUrl);
                     }
                 },
                 delegate (string obj)
@@ -203,12 +285,14 @@ namespace Thry
 
         static void SetupAvatarData(List<ApiAvatar> avatars)
         {
-            avatars.RemoveAll(a => a == null || a.name == null || uploadedAvatars.Any(a2 => a2.id == a.id));
+            avatars.RemoveAll(a => a == null || a.name == null || uploadedAvatars.Any(a2 => a2.apiAvatar.id == a.id));
 
             if (avatars.Count > 0)
             {
-                uploadedAvatars.AddRange(avatars);
-                uploadedAvatars.Sort((w1, w2) => w1.name.CompareTo(w2.name));
+                List<Avatar> newAvatars = new List<Avatar>();
+                foreach (ApiAvatar a in avatars) newAvatars.Add(new Avatar(a));
+                uploadedAvatars.AddRange(newAvatars);
+                uploadedAvatars.Sort((a1, a2) => a1.apiAvatar.name.CompareTo(a2.apiAvatar.name));
             }
         }
 
@@ -238,18 +322,34 @@ namespace Thry
             EditorCoroutine.Start(VRCCachedWWW.Get(url, onDone));
         }
 
-        private class sortByUploadDateHelper : IComparer<ApiAvatar>
+        private class sortByUploadDateHelper : IComparer<Avatar>
         {
-            public int Compare(ApiAvatar a1, ApiAvatar a2)
+            public int Compare(Avatar a1, Avatar a2)
             {
-                if (a1.updated_at < a2.updated_at) return 1;
-                else if (a1.updated_at > a2.updated_at) return -1;
+                if (a1.apiAvatar.updated_at < a2.apiAvatar.updated_at) return 1;
+                else if (a1.apiAvatar.updated_at > a2.apiAvatar.updated_at) return -1;
                 return 0;
             }
         }
-        private static IComparer<ApiAvatar> sortByUploadDate()
+        private static IComparer<Avatar> sortByUploadDate()
         {
             return new sortByUploadDateHelper();
+        }
+        private class sortByPublicPrivateHelper : IComparer<Avatar>
+        {
+            public int Compare(Avatar a1, Avatar a2)
+            {
+                bool a1Public = a1.apiAvatar.releaseStatus == "public";
+                bool a2Public = a2.apiAvatar.releaseStatus == "public";
+                if (a1Public == a2Public) return a1.apiAvatar.name.CompareTo(a2.apiAvatar.name);
+                else if (a1Public) return -1;
+                else if (a2Public) return 1;
+                return 0;
+            }
+        }
+        private static IComparer<Avatar> sortByPublicPrivate()
+        {
+            return new sortByPublicPrivateHelper();
         }
 
         Vector2 scrollPos;
@@ -268,6 +368,23 @@ namespace Thry
                 GUIStyle descriptionStyle = new GUIStyle(EditorStyles.wordWrappedLabel);
                 descriptionStyle.wordWrap = true;
 
+                GUIStyle search_box_style = new GUIStyle(EditorStyles.textField);
+                search_box_style.padding = new RectOffset(0, 0, 3, 3);
+
+                GUIStyle deleteButtonStyle = new GUIStyle(EditorStyles.miniButton);
+                deleteButtonStyle.fixedWidth = 12;
+                deleteButtonStyle.fixedHeight = 12;
+                deleteButtonStyle.margin = new RectOffset(0, 0, 5, 0);
+                deleteButtonStyle.padding = new RectOffset(0, 0, 0, 0);
+
+                GUIStyle tagLabelStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel);
+                tagLabelStyle.margin = new RectOffset(0, 1, 5, 0);
+                tagLabelStyle.padding = new RectOffset(10, 0, 0, 0);
+
+                GUIStyle tagPrefixHeaderStyle = new GUIStyle(EditorStyles.boldLabel);
+                tagPrefixHeaderStyle.margin = new RectOffset(0, 0, 0, 0);
+                tagPrefixHeaderStyle.padding = new RectOffset(0, 0, 4, 0);
+
                 int divideDescriptionWidth = (position.width > MAX_REDUCED_INFORMATION_WIDTH) ? 1 : 2;
 
                 //--paint avatar list--
@@ -277,67 +394,86 @@ namespace Thry
                     EditorGUILayout.LabelField("AVATARS", EditorStyles.boldLabel);
                     EditorGUILayout.Space();
 
+                    //search adn sort tools
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Label("Search: ", GUILayout.ExpandWidth(false));
+                    seach_term = GUILayout.TextField(seach_term, search_box_style, GUILayout.MaxWidth(200));
+                    if (Screen.width < 400)
+                    {
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.BeginHorizontal();
+                    }
+                    GUILayout.Label("Sort by: ", GUILayout.ExpandWidth(false));
+                    sortingMethod = (ContentSortingMethod)EditorGUILayout.Popup((int)sortingMethod, ContentSortingMethodNames, GUILayout.ExpandWidth(false));
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.Space();
+
                     EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
                     EditorGUILayout.LabelField("Name", EditorStyles.boldLabel, GUILayout.Width(AVATAR_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
                     EditorGUILayout.LabelField("Image", EditorStyles.boldLabel, GUILayout.Width(AVATAR_IMAGE_BUTTON_WIDTH));
                     EditorGUILayout.LabelField("Release Status", EditorStyles.boldLabel, GUILayout.Width(AVATAR_RELEASE_STATUS_FIELD_WIDTH));
                     EditorGUILayout.EndHorizontal();
 
-                    List<ApiAvatar> tmpAvatars = new List<ApiAvatar>();
+                    List<Avatar> tmpAvatars = new List<Avatar>();
 
                     if (uploadedAvatars.Count > 0)
-                        tmpAvatars = new List<ApiAvatar>(uploadedAvatars);
+                        tmpAvatars = new List<Avatar>(uploadedAvatars);
 
                     if (justUpdatedAvatars != null)
                     {
                         foreach (ApiAvatar a in justUpdatedAvatars)
                         {
-                            int index = tmpAvatars.FindIndex((av) => av.id == a.id);
+                            int index = tmpAvatars.FindIndex((av) => av.apiAvatar.id == a.id);
                             if (index != -1)
-                                tmpAvatars[index] = a;
+                                tmpAvatars[index] = new Avatar(a);
                         }
                     }
 
-                    tmpAvatars.Sort(sortByUploadDate());
+                    if (sortingMethod == ContentSortingMethod.upload_date) tmpAvatars.Sort(sortByUploadDate());
+                    else if (sortingMethod == ContentSortingMethod.public_private) tmpAvatars.Sort(sortByPublicPrivate());
 
-                    foreach (ApiAvatar a in tmpAvatars)
+                    foreach (Avatar a in tmpAvatars)
                     {
-                        if (justDeletedContents != null && justDeletedContents.Contains(a.id))
+                        if (justDeletedContents != null && justDeletedContents.Contains(a.apiAvatar.id))
                         {
                             uploadedAvatars.Remove(a);
                             continue;
                         }
+                        if (!a.search(seach_term)) continue;
 
-                        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                         EditorGUILayout.BeginHorizontal(GUILayout.Width(AVATAR_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
-                        EditorGUILayout.LabelField(a.name, descriptionStyle, GUILayout.Width(AVATAR_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
-                        if (ImageCache.ContainsKey(a.id))
+                        EditorGUILayout.LabelField(a.apiAvatar.name, descriptionStyle, GUILayout.Width(AVATAR_DESCRIPTION_FIELD_WIDTH / divideDescriptionWidth));
+                        if (ImageCache.ContainsKey(a.apiAvatar.id))
                         {
-                            if (GUILayout.Button(ImageCache[a.id], GUILayout.Height(100), GUILayout.Width(AVATAR_IMAGE_BUTTON_WIDTH)))
+                            if (GUILayout.Button(ImageCache[a.apiAvatar.id], GUILayout.Height(100), GUILayout.Width(AVATAR_IMAGE_BUTTON_WIDTH)))
                             {
-                                Application.OpenURL(a.imageUrl);
+                                Application.OpenURL(a.apiAvatar.imageUrl);
                             }
                         }
                         else
                         {
                             if (GUILayout.Button("", GUILayout.Height(100), GUILayout.Width(AVATAR_IMAGE_BUTTON_WIDTH)))
                             {
-                                Application.OpenURL(a.imageUrl);
+                                Application.OpenURL(a.apiAvatar.imageUrl);
                             }
                         }
+
+                        //Buttons alignment horizontal or vertical
                         if (position.width > MAX_ALL_INFORMATION_WIDTH)
                             EditorGUILayout.BeginHorizontal();
                         else
                             EditorGUILayout.BeginVertical();
 
-                        EditorGUILayout.LabelField(a.releaseStatus, GUILayout.Width(AVATAR_RELEASE_STATUS_FIELD_WIDTH));
+                        EditorGUILayout.LabelField(a.apiAvatar.releaseStatus, GUILayout.Width(AVATAR_RELEASE_STATUS_FIELD_WIDTH));
 
-                        string oppositeReleaseStatus = a.releaseStatus == "public" ? "private" : "public";
+                        string oppositeReleaseStatus = a.apiAvatar.releaseStatus == "public" ? "private" : "public";
                         if (GUILayout.Button("Make " + oppositeReleaseStatus, GUILayout.Width(SET_AVATAR_STATUS_BUTTON_WIDTH)))
                         {
-                            a.releaseStatus = oppositeReleaseStatus;
+                            a.apiAvatar.releaseStatus = oppositeReleaseStatus;
 
-                            a.SaveReleaseStatus((c) =>
+                            a.apiAvatar.SaveReleaseStatus((c) =>
                             {
                                 ApiAvatar savedBP = (ApiAvatar)c.Model;
 
@@ -355,16 +491,16 @@ namespace Thry
                         if (GUILayout.Button("Copy ID", GUILayout.Width(COPY_AVATAR_ID_BUTTON_WIDTH)))
                         {
                             TextEditor te = new TextEditor();
-                            te.text = a.id;
+                            te.text = a.apiAvatar.id;
                             te.SelectAll();
                             te.Copy();
                         }
 
                         if (GUILayout.Button("Delete", GUILayout.Width(DELETE_AVATAR_BUTTON_WIDTH)))
                         {
-                            if (EditorUtility.DisplayDialog("Delete " + a.name + "?", "Are you sure you want to delete " + a.name + "? This cannot be undone.", "Delete", "Cancel"))
+                            if (EditorUtility.DisplayDialog("Delete " + a.apiAvatar.name + "?", "Are you sure you want to delete " + a.apiAvatar.name + "? This cannot be undone.", "Delete", "Cancel"))
                             {
-                                foreach (VRC.Core.PipelineManager pm in FindObjectsOfType<VRC.Core.PipelineManager>().Where(pm => pm.blueprintId == a.id))
+                                foreach (VRC.Core.PipelineManager pm in FindObjectsOfType<VRC.Core.PipelineManager>().Where(pm => pm.blueprintId == a.apiAvatar.id))
                                 {
                                     pm.blueprintId = "";
                                     pm.completedSDKPipeline = false;
@@ -374,13 +510,13 @@ namespace Thry
                                     UnityEditor.SceneManagement.EditorSceneManager.SaveScene(pm.gameObject.scene);
                                 }
 
-                                API.Delete<ApiAvatar>(a.id);
-                                uploadedAvatars.RemoveAll(avatar => avatar.id == a.id);
-                                if (ImageCache.ContainsKey(a.id))
-                                    ImageCache.Remove(a.id);
+                                API.Delete<ApiAvatar>(a.apiAvatar.id);
+                                uploadedAvatars.RemoveAll(avatar => avatar.apiAvatar.id == a.apiAvatar.id);
+                                if (ImageCache.ContainsKey(a.apiAvatar.id))
+                                    ImageCache.Remove(a.apiAvatar.id);
 
                                 if (justDeletedContents == null) justDeletedContents = new List<string>();
-                                justDeletedContents.Add(a.id);
+                                justDeletedContents.Add(a.apiAvatar.id);
                             }
                         }
 
@@ -388,8 +524,35 @@ namespace Thry
                             EditorGUILayout.EndHorizontal();
                         else
                             EditorGUILayout.EndVertical();
+                        //buttons done
+
                         EditorGUILayout.EndHorizontal();
+
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.Label("Tags: ", tagPrefixHeaderStyle, GUILayout.ExpandWidth(false));
+                        foreach (string t in a.tags)
+                        {
+                            GUILayout.Label(t, tagLabelStyle, GUILayout.ExpandWidth(false));
+                            if (GUILayout.Button("X", deleteButtonStyle)) a.deleteTag(t);
+                        }
+                        GUI.SetNextControlName("new tag input"+a.apiAvatar.id);
+                        if (GUI.GetNameOfFocusedControl() != "new tag input"+ a.apiAvatar.id)
+                        {
+                            GUIStyle greyedStyle = new GUIStyle(EditorStyles.textField);
+                            greyedStyle.normal.textColor = new Color(0.3f, 0.3f, 0.3f);
+                            EditorGUILayout.TextField("add tag", greyedStyle, GUILayout.ExpandWidth(false));
+                        }
+                        else
+                        {
+                            a.newtag = EditorGUILayout.TextField(a.newtag, GUILayout.ExpandWidth(false));
+                            Event e = Event.current;
+                            if (e.isKey && (e.keyCode == KeyCode.KeypadEnter || e.keyCode == KeyCode.Return)) a.addNewTag();
+                        }
+                        
                         EditorGUILayout.EndHorizontal();
+
+                        EditorGUILayout.EndVertical();
+
                         EditorGUILayout.Space();
                     }
                 }
@@ -505,6 +668,13 @@ namespace Thry
                 OnGUIUserInfo();
 
             window.Repaint();
+        }
+
+        private void drawLine()
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 1);
+            rect.height = 1;
+            EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 1));
         }
     }
 }

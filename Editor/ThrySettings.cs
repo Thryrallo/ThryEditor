@@ -55,6 +55,24 @@ public class ThrySettings : EditorWindow
         this.Repaint();
     }
 
+    public class VRChatSdkImportTester : AssetPostprocessor
+    {
+        static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
+        {
+            bool vrcImported = false;
+            foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
+
+            bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
+
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+                BuildTargetGroup.Standalone);
+            if ((vrcImported | hasVRCSdk) && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                          BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
+            else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                 BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS", ""));
+        }
+    }
+
     public static void setActiveShader(Shader shader)
     {
         if (shader != activeShader)
@@ -94,13 +112,6 @@ public class ThrySettings : EditorWindow
 
         bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
         bool vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
-
-        string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-            BuildTargetGroup.Standalone);
-        if (hasVRCSdk && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                      BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
-        else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-             BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS",""));
 
         if (hasVRCSdk)
         {

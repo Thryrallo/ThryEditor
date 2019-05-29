@@ -14,7 +14,7 @@ public class AutoAvatarDescriptor : MonoBehaviour
 
     private static string[] BLEND_SHAPE_NAMES = new string[] { "sil", "pp", "ff", "th", "dd", "kk", "ch", "ss", "nn", "rr", "aa", "e", "ih", "oh", "ou" };
 
-    [MenuItem("Thry/Auto setup Avatar Descriptor")]
+    [MenuItem("Thry/VRC/Setup Avatar Descriptor")]
     static void Init()
     {
         GameObject parent = Selection.activeGameObject;
