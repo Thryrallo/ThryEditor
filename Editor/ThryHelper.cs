@@ -75,18 +75,18 @@ public class ThryHelper
     }
 
     //used to parse extra options in display name like offset
-    public static int propertyOptionToInt(string optionName, MaterialProperty p)
+    public static int propertyOptionToInt(string optionName, string displayName)
     {
         int ret = 0;
-        string value = getPropertyOptionValue(optionName,p);
+        string value = getPropertyOptionValue(optionName, displayName);
         int.TryParse(value, out ret);
         return ret;
     }
 
-    public static string getPropertyOptionValue(string optionName, MaterialProperty p)
+    public static string getPropertyOptionValue(string optionName, string displayName)
     {
         string pattern = @""+ ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX+"[^-]+";
-        Match match = Regex.Match(p.displayName, pattern);
+        Match match = Regex.Match(displayName, pattern);
         if (match.Success)
         {
             string value = match.Value.Replace(ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX, "");

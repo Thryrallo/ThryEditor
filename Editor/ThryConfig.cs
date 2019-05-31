@@ -7,7 +7,7 @@ using UnityEngine;
 public class ThryConfig : MonoBehaviour {
 
     public const string CONFIG_FILE_PATH = "./Assets/.ThryConfig.json";
-    public const string VERSION = "0.6.1";
+    public const string VERSION = "0.7";
     private static Config config;
 
 
@@ -42,7 +42,6 @@ public class ThryConfig : MonoBehaviour {
         public bool vrchatForceFallbackAnimationSet = false;
 
         public bool showImportPopup = false;
-        public int materialValuesUpdateRate = 33;
         public string verion = "0";
 
         public void save()

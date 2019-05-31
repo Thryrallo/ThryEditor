@@ -36,6 +36,19 @@ public class ThrySettings : EditorWindow
     private bool isFirstPopop = false;
     private int updatedVersion = 0;
 
+    private static string[][] SETTINGS_CONTENT = new string[][]
+    {
+        new string[]{ "Big Texture Fields", "Show big texure fields instead of small ones" },
+        new string[]{ "Use Render Queue", "enable a render queue selector" },
+        new string[]{ "Show popup on shader import", "This popup gives you the option to try to restore materials if they broke on importing" },
+        new string[]{ "Render Queue Shaders", "Have the render queue selector work with vrchat by creating seperate shaders for the different queues" },
+        new string[]{ "Auto setup avatar descriptor", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject" },
+        new string[]{ " Fallback Default Animation Set", "is applied by auto avatar descriptor if gender of avatar couldn't be determend" },
+        new string[]{ "Force Fallback Default Animation Set", "always set default animation set as fallback set" }
+    };
+    enum SETTINGS_IDX { bigTexFields = 0, render_queue=1,show_popup_on_import=2,render_queue_shaders=3,vrc_aad=4, vrc_fallback_anim=5,
+        vrc_force_fallback_anim=6 };
+
     private void OnSelectionChange()
     {
         string[] selectedAssets = Selection.assetGUIDs;
@@ -124,10 +137,6 @@ public class ThrySettings : EditorWindow
             {
                 GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
             }
-            else
-            {
-                //GUILayout.Label("Not logged in", GUILayout.ExpandWidth(false));
-            }
             EditorGUILayout.EndHorizontal();
 
             drawLine();
@@ -135,49 +144,15 @@ public class ThrySettings : EditorWindow
 
         GUILayout.Label("Editor", EditorStyles.boldLabel);
 
-        if (Toggle(config.useBigTextures, "Big Texture Fields", "Show big texure fields instead of small ones") != config.useBigTextures)
-        {
-            config.useBigTextures = !config.useBigTextures;
-            config.save();
-            ThryEditor.repaint();
-        }
-
-        GUILayout.BeginHorizontal();
-        int newMaterialValuesUpdateRate = EditorGUILayout.IntField("",config.materialValuesUpdateRate,GUILayout.MaxWidth(50));
-        GUILayout.Label(new GUIContent("Slider Update Rate (in milliseconds)", "change the update rate of float sliders to get a smoother editor experience"));
-        GUILayout.EndHorizontal();
-        if (newMaterialValuesUpdateRate != config.materialValuesUpdateRate)
-        {
-            config.materialValuesUpdateRate = newMaterialValuesUpdateRate;
-            config.save();
-            ThryEditor.reload();
-            ThryEditor.repaint();
-        }
-
-        if (Toggle(config.showRenderQueue, "Use Render Queue" ,"enable a render queue selector") != config.showRenderQueue)
-        {
-            config.showRenderQueue = !config.showRenderQueue;
-            config.save();
-            ThryEditor.repaint();
-        }
+        Toggle("useBigTextures", SETTINGS_CONTENT[(int)SETTINGS_IDX.bigTexFields]);
+        Toggle("showRenderQueue", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue]);
 
         drawLine();
         GUILayout.Label("Extras", EditorStyles.boldLabel);
 
-        if (Toggle(config.showImportPopup, "Show popup on shader import", "This popup gives you the option to try to restore materials if they broke on importing") != config.showImportPopup)
-        {
-            config.showImportPopup = !config.showImportPopup;
-            config.save();
-            ThryEditor.repaint();
-        }
-
+        Toggle("showImportPopup", SETTINGS_CONTENT[(int)SETTINGS_IDX.show_popup_on_import]);
         if (config.showRenderQueue)
-            if (Toggle(config.renderQueueShaders, "Render Queue Shaders", "Have the render queue selector work with vrchat by creating seperate shaders for the different queues") != config.renderQueueShaders)
-            {
-                config.renderQueueShaders = !config.renderQueueShaders;
-                config.save();
-                ThryEditor.repaint();
-            }
+            Toggle("renderQueueShaders", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue_shaders]);
 
         drawLine();
 
@@ -185,11 +160,7 @@ public class ThrySettings : EditorWindow
         {
             GUILayout.Label("VRChat features", EditorStyles.boldLabel);
 
-            if (Toggle(config.vrchatAutoFillAvatarDescriptor, "Auto setup avatar descriptor", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject") != config.vrchatAutoFillAvatarDescriptor)
-            {
-                config.vrchatAutoFillAvatarDescriptor = !config.vrchatAutoFillAvatarDescriptor;
-                config.save();
-            }
+            Toggle("vrchatAutoFillAvatarDescriptor", SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_aad]);
 
             string[] options = new string[] { "Male", "Female", "None" };
             GUILayout.BeginHorizontal();
@@ -199,16 +170,33 @@ public class ThrySettings : EditorWindow
                 config.vrchatDefaultAnimationSetFallback = newVRCFallbackAnimationSet;
                 config.save();
             }
-            GUILayout.Label(new GUIContent(" Fallback Default Animation Set", "is applied by auto avatar descriptor if gender of avatar couldn't be determend"), normal);
+            GUILayout.Label(new GUIContent(SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_fallback_anim][0], SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_fallback_anim][1]), normal);
             GUILayout.EndHorizontal();
 
-            if (Toggle(config.vrchatForceFallbackAnimationSet, "Force Fallback Default Animation Set", "always set default animation set as fallback set") != config.vrchatForceFallbackAnimationSet)
-            {
-                config.vrchatForceFallbackAnimationSet = !config.vrchatForceFallbackAnimationSet;
-                config.save();
-            }
+            Toggle("vrchatForceFallbackAnimationSet", SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_force_fallback_anim]);
 
             drawLine();
+        }
+    }
+
+    private static void Toggle(string configField, string[] content)
+    {
+        Toggle(configField, content[0], content[1]);
+    }
+
+    private static void Toggle(string configField,string label, string hover)
+    {
+        ThryConfig.Config config = ThryConfig.GetConfig();
+        System.Reflection.FieldInfo field = typeof(ThryConfig.Config).GetField(configField);
+        if (field != null)
+        {
+            bool value = (bool)field.GetValue(config);
+            if (Toggle(value, label, hover) != value)
+            {
+                field.SetValue(config, !value);
+                config.save();
+                ThryEditor.repaint();
+            }
         }
     }
 
