@@ -123,8 +123,10 @@ namespace Thry
                 texture = new Texture2D(128, 16);
                 GradientToTexture();
             }
+            Rect pos = editor.TexturePropertySingleLine(new GUIContent("", ""), prop);
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(colorGradient, label);
+            EditorGUI.PropertyField(pos, colorGradient, new GUIContent("       "+label.text,label.tooltip));
+            //EditorGUILayout.PropertyField(colorGradient, label);
             string windowName = EditorWindow.focusedWindow.titleContent.text;
             bool isGradientEditor = windowName == "Gradient Editor";
             if (isGradientEditor)
@@ -145,7 +147,9 @@ namespace Thry
                 string path = "Assets/Textures/Gradients/" + GradientToString() + ".png";
                 Helper.writeBytesToFile(encoding, path);
                 AssetDatabase.ImportAsset(path);
-                prop.textureValue = (Texture)EditorGUIUtility.Load(path);
+                Texture tex = (Texture)EditorGUIUtility.Load(path);
+                tex.wrapMode = TextureWrapMode.Clamp;
+                prop.textureValue = tex;
                 saved = true;
             }
         }
@@ -164,6 +168,7 @@ namespace Thry
             foreach (GradientAlphaKey key in gradientObj.gradient.alphaKeys)
                 ret += key.alpha.ToString() + key.time.ToString();
             ret += gradientObj.gradient.mode.ToString();
+            ret = "gradient_" + ret.GetHashCode();
             return ret;
         }
 
