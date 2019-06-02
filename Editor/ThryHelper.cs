@@ -153,8 +153,11 @@ namespace Thry
 
         public static int compareVersions(string v1, string v2)
         {
-            string[] v1Parts = v1.Split(new char[] { '.' });
-            string[] v2Parts = v2.Split(new char[] { '.' });
+            if (v1 == "" && v2 == "") return 0;
+            else if (v1 == "") return 1;
+            else if (v2 == "") return -1;
+            string[] v1Parts = Regex.Split(v1,@"\.");
+            string[] v2Parts = Regex.Split(v2, @"\.");
             for (int i = 0; i < Math.Max(v1Parts.Length, v2Parts.Length); i++)
             {
                 if (i >= v1Parts.Length) return 1;
@@ -237,7 +240,8 @@ namespace Thry
                 while (!webpage.isDone) yield return false;
                 string content = webpage.text;
                 callback(content, passThrough);
-                DestroyImmediate(this.gameObject);
+                while (this != null)
+                    DestroyImmediate(this.gameObject);
             }
         }
 
@@ -258,8 +262,8 @@ namespace Thry
                 WWW webpage = new WWW(url);
                 while (!webpage.isDone) yield return false;
                 string content = webpage.text;
-                callback(content);
                 DestroyImmediate(this.gameObject);
+                callback(content);
             }
         }
     }
