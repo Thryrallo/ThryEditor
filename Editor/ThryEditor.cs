@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using Thry;
 
 public class ThryEditor : ShaderGUI
 {
@@ -15,124 +16,38 @@ public class ThryEditor : ShaderGUI
     public const string ON_ALT_CLICK_OPTION = "altClick";
 
     private ShaderHeader shaderparts; //stores headers and properties in correct order
-	private GUIStyle m_sectionStyle;
-    private GUIStyle bigTextureStyle;
-    private GUIStyle vectorPropertyStyle;
     private Texture2D settingsTexture;
 
     private string masterLabelText = null;
 
     private List<string> footer; //footers
 
-	private ThryPresetHandler presetHandler; //handles the presets
+	private PresetHandler presetHandler; //handles the presets
 
     private int customQueueFieldInput = -1;
-
-    private bool isMouseClick = false;
-    static Rect lastGuiObjectRect;
-    Dictionary<string, bool> smallTextureFieldShowScaleOffset = new Dictionary<string, bool>();
 
     private static bool reloadNextDraw = false;
     private bool firstOnGUICall = true;
 
-    private Material[] materials;
+    public static bool isMouseClick = false;
+    private static bool hadMouseClickEvent = false;
 
-    private static MaterialEditor currentEditor;
-    private static MaterialProperty[] currentProperties;
+    public struct EditorData
+    {
+        public MaterialEditor editor;
+        public MaterialProperty[] properties;
+        public ThryEditor gui;
+        public Material[] materials;
+        public Shader shader;
+        public Shader defaultShader;
+    }
 
-    private static ThryEditor currentThryGui;
+    private EditorData current;
+    public static EditorData currentlyDrawing;
 
-    private Shader shader;
-    private Shader defaultShader;
-
-    private class ThryEditorHeader
-	{
-		private List<MaterialProperty> propertyes;
-		private bool currentState;
-
-		public ThryEditorHeader(MaterialEditor materialEditor, string propertyName)
-		{
-			this.propertyes = new List<MaterialProperty>();
-			foreach (Material materialEditorTarget in materialEditor.targets)
-			{
-				Object[] asArray = new Object[] { materialEditorTarget };
-				propertyes.Add(MaterialEditor.GetMaterialProperty(asArray, propertyName));
-			}
-
-			this.currentState = fetchState();
-		}
-
-		public bool fetchState()
-		{
-			foreach (MaterialProperty materialProperty in propertyes)
-			{
-				if (materialProperty.floatValue == 1)
-					return true;
-			}
-
-
-
-			return false;
-		}
-
-		public bool getState()
-		{
-			return this.currentState;
-		}
-
-		public void Toggle()
-		{
-
-			if (getState())
-			{
-				foreach (MaterialProperty materialProperty in propertyes)
-				{
-					materialProperty.floatValue = 0;
-				}
-			}
-			else
-			{
-				foreach (MaterialProperty materialProperty in propertyes)
-				{
-					materialProperty.floatValue = 1;
-				}
-			}
-
-			this.currentState = !this.currentState;
-		}
-
-		public void Foldout(int xOffset, string name, ThryEditor gui)
-		{
-			var style = new GUIStyle("ShurikenModuleTitle");
-			style.font = new GUIStyle(EditorStyles.label).font;
-			style.border = new RectOffset(15, 7, 4, 4);
-			style.fixedHeight = 22;
-			style.contentOffset = new Vector2(20f, -2f);
-			style.margin.left = 30 * xOffset;
-
-			var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
-			GUI.Box(rect, name, style);
-
-			var e = Event.current;
-
-			var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-			if (e.type == EventType.Repaint)
-			{
-				EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
-			}
-
-			if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
-			{
-				this.Toggle();
-				e.Use();
-			}
-        }
-	}
-
-	//--------classes for storing property data---------
-	private abstract class ShaderPart
-	{
-		public int xOffset = 0;
+    public abstract class ShaderPart
+    {
+        public int xOffset = 0;
         public string onHover = "";
         public string altClick = "";
 
@@ -144,33 +59,33 @@ public class ThryEditor : ShaderGUI
         }
 
         public abstract void Draw();
-	}
+    }
 
-	private class ShaderHeader : ShaderPart
-	{
-		public ThryEditorHeader guiElement;
-		public List<ShaderPart> parts = new List<ShaderPart>();
-		public string name;
+    public class ShaderHeader : ShaderPart
+    {
+        public ThryEditorHeader guiElement;
+        public List<ShaderPart> parts = new List<ShaderPart>();
+        string name;
 
-		public ShaderHeader() : base(0,"","")
-		{
-            
-		}
+        public ShaderHeader() : base(0, "", "")
+        {
 
-		public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string onHover, string altClick) : base(xOffset,onHover,altClick)
-		{
-			this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
-			this.name = displayName;
-		}
+        }
 
-		public void addPart(ShaderPart part)
-		{
-			parts.Add(part);
-		}
+        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
+        {
+            this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
+            this.name = displayName;
+        }
+
+        public void addPart(ShaderPart part)
+        {
+            parts.Add(part);
+        }
 
         public override void Draw()
         {
-            guiElement.Foldout(xOffset, name, currentThryGui);
+            guiElement.Foldout(xOffset, name, currentlyDrawing.gui);
             if (guiElement.getState())
             {
                 EditorGUILayout.Space();
@@ -183,136 +98,70 @@ public class ThryEditor : ShaderGUI
         }
     }
 
-	private class ShaderProperty : ShaderPart
-	{
-		public MaterialProperty materialProperty;
-		public GUIContent style;
+    public class ShaderProperty : ShaderPart
+    {
+        public MaterialProperty materialProperty;
+        public GUIContent style;
+        public bool drawDefault;
 
-		public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
+        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {
-			this.materialProperty = materialProperty;
-			this.style = new GUIContent(displayName, onHover);
-		}
+            this.materialProperty = materialProperty;
+            this.style = new GUIContent(displayName, onHover);
+            drawDefault = false;
+        }
 
         public override void Draw()
         {
+            PreDraw();
+            DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset * 2 + 1;
-            currentEditor.ShaderProperty(this.materialProperty, this.style);
+            if (drawDefault)
+                DrawDefault();
+            else
+                currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.style);
             EditorGUI.indentLevel = oldIndentLevel;
-            
-            currentThryGui.testAltClick(lastGuiObjectRect, this);
-        }
-	}
+            if (DrawingData.lastGuiObjectRect.x==-1) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
 
-    public class TextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            if (ThryConfig.GetConfig().useBigTextures) drawBigTextureProperty(position, prop, label, editor, true);
-            else drawSmallTextureProperty(position, prop, label, editor, true);
+            testAltClick(DrawingData.lastGuiObjectRect, this);
         }
+
+        public virtual void PreDraw() { }
+
+        public virtual void DrawDefault() { }
     }
 
-    public class TextureNoSODrawer : MaterialPropertyDrawer
+    public class TextureProperty : ShaderProperty
     {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        public bool showScaleOffset = false;
+
+        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick, bool forceThryUI) : base(materialProperty, displayName, xOffset, onHover, altClick)
         {
-            if(ThryConfig.GetConfig().useBigTextures) drawBigTextureProperty(position, prop, label, editor, false);
-            else drawSmallTextureProperty(position, prop, label, editor, false);
+            drawDefault = forceThryUI;
         }
-    }
 
-    public class SmallTextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        public override void PreDraw()
         {
-            drawSmallTextureProperty(position, prop, label, editor, true);
+            DrawingData.currentTexProperty = this;
         }
-    }
 
-    public class SmallTextureNoSODrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        public override void DrawDefault()
         {
-            drawSmallTextureProperty(position, prop, label, editor, false);
-        }
-    }
-
-    public class BigTextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            drawBigTextureProperty(position, prop, label, editor, true);
-        }
-    }
-
-    public class BigTextureNoSODrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            drawBigTextureProperty(position, prop, label, editor, false);
-        }
-    }
-
-    public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
-    {
-        editor.TexturePropertyMiniThumbnail(position, prop, label.text, "Click here for scale / offset" + (label.tooltip != "" ? " | " : "") + label.tooltip);
-        if (scaleOffset)
-        {
-            bool showScaleOffset = currentThryGui.smallTextureFieldShowScaleOffset[prop.name];
-            if (showScaleOffset) currentEditor.TextureScaleOffsetProperty(prop);
-            if (currentThryGui.isMouseClick && position.Contains(Event.current.mousePosition))
-                currentThryGui.smallTextureFieldShowScaleOffset[prop.name] = !showScaleOffset;
-        }
-        
-        lastGuiObjectRect = position;
-    }
-
-    public static void drawBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
-    {
-        Rect rect = GUILayoutUtility.GetRect(label, currentThryGui.bigTextureStyle);
-        editor.TextureProperty(position, prop, label.text,label.tooltip,scaleOffset);
-        lastGuiObjectRect = position;
-    }
-
-    public class GradientDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            EditorGUI.LabelField(position, label);
-        }
-    }
-
-    public class MyToggleDrawer : MaterialPropertyDrawer
-    {
-        // Draw the property inside the given rect
-        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            // Setup
-            bool value = (prop.floatValue != 0.0f);
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-
-            // Show the toggle control
-            value = EditorGUI.Toggle(position, label, value);
-
-            EditorGUI.showMixedValue = false;
-            if (EditorGUI.EndChangeCheck())
-            {
-                // Set the new value if it has changed
-                prop.floatValue = value ? 1.0f : 0.0f;
-            }
+            Rect pos = GUILayoutUtility.GetRect(style, ThryEditorGuiHelper.vectorPropertyStyle);
+            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, style, currentlyDrawing.editor, true);
+            DrawingData.lastGuiObjectRect = pos;
         }
     }
 
     //-------------Init functions--------------------
 
     //finds all properties and headers and stores them in correct order
-    private void CollectAllProperties(MaterialProperty[] props, MaterialEditor materialEditor)
+    private void CollectAllProperties()
 	{
+        //load display names from file if it exists
         MaterialProperty label_file_property = null;
+        MaterialProperty[] props = current.properties;
         foreach (MaterialProperty m in props) if (m.name == "shader_properties_label_file") label_file_property = m;
         Dictionary<string, string> labels = new Dictionary<string, string>();
         if (label_file_property != null)
@@ -320,7 +169,7 @@ public class ThryEditor : ShaderGUI
             string[] guids = AssetDatabase.FindAssets(label_file_property.displayName);
             if (guids.Length == 0) Debug.LogError("Label File could not be found");
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            string[] data = Regex.Split(ThryHelper.readFileIntoString(path),@"\r?\n");
+            string[] data = Regex.Split(Helper.readFileIntoString(path),@"\r?\n");
             foreach(string d in data)
             {
                 string[] set = Regex.Split(d, ":=");
@@ -328,215 +177,112 @@ public class ThryEditor : ShaderGUI
             }
         }
 
-		shaderparts = new ShaderHeader();
-		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>();
-		headerStack.Push(shaderparts);
-		headerStack.Push(shaderparts);
-		footer = new List<string>();
+		shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
+		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>(); //header stack. used to keep track if current header to parent new objects to
+		headerStack.Push(shaderparts); //add top object as top object to stack
+		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
+		footer = new List<string>(); //init footer list
 		int headerCount = 0;
 		for (int i = 0; i < props.Length; i++)
 		{
+            //if property is a footer add to footer list
             if (props[i].name.StartsWith("footer_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
             {
                 footer.Add(props[i].displayName);
+            //if property is end if a header block pop the top header
             }else if (props[i].name.StartsWith("m_end") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
             {
                 headerStack.Pop();
                 headerCount--;
             } else
+            //else add new object under current header
             {
+                //get the display name out of property or file
                 string displayName = props[i].displayName;
                 if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
                 string ogDisplayName = displayName;
 
-                int extraOffset = ThryHelper.propertyOptionToInt(EXTRA_OFFSET_OPTION, ogDisplayName);
+                //extract offset
+                int extraOffset = Helper.propertyOptionToInt(EXTRA_OFFSET_OPTION, ogDisplayName);
                 int offset = extraOffset + headerCount;
                 displayName = displayName.Replace(EXTRA_OPTION_PREFIX + EXTRA_OFFSET_OPTION + EXTRA_OPTION_INFIX + extraOffset, "");
 
-                string onHover = ThryHelper.getPropertyOptionValue(HOVER_OPTION, ogDisplayName);
+                //extract on hover
+                string onHover = Helper.getPropertyOptionValue(HOVER_OPTION, ogDisplayName);
                 displayName = displayName.Replace(EXTRA_OPTION_PREFIX + HOVER_OPTION + EXTRA_OPTION_INFIX + onHover, "");
 
-                string altClick = ThryHelper.getPropertyOptionValue(ON_ALT_CLICK_OPTION, ogDisplayName);
+                //extract alt click
+                string altClick = Helper.getPropertyOptionValue(ON_ALT_CLICK_OPTION, ogDisplayName);
                 displayName = displayName.Replace(EXTRA_OPTION_PREFIX + ON_ALT_CLICK_OPTION + EXTRA_OPTION_INFIX + altClick, "");
 
+                //if property is submenu add 1 extra offset
                 if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-                {
-                    headerCount++;
-                    offset = extraOffset + headerCount;
-                    ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, displayName, offset, onHover,altClick);
-                    headerStack.Peek().addPart(newHeader);
-                    headerStack.Push(newHeader);
-                }
+                    offset = extraOffset + ++headerCount;
+                //if property is normal menu pop out if old header
                 else if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-                {
-                    ShaderHeader newHeader = new ShaderHeader(props[i], materialEditor, displayName, offset, onHover, altClick);
                     headerStack.Pop();
+                //if proeprty is submenu or normal menu push in header stack
+                if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+                {
+                    ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, onHover, altClick);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
                 }
+                //if property is actual property and not hidden add under current header
                 else if (props[i].flags != MaterialProperty.PropFlags.HideInInspector)
                 {
-                    ShaderProperty newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
+                    ShaderProperty newPorperty = null;
+
+                    DrawingData.lastPropertyUsedCustomDrawer = false;
+                    current.editor.GetPropertyHeight(props[i]);
+
                     if (props[i].type == MaterialProperty.PropType.Texture)
-                        if(!currentThryGui.smallTextureFieldShowScaleOffset.ContainsKey(props[i].name))
-                            currentThryGui.smallTextureFieldShowScaleOffset[props[i].name] = false;
+                        newPorperty = new TextureProperty(props[i], displayName, offset, onHover, altClick, !DrawingData.lastPropertyUsedCustomDrawer);
+                    else
+                        newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
                     headerStack.Peek().addPart(newPorperty);
                 }
             }
 		}
 	}
 
-	//----------Idk what this does-------------
-	private void SetupStyle()
-	{
-		m_sectionStyle = new GUIStyle(EditorStyles.boldLabel);
-		m_sectionStyle.alignment = TextAnchor.MiddleCenter;
-
-        bigTextureStyle = new GUIStyle();
-        bigTextureStyle.fixedHeight = 48;
-
-        vectorPropertyStyle = new GUIStyle();
-        vectorPropertyStyle.padding = new RectOffset(0, 0, 2, 2);
-	}
-
-	private void ToggleDefine(Material mat, string define, bool state)
-	{
-		if (state)
-		{
-			mat.EnableKeyword(define);
-		}
-		else
-		{
-			mat.DisableKeyword(define);
-		}
-	}
-
     //-------------Functions------------------
 
-    public void UpdateRenderQueueInstance(Shader defaultShader)
+    public void UpdateRenderQueueInstance()
     {
-        if (materials != null) foreach (Material m in materials)
+        if (current.materials != null) foreach (Material m in current.materials)
             if (m.shader.renderQueue != m.renderQueue)
-                ThryHelper.UpdateRenderQueue(m, defaultShader);
+                Helper.UpdateRenderQueue(m, current.defaultShader);
     }
 
     //-------------Draw Functions----------------
 
-    void DrawHeader(ref bool enabled, ref bool options, GUIContent name)
-	{
-		var r = EditorGUILayout.BeginHorizontal("box");
-		enabled = EditorGUILayout.Toggle(enabled, EditorStyles.radioButton, GUILayout.MaxWidth(15.0f));
-		options = GUI.Toggle(r, options, GUIContent.none, new GUIStyle());
-		EditorGUILayout.LabelField(name, m_sectionStyle);
-		EditorGUILayout.EndHorizontal();
-	}
-
-	void DrawMasterLabel(string shaderName)
-	{
-		GUIStyle style = new GUIStyle(GUI.skin.label);
-		style.richText = true;
-		style.alignment = TextAnchor.MiddleCenter;
-
-		EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", style, GUILayout.MinHeight(18));
-	}
-
-    private void testAltClick(Rect rect, ShaderProperty property)
+    private static void testAltClick(Rect rect, ShaderProperty property)
     {
         var e = Event.current;
-        if (e.type == EventType.Repaint)
+        if (isMouseClick && e.alt && rect.Contains(e.mousePosition))
         {
-            if (e.alt && isMouseClick && rect.Contains(e.mousePosition))
+            if (property.altClick != "")
             {
-                if (property.altClick != "")
-                {
-                    if (property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:", ""));
-                }
+                if (property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:", ""));
             }
         }
     }
 
-    //draw the render queue selector
-    private void drawRenderQueueSelector(Shader defaultShader)
+    public void OnOpen()
     {
-        EditorGUILayout.BeginHorizontal();
-        if (customQueueFieldInput == -1) customQueueFieldInput = materials[0].renderQueue;
-        int[] queueOptionsQueues = new int[] { defaultShader.renderQueue, 2000, 2450, 3000, customQueueFieldInput };
-        string[] queueOptions = new string[] { "From Shader", "Geometry", "Alpha Test", "Transparency" };
-        int queueSelection = 4;
-        if (defaultShader.renderQueue == customQueueFieldInput) queueSelection = 0;
-        else
-        {
-            string customOption = null;
-            int q = customQueueFieldInput;
-            if (q < 2000) customOption = queueOptions[1] + "-" + (2000 - q);
-            else if (q < 2450) { if (q > 2000) customOption = queueOptions[1] + "+" + (q - 2000); else queueSelection = 1; }
-            else if (q < 3000) { if (q > 2450) customOption = queueOptions[2] + "+" + (q - 2450); else queueSelection = 2; }
-            else if (q < 5001) { if (q > 3000) customOption = queueOptions[3] + "+" + (q - 3000); else queueSelection = 3; }
-            if (customOption != null) queueOptions = new string[] { "From Shader", "Geometry", "Alpha Test", "Transparency", customOption };
-        }
-        EditorGUILayout.LabelField("Render Queue", GUILayout.ExpandWidth(true));
-        int newQueueSelection = EditorGUILayout.Popup(queueSelection, queueOptions, GUILayout.MaxWidth(100));
-        int newQueue = queueOptionsQueues[newQueueSelection]; 
-        if (queueSelection != newQueueSelection) customQueueFieldInput = newQueue;
-        int newCustomQueueFieldInput = EditorGUILayout.IntField(customQueueFieldInput, GUILayout.MaxWidth(65));
-        bool isInput = customQueueFieldInput!=newCustomQueueFieldInput || queueSelection != newQueueSelection;
-        customQueueFieldInput = newCustomQueueFieldInput;
-        foreach(Material m in materials)
-            if (customQueueFieldInput != m.renderQueue && isInput) m.renderQueue = customQueueFieldInput;
-        if (customQueueFieldInput != materials[0].renderQueue && !isInput) customQueueFieldInput = materials[0].renderQueue;
-        EditorGUILayout.EndHorizontal();
-    }
-
-	//draw a button with a link
-	public static void drawLinkButton(int Width, int Height, string title, string link)
-	{
-		if (GUILayout.Button(title, GUILayout.Width(Width), GUILayout.Height(Height)))
-		{
-			Application.OpenURL(link);
-		}
-	}
-
-    //draw all collected footers
-    public void drawFooters()
-    {
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        GUILayout.Space(2);
-        foreach (string footNote in footer)
-        {
-            drawFooter(footNote);
-            GUILayout.Space(2);
-        }
-        GUILayout.FlexibleSpace();
-        EditorGUILayout.EndHorizontal();
-    }
-
-    //draw single footer
-    public static void drawFooter(string data)
-    {
-        string[] splitNote = data.TrimEnd(')').Split("(".ToCharArray(), 2);
-        string value = splitNote[1];
-        string type = splitNote[0];
-        if (type == "linkButton")
-        {
-            string[] values = value.Split(",".ToCharArray());
-            drawLinkButton(70, 20, values[0], values[1]);
-        }
-    }
-
-    public void OnOpen(MaterialEditor materialEditor, MaterialProperty[] props)
-    {
-        ThryConfig.Config config = ThryConfig.GetConfig();
+        Config config = Config.Get();
 
         //get material targets
-        Object[] targets = materialEditor.targets;
-        materials = new Material[targets.Length];
-        for (int i = 0; i < targets.Length; i++) materials[i] = targets[i] as Material;
+        Object[] targets = current.editor.targets;
+        current.materials = new Material[targets.Length];
+        for (int i = 0; i < targets.Length; i++) current.materials[i] = targets[i] as Material;
+        current.materials = current.materials;
 
         //collect shader properties
-        CollectAllProperties(props, materialEditor);
+        CollectAllProperties();
 
-        SetupStyle();
+        ThryEditorGuiHelper.SetupStyle();
 
         //init settings texture
         byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
@@ -544,28 +290,28 @@ public class ThryEditor : ShaderGUI
         settingsTexture.LoadImage(fileData);
 
         //init master label
-        MaterialProperty shader_master_label = FindProperty(props, "shader_master_label");
+        MaterialProperty shader_master_label = FindProperty(current.properties, "shader_master_label");
         if (shader_master_label != null) masterLabelText = shader_master_label.displayName;
 
-        this.shader = materials[0].shader;
-        string defaultShaderName = materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-        this.defaultShader = Shader.Find(defaultShaderName);
+        current.shader = current.materials[0].shader;
+        string defaultShaderName = current.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
+        current.defaultShader = Shader.Find(defaultShaderName);
 
         //update render queue if render queue selection is deactivated
         if (!config.renderQueueShaders && !config.showRenderQueue)
         {
-            materials[0].renderQueue = defaultShader.renderQueue;
-            UpdateRenderQueueInstance(defaultShader);
+            current.materials[0].renderQueue = current.defaultShader.renderQueue;
+            UpdateRenderQueueInstance();
         }
 
-        if (materials != null) foreach (Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
+        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = false;
     }
 
     public override void OnClosed(Material  material)
     {
         base.OnClosed(material);
-        if (materials != null) foreach (Material m in materials) ThryShaderImportFixer.backupSingleMaterial(m);
+        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = true;
     }
 
@@ -580,36 +326,41 @@ public class ThryEditor : ShaderGUI
 	{
         if (firstOnGUICall || reloadNextDraw)
         {
-            currentEditor = materialEditor;
-            currentThryGui = this;
-            currentProperties = props;
+            current = new EditorData();
+            current.editor = materialEditor;
+            current.gui = this;
+            current.properties = props;
         }
 
         //handle events
         Event e = Event.current;
-        if (e.type == EventType.MouseDown) isMouseClick = true;
+        if (e.type == EventType.MouseDown) hadMouseClickEvent = true;
+        if (hadMouseClickEvent && e.type == EventType.Repaint) isMouseClick = true;
 
         //first time call inits
-        if (firstOnGUICall || reloadNextDraw) OnOpen(currentEditor, currentProperties);
+        if (firstOnGUICall || reloadNextDraw) OnOpen();
+
+        currentlyDrawing = current;
 
         //sync shader and get preset handler
-        ThryConfig.Config config = ThryConfig.GetConfig();
-        ThrySettings.setActiveShader(materials[0].shader);
-        presetHandler = ThrySettings.presetHandler;
+        Config config = Config.Get();
+        Settings.setActiveShader(current.materials[0].shader);
+        presetHandler = Settings.presetHandler;
 
 
         //editor settings button + shader name + presets
         EditorGUILayout.BeginHorizontal();
         //draw editor settings button
         if (GUILayout.Button(settingsTexture, new GUILayoutOption[] { GUILayout.MaxWidth(24), GUILayout.MaxHeight(18) })) {
-            ThrySettings window = ThrySettings.getInstance();
+            Settings window = Settings.getInstance();
             window.Show();
             window.Focus();
         }
         //draw master label if exists
-		if (masterLabelText != null) DrawMasterLabel(masterLabelText);
+		if (masterLabelText != null) ThryEditorGuiHelper.DrawMasterLabel(masterLabelText);
         //draw presets if exists
-		presetHandler.drawPresets(currentProperties, materials);
+
+        presetHandler.drawPresets(current.properties, current.materials);
 		EditorGUILayout.EndHorizontal();
 
 		//shader properties
@@ -623,19 +374,20 @@ public class ThryEditor : ShaderGUI
         {
             if (config.renderQueueShaders)
             {
-                drawRenderQueueSelector(defaultShader);
-                EditorGUILayout.LabelField("Default: " + defaultShader.name);
-                EditorGUILayout.LabelField("Shader: " + shader.name);
+                customQueueFieldInput = ThryEditorGuiHelper.drawRenderQueueSelector(current.defaultShader, customQueueFieldInput);
+                EditorGUILayout.LabelField("Default: " + current.defaultShader.name);
+                EditorGUILayout.LabelField("Shader: " + current.shader.name);
             }
         }
 
         //footer
-        drawFooters();
+        ThryEditorGuiHelper.drawFooters(footer);
 
         bool isUndo = (e.type == EventType.ExecuteCommand && e.commandName == "UndoRedoPerformed");
         if (reloadNextDraw) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
-        if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance(defaultShader);
+        if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance();
+        if (isMouseClick) hadMouseClickEvent = false;
         isMouseClick = false;
     }
 
@@ -646,12 +398,12 @@ public class ThryEditor : ShaderGUI
 
     public static void loadValuesFromMaterial()
     {
-        if (currentEditor != null)
+        if (currentlyDrawing.editor != null)
         {
             try
             {
-                Material m = ((Material)currentEditor.target);
-                foreach (MaterialProperty property in currentProperties)
+                Material m = ((Material)currentlyDrawing.editor.target);
+                foreach (MaterialProperty property in currentlyDrawing.properties)
                 {
                     switch (property.type)
                     {
@@ -681,11 +433,11 @@ public class ThryEditor : ShaderGUI
 
     public static void propertiesChanged()
     {
-        if (currentEditor != null)
+        if (currentlyDrawing.editor != null)
         {
             try
             {
-                currentEditor.PropertiesChanged();
+                currentlyDrawing.editor.PropertiesChanged();
             }
             catch (System.Exception e)
             {
@@ -696,11 +448,11 @@ public class ThryEditor : ShaderGUI
 
     public static void addUndo(string label)
     {
-        if (currentEditor != null)
+        if (currentlyDrawing.editor != null)
         {
             try
             {
-                currentEditor.RegisterPropertyChangeUndo(label);
+                currentlyDrawing.editor.RegisterPropertyChangeUndo(label);
             }
             catch (System.Exception e)
             {
@@ -711,11 +463,11 @@ public class ThryEditor : ShaderGUI
 
     public static void repaint()
     {
-        if (currentEditor != null)
+        if (currentlyDrawing.editor != null)
         {
             try
             {
-                currentEditor.Repaint();
+                currentlyDrawing.editor.Repaint();
             }
             catch(System.Exception e)
             {
