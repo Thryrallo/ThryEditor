@@ -96,17 +96,85 @@ namespace Thry
         }
     }
 
+    class GradientObject : ScriptableObject
+    {
+        public Gradient gradient = new Gradient();
+    }
+
     public class GradientDrawer : MaterialPropertyDrawer
     {
+        private GradientObject gradientObj;
+        private SerializedProperty colorGradient;
+        private SerializedObject serializedGradient;
+
+        private Texture2D texture;
+
+        private bool saved;
+
+        private EditorWindow gradientWindow;
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            EditorGUI.LabelField(position, label);
+            if (gradientObj == null)
+            {
+                gradientObj = GradientObject.CreateInstance<GradientObject>();
+                serializedGradient = new SerializedObject(gradientObj);
+                colorGradient = serializedGradient.FindProperty("gradient");
+                texture = new Texture2D(128, 16);
+                GradientToTexture();
+            }
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(colorGradient, label);
+            string windowName = EditorWindow.focusedWindow.titleContent.text;
+            bool isGradientEditor = windowName == "Gradient Editor";
+            if (isGradientEditor)
+            {
+                gradientWindow = EditorWindow.focusedWindow;
+            }
+            if (EditorGUI.EndChangeCheck())
+            {
+                serializedGradient.ApplyModifiedProperties();
+                GradientToTexture();
+                prop.textureValue = texture;
+                saved = false;
+            }
+            if (gradientWindow == null && !saved)
+            {
+                byte[] encoding = texture.EncodeToPNG();
+                Debug.Log("Gradient saved.");
+                string path = "Assets/Textures/Gradients/" + GradientToString() + ".png";
+                Helper.writeBytesToFile(encoding, path);
+                AssetDatabase.ImportAsset(path);
+                prop.textureValue = (Texture)EditorGUIUtility.Load(path);
+                saved = true;
+            }
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
             DrawingData.lastPropertyUsedCustomDrawer = true;
             return base.GetPropertyHeight(prop, label, editor);
+        }
+
+        private string GradientToString()
+        {
+            string ret = "";
+            foreach (GradientColorKey key in gradientObj.gradient.colorKeys)
+                ret += key.color.ToString() + key.time.ToString();
+            foreach (GradientAlphaKey key in gradientObj.gradient.alphaKeys)
+                ret += key.alpha.ToString() + key.time.ToString();
+            ret += gradientObj.gradient.mode.ToString();
+            return ret;
+        }
+
+        private void GradientToTexture()
+        {
+            for (int x = 0; x < texture.width; x++)
+            {
+                Color col = gradientObj.gradient.Evaluate((float)x / texture.width);
+                for (int y = 0; y < texture.height; y++) texture.SetPixel(x, y, col);
+            }
+            texture.Apply();
         }
     }
 

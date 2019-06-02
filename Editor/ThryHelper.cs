@@ -93,6 +93,25 @@ namespace Thry
             writer.Close();
         }
 
+        public static bool writeBytesToFile(byte[] bytes, string path)
+        {
+            Directory.CreateDirectory(Regex.Match(path, @".*\/").Value);
+            if (!File.Exists(path)) File.Create(path).Close();
+            try
+            {
+                using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
+                {
+                    fs.Write(bytes, 0, bytes.Length);
+                    return true;
+                }
+            }
+             catch (Exception ex)
+            {
+                Debug.Log("Exception caught in process: "+ ex.ToString());
+                return false;
+            }
+        }
+
         //used to parse extra options in display name like offset
         public static int propertyOptionToInt(string optionName, string displayName)
         {
