@@ -277,7 +277,6 @@ public class ThryEditor : ShaderGUI
         Object[] targets = current.editor.targets;
         current.materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) current.materials[i] = targets[i] as Material;
-        current.materials = current.materials;
 
         //collect shader properties
         CollectAllProperties();

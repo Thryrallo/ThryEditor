@@ -109,7 +109,7 @@ namespace Thry
 
         private Texture2D texture;
 
-        private bool saved;
+        private bool saved = true;
 
         private EditorWindow gradientWindow;
 
@@ -118,33 +118,52 @@ namespace Thry
             if (gradientObj == null)
             {
                 gradientObj = GradientObject.CreateInstance<GradientObject>();
-                serializedGradient = new SerializedObject(gradientObj);
-                colorGradient = serializedGradient.FindProperty("gradient");
-                texture = new Texture2D(128, 16);
-                GradientToTexture();
+                if (prop.textureValue!=null)
+                {
+                    texture = (Texture2D)prop.textureValue;
+                    texture = SetTextureImporterFormat(texture, true);
+                    TextureToGradient();
+                }
+                else
+                {
+                    texture = new Texture2D(256, 1);
+                    serializedGradient = new SerializedObject(gradientObj);
+                    colorGradient = serializedGradient.FindProperty("gradient");
+                } 
             }
-            Rect pos = editor.TexturePropertySingleLine(new GUIContent("", ""), prop);
             EditorGUI.BeginChangeCheck();
-            EditorGUI.PropertyField(pos, colorGradient, new GUIContent("       "+label.text,label.tooltip));
-            //EditorGUILayout.PropertyField(colorGradient, label);
-            string windowName = EditorWindow.focusedWindow.titleContent.text;
+            editor.TexturePropertyMiniThumbnail(position, prop, "","");
+            if (EditorGUI.EndChangeCheck())
+            {
+                texture = (Texture2D)prop.textureValue;
+                texture = SetTextureImporterFormat(texture, true);
+                TextureToGradient();
+            }
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.PropertyField(position, colorGradient, new GUIContent("       " + label.text, label.tooltip));
+            string windowName = "";
+            if (EditorWindow.focusedWindow != null)
+                windowName = EditorWindow.focusedWindow.titleContent.text;
             bool isGradientEditor = windowName == "Gradient Editor";
             if (isGradientEditor)
             {
                 gradientWindow = EditorWindow.focusedWindow;
             }
-            if (EditorGUI.EndChangeCheck())
+            bool changed = EditorGUI.EndChangeCheck();
+            if (changed)
             {
+                if (texture == prop.textureValue) texture = new Texture2D(256, 1);
                 serializedGradient.ApplyModifiedProperties();
                 GradientToTexture();
                 prop.textureValue = texture;
                 saved = false;
             }
+            
             if (gradientWindow == null && !saved)
             {
                 byte[] encoding = texture.EncodeToPNG();
-                Debug.Log("Gradient saved.");
                 string path = "Assets/Textures/Gradients/" + GradientToString() + ".png";
+                Debug.Log("Gradient saved at \""+ path + "\".");
                 Helper.writeBytesToFile(encoding, path);
                 AssetDatabase.ImportAsset(path);
                 Texture tex = (Texture)EditorGUIUtility.Load(path);
@@ -180,6 +199,89 @@ namespace Thry
                 for (int y = 0; y < texture.height; y++) texture.SetPixel(x, y, col);
             }
             texture.Apply();
+        }
+
+        public static Texture2D SetTextureImporterFormat(Texture2D texture, bool isReadable)
+        {
+            if (null == texture) return texture;
+
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter != null)
+            {
+                tImporter.isReadable = isReadable;
+
+                AssetDatabase.ImportAsset(assetPath);
+                AssetDatabase.Refresh();
+
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            }
+            return texture;
+        }
+
+        private void TextureToGradient()
+        {
+            Debug.Log("Texture converted to gradient.");
+                 
+            float[] colSteps = new float[] { -1,-1,-1};
+            float minDiff = 0.005f;
+            float alphaStep = -1;
+            List<GradientColorKey> colorKeys = new List<GradientColorKey>();
+            List<GradientAlphaKey> alphaKeys = new List<GradientAlphaKey>();
+            colorKeys.Add(new GradientColorKey(texture.GetPixel(texture.width-1, 0), 1));
+            alphaKeys.Add(new GradientAlphaKey(texture.GetPixel(texture.width-1, 0).a, 1));
+            int colKeys = 0;
+            int alphaKeysCount = 0;
+            bool lastWasFlat = false;
+            bool secondLastWasFlat = false;
+            bool isFlat = false;
+
+            bool blockNext = false;
+            bool blockNextAlpha = false;
+            for (int x = 1; x < texture.width; x ++)
+            {
+                Color col1 = texture.GetPixel(x, 0);
+                Color col2 = texture.GetPixel(x - 1, 0);
+                float[] newColSteps = new float[] { col1.r - col2.r, col1.g - col2.g, col1.b - col2.b };
+                float time = (float)(x-1) / texture.width;
+
+                bool steppingChanged = !(Mathf.Abs(colSteps[0] - newColSteps[0]) < minDiff &&
+                    Mathf.Abs(colSteps[1] - newColSteps[1]) < minDiff &&
+                    Mathf.Abs(colSteps[2] - newColSteps[2]) < minDiff);
+                //Debug.Log(x +","+col1.ToString()+ "," + colSteps[0] + "-" + newColSteps[0]+"<"+ minDiff+"&&" + colSteps[1] + "-" + newColSteps[1]+ "<" + minDiff + "&&" + colSteps[2] + "-" + newColSteps[2]+"<" + minDiff+"=="+steppingChanged);
+                bool setBlockNextCol = false;
+                bool setBlockNextAlpha = false;
+                if (steppingChanged && colKeys<7 && !blockNext)
+                {
+                    colorKeys.Add(new GradientColorKey(col2, time));
+                    colKeys++;
+                    setBlockNextCol = true;
+                }
+                colSteps = newColSteps;
+
+                bool thisOneFlat = newColSteps[0] == 0 && newColSteps[1] == 0 && newColSteps[2] == 0;
+                if (thisOneFlat && secondLastWasFlat && !lastWasFlat) isFlat = true;
+                    secondLastWasFlat = lastWasFlat;
+                lastWasFlat = thisOneFlat;
+
+                float newAlphaStep = col1.a - col2.a;
+                if (Mathf.Abs(alphaStep - newAlphaStep) > minDiff &&alphaKeysCount<7 && !blockNextAlpha)
+                {
+                    alphaKeys.Add(new GradientAlphaKey(col2.a, time));
+                    alphaKeysCount++;
+                    setBlockNextAlpha = true;
+                }
+                alphaStep = newAlphaStep;
+                if (setBlockNextCol) blockNext = true;
+                else blockNext = false;
+                if (setBlockNextAlpha) blockNextAlpha = true;
+                else blockNextAlpha = false;
+            }
+            gradientObj.gradient.SetKeys(colorKeys.ToArray(), alphaKeys.ToArray());
+            if (isFlat) gradientObj.gradient.mode = GradientMode.Fixed;
+            serializedGradient = new SerializedObject(gradientObj);
+            colorGradient = serializedGradient.FindProperty("gradient");
+            ThryEditor.repaint();
         }
     }
 
