@@ -219,79 +219,125 @@ namespace Thry
             return texture;
         }
 
+        private bool debug = true;
+
         private void TextureToGradient()
         {
             Debug.Log("Texture converted to gradient.");
-                 
-            float[] colSteps = new float[] { -1,-1,-1};
+            
             int d = (int)Mathf.Sqrt(Mathf.Pow(texture.width, 2) + Mathf.Pow(texture.height, 2));
-            float minDiff = 0.005f;
-            float alphaStep = -1;
             List<GradientColorKey> colorKeys = new List<GradientColorKey>();
             List<GradientAlphaKey> alphaKeys = new List<GradientAlphaKey>();
             colorKeys.Add(new GradientColorKey(texture.GetPixel(texture.width-1, texture.height-1), 1));
             alphaKeys.Add(new GradientAlphaKey(texture.GetPixel(texture.width-1, texture.height-1).a, 1));
+            colorKeys.Add(new GradientColorKey(texture.GetPixel(0, 0), 0));
+            alphaKeys.Add(new GradientAlphaKey(texture.GetPixel(0, 0).a, 0));
             int colKeys = 0;
             int alphaKeysCount = 0;
-            bool lastWasFlat = false;
-            bool secondLastWasFlat = false;
+
             bool isFlat = false;
+            bool isNotFlat = false;
 
-            bool blockNext = false;
-            bool blockNextAlpha = false;
-            int prevX = -1;
-            int prevY = -1;
-            for (int i = 0; i < d; i ++)
+            float[][] prevSteps = new float[][]{ GetSteps(GetColorAtI(0, d), GetColorAtI(1, d)), GetSteps(GetColorAtI(0, d), GetColorAtI(1, d)) };
+
+            bool wasFlat = false;
+            int maxBetweenFlats = 3;
+            int minFlat = 3;
+            int flats = 0;
+            int prevFlats = 0;
+            int nonFlats = 0;
+            float[][] steps = new float[d][];
+            Color prevColor = GetColorAtI(0, d);
+            for (int i = 0; i < d; i++)
             {
-                int y = (int)(((float)i) / d * texture.height);
-                int x = (int)(((float)i) / d * texture.width);
-                if (prevX != -1 && prevY != -1)
+                Color col = GetColorAtI(i, d);
+                steps[i] = GetSteps(prevColor, col);
+                prevColor = col;
+            }
+            for(int r = 0; r < 1; r++)
+            {
+                for (int i = 1; i < d-1; i++)
                 {
-                    Color col1 = texture.GetPixel(x, y);
-                    Color col2 = texture.GetPixel(prevX, prevY);
-                    float[] newColSteps = new float[] { col1.r - col2.r, col1.g - col2.g, col1.b - col2.b };
-                    float time = (float)(i)/d;
-
-                    bool steppingChanged = !(Mathf.Abs(colSteps[0] - newColSteps[0]) < minDiff &&
-                        Mathf.Abs(colSteps[1] - newColSteps[1]) < minDiff &&
-                        Mathf.Abs(colSteps[2] - newColSteps[2]) < minDiff);
-                    //Debug.Log(x +","+col1.ToString()+ "," + colSteps[0] + "-" + newColSteps[0]+"<"+ minDiff+"&&" + colSteps[1] + "-" + newColSteps[1]+ "<" + minDiff + "&&" + colSteps[2] + "-" + newColSteps[2]+"<" + minDiff+"=="+steppingChanged);
-                    bool setBlockNextCol = false;
-                    bool setBlockNextAlpha = false;
-                    if (steppingChanged && colKeys < 7 && !blockNext)
+                    //Debug.Log(i+": "+steps[i][0] + "," + steps[i][1] + ","+steps[i][0]);
+                    bool returnToOldVal = false;
+                    if (!SameSteps(steps[i], steps[i + 1])&& SimilarSteps(steps[i], steps[i + 1], 0.1f))
                     {
-                        colorKeys.Add(new GradientColorKey(col2, time));
-                        colKeys++;
-                        setBlockNextCol = true;
+                        int n = i;
+                        while(++n < d && SimilarSteps(steps[i - 1], steps[n],0.1f) )
+                            if (SameSteps(steps[i - 1], steps[n])) returnToOldVal = true;
                     }
-                    colSteps = newColSteps;
-
-                    bool thisOneFlat = newColSteps[0] == 0 && newColSteps[1] == 0 && newColSteps[2] == 0;
-                    if (thisOneFlat && secondLastWasFlat && !lastWasFlat) isFlat = true;
-                    secondLastWasFlat = lastWasFlat;
-                    lastWasFlat = thisOneFlat;
-
-                    float newAlphaStep = col1.a - col2.a;
-                    if (Mathf.Abs(alphaStep - newAlphaStep) > minDiff && alphaKeysCount < 7 && !blockNextAlpha)
-                    {
-                        alphaKeys.Add(new GradientAlphaKey(col2.a, time));
-                        alphaKeysCount++;
-                        setBlockNextAlpha = true;
-                    }
-                    alphaStep = newAlphaStep;
-                    if (setBlockNextCol) blockNext = true;
-                    else blockNext = false;
-                    if (setBlockNextAlpha) blockNextAlpha = true;
-                    else blockNextAlpha = false;
+                    if (returnToOldVal) steps[i] = steps[i - 1];
+                    //Debug.Log(i + ": " + steps[i][0] + "," + steps[i][1] + "," + steps[i][0]);
                 }
-                prevX = x;
-                prevY = y;
+            }
+
+
+            Color lastStableColor = GetColorAtI(0, d);
+            float lastStableTime = 0;
+            bool added = false;
+            for (int i = 1; i < d; i ++)
+            {
+                Color col = GetColorAtI(i, d);
+                Color col0 = GetColorAtI(i-1, d);
+                float[] newColSteps = steps[i];
+                float time = (float)(i)/d;
+
+                float[] diff = new float[] { prevSteps[0][0] - newColSteps[0], prevSteps[0][1] - newColSteps[1], prevSteps[0][2] - newColSteps[2] };
+
+                //if (debug) Debug.Log(col.ToString() + " | " + newColSteps[0] + "," + newColSteps[1] + "," + newColSteps[2]+" | "+diff[0]+","+diff[1]+","+diff[2]+" | "+diff[0]/newColSteps[0]+","+diff[1]/newColSteps[1]+","+diff[2]/newColSteps[2]);
+
+                if (diff[0] == 0 && diff[1] == 0 && diff[2] == 0)
+                {
+                    lastStableColor = col;
+                    lastStableTime = time;
+                    added = false;
+                }
+                else
+                {
+                    if (added==false && colKeys++<6) colorKeys.Add(new GradientColorKey(lastStableColor, lastStableTime));
+                    added = true;
+                }
+
+                prevSteps[1] = prevSteps[0];
+                prevSteps[0] = newColSteps;
+
+                bool thisOneFlat = newColSteps[0] == 0 && newColSteps[1] == 0 && newColSteps[2] == 0;
+                if (thisOneFlat) flats++;
+                else if (!wasFlat && !thisOneFlat) nonFlats++;
+                else if (wasFlat && !thisOneFlat) { prevFlats = flats; flats = 0; nonFlats = 1; }
+                if (flats >= minFlat && prevFlats >= minFlat && nonFlats <= maxBetweenFlats) isFlat = true;
+                if (nonFlats > maxBetweenFlats) isNotFlat = true;
+                wasFlat = thisOneFlat;
             }
             gradientObj.gradient.SetKeys(colorKeys.ToArray(), alphaKeys.ToArray());
-            if (isFlat) gradientObj.gradient.mode = GradientMode.Fixed;
+            if (isFlat && !isNotFlat) gradientObj.gradient.mode = GradientMode.Fixed;
             serializedGradient = new SerializedObject(gradientObj);
             colorGradient = serializedGradient.FindProperty("gradient");
             ThryEditor.repaint();
+        }
+
+        private bool SimilarSteps(float[] steps1, float[] steps2, float perc)
+        {
+            if (Mathf.Abs(steps1[0] - steps2[0]) > perc || Mathf.Abs(steps1[1] - steps2[1]) > perc || Mathf.Abs(steps1[2] - steps2[2]) > perc) return false;
+            return steps1[0] == steps2[0] || steps1[1] == steps2[1] || steps1[2] == steps2[2];
+        }
+
+        private bool SameSteps(float[] steps1, float[] steps2)
+        {
+            return steps1[0] == steps2[0] && steps1[1] == steps2[1] && steps1[2] == steps2[2];
+        }
+
+        private float[] GetSteps(Color col1, Color col2)
+        {
+            return new float[] { col1.r - col2.r, col1.g - col2.g, col1.b - col2.b };
+        }
+
+        private Color GetColorAtI(int i,int d)
+        {
+            int y = (int)(((float)i) / d * texture.height);
+            int x = (int)(((float)i) / d * texture.width);
+            Color col = texture.GetPixel(x, y);
+            return col;
         }
     }
 
