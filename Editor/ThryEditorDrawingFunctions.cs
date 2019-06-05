@@ -191,6 +191,7 @@ namespace Thry
                 AssetDatabase.ImportAsset(path);
                 Texture tex = (Texture)EditorGUIUtility.Load(path);
                 tex.wrapMode = TextureWrapMode.Clamp;
+                SetTextureImporterFormat((Texture2D)tex, true);
                 prop.textureValue = tex;
                 data.saved = true;
             }
@@ -271,6 +272,7 @@ namespace Thry
             if (tImporter != null)
             {
                 tImporter.isReadable = isReadable;
+                tImporter.wrapMode = TextureWrapMode.Clamp;
 
                 AssetDatabase.ImportAsset(assetPath);
                 AssetDatabase.Refresh();
