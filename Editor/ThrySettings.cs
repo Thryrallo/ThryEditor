@@ -61,12 +61,13 @@ namespace Thry
         new string[]{ "Render Queue Shaders", "Have the render queue selector work with vrchat by creating seperate shaders for the different queues" },
         new string[]{ "Auto setup avatar descriptor", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject" },
         new string[]{ " Fallback Default Animation Set", "is applied by auto avatar descriptor if gender of avatar couldn't be determend" },
-        new string[]{ "Force Fallback Default Animation Set", "always set default animation set as fallback set" }
+        new string[]{ "Force Fallback Default Animation Set", "always set default animation set as fallback set" },
+        new string[]{ "Gradient Save File Names", "configures the way gradient texture files are named" }
         };
         enum SETTINGS_IDX
         {
             bigTexFields = 0, render_queue = 1, show_popup_on_import = 2, render_queue_shaders = 3, vrc_aad = 4, vrc_fallback_anim = 5,
-            vrc_force_fallback_anim = 6
+            vrc_force_fallback_anim = 6, gradient_file_name=7
         };
 
         private void OnSelectionChange()
@@ -168,6 +169,8 @@ namespace Thry
             if (config.showRenderQueue)
                 Toggle("renderQueueShaders", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue_shaders]);
 
+            Text("gradient_name", SETTINGS_CONTENT[(int)SETTINGS_IDX.gradient_file_name]);
+
             drawLine();
 
             if (hasVRCSdk)
@@ -260,6 +263,25 @@ namespace Thry
             has_vrc_tools = true;
             thry_vrc_tools_installed_version = thry_vrc_tools_version;
             Helper.RepaintEditorWindow(typeof(Settings));
+        }
+
+        private static void Text(string configField, string[] content)
+        {
+            Config config = Config.Get();
+            System.Reflection.FieldInfo field = typeof(Config).GetField(configField);
+            if (field != null)
+            {
+                string value = (string)field.GetValue(config);
+                GUILayout.BeginHorizontal();
+                if (EditorGUILayout.DelayedTextField("",value, GUILayout.MaxWidth(250)) != value)
+                {
+                    field.SetValue(field, value);
+                    config.save();
+                    ThryEditor.repaint();
+                }
+                GUILayout.Label(new GUIContent(content[0], content[1]), GUILayout.ExpandWidth(false));
+                GUILayout.EndHorizontal();
+            }
         }
 
         private static void Toggle(string configField, string[] content)

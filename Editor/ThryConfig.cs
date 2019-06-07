@@ -62,6 +62,8 @@ namespace Thry
         public bool showRenderQueue = true;
         public bool renderQueueShaders = true;
 
+        public string gradient_name = "gradient_<material>_<hash>.png";
+
         public bool vrchatAutoFillAvatarDescriptor = false;
         public int vrchatDefaultAnimationSetFallback = 2;
         public bool vrchatForceFallbackAnimationSet = false;
