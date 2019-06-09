@@ -170,9 +170,8 @@ namespace Thry
             if (data.gradientWindow == null && !data.saved)
             {
                 byte[] encoding = data.texture.EncodeToPNG();
-                string gradient_name = GradientToString(ref data);
-                gradient_name = "gradient_" + gradient_name.GetHashCode();
-                string path = "Assets/Textures/Gradients/" + gradient_name + ".png";
+                string gradient_name = GradientFileName(ref data,editor.target.name);
+                string path = "Assets/Textures/Gradients/" + gradient_name;
                 Debug.Log("Gradient saved at \""+ path + "\".");
                 Helper.writeBytesToFile(encoding, path);
 
@@ -230,6 +229,21 @@ namespace Thry
             foreach (GradientAlphaKey key in data.gradientObj.gradient.alphaKeys)
                 ret += "a,"+key.alpha+"," + key.time;
             ret += "m"+((int)data.gradientObj.gradient.mode);
+            return ret;
+        }
+
+        private string GradientFileName(ref GradientData data, string material_name)
+        {
+            string hash = ""+GradientToString(ref data).GetHashCode();
+            return GradientFileName(hash, material_name);
+        }
+
+        private string GradientFileName(string hash, string material_name)
+        {
+            Config config = Config.Get();
+            string ret = config.gradient_name;
+            ret = Regex.Replace(ret, "<hash>", hash);
+            ret = Regex.Replace(ret, "<material>", material_name);
             return ret;
         }
 
