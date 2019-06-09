@@ -638,7 +638,7 @@ namespace Thry
             this.currentState = !this.currentState;
         }
 
-        public void Foldout(int xOffset, string name, ThryEditor gui)
+        public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             var style = new GUIStyle("ShurikenModuleTitle");
             style.font = new GUIStyle(EditorStyles.label).font;
@@ -648,7 +648,8 @@ namespace Thry
             style.margin.left = 30 * xOffset;
 
             var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
-            GUI.Box(rect, name, style);
+            DrawingData.lastGuiObjectRect = rect;
+            GUI.Box(rect, content, style);
 
             var e = Event.current;
 
@@ -658,7 +659,7 @@ namespace Thry
                 EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
             }
 
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition)&&!e.alt)
             {
                 this.Toggle();
                 e.Use();
