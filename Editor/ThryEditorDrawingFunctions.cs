@@ -106,8 +106,6 @@ namespace Thry
     {
         const string GRADIENT_INFO_FILE_PATH = "Assets/.thry_gradients";
 
-        static Dictionary<string,GradientData> dataSets = new Dictionary<string,GradientData>();
-
         private class GradientData {
             public GradientObject gradientObj;
             public SerializedProperty colorGradient;
@@ -121,8 +119,8 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             GradientData data;
-            if (dataSets.ContainsKey(editor.target.name+prop.name)) data = dataSets[editor.target.name+prop.name];
-            else { data = new GradientData(); data.saved = true; dataSets[editor.target.name+prop.name] = data; }
+            if (ThryEditor.currentlyDrawing.property_data != null) data = (GradientData)ThryEditor.currentlyDrawing.property_data;
+            else { data = new GradientData(); data.saved = true; ThryEditor.currentlyDrawing.property_data = data; }
             
             if (data.gradientObj == null)
             {
@@ -170,23 +168,16 @@ namespace Thry
             if (data.gradientWindow == null && !data.saved)
             {
                 byte[] encoding = data.texture.EncodeToPNG();
-                string gradient_name = GradientToString(ref data);
-                gradient_name = "gradient_" + gradient_name.GetHashCode();
-                string path = "Assets/Textures/Gradients/" + gradient_name + ".png";
+                string gradient_data = GradientToString(ref data);
+                string gradient_name = Config.Get().gradient_name;
+                gradient_name = gradient_name.Replace("<material>", editor.target.name);
+                gradient_name = gradient_name.Replace("<hash>", ""+gradient_data.GetHashCode());
+                gradient_name = gradient_name.Replace("<prop>", prop.name);
+                string path = "Assets/Textures/Gradients/" + gradient_name;
                 Debug.Log("Gradient saved at \""+ path + "\".");
                 Helper.writeBytesToFile(encoding, path);
 
-                string gradientInfo = Helper.readFileIntoString(GRADIENT_INFO_FILE_PATH);
-                string encodedGradient = "-" + gradient_name + ":" + GradientToString(ref data) + "-";
-                if (Regex.Match(gradientInfo, @"-" + gradient_name).Success)
-                {
-                    Regex.Replace(gradientInfo, @"-" + gradient_name + ".*-", encodedGradient);
-                }
-                else
-                {
-                    gradientInfo += encodedGradient;
-                }
-                Helper.writeStringToFile(gradientInfo, GRADIENT_INFO_FILE_PATH);
+                Helper.SaveValueToFile(gradient_name, gradient_data, GRADIENT_INFO_FILE_PATH);
 
                 AssetDatabase.ImportAsset(path);
                 Texture tex = (Texture)EditorGUIUtility.Load(path);
@@ -200,13 +191,12 @@ namespace Thry
         private void TextureUpdated(ref GradientData data)
         {
             data.texture = SetTextureImporterFormat(data.texture, true);
-            string gradientInfo = Helper.readFileIntoString(GRADIENT_INFO_FILE_PATH);
-            Match m = Regex.Match(gradientInfo, "-" + data.texture.name + "[^-]*-");
-            if (m.Success)
+            string gradientInfo = Helper.LoadValueFromFile(data.texture.name, GRADIENT_INFO_FILE_PATH);
+            if (gradientInfo!=null)
             {
-                Debug.Log("Gradient Data: " + m.Value);
+                Debug.Log("Gradient Data: " + gradientInfo);
                 Debug.Log("Load Gradient from save file.");
-                StringToGradient(ref data,m.Value);
+                StringToGradient(ref data, gradientInfo);
                 data.serializedGradient = new SerializedObject(data.gradientObj);
                 data.colorGradient = data.serializedGradient.FindProperty("gradient");
             }
@@ -406,6 +396,57 @@ namespace Thry
         }
     }
 
+    public class TextTextureDrawer : MaterialPropertyDrawer
+    {
+        const string TEXT_INFO_FILE_PATH = "Assets/.thry_text_textures";
+
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            string text = "";
+            if (ThryEditor.currentlyDrawing.property_data==null)
+                ThryEditor.currentlyDrawing.property_data = Helper.LoadValueFromFile(editor.target.name + ":" + prop.name, TEXT_INFO_FILE_PATH);
+            text = (string)ThryEditor.currentlyDrawing.property_data;
+
+            EditorGUI.BeginChangeCheck();
+            text = EditorGUI.DelayedTextField(position, new GUIContent("       " + label.text, label.tooltip), text);
+            if (EditorGUI.EndChangeCheck())
+            {
+                foreach(Material m in ThryEditor.currentlyDrawing.materials)
+                    Helper.SaveValueToFile(m.name + ":" + prop.name, text, TEXT_INFO_FILE_PATH);
+                ThryEditor.currentlyDrawing.property_data = text;
+                prop.textureValue = Helper.TextToTexture(text);
+                Debug.Log("text '" + text + "' saved as texture.");
+            }
+
+            EditorGUI.BeginChangeCheck();
+            editor.TexturePropertyMiniThumbnail(position, prop, "", "");
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (prop.textureValue.name.StartsWith("text_"))
+                    text = prop.textureValue.name.Replace("text_", "").Replace("_"," ");
+                else
+                    text = "<texture>";
+                ThryEditor.currentlyDrawing.property_data = text;
+                foreach (Material m in ThryEditor.currentlyDrawing.materials)
+                    Helper.SaveValueToFile(m.name + ":" + prop.name, "<texture>", TEXT_INFO_FILE_PATH);
+            }
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+
+        public static void ResetMaterials()
+        {
+            foreach(Material m in ThryEditor.currentlyDrawing.materials)
+            {
+                Helper.SaveValueToFileKeyIsRegex(Regex.Escape(m.name)+@".*" ,"", TEXT_INFO_FILE_PATH);
+            }
+        }
+    }
+
     public class MyToggleDrawer : MaterialPropertyDrawer
     {
         // Draw the property inside the given rect
@@ -447,7 +488,10 @@ namespace Thry
             {
                 if (DrawingData.currentTexProperty.showScaleOffset) ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
                 if (ThryEditor.isMouseClick && position.Contains(Event.current.mousePosition))
+                {
                     DrawingData.currentTexProperty.showScaleOffset = !DrawingData.currentTexProperty.showScaleOffset;
+                    editor.Repaint();
+                }
             }
 
             DrawingData.lastGuiObjectRect = position;

@@ -188,7 +188,7 @@ namespace Thry
 
         private static string readShaderName(string path)
         {
-            string shaderCode = Helper.readFileIntoString(path);
+            string shaderCode = Helper.ReadFileIntoString(path);
             string pattern = @"Shader *""(\w|\/|\.)+";
             string ogShaderName = Regex.Match(shaderCode, pattern).Value;
             ogShaderName = Regex.Replace(ogShaderName, @"Shader *""", "");
@@ -222,7 +222,7 @@ namespace Thry
             if (restoring_in_progress) return;
             string[] mats = new string[0];
             if (!File.Exists(MATERIALS_BACKUP_FILE_PATH)) File.CreateText(MATERIALS_BACKUP_FILE_PATH).Close();
-            else mats = Helper.readFileIntoString(MATERIALS_BACKUP_FILE_PATH).Split(new string[] { "\n" }, System.StringSplitOptions.None);
+            else mats = Helper.ReadFileIntoString(MATERIALS_BACKUP_FILE_PATH).Split(new string[] { "\n" }, System.StringSplitOptions.None);
             bool updated = false;
             string matGuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m.GetInstanceID()));
             string newString = "";
@@ -241,7 +241,7 @@ namespace Thry
             }
             if (!updated) newString += matGuid + ":" + Helper.getDefaultShaderName(m.shader.name) + ":" + m.renderQueue;
             else newString = newString.Substring(0, newString.LastIndexOf("\n"));
-            Helper.writeStringToFile(newString, MATERIALS_BACKUP_FILE_PATH);
+            Helper.WriteStringToFile(newString, MATERIALS_BACKUP_FILE_PATH);
         }
 
         public static void restoreAllMaterials()

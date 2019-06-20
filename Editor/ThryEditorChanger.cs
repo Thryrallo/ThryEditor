@@ -126,28 +126,28 @@ namespace Thry
 
         private void addProperty(string path, string property, string value)
         {
-            string shaderCode = Helper.readFileIntoString(path);
+            string shaderCode = Helper.ReadFileIntoString(path);
             string pattern = @"Properties.*\n?\s*{";
             RegexOptions options = RegexOptions.Multiline;
             shaderCode = Regex.Replace(shaderCode, pattern, "Properties \r\n  {" + " \r\n      " + property + "=" + value, options);
 
-            Helper.writeStringToFile(shaderCode, path);
+            Helper.WriteStringToFile(shaderCode, path);
         }
 
         private void removeProperty(string path, string property, string value)
         {
-            string shaderCode = Helper.readFileIntoString(path);
+            string shaderCode = Helper.ReadFileIntoString(path);
             string pattern = @"\r?\n.*" + Regex.Escape(property) + " ?= ?" + value;
             RegexOptions options = RegexOptions.Multiline;
 
             shaderCode = Regex.Replace(shaderCode, pattern, "", options);
 
-            Helper.writeStringToFile(shaderCode, path);
+            Helper.WriteStringToFile(shaderCode, path);
         }
 
         private void revertEditor(string path)
         {
-            string shaderCode = Helper.readFileIntoString(path);
+            string shaderCode = Helper.ReadFileIntoString(path);
             string pattern = @"//originalEditor.*\n";
             Match m = Regex.Match(shaderCode, pattern);
             if (m.Success)
@@ -155,13 +155,13 @@ namespace Thry
                 string orignialEditor = m.Value.Replace("//originalEditor", "");
                 pattern = @"//originalEditor.*\n.*\n";
                 shaderCode = Regex.Replace(shaderCode, pattern, orignialEditor);
-                Helper.writeStringToFile(shaderCode, path);
+                Helper.WriteStringToFile(shaderCode, path);
             }
         }
 
         private void replaceEditorInShader(string path, string newEditor)
         {
-            string shaderCode = Helper.readFileIntoString(path);
+            string shaderCode = Helper.ReadFileIntoString(path);
             string pattern = @"CustomEditor ?.*\n";
             Match m = Regex.Match(shaderCode, pattern);
             if (m.Success)
@@ -176,7 +176,7 @@ namespace Thry
                 shaderCode = Regex.Replace(shaderCode, pattern, "CustomEditor \"" + newEditor + "\" \r\n    SubShader \r\n  {", options);
             }
 
-            Helper.writeStringToFile(shaderCode, path);
+            Helper.WriteStringToFile(shaderCode, path);
         }
 
     }

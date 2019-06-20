@@ -62,7 +62,7 @@ namespace Thry
         new string[]{ "Auto setup avatar descriptor", "Automatically setup the vrc_avatar_descriptor after adding it to a gameobject" },
         new string[]{ " Fallback Default Animation Set", "is applied by auto avatar descriptor if gender of avatar couldn't be determend" },
         new string[]{ "Force Fallback Default Animation Set", "always set default animation set as fallback set" },
-        new string[]{ "Gradient Save File Names", "configures the way gradient texture files are named" }
+        new string[]{ "Gradient Save File Names", "configures the way gradient texture files are named. use <material>, <hash> and <prop> to identify the texture." }
         };
         enum SETTINGS_IDX
         {
@@ -133,6 +133,15 @@ namespace Thry
             redInfostyle.normal.textColor = Color.red;
             redInfostyle.fontSize = 16;
 
+            GUIStyle redStyle = new GUIStyle();
+            redStyle.normal.textColor = Color.red;
+
+            GUIStyle yellowStyle = new GUIStyle();
+            yellowStyle.normal.textColor = Color.yellow;
+
+            GUIStyle greenStyle = new GUIStyle();
+            greenStyle.normal.textColor = new Color(0,0.5f,0);
+
             if (isFirstPopop)
                 GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
             else if (updatedVersion == -1)
@@ -169,7 +178,21 @@ namespace Thry
             if (config.showRenderQueue)
                 Toggle("renderQueueShaders", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue_shaders]);
 
+            GUILayout.BeginHorizontal();
             Text("gradient_name", SETTINGS_CONTENT[(int)SETTINGS_IDX.gradient_file_name]);
+            string gradient_name = config.gradient_name;
+            if (gradient_name.Contains("<hash>"))
+                GUILayout.Label("Good naming.",greenStyle, GUILayout.ExpandWidth(false));
+            else if (gradient_name.Contains("<material>"))
+                if (gradient_name.Contains("<prop>"))
+                    GUILayout.Label("Good naming.",greenStyle, GUILayout.ExpandWidth(false));
+                else
+                    GUILayout.Label("Consider adding <hash> or <prop>.",yellowStyle, GUILayout.ExpandWidth(false));
+            else if(gradient_name.Contains("<prop>"))
+                GUILayout.Label("Consider adding <material>.", yellowStyle, GUILayout.ExpandWidth(false));
+            else
+                GUILayout.Label("Add <material> <hash> or <prop> to destingish between gradients.",redStyle,GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
 
             drawLine();
 
@@ -177,7 +200,7 @@ namespace Thry
             {
                 if (firstLoad)
                 {
-                    thry_vrc_tools_installed_version = Helper.findFileAndReadIntoString(THRY_VRC_TOOLS_VERSION_PATH);
+                    thry_vrc_tools_installed_version = Helper.FindFileAndReadIntoString(THRY_VRC_TOOLS_VERSION_PATH);
                     has_vrc_tools = System.Type.GetType("Thry.AutoAvatarDescriptor") != null;
                 }
                 if (has_vrc_tools)
@@ -247,10 +270,13 @@ namespace Thry
         public static void thry_vrc_tools_version_callback(string s)
         {
             string[] data = Regex.Split(s, @"\r?\n");
-            thry_vrc_tools_version = data[0];
-            thry_vrc_tools_vrc_sdk_version = data[1];
-            thry_vrc_tools_version_loaded = true;
-            Helper.RepaintEditorWindow(typeof(Settings));
+            if (data.Length > 1)
+            {
+                thry_vrc_tools_version = data[0];
+                thry_vrc_tools_vrc_sdk_version = data[1];
+                thry_vrc_tools_version_loaded = true;
+                Helper.RepaintEditorWindow(typeof(Settings));
+            }
         }
 
         public static void thry_vrc_tools_file_list_callback(string s)
@@ -259,7 +285,7 @@ namespace Thry
             string path = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("ThrySettings")[0]);
             path = Regex.Replace(path, @"/Editor/ThrySettings.cs", "/ThryTools/");
             foreach (string file in fileNames) Helper.downloadFileToPath(THRY_VRC_TOOLS_REPO_URL + file, path+file);
-            Helper.writeStringToFile(thry_vrc_tools_version, path + THRY_VRC_TOOLS_VERSION_PATH + ".txt");
+            Helper.WriteStringToFile(thry_vrc_tools_version, path + THRY_VRC_TOOLS_VERSION_PATH + ".txt");
             has_vrc_tools = true;
             thry_vrc_tools_installed_version = thry_vrc_tools_version;
             Helper.RepaintEditorWindow(typeof(Settings));
@@ -273,11 +299,12 @@ namespace Thry
             {
                 string value = (string)field.GetValue(config);
                 GUILayout.BeginHorizontal();
-                if (EditorGUILayout.DelayedTextField("",value, GUILayout.MaxWidth(250)) != value)
+                EditorGUI.BeginChangeCheck();
+                value = EditorGUILayout.DelayedTextField("", value, GUILayout.MaxWidth(250));
+                if(EditorGUI.EndChangeCheck())
                 {
-                    field.SetValue(field, value);
+                    field.SetValue(config, value);
                     config.save();
-                    ThryEditor.repaint();
                 }
                 GUILayout.Label(new GUIContent(content[0], content[1]), GUILayout.ExpandWidth(false));
                 GUILayout.EndHorizontal();

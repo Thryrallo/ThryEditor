@@ -14,6 +14,7 @@ public class ThryEditor : ShaderGUI
     public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
     public const string HOVER_OPTION = "hover";
     public const string ON_ALT_CLICK_OPTION = "altClick";
+    public const float MATERIAL_NOT_RESET = 69.12f;
 
     private ShaderHeader shaderparts; //stores headers and properties in correct order
     private Texture2D settingsTexture;
@@ -32,6 +33,8 @@ public class ThryEditor : ShaderGUI
     public static bool isMouseClick = false;
     private static bool hadMouseClickEvent = false;
 
+    private bool wasUsed = false;
+
     public struct EditorData
     {
         public MaterialEditor editor;
@@ -40,6 +43,7 @@ public class ThryEditor : ShaderGUI
         public Material[] materials;
         public Shader shader;
         public Shader defaultShader;
+        public System.Object property_data;
     }
 
     private EditorData current;
@@ -103,6 +107,7 @@ public class ThryEditor : ShaderGUI
         public MaterialProperty materialProperty;
         public GUIContent style;
         public bool drawDefault;
+        private System.Object property_data = null;
 
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {
@@ -114,6 +119,7 @@ public class ThryEditor : ShaderGUI
         public override void Draw()
         {
             PreDraw();
+            currentlyDrawing.property_data = property_data;
             DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset * 2 + 1;
@@ -125,6 +131,7 @@ public class ThryEditor : ShaderGUI
             if (DrawingData.lastGuiObjectRect.x==-1) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
 
             testAltClick(DrawingData.lastGuiObjectRect, this);
+            property_data = currentlyDrawing.property_data;
         }
 
         public virtual void PreDraw() { }
@@ -169,7 +176,7 @@ public class ThryEditor : ShaderGUI
             string[] guids = AssetDatabase.FindAssets(label_file_property.displayName);
             if (guids.Length == 0) Debug.LogError("Label File could not be found");
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            string[] data = Regex.Split(Helper.readFileIntoString(path),@"\r?\n");
+            string[] data = Regex.Split(Helper.ReadFileIntoString(path),@"\r?\n");
             foreach(string d in data)
             {
                 string[] set = Regex.Split(d, ":=");
@@ -303,6 +310,8 @@ public class ThryEditor : ShaderGUI
             UpdateRenderQueueInstance();
         }
 
+        foreach (MaterialProperty p in current.properties) if (p.name == "shader_is_using_thry_editor") p.floatValue = MATERIAL_NOT_RESET;
+
         if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = false;
     }
@@ -377,14 +386,33 @@ public class ThryEditor : ShaderGUI
                 EditorGUILayout.LabelField("Default: " + current.defaultShader.name);
                 EditorGUILayout.LabelField("Shader: " + current.shader.name);
             }
+            else
+            {
+                materialEditor.RenderQueueField();
+            }
         }
 
         //footer
         ThryEditorGuiHelper.drawFooters(footer);
 
-        bool isUndo = (e.type == EventType.ExecuteCommand && e.commandName == "UndoRedoPerformed");
+        bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
         if (reloadNextDraw) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
+        
+        //test if material has been reset
+        if (wasUsed && e.type == EventType.Repaint)
+        {
+            foreach (MaterialProperty p in props)
+                if (p.name == "shader_is_using_thry_editor" && p.floatValue != MATERIAL_NOT_RESET)
+                {
+                    reloadNextDraw = true;
+                    TextTextureDrawer.ResetMaterials();
+                    break;
+                }
+            wasUsed = false;
+        }
+
+        if (e.type == EventType.Used) wasUsed = true;
         if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance();
         if (isMouseClick) hadMouseClickEvent = false;
         isMouseClick = false;

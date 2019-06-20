@@ -24,7 +24,7 @@ namespace Thry
             if (renderQueueShader != null) return renderQueueShader;
 
             string defaultPath = AssetDatabase.GetAssetPath(defaultShader);
-            string shaderCode = readFileIntoString(defaultPath);
+            string shaderCode = ReadFileIntoString(defaultPath);
             string pattern = @"""Queue"" ?= ?""\w+(\+\d+)?""";
             string replacementQueue = "Background+" + (renderQueue - 1000);
             if (renderQueue == 1000) replacementQueue = "Background";
@@ -42,7 +42,7 @@ namespace Thry
             string newPath = defaultPath.Replace(fileName, "") + "_differentQueues";
             Directory.CreateDirectory(newPath);
             newPath = newPath + "/" + fileName.Replace(".shader", "-queue" + renderQueue + ".shader");
-            writeStringToFile(shaderCode, newPath);
+            WriteStringToFile(shaderCode, newPath);
             ShaderImportFixer.scriptImportedAssetPaths.Add(newPath);
             if (import) AssetDatabase.ImportAsset(newPath);
 
@@ -60,22 +60,22 @@ namespace Thry
             }
         }
 
-        public static string findFileAndReadIntoString(string fileName)
+        public static string FindFileAndReadIntoString(string fileName)
         {
             string[] guids = AssetDatabase.FindAssets(fileName);
             if (guids.Length > 0)
-                return readFileIntoString(AssetDatabase.GUIDToAssetPath(guids[0]));
+                return ReadFileIntoString(AssetDatabase.GUIDToAssetPath(guids[0]));
             else return "";
         }
 
-        public static void findFileAndWriteString(string fileName, string s)
+        public static void FindFileAndWriteString(string fileName, string s)
         {
             string[] guids = AssetDatabase.FindAssets(fileName);
             if (guids.Length > 0)
-                writeStringToFile(s, AssetDatabase.GUIDToAssetPath(guids[0]));
+                WriteStringToFile(s, AssetDatabase.GUIDToAssetPath(guids[0]));
         }
 
-        public static string readFileIntoString(string path)
+        public static string ReadFileIntoString(string path)
         {
             if (!File.Exists(path)) File.Create(path).Close();
             StreamReader reader = new StreamReader(path);
@@ -84,7 +84,7 @@ namespace Thry
             return ret;
         }
 
-        public static void writeStringToFile(string s, string path)
+        public static void WriteStringToFile(string s, string path)
         {
             Directory.CreateDirectory(Regex.Match(path, @".*\/").Value);
             if (!File.Exists(path)) File.Create(path).Close();
@@ -110,6 +110,33 @@ namespace Thry
                 Debug.Log("Exception caught in process: "+ ex.ToString());
                 return false;
             }
+        }
+
+        private static Dictionary<string, string> textFileData = new Dictionary<string, string>();
+
+        public static string LoadValueFromFile(string key, string path)
+        {
+            if (!textFileData.ContainsKey(path)) textFileData[path] = ReadFileIntoString(path);
+            Match m = Regex.Match(textFileData[path], Regex.Escape(key) + @"\s*:=.*\r?\n");
+            string value = Regex.Replace(m.Value, key+@"\s*:=\s*", "");
+            if (m.Success) return value;
+            return null;
+        }
+
+
+        public static bool SaveValueToFileKeyIsRegex(string keyRegex, string value, string path)
+        {
+            if (!textFileData.ContainsKey(path)) textFileData[path] = ReadFileIntoString(path);
+            Match m = Regex.Match(textFileData[path], keyRegex + @"\s*:=.*\r?\n");
+            if (m.Success) textFileData[path] = textFileData[path].Replace(m.Value, m.Value.Substring(0,m.Value.IndexOf(":=")) +":="+ value+"\n");
+            else textFileData[path] += Regex.Unescape(keyRegex) + ":=" + value + "\n";
+            WriteStringToFile(textFileData[path], path);
+            return true;
+        }
+
+        public static bool SaveValueToFile(string key, string value, string path)
+        {
+            return SaveValueToFileKeyIsRegex(Regex.Escape(key), value, path);
         }
 
         //used to parse extra options in display name like offset
@@ -189,6 +216,168 @@ namespace Thry
             return 0;
         }
 
+        public static Texture TextToTexture(string text)
+        {
+            return TextToTexture(text, "alphabet_thry_default");
+        }
+
+        public static Texture TextToTexture(string text, string alphabetTextureName)
+        {
+            string[] guids = AssetDatabase.FindAssets(alphabetTextureName + " t:texture");
+            if (guids.Length > 0)
+            {
+                TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guids[0]));
+                importer.isReadable = true;
+                importer.SaveAndReimport();
+
+                Texture2D alphabet_texture = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
+
+                Color background = alphabet_texture.GetPixel(0, 0);
+
+                //load letter data from alphabet
+                int padding = 0;
+                int[][] letterSpaces = new int[62][];
+                int currentLetterIndex = -1;
+                bool wasLetter = false;
+                int pixelLetterFreshhold = 3;
+                for(int x = 0; x < alphabet_texture.width; x++)
+                {
+                    int pixelIsLetter = 0;
+                    for(int y = 0; y < alphabet_texture.height; y++)
+                    {
+                        if (ColorDifference(background, alphabet_texture.GetPixel(x, y)) > 0.01) pixelIsLetter += 1;
+                    }
+                    bool isLetter = pixelIsLetter > pixelLetterFreshhold;
+                    if (isLetter && !wasLetter)
+                    {
+                        currentLetterIndex += 1;
+                        if (currentLetterIndex >= letterSpaces.Length)
+                            break;
+                        letterSpaces[currentLetterIndex] = new int[2];
+                        letterSpaces[currentLetterIndex][0] = x;
+                    }else if(isLetter && wasLetter)
+                    {
+                        letterSpaces[currentLetterIndex][1] += 1;
+                    }else if(!isLetter)
+                    {
+                        padding += 1;
+                    }
+                    wasLetter = isLetter;
+                }
+                int spaceWidth = 0;
+                foreach (int[] s in letterSpaces) if(s!=null) spaceWidth += s[1];
+                spaceWidth /= 62;
+                padding /= 61;
+
+                int a = 97;
+                int A = 65;
+                int zero = 48;
+                int space = 32;
+
+                int totalWidth = 0;
+                int[] letterIndecies = new int[text.Length];
+
+                // text to alphabet texture letter indecies
+                int i = 0;
+                foreach(char c in text)
+                {
+                    if ((int)c==10) continue;
+                    int letterIndex = 0;
+                    if ((int)c - a >= 0) letterIndex = ((int)c - a)*2+1;
+                    else if ((int)c - A >= 0) letterIndex = ((int)c - A)*2;
+                    else if ((int)c - zero >= 0) letterIndex = 52+(int)c - zero;
+                    else if ((int)c - space >= 0) letterIndex = -1;
+                    //Debug.Log("Char: " + c +","+ (int)c+","+letterIndex);
+                    letterIndecies[i] = letterIndex;
+                    if (letterIndex == -1)
+                        totalWidth += spaceWidth;
+                    else
+                        totalWidth += letterSpaces[letterIndex][1]+padding;
+                    i++;
+                }
+
+                Texture2D text_texture = new Texture2D(totalWidth, alphabet_texture.height);
+
+                Debug.Log("Padding: " + padding);
+                Debug.Log("Total width: " + totalWidth);
+                // indecies to texture
+                int letterX = 0;
+                for (i = 0; i < letterIndecies.Length; i++)
+                {
+                    //Debug.Log(i + "," + letterIndecies[i]);
+                    if (letterIndecies[i] == -1)
+                    {
+                        for (int x = 0; x < spaceWidth; x++)
+                        {
+                            for (int y = 0; y < text_texture.height; y++)
+                            {
+                                text_texture.SetPixel(letterX + x, y, background);
+                            }
+                        }
+                        letterX += spaceWidth;
+                    }
+                    else
+                    {
+                        for (int x = 0; x < letterSpaces[letterIndecies[i]][1] + padding; x++)
+                        {
+                            for (int y = 0; y < text_texture.height; y++)
+                            {
+                                text_texture.SetPixel(letterX + x, y, alphabet_texture.GetPixel(letterSpaces[letterIndecies[i]][0] + x - padding/2, y));
+                            }
+                        }
+                        letterX += letterSpaces[letterIndecies[i]][1] + padding;
+                    }
+                }
+
+                string file_name = "text_" + Regex.Replace(text,@"\s","_");
+                string path = "Assets/Textures/Gradients/" + file_name + ".png";
+                return SaveTextureAsPNG(text_texture, path);
+            }
+            else
+            {
+                Debug.LogWarning("Alphabet texture could not be found.");
+            }
+            return null;
+        }
+
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path)
+        {
+            byte[] encoding = texture.EncodeToPNG();
+            Debug.Log("Gradient saved at \"" + path + "\".");
+            Helper.writeBytesToFile(encoding, path);
+
+            AssetDatabase.ImportAsset(path);
+            Texture tex = (Texture)EditorGUIUtility.Load(path);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Point;
+            return SetTextureImporterFormat((Texture2D)tex, true);
+        }
+
+        public static Texture2D SetTextureImporterFormat(Texture2D texture, bool isReadable)
+        {
+            if (null == texture) return texture;
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter != null)
+            {
+                tImporter.isReadable = isReadable;
+                tImporter.filterMode = FilterMode.Point;
+                tImporter.alphaIsTransparency = true;
+                tImporter.wrapMode = TextureWrapMode.Clamp;
+
+                AssetDatabase.ImportAsset(assetPath);
+                AssetDatabase.Refresh();
+
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            }
+            return texture;
+        }
+
+        public static float ColorDifference(Color col1, Color col2)
+        {
+            return Math.Abs(col1.r - col2.r) + Math.Abs(col1.g - col2.g) + Math.Abs(col1.b - col2.b) + Math.Abs(col1.a - col2.a);
+        }
+
         public static Vector4 stringToVector(string s)
         {
             string[] split = s.Split(",".ToCharArray());
@@ -228,7 +417,7 @@ namespace Thry
 
         private static void save_as_file_callback(string s, string path)
         {
-            writeStringToFile(s, path);
+            WriteStringToFile(s, path);
             AssetDatabase.ImportAsset(path);
         }
 
