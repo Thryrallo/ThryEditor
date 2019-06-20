@@ -400,23 +400,51 @@ namespace Thry
     {
         const string TEXT_INFO_FILE_PATH = "Assets/.thry_text_textures";
 
+        struct TextData
+        {
+            public string text;
+            public int selectedAlphabet;
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             string text = "";
-            if (ThryEditor.currentlyDrawing.property_data==null)
-                ThryEditor.currentlyDrawing.property_data = Helper.LoadValueFromFile(editor.target.name + ":" + prop.name, TEXT_INFO_FILE_PATH);
-            text = (string)ThryEditor.currentlyDrawing.property_data;
+            int selectedAlphabet = 0;
+            if (ThryEditor.currentlyDrawing.property_data == null)
+                ThryEditor.currentlyDrawing.property_data = new TextData{ text=Helper.LoadValueFromFile(editor.target.name + ":" + prop.name, TEXT_INFO_FILE_PATH), selectedAlphabet=0};
+            text = ((TextData)ThryEditor.currentlyDrawing.property_data).text;
+            selectedAlphabet = ((TextData)ThryEditor.currentlyDrawing.property_data).selectedAlphabet;
 
+            string[] guids = AssetDatabase.FindAssets("alphabet t:texture");
+            List<string> alphabetList = new List<string>();
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guids[i]);
+                int index = p.LastIndexOf("/")+1;
+                int indexEnd = p.LastIndexOf(".");
+                string name = p.Substring(index, indexEnd - index);
+                if (!name.StartsWith("alphabet_")) continue;
+                alphabetList.Add(name);
+            }
+            string[] alphabets = alphabetList.ToArray();
+
+            Rect textPosition = position;
+            textPosition.width *= 3f / 4;
             EditorGUI.BeginChangeCheck();
-            text = EditorGUI.DelayedTextField(position, new GUIContent("       " + label.text, label.tooltip), text);
+            text = EditorGUI.DelayedTextField(textPosition, new GUIContent("       " + label.text, label.tooltip), text);
             if (EditorGUI.EndChangeCheck())
             {
                 foreach(Material m in ThryEditor.currentlyDrawing.materials)
                     Helper.SaveValueToFile(m.name + ":" + prop.name, text, TEXT_INFO_FILE_PATH);
                 ThryEditor.currentlyDrawing.property_data = text;
-                prop.textureValue = Helper.TextToTexture(text);
+                prop.textureValue = Helper.TextToTexture(text, alphabets[selectedAlphabet]);
                 Debug.Log("text '" + text + "' saved as texture.");
             }
+
+            Rect popUpPosition = position;
+            popUpPosition.width /= 4f;
+            popUpPosition.x += popUpPosition.width * 3;
+            EditorGUI.Popup(popUpPosition, selectedAlphabet, alphabets);
 
             EditorGUI.BeginChangeCheck();
             editor.TexturePropertyMiniThumbnail(position, prop, "", "");

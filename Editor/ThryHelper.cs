@@ -226,12 +226,23 @@ namespace Thry
             string[] guids = AssetDatabase.FindAssets(alphabetTextureName + " t:texture");
             if (guids.Length > 0)
             {
-                TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guids[0]));
+                string path = null;
+                foreach (string g in guids)
+                {
+                    string p = AssetDatabase.GUIDToAssetPath(g);
+                    if (p.Contains("/" + alphabetTextureName + ".")) path = p;
+                }
+                if (path == null)
+                {
+                    Debug.LogWarning("Alphabet texture could not be found.");
+                    return null;
+                }
+                TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(path);
                 importer.isReadable = true;
                 importer.SaveAndReimport();
 
-                Texture2D alphabet_texture = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
-
+                Texture2D alphabet_texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                
                 Color background = alphabet_texture.GetPixel(0, 0);
 
                 //load letter data from alphabet
@@ -330,8 +341,8 @@ namespace Thry
                 }
 
                 string file_name = "text_" + Regex.Replace(text,@"\s","_");
-                string path = "Assets/Textures/Gradients/" + file_name + ".png";
-                return SaveTextureAsPNG(text_texture, path);
+                string save_path = "Assets/Textures/Text/" + file_name + ".png";
+                return SaveTextureAsPNG(text_texture, save_path);
             }
             else
             {

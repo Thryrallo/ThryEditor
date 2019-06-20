@@ -124,31 +124,34 @@ namespace Thry
             EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 1));
         }
 
-        void OnGUI()
-        {
-            Config config = Config.Get();
-            GUILayout.Label("ThryEditor v" + config.verion);
+        private static GUIStyle redInfostyle;
+        private static GUIStyle redStyle;
+        private static GUIStyle yellowStyle;
+        private static GUIStyle greenStyle;
 
-            GUIStyle redInfostyle = new GUIStyle();
+        private static void SetupStyle()
+        {
+            redInfostyle = new GUIStyle();
             redInfostyle.normal.textColor = Color.red;
             redInfostyle.fontSize = 16;
 
-            GUIStyle redStyle = new GUIStyle();
+            redStyle = new GUIStyle();
             redStyle.normal.textColor = Color.red;
 
-            GUIStyle yellowStyle = new GUIStyle();
+            yellowStyle = new GUIStyle();
             yellowStyle.normal.textColor = Color.yellow;
 
-            GUIStyle greenStyle = new GUIStyle();
-            greenStyle.normal.textColor = new Color(0,0.5f,0);
+            greenStyle = new GUIStyle();
+            greenStyle.normal.textColor = new Color(0, 0.5f, 0);
+        }
 
-            if (isFirstPopop)
-                GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
-            else if (updatedVersion == -1)
-                GUILayout.Label(" Thry editor has been updated", redInfostyle);
-            else if (updatedVersion == 1)
-                GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+        void OnGUI()
+        {
+            SetupStyle();
+            Config config = Config.Get();
+            GUILayout.Label("ThryEditor v" + config.verion);
 
+            GUINotification();
             drawLine();
 
             bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
@@ -157,43 +160,16 @@ namespace Thry
             if (hasVRCSdk)
             {
                 GUILayout.Label("VRC Sdk version: " + Helper.GetCurrentVRCSDKVersion());
-
                 if (vrcIsLoggedIn)
                 {
                     GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
                 }
-
                 drawLine();
             }
 
-            GUILayout.Label("Editor", EditorStyles.boldLabel);
-
-            Toggle("useBigTextures", SETTINGS_CONTENT[(int)SETTINGS_IDX.bigTexFields]);
-            Toggle("showRenderQueue", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue]);
-
+            GUIEditor();
             drawLine();
-            GUILayout.Label("Extras", EditorStyles.boldLabel);
-
-            Toggle("showImportPopup", SETTINGS_CONTENT[(int)SETTINGS_IDX.show_popup_on_import]);
-            if (config.showRenderQueue)
-                Toggle("renderQueueShaders", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue_shaders]);
-
-            GUILayout.BeginHorizontal();
-            Text("gradient_name", SETTINGS_CONTENT[(int)SETTINGS_IDX.gradient_file_name]);
-            string gradient_name = config.gradient_name;
-            if (gradient_name.Contains("<hash>"))
-                GUILayout.Label("Good naming.",greenStyle, GUILayout.ExpandWidth(false));
-            else if (gradient_name.Contains("<material>"))
-                if (gradient_name.Contains("<prop>"))
-                    GUILayout.Label("Good naming.",greenStyle, GUILayout.ExpandWidth(false));
-                else
-                    GUILayout.Label("Consider adding <hash> or <prop>.",yellowStyle, GUILayout.ExpandWidth(false));
-            else if(gradient_name.Contains("<prop>"))
-                GUILayout.Label("Consider adding <material>.", yellowStyle, GUILayout.ExpandWidth(false));
-            else
-                GUILayout.Label("Add <material> <hash> or <prop> to destingish between gradients.",redStyle,GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
-
+            GUIExtras();
             drawLine();
 
             if (hasVRCSdk)
@@ -204,12 +180,12 @@ namespace Thry
                     has_vrc_tools = System.Type.GetType("Thry.AutoAvatarDescriptor") != null;
                 }
                 if (has_vrc_tools)
-                    DrawVRCToolsOptions();
+                    GUIVRCToolsOptions();
 
                 drawLine();
 
                 if (thry_vrc_tools_version_loaded)
-                    DrawVRCToolsDownloadOptions(has_vrc_tools);
+                    GUIVRCToolsDownloadOptions(has_vrc_tools);
             }
 
             if (firstLoad)
@@ -219,7 +195,50 @@ namespace Thry
             }
         }
 
-        public static void DrawVRCToolsOptions()
+        private void GUINotification()
+        {
+            if (isFirstPopop)
+                GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
+            else if (updatedVersion == -1)
+                GUILayout.Label(" Thry editor has been updated", redInfostyle);
+            else if (updatedVersion == 1)
+                GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+        }
+
+        private static void GUIEditor()
+        {
+            GUILayout.Label("Editor", EditorStyles.boldLabel);
+            Toggle("useBigTextures", SETTINGS_CONTENT[(int)SETTINGS_IDX.bigTexFields]);
+            Toggle("showRenderQueue", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue]);
+        }
+
+        private static void GUIExtras()
+        {
+            Config config = Config.Get();
+            GUILayout.Label("Extras", EditorStyles.boldLabel);
+
+            Toggle("showImportPopup", SETTINGS_CONTENT[(int)SETTINGS_IDX.show_popup_on_import]);
+            if (config.showRenderQueue)
+                Toggle("renderQueueShaders", SETTINGS_CONTENT[(int)SETTINGS_IDX.render_queue_shaders]);
+
+            GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+            Text("gradient_name", SETTINGS_CONTENT[(int)SETTINGS_IDX.gradient_file_name], false);
+            string gradient_name = config.gradient_name;
+            if (gradient_name.Contains("<hash>"))
+                GUILayout.Label("Good naming.", greenStyle, GUILayout.ExpandWidth(false));
+            else if (gradient_name.Contains("<material>"))
+                if (gradient_name.Contains("<prop>"))
+                    GUILayout.Label("Good naming.", greenStyle, GUILayout.ExpandWidth(false));
+                else
+                    GUILayout.Label("Consider adding <hash> or <prop>.", yellowStyle, GUILayout.ExpandWidth(false));
+            else if (gradient_name.Contains("<prop>"))
+                GUILayout.Label("Consider adding <material>.", yellowStyle, GUILayout.ExpandWidth(false));
+            else
+                GUILayout.Label("Add <material> <hash> or <prop> to destingish between gradients.", redStyle, GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+        }
+
+        public static void GUIVRCToolsOptions()
         {
             Config config = Config.Get();
             GUILayout.Label("VRChat features", EditorStyles.boldLabel);
@@ -240,7 +259,7 @@ namespace Thry
             Toggle("vrchatForceFallbackAnimationSet", SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_force_fallback_anim]);
         }
 
-        public void DrawVRCToolsDownloadOptions(bool tools_installed)
+        public void GUIVRCToolsDownloadOptions(bool tools_installed)
         {
             GUILayout.Label("Thry's VRC Tools Installer", EditorStyles.boldLabel);
 
@@ -293,21 +312,29 @@ namespace Thry
 
         private static void Text(string configField, string[] content)
         {
+            Text(configField, content, true);
+        }
+
+            private static void Text(string configField, string[] content, bool createHorizontal)
+        {
             Config config = Config.Get();
             System.Reflection.FieldInfo field = typeof(Config).GetField(configField);
             if (field != null)
             {
                 string value = (string)field.GetValue(config);
-                GUILayout.BeginHorizontal();
+                if(createHorizontal)
+                    GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
+                GUILayout.Space(57);
+                GUILayout.Label(new GUIContent(content[0], content[1]), GUILayout.ExpandWidth(false));
                 EditorGUI.BeginChangeCheck();
-                value = EditorGUILayout.DelayedTextField("", value, GUILayout.MaxWidth(250));
+                value = EditorGUILayout.DelayedTextField("", value, GUILayout.ExpandWidth(false));
                 if(EditorGUI.EndChangeCheck())
                 {
                     field.SetValue(config, value);
                     config.save();
                 }
-                GUILayout.Label(new GUIContent(content[0], content[1]), GUILayout.ExpandWidth(false));
-                GUILayout.EndHorizontal();
+                if(createHorizontal)
+                    GUILayout.EndHorizontal();
             }
         }
 
