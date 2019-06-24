@@ -54,6 +54,7 @@ public class ThryEditor : ShaderGUI
         public int xOffset = 0;
         public string onHover = "";
         public string altClick = "";
+        public GUIContent content;
 
         public ShaderPart(int xOffset, string onHover, string altClick)
         {
@@ -69,7 +70,6 @@ public class ThryEditor : ShaderGUI
     {
         public ThryEditorHeader guiElement;
         public List<ShaderPart> parts = new List<ShaderPart>();
-        string name;
 
         public ShaderHeader() : base(0, "", "")
         {
@@ -79,7 +79,7 @@ public class ThryEditor : ShaderGUI
         public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {
             this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
-            this.name = displayName;
+            this.content = new GUIContent(displayName,onHover);
         }
 
         public void addPart(ShaderPart part)
@@ -89,7 +89,8 @@ public class ThryEditor : ShaderGUI
 
         public override void Draw()
         {
-            guiElement.Foldout(xOffset, name, currentlyDrawing.gui);
+            guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
+            testAltClick(DrawingData.lastGuiObjectRect, this);
             if (guiElement.getState())
             {
                 EditorGUILayout.Space();
@@ -105,14 +106,13 @@ public class ThryEditor : ShaderGUI
     public class ShaderProperty : ShaderPart
     {
         public MaterialProperty materialProperty;
-        public GUIContent style;
         public bool drawDefault;
         public System.Object property_data = null;
 
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {
             this.materialProperty = materialProperty;
-            this.style = new GUIContent(displayName, onHover);
+            this.content = new GUIContent(displayName, onHover);
             drawDefault = false;
         }
 
@@ -126,7 +126,7 @@ public class ThryEditor : ShaderGUI
             if (drawDefault)
                 DrawDefault();
             else
-                currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.style);
+                currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
             EditorGUI.indentLevel = oldIndentLevel;
             if (DrawingData.lastGuiObjectRect.x==-1) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
 
@@ -155,8 +155,8 @@ public class ThryEditor : ShaderGUI
 
         public override void DrawDefault()
         {
-            Rect pos = GUILayoutUtility.GetRect(style, ThryEditorGuiHelper.vectorPropertyStyle);
-            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, style, currentlyDrawing.editor, true);
+            Rect pos = GUILayoutUtility.GetRect(content, ThryEditorGuiHelper.vectorPropertyStyle);
+            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, true);
             DrawingData.lastGuiObjectRect = pos;
         }
     }
@@ -264,7 +264,7 @@ public class ThryEditor : ShaderGUI
 
     //-------------Draw Functions----------------
 
-    private static void testAltClick(Rect rect, ShaderProperty property)
+    private static void testAltClick(Rect rect, ShaderPart property)
     {
         var e = Event.current;
         if (isMouseClick && e.alt && rect.Contains(e.mousePosition))

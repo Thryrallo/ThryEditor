@@ -168,11 +168,13 @@ namespace Thry
             if (data.gradientWindow == null && !data.saved)
             {
                 byte[] encoding = data.texture.EncodeToPNG();
+
                 string gradient_data = GradientToString(ref data);
                 string gradient_name = Config.Get().gradient_name;
                 gradient_name = gradient_name.Replace("<material>", editor.target.name);
                 gradient_name = gradient_name.Replace("<hash>", ""+gradient_data.GetHashCode());
                 gradient_name = gradient_name.Replace("<prop>", prop.name);
+
                 string path = "Assets/Textures/Gradients/" + gradient_name;
                 Debug.Log("Gradient saved at \""+ path + "\".");
                 Helper.writeBytesToFile(encoding, path);
@@ -220,6 +222,21 @@ namespace Thry
             foreach (GradientAlphaKey key in data.gradientObj.gradient.alphaKeys)
                 ret += "a,"+key.alpha+"," + key.time;
             ret += "m"+((int)data.gradientObj.gradient.mode);
+            return ret;
+        }
+
+        private string GradientFileName(ref GradientData data, string material_name)
+        {
+            string hash = ""+GradientToString(ref data).GetHashCode();
+            return GradientFileName(hash, material_name);
+        }
+
+        private string GradientFileName(string hash, string material_name)
+        {
+            Config config = Config.Get();
+            string ret = config.gradient_name;
+            ret = Regex.Replace(ret, "<hash>", hash);
+            ret = Regex.Replace(ret, "<material>", material_name);
             return ret;
         }
 
@@ -697,7 +714,7 @@ namespace Thry
             this.currentState = !this.currentState;
         }
 
-        public void Foldout(int xOffset, string name, ThryEditor gui)
+        public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             var style = new GUIStyle("ShurikenModuleTitle");
             style.font = new GUIStyle(EditorStyles.label).font;
@@ -707,7 +724,8 @@ namespace Thry
             style.margin.left = 30 * xOffset;
 
             var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
-            GUI.Box(rect, name, style);
+            DrawingData.lastGuiObjectRect = rect;
+            GUI.Box(rect, content, style);
 
             var e = Event.current;
 
@@ -717,7 +735,7 @@ namespace Thry
                 EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
             }
 
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition))
+            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition)&&!e.alt)
             {
                 this.Toggle();
                 e.Use();
