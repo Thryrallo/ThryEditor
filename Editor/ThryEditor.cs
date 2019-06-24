@@ -107,7 +107,7 @@ public class ThryEditor : ShaderGUI
         public MaterialProperty materialProperty;
         public GUIContent style;
         public bool drawDefault;
-        private System.Object property_data = null;
+        public System.Object property_data = null;
 
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {

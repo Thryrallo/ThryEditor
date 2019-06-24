@@ -400,7 +400,7 @@ namespace Thry
     {
         const string TEXT_INFO_FILE_PATH = "Assets/.thry_text_textures";
 
-        struct TextData
+        public struct TextData
         {
             public string text;
             public int selectedAlphabet;
@@ -432,19 +432,20 @@ namespace Thry
             textPosition.width *= 3f / 4;
             EditorGUI.BeginChangeCheck();
             text = EditorGUI.DelayedTextField(textPosition, new GUIContent("       " + label.text, label.tooltip), text);
-            if (EditorGUI.EndChangeCheck())
-            {
-                foreach(Material m in ThryEditor.currentlyDrawing.materials)
-                    Helper.SaveValueToFile(m.name + ":" + prop.name, text, TEXT_INFO_FILE_PATH);
-                ThryEditor.currentlyDrawing.property_data = text;
-                prop.textureValue = Helper.TextToTexture(text, alphabets[selectedAlphabet]);
-                Debug.Log("text '" + text + "' saved as texture.");
-            }
 
             Rect popUpPosition = position;
             popUpPosition.width /= 4f;
             popUpPosition.x += popUpPosition.width * 3;
-            EditorGUI.Popup(popUpPosition, selectedAlphabet, alphabets);
+            selectedAlphabet = EditorGUI.Popup(popUpPosition, selectedAlphabet, alphabets);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                foreach(Material m in ThryEditor.currentlyDrawing.materials)
+                    Helper.SaveValueToFile(m.name + ":" + prop.name, text, TEXT_INFO_FILE_PATH);
+                ThryEditor.currentlyDrawing.property_data = new TextData { text = text, selectedAlphabet = selectedAlphabet };
+                prop.textureValue = Helper.TextToTexture(text, alphabets[selectedAlphabet]);
+                Debug.Log("text '" + text + "' saved as texture.");
+            }
 
             EditorGUI.BeginChangeCheck();
             editor.TexturePropertyMiniThumbnail(position, prop, "", "");
