@@ -31,14 +31,16 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-    float left = prop.vectorValue.x;
-    float right = prop.vectorValue.y;
+    Vector4 vec = prop.vectorValue;
+    float left = vec.x;
+    float right = vec.y;
     EditorGUI.BeginChangeCheck();
-    EditorGUILayout.MinMaxSlider(prop.displayName, ref left, ref right, prop.vectorValue.z, prop.vectorValue.w);
+    EditorGUILayout.MinMaxSlider(prop.displayName, ref left, ref right, vec.z, vec.w);
     if (EditorGUI.EndChangeCheck())
     {
-        prop.vectorValue.x=left;
-        prop.vectorValue.y=right;
+        vec.x=left;
+        vec.y=right;
+        prop.vectorValue=vec;
     }
         }
 
