@@ -27,6 +27,28 @@ namespace Thry
         }
     }
 
+    public class MultiSliderDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+    float left = prop.vectorValue.x;
+    float right = prop.vectorValue.y;
+    EditorGUI.BeginChangeCheck();
+    EditorGUILayout.MinMaxSlider(prop.displayName, Ref left, Ref right, prop.vectorValue.z, prop.vectorValue.w);
+    if (EditorGUI.EndChangeCheck())
+    {
+        prop.vectorValue.x=left;
+        prop.vectorValue.y=right;
+    }
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
     public class TextureNoSODrawer : MaterialPropertyDrawer
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
