@@ -34,7 +34,7 @@ namespace Thry
     float left = prop.vectorValue.x;
     float right = prop.vectorValue.y;
     EditorGUI.BeginChangeCheck();
-    EditorGUILayout.MinMaxSlider(prop.displayName, Ref left, Ref right, prop.vectorValue.z, prop.vectorValue.w);
+    EditorGUILayout.MinMaxSlider(prop.displayName, ref left, ref right, prop.vectorValue.z, prop.vectorValue.w);
     if (EditorGUI.EndChangeCheck())
     {
         prop.vectorValue.x=left;
