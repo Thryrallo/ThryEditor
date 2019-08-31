@@ -7,7 +7,13 @@ Drawers for Textures:
 [SmallTextureNoSO] always small texture, no scale or offset
 [BigTexture] always big texture
 [BigTextureNoSO] always big texture, no scale or offset
-[Gradient] gradient editor - not implemented yet
+[Gradient] gradient editor
+[TextTexture] texture field that creates a texture from text - has to be imrpoved
+[MultiSlider] slider with two values (defined as vector, x,y are slider values z,w are min,max
+[TextureArray] field for a texture array. automatically converts gifs/images to a texture array
+	put --frameCountProp=<property name> to automatically fill a float property when creating a texture array
+[Vector2] vector with only fields for xy
+[Vector3] vector with only fields for xyz
 
 #----Settings Properties----
 

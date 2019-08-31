@@ -30,21 +30,13 @@ public class ThryEditor : ShaderGUI
     private static bool reloadNextDraw = false;
     private bool firstOnGUICall = true;
 
-    public static bool isMouseClick = false;
-    private static bool hadMouseClickEvent = false;
+    public static bool HadMouseDownRepaint = false;
+    public static bool HadMouseDown = false;
+    public static bool MouseClick = false;
+
+    public static Vector2 lastDragPosition;
 
     private bool wasUsed = false;
-
-    public struct EditorData
-    {
-        public MaterialEditor editor;
-        public MaterialProperty[] properties;
-        public ThryEditor gui;
-        public Material[] materials;
-        public Shader shader;
-        public Shader defaultShader;
-        public System.Object property_data;
-    }
 
     private EditorData current;
     public static EditorData currentlyDrawing;
@@ -109,6 +101,9 @@ public class ThryEditor : ShaderGUI
         public bool drawDefault;
         public System.Object property_data = null;
 
+        public float setFloat;
+        public bool updateFloat;
+
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
         {
             this.materialProperty = materialProperty;
@@ -119,10 +114,12 @@ public class ThryEditor : ShaderGUI
         public override void Draw()
         {
             PreDraw();
-            currentlyDrawing.property_data = property_data;
+            currentlyDrawing.currentProperty = this;
             DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset * 2 + 1;
+            //if (materialProperty.name == "_FlipbookTotalFrames")
+                //Debug.Log(Event.current.type + ":" + materialProperty.floatValue);
             if (drawDefault)
                 DrawDefault();
             else
@@ -131,7 +128,6 @@ public class ThryEditor : ShaderGUI
             if (DrawingData.lastGuiObjectRect.x==-1) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
 
             testAltClick(DrawingData.lastGuiObjectRect, this);
-            property_data = currentlyDrawing.property_data;
         }
 
         public virtual void PreDraw() { }
@@ -155,7 +151,7 @@ public class ThryEditor : ShaderGUI
 
         public override void DrawDefault()
         {
-            Rect pos = GUILayoutUtility.GetRect(content, ThryEditorGuiHelper.vectorPropertyStyle);
+            Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
             ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, true);
             DrawingData.lastGuiObjectRect = pos;
         }
@@ -184,7 +180,8 @@ public class ThryEditor : ShaderGUI
             }
         }
 
-		shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
+        current.propertyDictionary = new Dictionary<string, ShaderProperty>();
+        shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
 		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>(); //header stack. used to keep track if current header to parent new objects to
 		headerStack.Push(shaderparts); //add top object as top object to stack
 		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
@@ -248,6 +245,7 @@ public class ThryEditor : ShaderGUI
                     else
                         newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
                     headerStack.Peek().addPart(newPorperty);
+                    current.propertyDictionary.Add(props[i].name, newPorperty);
                 }
             }
 		}
@@ -267,7 +265,7 @@ public class ThryEditor : ShaderGUI
     private static void testAltClick(Rect rect, ShaderPart property)
     {
         var e = Event.current;
-        if (isMouseClick && e.alt && rect.Contains(e.mousePosition))
+        if (HadMouseDownRepaint && e.alt && rect.Contains(e.mousePosition))
         {
             if (property.altClick != "")
             {
@@ -287,8 +285,6 @@ public class ThryEditor : ShaderGUI
 
         //collect shader properties
         CollectAllProperties();
-
-        ThryEditorGuiHelper.SetupStyle();
 
         //init settings texture
         byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
@@ -338,12 +334,15 @@ public class ThryEditor : ShaderGUI
             current.editor = materialEditor;
             current.gui = this;
             current.properties = props;
+            current.textureArrayProperties = new List<MaterialProperty>();
+            current.firstCall = true;
         }
 
         //handle events
         Event e = Event.current;
-        if (e.type == EventType.MouseDown) hadMouseClickEvent = true;
-        if (hadMouseClickEvent && e.type == EventType.Repaint) isMouseClick = true;
+        MouseClick = e.type == EventType.MouseDown;
+        if (MouseClick) HadMouseDown = true;
+        if (HadMouseDown && e.type == EventType.Repaint) HadMouseDownRepaint = true;
 
         //first time call inits
         if (firstOnGUICall || reloadNextDraw) OnOpen();
@@ -398,7 +397,11 @@ public class ThryEditor : ShaderGUI
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
         if (reloadNextDraw) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
-        
+
+        //save last drag position, because mouse postion is wrong on drag dropped event
+        if (Event.current.type == EventType.DragUpdated)
+            lastDragPosition= Event.current.mousePosition;
+
         //test if material has been reset
         if (wasUsed && e.type == EventType.Repaint)
         {
@@ -414,8 +417,9 @@ public class ThryEditor : ShaderGUI
 
         if (e.type == EventType.Used) wasUsed = true;
         if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance();
-        if (isMouseClick) hadMouseClickEvent = false;
-        isMouseClick = false;
+        if (HadMouseDownRepaint) HadMouseDown = false;
+        HadMouseDownRepaint = false;
+        current.firstCall = false;
     }
 
     public static void reload()

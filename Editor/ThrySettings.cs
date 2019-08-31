@@ -32,6 +32,12 @@ namespace Thry
             window.Show();
         }
 
+        public new void Show()
+        {
+            base.Show();
+            OnInit();
+        }
+
         public static Shader activeShader = null;
         public static Material activeShaderMaterial = null;
         public static PresetHandler presetHandler = null;
@@ -176,6 +182,19 @@ namespace Thry
 
             greenStyle = new GUIStyle();
             greenStyle.normal.textColor = new Color(0, 0.5f, 0);
+        }
+
+        private void OnInit()
+        {
+            if(PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone) != ApiCompatibilityLevel.NET_2_0)
+            {
+                PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
+            }
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+                    BuildTargetGroup.Standalone);
+            if(!symbols.Contains("NET_SET_TWO_POINT_ZERO"))
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                              BuildTargetGroup.Standalone, symbols + ";NET_SET_TWO_POINT_ZERO");
         }
 
         void OnGUI()
