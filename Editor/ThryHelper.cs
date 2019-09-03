@@ -240,11 +240,16 @@ namespace Thry
 
         public static string GetBetween(string value, string prefix, string postfix)
         {
-            string pattern = @"(?<="+ prefix + ").+?(?="+ postfix + ")";
+            return GetBetween(value, prefix, postfix, value);
+        }
+
+        public static string GetBetween(string value, string prefix, string postfix, string fallback)
+        {
+            string pattern = @"(?<=" + prefix + ").*?(?=" + postfix + ")";
             Match m = Regex.Match(value, pattern);
             if (m.Success)
                 return m.Value;
-            return value;
+            return fallback;
         }
 
         //returns data for name:{data} even if data containss brakets
