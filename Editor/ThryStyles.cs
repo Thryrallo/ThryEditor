@@ -19,6 +19,7 @@ namespace Thry
         public GUIStyle masterLabel;
         public GUIStyle dropDownHeader;
         public GUIStyle dropDownHeaderLabel;
+        public GUIStyle dropDownHeaderButton;
         public GUIStyle bigTextureStyle;
         public GUIStyle vectorPropertyStyle;
 
@@ -27,6 +28,7 @@ namespace Thry
             InitMasterLabel();
             InitDropdownHeaderStyle();
             InitDropDownHeaderLabel();
+            InitDropDownHeaderButton();
             InitBigTextureStyle();
             InitVectorProperty();
         }
@@ -51,6 +53,11 @@ namespace Thry
         {
             dropDownHeaderLabel = new GUIStyle(EditorStyles.boldLabel);
             dropDownHeaderLabel.alignment = TextAnchor.MiddleCenter;
+        }
+
+        private void InitDropDownHeaderButton()
+        {
+            dropDownHeaderButton = new GUIStyle(EditorStyles.toolbarButton);
         }
 
         private void InitBigTextureStyle()

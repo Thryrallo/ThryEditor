@@ -35,13 +35,30 @@ Drawers for Textures:
 
 #----Property Additions----
 
---extraOffset=<int>
-	addes and extra x-offset to the property
+extraOffset
+	adds an extra x-offset to the property
+	<string> := extraOffset
+	<optionData> := <int>
 
---hover=<text>
+hover
 	text that is shown when hovering above property
+	<string> := hover
+	<optionData> := <string>
 
---altClick=action:value
+altClick
 	performs an action when holding alt down and clicking on property
-	actions:
-		url: opens url in browser
+	<string> := altClick
+	<optionData> := <action>
+	
+button_right (only for menu headers)
+	<string> := button_right
+	<optionData> := <button>
+
+<displayName> := <string><extraOption>*
+<extraOption> := --<string>=<optionData>
+<action> := {type:<type>,data:<string>}
+<type> := url
+<button> := {text:<string>,hover:<string>,action:<action>}
+
+actions:
+	url: opens <data> as url in browser

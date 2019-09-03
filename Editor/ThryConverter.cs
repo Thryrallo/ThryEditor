@@ -2,7 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 #if NET_SET_TWO_POINT_ZERO
+#if MCS_EXISTS
 using System.Drawing.Imaging;
+#endif
 #endif
 using System.IO;
 using System.Text.RegularExpressions;
@@ -343,6 +345,7 @@ namespace Thry
         {
             Texture2DArray array = null;
 #if NET_SET_TWO_POINT_ZERO
+#if MCS_EXISTS
             EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "", 0);
             System.Drawing.Image IMG = System.Drawing.Image.FromFile(path);
             int Length = IMG.GetFrameCount(FrameDimension.Time);
@@ -367,6 +370,7 @@ namespace Thry
             array.Apply();
             string newPath = path.Replace(".gif", ".asset");
             AssetDatabase.CreateAsset(array, newPath);
+#endif
 #endif
             return array;
         }

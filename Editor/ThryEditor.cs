@@ -11,9 +11,10 @@ public class ThryEditor : ShaderGUI
 {
     public const string EXTRA_OPTION_PREFIX = "--";
     public const string EXTRA_OPTION_INFIX = "=";
-    public const string EXTRA_OFFSET_OPTION = "extraOffset"; //can be used to specify and extra x-offset for properties
-    public const string HOVER_OPTION = "hover";
-    public const string ON_ALT_CLICK_OPTION = "altClick";
+    public const string EXTRA_OPTION_EXTRA_OFFSET = "extraOffset"; //can be used to specify and extra x-offset for properties
+    public const string EXTRA_OPTION_HOVER_TEXT = "hover";
+    public const string EXTRA_OPTION_ALT_CLICK = "altClick";
+    public const string EXTRA_OPTION_BUTTON_RIGHT = "button_right";
     public const float MATERIAL_NOT_RESET = 69.12f;
 
     private ShaderHeader shaderparts; //stores headers and properties in correct order
@@ -44,15 +45,25 @@ public class ThryEditor : ShaderGUI
     public abstract class ShaderPart
     {
         public int xOffset = 0;
-        public string onHover = "";
-        public string altClick = "";
         public GUIContent content;
+        public Dictionary<string, object> extraOptions;
+        public System.Object property_data = null;
 
-        public ShaderPart(int xOffset, string onHover, string altClick)
+        public ShaderPart(int xOffset, string displayName, Dictionary<string, object> extraOptions)
         {
             this.xOffset = xOffset;
-            this.onHover = onHover;
-            this.altClick = altClick;
+            this.extraOptions = extraOptions;
+            this.content = new GUIContent(displayName, this.GetExtraOptionValue<string>(EXTRA_OPTION_HOVER_TEXT));
+        }
+
+        public optionValue GetExtraOptionValue<optionValue>(string key)
+        {
+            return (optionValue)Helper.GetValueFromDictionary<string, object>(extraOptions, key);
+        }
+
+        public bool ExtraOptionExists(string option)
+        {
+            return extraOptions.ContainsKey(option);
         }
 
         public abstract void Draw();
@@ -63,15 +74,14 @@ public class ThryEditor : ShaderGUI
         public ThryEditorHeader guiElement;
         public List<ShaderPart> parts = new List<ShaderPart>();
 
-        public ShaderHeader() : base(0, "", "")
+        public ShaderHeader() : base(0, "", new Dictionary<string, object>())
         {
 
         }
 
-        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
+        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, Dictionary<string, object> extraOptions) : base(xOffset, displayName, extraOptions)
         {
             this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
-            this.content = new GUIContent(displayName,onHover);
         }
 
         public void addPart(ShaderPart part)
@@ -81,6 +91,7 @@ public class ThryEditor : ShaderGUI
 
         public override void Draw()
         {
+            currentlyDrawing.currentProperty = this;
             guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
             testAltClick(DrawingData.lastGuiObjectRect, this);
             if (guiElement.getState())
@@ -99,15 +110,13 @@ public class ThryEditor : ShaderGUI
     {
         public MaterialProperty materialProperty;
         public bool drawDefault;
-        public System.Object property_data = null;
 
         public float setFloat;
         public bool updateFloat;
 
-        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick) : base(xOffset, onHover, altClick)
+        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions) : base(xOffset, displayName, extraOptions)
         {
             this.materialProperty = materialProperty;
-            this.content = new GUIContent(displayName, onHover);
             drawDefault = false;
         }
 
@@ -139,7 +148,7 @@ public class ThryEditor : ShaderGUI
     {
         public bool showScaleOffset = false;
 
-        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, string onHover, string altClick, bool forceThryUI) : base(materialProperty, displayName, xOffset, onHover, altClick)
+        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool forceThryUI) : base(materialProperty, displayName, xOffset, extraOptions)
         {
             drawDefault = forceThryUI;
         }
@@ -159,26 +168,56 @@ public class ThryEditor : ShaderGUI
 
     //-------------Init functions--------------------
 
-    //finds all properties and headers and stores them in correct order
-    private void CollectAllProperties()
-	{
+    private Dictionary<string, string> LoadDisplayNamesFromFile()
+    {
         //load display names from file if it exists
         MaterialProperty label_file_property = null;
-        MaterialProperty[] props = current.properties;
-        foreach (MaterialProperty m in props) if (m.name == "shader_properties_label_file") label_file_property = m;
+        foreach (MaterialProperty m in current.properties) if (m.name == "shader_properties_label_file") label_file_property = m;
         Dictionary<string, string> labels = new Dictionary<string, string>();
         if (label_file_property != null)
         {
             string[] guids = AssetDatabase.FindAssets(label_file_property.displayName);
             if (guids.Length == 0) Debug.LogError("Label File could not be found");
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            string[] data = Regex.Split(Helper.ReadFileIntoString(path),@"\r?\n");
-            foreach(string d in data)
+            string[] data = Regex.Split(Helper.ReadFileIntoString(path), @"\r?\n");
+            foreach (string d in data)
             {
                 string[] set = Regex.Split(d, ":=");
                 if (set.Length > 1) labels[set[0]] = set[1];
             }
         }
+        return labels;
+    }
+
+    private Dictionary<string, object> ExtractExtraOptionsFromDisplayName(ref string displayName)
+    {
+        Dictionary<string, object> extraOptions = new Dictionary<string, object>();
+        string pattern = @""+EXTRA_OPTION_PREFIX+".+?"+EXTRA_OPTION_INFIX+ ".+?(?=(" + EXTRA_OPTION_PREFIX + ")|$)";
+        RegexOptions options = RegexOptions.Multiline;
+        foreach (Match m in Regex.Matches(displayName, pattern, options))
+        {
+            displayName = displayName.Replace(m.Value,"");
+            string key = Regex.Split(m.Value, EXTRA_OPTION_INFIX)[0].Replace(EXTRA_OPTION_PREFIX,"");
+            string valueString = Regex.Split(m.Value, EXTRA_OPTION_INFIX)[1];
+            float floatValue;
+            object value = valueString.TrimStart(new char[]{' '});
+            if (float.TryParse(valueString, out floatValue))
+            {
+                value = floatValue;
+                if ((int)floatValue == floatValue)
+                    value = (int)floatValue;
+            }
+            extraOptions.Add(key, value);
+        }
+        return extraOptions;
+    }
+
+    //finds all properties and headers and stores them in correct order
+    private void CollectAllProperties()
+	{
+        //load display names from file if it exists
+        MaterialProperty[] props = current.properties;
+        Dictionary<string, string> labels = LoadDisplayNamesFromFile();
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
@@ -201,23 +240,12 @@ public class ThryEditor : ShaderGUI
             } else
             //else add new object under current header
             {
-                //get the display name out of property or file
                 string displayName = props[i].displayName;
                 if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
-                string ogDisplayName = displayName;
+                Dictionary<string, object> extraOptions = ExtractExtraOptionsFromDisplayName(ref displayName);
 
-                //extract offset
-                int extraOffset = Helper.propertyOptionToInt(EXTRA_OFFSET_OPTION, ogDisplayName);
+                int extraOffset = (int)Helper.GetValueFromDictionary<string,object>(extraOptions, EXTRA_OPTION_EXTRA_OFFSET,0);
                 int offset = extraOffset + headerCount;
-                displayName = displayName.Replace(EXTRA_OPTION_PREFIX + EXTRA_OFFSET_OPTION + EXTRA_OPTION_INFIX + extraOffset, "");
-
-                //extract on hover
-                string onHover = Helper.getPropertyOptionValue(HOVER_OPTION, ogDisplayName);
-                displayName = displayName.Replace(EXTRA_OPTION_PREFIX + HOVER_OPTION + EXTRA_OPTION_INFIX + onHover, "");
-
-                //extract alt click
-                string altClick = Helper.getPropertyOptionValue(ON_ALT_CLICK_OPTION, ogDisplayName);
-                displayName = displayName.Replace(EXTRA_OPTION_PREFIX + ON_ALT_CLICK_OPTION + EXTRA_OPTION_INFIX + altClick, "");
 
                 //if property is submenu add 1 extra offset
                 if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
@@ -228,7 +256,7 @@ public class ThryEditor : ShaderGUI
                 //if proeprty is submenu or normal menu push in header stack
                 if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
                 {
-                    ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, onHover, altClick);
+                    ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, extraOptions);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
                 }
@@ -241,9 +269,9 @@ public class ThryEditor : ShaderGUI
                     current.editor.GetPropertyHeight(props[i]);
 
                     if (props[i].type == MaterialProperty.PropType.Texture)
-                        newPorperty = new TextureProperty(props[i], displayName, offset, onHover, altClick, !DrawingData.lastPropertyUsedCustomDrawer);
+                        newPorperty = new TextureProperty(props[i], displayName, offset, extraOptions, !DrawingData.lastPropertyUsedCustomDrawer);
                     else
-                        newPorperty = new ShaderProperty(props[i], displayName, offset, onHover, altClick);
+                        newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions);
                     headerStack.Peek().addPart(newPorperty);
                     current.propertyDictionary.Add(props[i].name, newPorperty);
                 }
@@ -267,9 +295,11 @@ public class ThryEditor : ShaderGUI
         var e = Event.current;
         if (HadMouseDownRepaint && e.alt && rect.Contains(e.mousePosition))
         {
-            if (property.altClick != "")
+            if (property.ExtraOptionExists(EXTRA_OPTION_ALT_CLICK))
             {
-                if (property.altClick.StartsWith("url:")) Application.OpenURL(property.altClick.Replace("url:", ""));
+                string altClick = property.GetExtraOptionValue<string>(EXTRA_OPTION_ALT_CLICK);
+                DefinableAction action = Parsers.ParseDefinableAction(altClick);
+                action.Perform();
             }
         }
     }

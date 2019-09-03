@@ -191,6 +191,17 @@ namespace Thry
             this.currentState = !this.currentState;
         }
 
+        private void Init()
+        {
+            MenuHeaderData data = new MenuHeaderData();
+            data.hasRightButton = ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT);
+            if (data.hasRightButton)
+            {
+                data.rightButton = Parsers.ParseButton(ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<string>(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT));
+            }
+            ThryEditor.currentlyDrawing.currentProperty.property_data = data;
+        }
+
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             var style = new GUIStyle(Styles.Get().dropDownHeader);
@@ -198,13 +209,32 @@ namespace Thry
 
             var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
             DrawingData.lastGuiObjectRect = rect;
+            //rect with text
             GUI.Box(rect, content, style);
+
+            if (ThryEditor.currentlyDrawing.currentProperty.property_data == null)
+                this.Init();
+
+            MenuHeaderData data = (MenuHeaderData)ThryEditor.currentlyDrawing.currentProperty.property_data;
+            if (data.hasRightButton)
+            {
+                Rect buttonRect = new Rect(rect);
+                GUIContent buttoncontent = new GUIContent(data.rightButton.text, data.rightButton.hover);
+                float width = Styles.Get().dropDownHeaderButton.CalcSize(buttoncontent).x;
+                width = width < rect.width/3 ? rect.width/3 : width;
+                buttonRect.x += buttonRect.width-width-10;
+                buttonRect.y += 2;
+                buttonRect.width = width;
+                if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
+                    data.rightButton.action.Perform();
+            }
 
             var e = Event.current;
 
             var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
             if (e.type == EventType.Repaint)
             {
+                //small arrow
                 EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
             }
 
