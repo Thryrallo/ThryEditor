@@ -45,9 +45,6 @@ namespace Thry
             {
                 newest_sdk_version = GetNewestSDKVersion();
                 sdk_is_up_to_date = SDKIsUpToDate();
-                Debug.Log("new: " + newest_sdk_version);
-
-                Debug.Log(sdk_is_up_to_date);
             });
         }
 
@@ -83,7 +80,7 @@ namespace Thry
 
         private bool SDKIsUpToDate()
         {
-            return Helper.compareVersions(installed_sdk_version, newest_sdk_version) != -1;
+            return Helper.compareVersions(installed_sdk_version, newest_sdk_version) != 1;
         }
 
         private static bool IsVRCSDKInstalled()
