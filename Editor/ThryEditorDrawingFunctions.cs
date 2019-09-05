@@ -131,6 +131,46 @@ namespace Thry
 
             EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", Styles.Get().masterLabel, GUILayout.MinHeight(18));
         }
+
+        const float kPreviewWidth = 80;
+        const float kNumberWidth = 38;
+
+        public static void MinMaxSlider(Rect settingsRect, MaterialProperty prop)
+        {
+            bool changed = false;
+
+            Vector4 vec = prop.vectorValue;
+
+            Rect sliderRect = settingsRect;
+
+            if (settingsRect.width > 160)
+            {
+                Rect numberRect = settingsRect;
+                numberRect.width = kNumberWidth*2;
+
+                EditorGUI.BeginChangeCheck();
+                vec.z = EditorGUI.FloatField(numberRect, vec.z);
+                changed |= EditorGUI.EndChangeCheck();
+
+                numberRect.x = settingsRect.xMax - kNumberWidth * 2;
+
+                EditorGUI.BeginChangeCheck();
+                vec.w = EditorGUI.FloatField(numberRect, vec.w);
+                changed |= EditorGUI.EndChangeCheck();
+
+                sliderRect.xMin += (kNumberWidth + 5);
+                sliderRect.xMax -= (kNumberWidth + 5);
+            }
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
+            changed |= EditorGUI.EndChangeCheck();
+
+            if (changed)
+            {
+                prop.vectorValue = vec;
+            }
+        }
     }
 
     //-----------------------------------------------------------------

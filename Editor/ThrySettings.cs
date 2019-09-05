@@ -10,6 +10,7 @@ namespace Thry
 {
     public class Settings : EditorWindow
     {
+
         // Add menu named "My Window" to the Window menu
         [MenuItem("Thry/Settings")]
         static void Init()
@@ -44,18 +45,19 @@ namespace Thry
 
         private bool isFirstPopop = false;
         private int updatedVersion = 0;
-        private bool hasVRCSdk;
-        private bool vrcIsLoggedIn;
 
-        private static bool firstLoad = true;
         private static bool thry_vrc_tools_version_loaded = false;
         private static string thry_vrc_tools_version = "";
         private static string thry_vrc_tools_installed_version = "";
-        private static string vrc_sdk_version;
         private static string[] thry_vrc_tools_vrc_sdk_versions;
         private static string thry_vrc_tools_vrc_sdk_versions_string = "";
         private static bool has_vrc_tools = false;
         private bool is_installing_vrc_tools = false;
+
+        public const string DEFINE_SYMBOLE_VRC_SDK_INSTALLED = "VRC_SDK_EXISTS";
+        public const string DEFINE_SYMBOLE_API_NET_TWO = "NET_SET_TWO_POINT_ZERO";
+        public const string DEFINE_SYMBOLE_MCS_EXISTS = "MCS_EXISTS";
+        public const string DEFINE_SYMBOLE_VRC_SDK_VERRSION_SUPPORTED_BY_THRY_TOOLS = "SDK_VERRSION_SUPPORTED_BY_THRY_TOOLS";
 
         const string THRY_VRC_TOOLS_REPO_URL = "https://raw.githubusercontent.com/Thryrallo/ThryVRCTools/master/";
         const string THRY_VRC_TOOLS_FILE_LIST_URL = "file_list.txt";
@@ -118,14 +120,17 @@ namespace Thry
         {
             CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
             CheckMCS(); //check that MCS is imported
-            InitVRCSDKVariables(); //check vrc variables
             SetupStyle(); //setup styles
+            CheckVRCSDK();
+
+            thry_vrc_tools_installed_version = Helper.FindFileAndReadIntoString(THRY_VRC_TOOLS_VERSION_PATH);
+            has_vrc_tools = System.Type.GetType("Thry.AutoAvatarDescriptor") != null;
+            Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_VERSION_URL, thry_vrc_tools_version_callback);
         }
 
-        private void InitVRCSDKVariables()
+        private static void CheckVRCSDK()
         {
-            hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
-            vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed);
         }
 
         private static void CheckVRCSDK(string[] importedAssets)
@@ -133,21 +138,14 @@ namespace Thry
             bool vrcImported = false;
             foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
 
-            bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
-
-            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                BuildTargetGroup.Standalone);
-            if ((vrcImported | hasVRCSdk) && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                          BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
-            else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                 BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS", ""));
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed | vrcImported);
 
             if (vrcImported)
             {
                 if (thry_vrc_tools_version_loaded)
-                    CheckVRCVersionCallback("");
+                    CheckVRCVersionCompatibilityCallback("");
                 else
-                    Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_FILE_LIST_URL, CheckVRCVersionCallback);
+                    Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_FILE_LIST_URL, thry_vrc_tools_version_callback);
             }
         }
 
@@ -157,7 +155,7 @@ namespace Thry
             {
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
             }
-            SetDefineSymbol("NET_SET_TWO_POINT_ZERO", true);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_API_NET_TWO, true);
         }
 
         private static void CheckMCS()
@@ -168,7 +166,7 @@ namespace Thry
             else if (mcs_good == -1)
                 GenerateMCS();
             mcs_good = CheckMCSAvailability();
-            SetDefineSymbol("MCS_EXISTS", mcs_good == 1);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_MCS_EXISTS, mcs_good == 1);
         }
 
         private static int CheckMCSAvailability()
@@ -206,18 +204,6 @@ namespace Thry
             CheckMCS();
         }
 
-        private static void SetDefineSymbol(string symbol, bool active)
-        {
-            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                    BuildTargetGroup.Standalone);
-            if (!symbols.Contains(symbol) && active)
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols + ";" + symbol);
-            if (symbols.Contains(symbol) && !active)
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols.Replace(";" + symbol, ""));
-        }
-
         //------------------Helpers----------------------------
 
         public static void setActiveShader(Shader shader)
@@ -244,22 +230,11 @@ namespace Thry
             CheckMCS();
         }
 
-        public static void CheckVRCVersionCallback(string s)
+        public static void CheckVRCVersionCompatibilityCallback(string s)
         {
-            string[] data = Regex.Split(s, @"\r?\n");
-            if (data.Length > 1)
-            {
-                thry_vrc_tools_version = data[0];
-                thry_vrc_tools_vrc_sdk_versions_string = data[1];
-                thry_vrc_tools_vrc_sdk_versions = Regex.Split(data[1], ",");
-                thry_vrc_tools_version_loaded = true;
-            }
-            if (thry_vrc_tools_version_loaded)
-            {
-                bool supportedVersion = thry_vrc_tools_vrc_sdk_versions.Contains(Helper.GetCurrentVRCSDKVersion());
-                Debug.Log("Supports version: " + supportedVersion);
-                SetDefineSymbol("VRC_SDK_SUPPORTED_VERSION", supportedVersion);
-            }
+            bool supportedVersion = thry_vrc_tools_vrc_sdk_versions.Contains(VRCInterface.Get().installed_sdk_version);
+            Debug.Log("Supports version: " + supportedVersion);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_VERRSION_SUPPORTED_BY_THRY_TOOLS, supportedVersion);
         }
 
         public static void thry_vrc_tools_version_callback(string s)
@@ -272,7 +247,7 @@ namespace Thry
                 thry_vrc_tools_vrc_sdk_versions = Regex.Split(data[1], ",");
                 thry_vrc_tools_version_loaded = true;
                 Helper.RepaintEditorWindow(typeof(Settings));
-                CheckVRCVersionCallback("");
+                CheckVRCVersionCompatibilityCallback("");
             }
         }
 
@@ -291,50 +266,17 @@ namespace Thry
         //------------------Main GUI
         void OnGUI()
         {
-            if (style_setup) SetupStyle();
-            Config config = Config.Get();
-            GUILayout.Label("ThryEditor v" + config.verion);
+            if (!style_setup) SetupStyle();
+            GUILayout.Label("ThryEditor v" + Config.Get().verion);
 
             GUINotification();
             drawLine();
-
-            if (hasVRCSdk)
-            {
-                vrc_sdk_version = Helper.GetCurrentVRCSDKVersion();
-                GUILayout.Label("VRC Sdk version: " + vrc_sdk_version);
-                if (vrcIsLoggedIn)
-                {
-                    GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
-                }
-                drawLine();
-            }
-
+            GUIVRC();
             GUIEditor();
             drawLine();
             GUIExtras();
             drawLine();
-
-            if (hasVRCSdk)
-            {
-                if (firstLoad)
-                {
-                    thry_vrc_tools_installed_version = Helper.FindFileAndReadIntoString(THRY_VRC_TOOLS_VERSION_PATH);
-                    has_vrc_tools = System.Type.GetType("Thry.AutoAvatarDescriptor") != null;
-                }
-                if (has_vrc_tools)
-                    GUIVRCToolsOptions();
-
-                drawLine();
-
-                if (thry_vrc_tools_version_loaded)
-                    GUIVRCToolsDownloadOptions(has_vrc_tools);
-            }
-
-            if (firstLoad)
-            {
-                Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_VERSION_URL, thry_vrc_tools_version_callback);
-                firstLoad = false;
-            }
+            GUIVRCTools();
         }
 
         //--------------------------GUI Helpers-----------------------------
@@ -363,7 +305,7 @@ namespace Thry
             style_setup = true;
         }
 
-        private void drawLine()
+        private static void drawLine()
         {
             Rect rect = EditorGUILayout.GetControlRect(false, 1);
             rect.height = 1;
@@ -378,6 +320,25 @@ namespace Thry
                 GUILayout.Label(" Thry editor has been updated", redInfostyle);
             else if (updatedVersion == 1)
                 GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+        }
+
+        private static void GUIVRC()
+        {
+            if (VRCInterface.Get().sdk_is_installed)
+            {
+                GUILayout.Label("VRC Sdk version: " + VRCInterface.Get().installed_sdk_version);
+                if (!VRCInterface.Get().sdk_is_up_to_date)
+                {
+                    GUILayout.Label("Newest VRC SDK version: " + VRCInterface.Get().newest_sdk_version);
+                    if (GUILayout.Button("Update VRC SDK"))
+                        VRCInterface.UpdateVRCSDK();
+                }
+                if (VRCInterface.Get().user_logged_in)
+                {
+                    GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
+                }
+                drawLine();
+            }
         }
 
         private static void GUIEditor()
@@ -413,7 +374,21 @@ namespace Thry
             GUILayout.EndHorizontal();
         }
 
-        public static void GUIVRCToolsOptions()
+        private void GUIVRCTools()
+        {
+            if (VRCInterface.Get().sdk_is_installed)
+            {
+                if (has_vrc_tools)
+                    GUIVRCToolsOptions();
+
+                drawLine();
+
+                if (thry_vrc_tools_version_loaded)
+                    GUIVRCToolsDownloadOptions(has_vrc_tools);
+            }
+        }
+
+        private void GUIVRCToolsOptions()
         {
             Config config = Config.Get();
             GUILayout.Label("VRChat features", EditorStyles.boldLabel);
@@ -434,7 +409,7 @@ namespace Thry
             Toggle("vrchatForceFallbackAnimationSet", SETTINGS_CONTENT[(int)SETTINGS_IDX.vrc_force_fallback_anim]);
         }
 
-        public void GUIVRCToolsDownloadOptions(bool tools_installed)
+        private void GUIVRCToolsDownloadOptions(bool tools_installed)
         {
             GUILayout.Label("Thry's VRC Tools Installer", EditorStyles.boldLabel);
 
