@@ -252,8 +252,29 @@ namespace Thry
             return fallback;
         }
 
-        //returns data for name:{data} even if data containss brakets
-        public static string GetBracket(string data, string bracketName)
+        public static bool IsPrimitive(Type t)
+        {
+            return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
+        }
+
+        public static string ArrayToString(object[] a)
+        {
+            string ret = "";
+            foreach (object o in a)
+                ret += o.ToString() + ",";
+            return ret.TrimEnd(new char[] { ',' });
+        }
+
+        public static string ArrayToString(Array a)
+        {
+            string ret = "";
+            foreach (object o in a)
+                ret += o.ToString() + ",";
+            return ret.TrimEnd(new char[] { ',' });
+        }
+
+            //returns data for name:{data} even if data containss brakets
+            public static string GetBracket(string data, string bracketName)
         {
             Match m = Regex.Match(data, bracketName + ":");
             if (m.Success)
@@ -347,20 +368,27 @@ namespace Thry
 
         public static void downloadFileToPath(string url, string path)
         {
-            GameObject go = new GameObject();
-            TextDownloaderTwo downloader = (TextDownloaderTwo)go.AddComponent(typeof(TextDownloaderTwo));
-            downloader.StartDownload(url, path, save_as_file_callback);
+            downloadFileToPath(url, path, null);
         }
 
-        private static void save_as_file_callback(string s, string path)
+        public static void downloadFileToPath(string url, string path, Action<string> callback)
+        {
+            GameObject go = new GameObject("Downloader: "+url);
+            TextDownloaderTwo downloader = (TextDownloaderTwo)go.AddComponent(typeof(TextDownloaderTwo));
+            downloader.StartDownload(url, path, save_as_file_callback, callback);
+        }
+
+        private static void save_as_file_callback(string s, string path,Action<string> callback)
         {
             WriteStringToFile(s, path);
             AssetDatabase.ImportAsset(path);
+            if (callback != null)
+                callback(s);
         }
 
         public static void getStringFromUrl(string url, Action<string> callback)
         {
-            GameObject go = new GameObject();
+            GameObject go = new GameObject("Downloader: " + url);
             TextDownloader downloader = (TextDownloader)go.AddComponent(typeof(TextDownloader));
             downloader.StartDownload(url, callback);
         }
@@ -449,13 +477,15 @@ namespace Thry
         private class TextDownloaderTwo : MonoBehaviour
         {
             string url;
-            Action<string,string> callback;
+            Action<string,string, Action<string>> callback;
             string passThrough;
+            Action<string> callback_passthough;
 
-            public void StartDownload(string url, string passThrough, Action<string,string> callback)
+            public void StartDownload(string url, string passThrough, Action<string,string, Action<string>> callback, Action<string> callback_passthough)
             {
                 this.url = url;
                 this.callback = callback;
+                this.callback_passthough = callback_passthough;
                 this.passThrough = passThrough;
                 StartCoroutine(GetTextFromWWW());
             }
@@ -465,7 +495,7 @@ namespace Thry
                 WWW webpage = new WWW(url);
                 while (!webpage.isDone) yield return false;
                 string content = webpage.text;
-                callback(content, passThrough);
+                callback(content, passThrough, callback_passthough);
                 while (this != null)
                     DestroyImmediate(this.gameObject);
             }

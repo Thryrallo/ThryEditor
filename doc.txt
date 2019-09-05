@@ -39,26 +39,31 @@ extraOffset
 	adds an extra x-offset to the property
 	<string> := extraOffset
 	<optionData> := <int>
+	Example: --extraOffset=1
 
 hover
 	text that is shown when hovering above property
 	<string> := hover
 	<optionData> := <string>
+	Example: --hover=hover text
 
 altClick
 	performs an action when holding alt down and clicking on property
 	<string> := altClick
 	<optionData> := <action>
+	Example: --altClick={type:URL,data:https://github.com/Thryrallo/thryeditor}
 	
 button_right (only for menu headers)
 	<string> := button_right
 	<optionData> := <button>
+	Example: --button_right={text:Test Button,action:{type:URL,data:https://github.com/Thryrallo/thryeditor},hover:hover text,condition_show:{type:PROPERTY_BOOL,data:_ShowButtonOnMenus}}
 
 <displayName> := <string><extraOption>*
 <extraOption> := --<string>=<optionData>
 <action> := {type:<type>,data:<string>}
-<type> := url
-<button> := {text:<string>,hover:<string>,action:<action>}
-
-actions:
-	url: opens <data> as url in browser
+<type> := URL
+	URL: open url, data is url, don't forget http://
+<button> := {text:<string>,hover:<string>,action:<action>,condition_show:<condition>}
+<condition> := {type:<condition_type>,data:<string>}
+<condition_type> := PROPERTY_BOOL
+	PROPERTY_BOOL: check if float value of property with name <data> is 1

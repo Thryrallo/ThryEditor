@@ -44,6 +44,8 @@ namespace Thry
 
         private bool isFirstPopop = false;
         private int updatedVersion = 0;
+        private bool hasVRCSdk;
+        private bool vrcIsLoggedIn;
 
         private static bool firstLoad = true;
         private static bool thry_vrc_tools_version_loaded = false;
@@ -58,8 +60,11 @@ namespace Thry
         const string THRY_VRC_TOOLS_REPO_URL = "https://raw.githubusercontent.com/Thryrallo/ThryVRCTools/master/";
         const string THRY_VRC_TOOLS_FILE_LIST_URL = "file_list.txt";
         const string THRY_VRC_TOOLS_VERSION_URL = "version.txt";
+        const string THRY_MCS_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditor/master/mcs.rsp";
 
         const string THRY_VRC_TOOLS_VERSION_PATH = "thry_vrc_tools_version";
+
+        const string MCS_NEEDED_PATH = "Assets/mcs.rsp";
 
         private static string[][] SETTINGS_CONTENT = new string[][]
         {
@@ -75,9 +80,12 @@ namespace Thry
         enum SETTINGS_IDX
         {
             bigTexFields = 0, render_queue = 1, show_popup_on_import = 2, render_queue_shaders = 3, vrc_aad = 4, vrc_fallback_anim = 5,
-            vrc_force_fallback_anim = 6, gradient_file_name=7
+            vrc_force_fallback_anim = 6, gradient_file_name = 7
         };
 
+        //---------------------Stuff checkers and fixers-------------------
+
+        //checks if slected shaders is using editor
         private void OnSelectionChange()
         {
             string[] selectedAssets = Selection.assetGUIDs;
@@ -97,30 +105,143 @@ namespace Thry
             this.Repaint();
         }
 
+        //to check if vrc sdk is being imported
         public class VRChatSdkImportTester : AssetPostprocessor
         {
             static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
             {
-                bool vrcImported = false;
-                foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
-
-                bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
-
-                string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                    BuildTargetGroup.Standalone);
-                if ((vrcImported | hasVRCSdk) && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
-                else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                     BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS", ""));
-
-                if (vrcImported)
-                {
-                    if (thry_vrc_tools_version_loaded)
-                        CheckVRCVersionCallback("");
-                    else
-                        Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_FILE_LIST_URL, CheckVRCVersionCallback);
-                }
+                CheckVRCSDK(importedAssets);
             }
+        }
+
+        public void Awake()
+        {
+            CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
+            CheckMCS(); //check that MCS is imported
+            InitVRCSDKVariables(); //check vrc variables
+            SetupStyle(); //setup styles
+        }
+
+        private void InitVRCSDKVariables()
+        {
+            hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
+            vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
+        }
+
+        private static void CheckVRCSDK(string[] importedAssets)
+        {
+            bool vrcImported = false;
+            foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
+
+            bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
+
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+                BuildTargetGroup.Standalone);
+            if ((vrcImported | hasVRCSdk) && !symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                          BuildTargetGroup.Standalone, symbols + ";VRC_SDK_EXISTS");
+            else if (!hasVRCSdk && symbols.Contains("VRC_SDK_EXISTS")) PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                 BuildTargetGroup.Standalone, symbols.Replace(";VRC_SDK_EXISTS", ""));
+
+            if (vrcImported)
+            {
+                if (thry_vrc_tools_version_loaded)
+                    CheckVRCVersionCallback("");
+                else
+                    Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_FILE_LIST_URL, CheckVRCVersionCallback);
+            }
+        }
+
+        private static void CheckAPICompatibility()
+        {
+            if (PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone) != ApiCompatibilityLevel.NET_2_0)
+            {
+                PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
+            }
+            SetDefineSymbol("NET_SET_TWO_POINT_ZERO", true);
+        }
+
+        private static void CheckMCS()
+        {
+            int mcs_good = CheckMCSAvailability();
+            if (mcs_good == 0)
+                MoveMCS();
+            else if (mcs_good == -1)
+                GenerateMCS();
+            mcs_good = CheckMCSAvailability();
+            SetDefineSymbol("MCS_EXISTS", mcs_good == 1);
+        }
+
+        private static int CheckMCSAvailability()
+        {
+            bool mcs_wrong_path = false;
+            foreach (string id in AssetDatabase.FindAssets("mcs"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(id);
+                if (path.Contains(MCS_NEEDED_PATH))
+                    return 1;
+                else if (path.Contains("mcs.rsp"))
+                    mcs_wrong_path = true;
+            }
+            if (mcs_wrong_path)
+                return 0;
+            return -1;
+        }
+
+        private static void MoveMCS()
+        {
+            foreach (string id in AssetDatabase.FindAssets("mcs"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(id);
+                if (path.Contains("mcs.rsp"))
+                    AssetDatabase.MoveAsset(path, MCS_NEEDED_PATH);
+            }
+            AssetDatabase.Refresh();
+        }
+
+        private static void GenerateMCS()
+        {
+            string mcs_data = "-r:System.Drawing.dll";
+            Helper.WriteStringToFile(mcs_data, MCS_NEEDED_PATH);
+            AssetDatabase.Refresh();
+            CheckMCS();
+        }
+
+        private static void SetDefineSymbol(string symbol, bool active)
+        {
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+                    BuildTargetGroup.Standalone);
+            if (!symbols.Contains(symbol) && active)
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                              BuildTargetGroup.Standalone, symbols + ";" + symbol);
+            if (symbols.Contains(symbol) && !active)
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                              BuildTargetGroup.Standalone, symbols.Replace(";" + symbol, ""));
+        }
+
+        //------------------Helpers----------------------------
+
+        public static void setActiveShader(Shader shader)
+        {
+            if (shader != activeShader)
+            {
+                activeShader = shader;
+                presetHandler = new PresetHandler(shader);
+                activeShaderMaterial = new Material(shader);
+            }
+        }
+
+        public static Settings getInstance()
+        {
+            Settings instance = (Settings)Helper.FindEditorWindow(typeof(Settings));
+            if (instance == null) instance = ScriptableObject.CreateInstance<Settings>();
+            return instance;
+        }
+
+        //---------------------------Callbacks
+
+        public static void MCS_Download_Callback(string data)
+        {
+            CheckMCS();
         }
 
         public static void CheckVRCVersionCallback(string s)
@@ -141,114 +262,45 @@ namespace Thry
             }
         }
 
-        public static void setActiveShader(Shader shader)
+        public static void thry_vrc_tools_version_callback(string s)
         {
-            if (shader != activeShader)
+            string[] data = Regex.Split(s, @"\r?\n");
+            if (data.Length > 1)
             {
-                activeShader = shader;
-                presetHandler = new PresetHandler(shader);
-                activeShaderMaterial = new Material(shader);
+                thry_vrc_tools_version = data[0];
+                thry_vrc_tools_vrc_sdk_versions_string = data[1];
+                thry_vrc_tools_vrc_sdk_versions = Regex.Split(data[1], ",");
+                thry_vrc_tools_version_loaded = true;
+                Helper.RepaintEditorWindow(typeof(Settings));
+                CheckVRCVersionCallback("");
             }
         }
 
-        private void drawLine()
+        public static void thry_vrc_tools_file_list_callback(string s)
         {
-            Rect rect = EditorGUILayout.GetControlRect(false, 1);
-            rect.height = 1;
-            EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 1));
+            string[] fileNames = Regex.Split(s, @"\r?\n");
+            string path = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("ThrySettings")[0]);
+            path = Regex.Replace(path, @"/Editor/ThrySettings.cs", "/ThryTools/");
+            foreach (string file in fileNames) Helper.downloadFileToPath(THRY_VRC_TOOLS_REPO_URL + file, path + file);
+            Helper.WriteStringToFile(thry_vrc_tools_version, path + THRY_VRC_TOOLS_VERSION_PATH + ".txt");
+            has_vrc_tools = true;
+            thry_vrc_tools_installed_version = thry_vrc_tools_version;
+            Helper.RepaintEditorWindow(typeof(Settings));
         }
 
-        private static GUIStyle redInfostyle;
-        private static GUIStyle redStyle;
-        private static GUIStyle yellowStyle;
-        private static GUIStyle greenStyle;
-
-        private static void SetupStyle()
-        {
-            redInfostyle = new GUIStyle();
-            redInfostyle.normal.textColor = Color.red;
-            redInfostyle.fontSize = 16;
-
-            redStyle = new GUIStyle();
-            redStyle.normal.textColor = Color.red;
-
-            yellowStyle = new GUIStyle();
-            yellowStyle.normal.textColor = Color.yellow;
-
-            greenStyle = new GUIStyle();
-            greenStyle.normal.textColor = new Color(0, 0.5f, 0);
-        }
-
-        public void Awake()
-        {
-            //check and set api level
-            if(PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone) != ApiCompatibilityLevel.NET_2_0)
-            {
-                PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
-            }
-            SetDefineSymbol("NET_SET_TWO_POINT_ZERO", true);
-            //move msc.rsp
-            int mcs_good = CheckMCS();
-            if (mcs_good == 0)
-                MoveMCS();
-            mcs_good = CheckMCS();
-            SetDefineSymbol("MCS_EXISTS", mcs_good == 1);
-        }
-
-        private static void SetDefineSymbol(string symbol, bool active)
-        {
-            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                    BuildTargetGroup.Standalone);
-            if (!symbols.Contains(symbol)&&active)
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols + ";"+ symbol);
-            if (symbols.Contains(symbol) && !active)
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols.Replace(";"+symbol,""));
-        }
-
-        private int CheckMCS()
-        {
-            bool mcs_wrong_path = false;
-            foreach (string id in AssetDatabase.FindAssets("mcs"))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(id);
-                if (path.Contains("Assets/mcs.rsp"))
-                    return 1;
-                else if (path.Contains("mcs.rsp"))
-                    mcs_wrong_path = true;
-            }
-            if (mcs_wrong_path)
-                return 0;
-            return -1;
-        }
-
-        private void MoveMCS()
-        {
-            foreach (string id in AssetDatabase.FindAssets("mcs"))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(id);
-                if (path.Contains("mcs.rsp"))
-                    AssetDatabase.MoveAsset(path, "Assets/mcs.rsp");
-            }
-            AssetDatabase.Refresh();
-        }
-
+        //------------------Main GUI
         void OnGUI()
         {
-            SetupStyle();
+            if (style_setup) SetupStyle();
             Config config = Config.Get();
             GUILayout.Label("ThryEditor v" + config.verion);
 
             GUINotification();
             drawLine();
 
-            bool hasVRCSdk = System.Type.GetType("VRC.AccountEditorWindow") != null;
-            bool vrcIsLoggedIn = EditorPrefs.HasKey("sdk#username");
-
             if (hasVRCSdk)
             {
-                vrc_sdk_version= Helper.GetCurrentVRCSDKVersion();
+                vrc_sdk_version = Helper.GetCurrentVRCSDKVersion();
                 GUILayout.Label("VRC Sdk version: " + vrc_sdk_version);
                 if (vrcIsLoggedIn)
                 {
@@ -280,9 +332,42 @@ namespace Thry
 
             if (firstLoad)
             {
-                Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL+THRY_VRC_TOOLS_VERSION_URL, thry_vrc_tools_version_callback);
+                Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_VERSION_URL, thry_vrc_tools_version_callback);
                 firstLoad = false;
             }
+        }
+
+        //--------------------------GUI Helpers-----------------------------
+
+        private static GUIStyle redInfostyle;
+        private static GUIStyle redStyle;
+        private static GUIStyle yellowStyle;
+        private static GUIStyle greenStyle;
+        private static bool style_setup = false;
+
+        private static void SetupStyle()
+        {
+            redInfostyle = new GUIStyle();
+            redInfostyle.normal.textColor = Color.red;
+            redInfostyle.fontSize = 16;
+
+            redStyle = new GUIStyle();
+            redStyle.normal.textColor = Color.red;
+
+            yellowStyle = new GUIStyle();
+            yellowStyle.normal.textColor = Color.yellow;
+
+            greenStyle = new GUIStyle();
+            greenStyle.normal.textColor = new Color(0, 0.5f, 0);
+
+            style_setup = true;
+        }
+
+        private void drawLine()
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 1);
+            rect.height = 1;
+            EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 1));
         }
 
         private void GUINotification()
@@ -357,10 +442,10 @@ namespace Thry
             bool needsUpdate = false;
             if (thry_vrc_tools_version_loaded && has_vrc_tools)
                 needsUpdate = Helper.compareVersions(thry_vrc_tools_version, thry_vrc_tools_installed_version) == -1;
-            
-            if(tools_installed && !needsUpdate)
+
+            if (tools_installed && !needsUpdate)
                 GUILayout.Label("Up to date");
-            EditorGUI.BeginDisabledGroup(is_installing_vrc_tools || (tools_installed&&!needsUpdate));
+            EditorGUI.BeginDisabledGroup(is_installing_vrc_tools || (tools_installed && !needsUpdate));
             GUILayout.BeginHorizontal();
             string text = "Install now";
             if (tools_installed) text = "Update";
@@ -369,7 +454,7 @@ namespace Thry
                 is_installing_vrc_tools = true;
                 Helper.getStringFromUrl(THRY_VRC_TOOLS_REPO_URL + THRY_VRC_TOOLS_FILE_LIST_URL, thry_vrc_tools_file_list_callback);
             }
-            GUILayout.Label("(v" + thry_vrc_tools_version + ", vrc_sdk_versions: "+ thry_vrc_tools_vrc_sdk_versions_string+")", GUILayout.ExpandWidth(false));
+            GUILayout.Label("(v" + thry_vrc_tools_version + ", vrc_sdk_versions: " + thry_vrc_tools_vrc_sdk_versions_string + ")", GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
             GUILayout.Label("Includes: ");
             GUILayout.Label(" - VRC Content Manager with search function, sorting function and tags for avatars");
@@ -377,56 +462,30 @@ namespace Thry
             EditorGUI.EndDisabledGroup();
         }
 
-        public static void thry_vrc_tools_version_callback(string s)
-        {
-            string[] data = Regex.Split(s, @"\r?\n");
-            if (data.Length > 1)
-            {
-                thry_vrc_tools_version = data[0];
-                thry_vrc_tools_vrc_sdk_versions_string = data[1];
-                thry_vrc_tools_vrc_sdk_versions = Regex.Split(data[1],",");
-                thry_vrc_tools_version_loaded = true;
-                Helper.RepaintEditorWindow(typeof(Settings));
-                CheckVRCVersionCallback("");
-            }
-        }
-
-        public static void thry_vrc_tools_file_list_callback(string s)
-        {
-            string[] fileNames = Regex.Split(s, @"\r?\n");
-            string path = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("ThrySettings")[0]);
-            path = Regex.Replace(path, @"/Editor/ThrySettings.cs", "/ThryTools/");
-            foreach (string file in fileNames) Helper.downloadFileToPath(THRY_VRC_TOOLS_REPO_URL + file, path+file);
-            Helper.WriteStringToFile(thry_vrc_tools_version, path + THRY_VRC_TOOLS_VERSION_PATH + ".txt");
-            has_vrc_tools = true;
-            thry_vrc_tools_installed_version = thry_vrc_tools_version;
-            Helper.RepaintEditorWindow(typeof(Settings));
-        }
-
         private static void Text(string configField, string[] content)
         {
             Text(configField, content, true);
         }
 
-            private static void Text(string configField, string[] content, bool createHorizontal)
+        private static void Text(string configField, string[] content, bool createHorizontal)
         {
             Config config = Config.Get();
             System.Reflection.FieldInfo field = typeof(Config).GetField(configField);
             if (field != null)
             {
                 string value = (string)field.GetValue(config);
-                if(createHorizontal)
+                if (createHorizontal)
                     GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
                 GUILayout.Space(57);
                 GUILayout.Label(new GUIContent(content[0], content[1]), GUILayout.ExpandWidth(false));
                 EditorGUI.BeginChangeCheck();
                 value = EditorGUILayout.DelayedTextField("", value, GUILayout.ExpandWidth(false));
-                if(EditorGUI.EndChangeCheck())
+                if (EditorGUI.EndChangeCheck())
                 {
                     field.SetValue(config, value);
                     config.save();
                 }
-                if(createHorizontal)
+                if (createHorizontal)
                     GUILayout.EndHorizontal();
             }
         }
@@ -465,13 +524,6 @@ namespace Thry
             GUILayout.Label(new GUIContent(text, tooltip));
             GUILayout.EndHorizontal();
             return val;
-        }
-
-        public static Settings getInstance()
-        {
-            Settings instance = (Settings)Helper.FindEditorWindow(typeof(Settings));
-            if (instance == null) instance = ScriptableObject.CreateInstance<Settings>();
-            return instance;
         }
     }
 }

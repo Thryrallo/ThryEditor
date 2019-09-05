@@ -197,7 +197,7 @@ namespace Thry
             data.hasRightButton = ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT);
             if (data.hasRightButton)
             {
-                data.rightButton = Parsers.ParseButton(ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<string>(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT));
+                data.rightButton = Parsers.ConvertParsedToObject<ButtonData>(ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT));
             }
             ThryEditor.currentlyDrawing.currentProperty.property_data = data;
         }
@@ -216,7 +216,7 @@ namespace Thry
                 this.Init();
 
             MenuHeaderData data = (MenuHeaderData)ThryEditor.currentlyDrawing.currentProperty.property_data;
-            if (data.hasRightButton)
+            if (data.hasRightButton && data.rightButton.condition_show.Test())
             {
                 Rect buttonRect = new Rect(rect);
                 GUIContent buttoncontent = new GUIContent(data.rightButton.text, data.rightButton.hover);
@@ -226,7 +226,8 @@ namespace Thry
                 buttonRect.y += 2;
                 buttonRect.width = width;
                 if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
-                    data.rightButton.action.Perform();
+                    if(data.rightButton.action!=null)
+                        data.rightButton.action.Perform();
             }
 
             var e = Event.current;
