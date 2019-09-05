@@ -60,6 +60,10 @@ public class ThryEditor : ShaderGUI
         {
             return (optionValue)Helper.GetValueFromDictionary<string, object>(extraOptions, key);
         }
+        public object GetExtraOptionValue(string key)
+        {
+            return Helper.GetValueFromDictionary<string, object>(extraOptions, key);
+        }
 
         public bool ExtraOptionExists(string option)
         {
@@ -177,7 +181,11 @@ public class ThryEditor : ShaderGUI
         if (label_file_property != null)
         {
             string[] guids = AssetDatabase.FindAssets(label_file_property.displayName);
-            if (guids.Length == 0) Debug.LogError("Label File could not be found");
+            if (guids.Length == 0)
+            {
+                Debug.LogWarning("Label File could not be found");
+                return labels;
+            }
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
             string[] data = Regex.Split(Helper.ReadFileIntoString(path), @"\r?\n");
             foreach (string d in data)
@@ -199,15 +207,8 @@ public class ThryEditor : ShaderGUI
             displayName = displayName.Replace(m.Value,"");
             string key = Regex.Split(m.Value, EXTRA_OPTION_INFIX)[0].Replace(EXTRA_OPTION_PREFIX,"");
             string valueString = Regex.Split(m.Value, EXTRA_OPTION_INFIX)[1];
-            float floatValue;
-            object value = valueString.TrimStart(new char[]{' '});
-            if (float.TryParse(valueString, out floatValue))
-            {
-                value = floatValue;
-                if ((int)floatValue == floatValue)
-                    value = (int)floatValue;
-            }
-            extraOptions.Add(key, value);
+            object parsed = Parsers.Parse(valueString);
+            extraOptions.Add(key, parsed);
         }
         return extraOptions;
     }
@@ -297,8 +298,7 @@ public class ThryEditor : ShaderGUI
         {
             if (property.ExtraOptionExists(EXTRA_OPTION_ALT_CLICK))
             {
-                string altClick = property.GetExtraOptionValue<string>(EXTRA_OPTION_ALT_CLICK);
-                DefinableAction action = Parsers.ParseDefinableAction(altClick);
+                DefinableAction action = Parsers.ConvertParsedToObject<DefinableAction>(property.GetExtraOptionValue(EXTRA_OPTION_ALT_CLICK));
                 action.Perform();
             }
         }

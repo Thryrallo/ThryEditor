@@ -54,7 +54,8 @@ namespace Thry
         public string text;
         public DefinableAction action;
         public string hover;
-        public override string ToString(){ return "{Text:" + text + ",Hover:" + hover + ",Action:"+action.ToString()+"}"; }
+        public DefineableCondition condition_show;
+        public override string ToString(){ return "{text:" + text + ",hover:" + hover + ",action:"+action.ToString()+",condition_show:"+ condition_show .ToString()+ "}"; }
     }
 
     public class DefinableAction
@@ -70,12 +71,37 @@ namespace Thry
                     break;
             }
         }
-        public override string ToString(){ return "{Type:" + type + ",Data:" + data + "}";}
+        public override string ToString(){ return "{type:" + type + ",data:" + data + "}";}
     }
 
     public enum DefinableActionType
     {
         NONE,
         URL
+    }
+
+    public class DefineableCondition
+    {
+        public DefineableConditionType type;
+        public string data;
+        public bool Test()
+        {
+            switch (type)
+            {
+                case DefineableConditionType.PROPERTY_BOOL:
+                    ThryEditor.ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[data];
+                    if (prop != null) return prop.materialProperty.floatValue == 1;
+                    break;
+            }
+            
+            return false;
+        }
+        public override string ToString() { return "{type:" + type + ",data:" + data + "}"; }
+    }
+
+    public enum DefineableConditionType
+    {
+        NONE,
+        PROPERTY_BOOL
     }
 }
