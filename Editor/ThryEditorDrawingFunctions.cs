@@ -256,7 +256,7 @@ namespace Thry
                 this.Init();
 
             MenuHeaderData data = (MenuHeaderData)ThryEditor.currentlyDrawing.currentProperty.property_data;
-            if (data.hasRightButton && data.rightButton.condition_show.Test())
+            if (data.hasRightButton && (data.rightButton.condition_show == null || (data.rightButton.condition_show != null && data.rightButton.condition_show.Test())))
             {
                 Rect buttonRect = new Rect(rect);
                 GUIContent buttoncontent = new GUIContent(data.rightButton.text, data.rightButton.hover);
