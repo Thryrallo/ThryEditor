@@ -143,6 +143,9 @@ namespace Thry
 
             Rect sliderRect = settingsRect;
 
+            float capAtX = vec.x;
+            float capAtY = vec.y;
+
             if (settingsRect.width > 160)
             {
                 Rect numberRect = settingsRect;
@@ -162,8 +165,8 @@ namespace Thry
                 sliderRect.xMax -= (kNumberWidth + 5);
             }
 
-            vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
-            vec.y = Mathf.Clamp(vec.y, vec.x, vec.w);
+            vec.x = Mathf.Clamp(vec.x, vec.z, capAtY);
+            vec.y = Mathf.Clamp(vec.y, capAtX, vec.w);
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
