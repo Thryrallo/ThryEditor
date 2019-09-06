@@ -15,7 +15,7 @@ namespace Thry
 {
     public class Helper
     {
-        public static valuetype GetValueFromDictionary<keytype,valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
+        public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
         {
             valuetype value = default(valuetype);
             if (dictionary.ContainsKey(key)) dictionary.TryGetValue(key, out value);
@@ -53,13 +53,13 @@ namespace Thry
             return fallback;
         }
 
-            //returns data for name:{data} even if data containss brakets
+        //returns data for name:{data} even if data containss brakets
         public static string GetBracket(string data, string bracketName)
         {
             Match m = Regex.Match(data, bracketName + ":");
             if (m.Success)
             {
-                int startIndex = m.Index+bracketName.Length+2;
+                int startIndex = m.Index + bracketName.Length + 2;
                 int i = startIndex;
                 int depth = 0;
                 while (++i < data.Length)
@@ -85,7 +85,7 @@ namespace Thry
         public static string LoadValueFromFile(string key, string path)
         {
             if (!textFileData.ContainsKey(path)) textFileData[path] = ReadFileIntoString(path);
-            Match m = Regex.Match(textFileData[path], Regex.Escape(key) + @"\s*:=.*\r?\n");
+            Match m = Regex.Match(textFileData[path], Regex.Escape(key) + @"\s*:=.*(?=\r?\n)");
             string value = Regex.Replace(m.Value, key + @"\s*:=\s*", "");
             if (m.Success) return value;
             return null;
@@ -246,7 +246,7 @@ namespace Thry
                               BuildTargetGroup.Standalone, symbols + ";" + symbol);
             if (symbols.Contains(symbol) && !active)
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols.Replace(";" + symbol, ""));
+                              BuildTargetGroup.Standalone, Regex.Replace(symbols, @";?" + @symbol, ""));
         }
 
         public static void RepaintInspector(System.Type t)
@@ -377,11 +377,11 @@ namespace Thry
         public static Texture2D Resize(Texture2D texture, int width, int height)
         {
             Texture2D ret = new Texture2D(width, height, texture.format, texture.mipmapCount > 0);
-            float scaleX = ((float)texture.width)/width;
+            float scaleX = ((float)texture.width) / width;
             float scaleY = ((float)texture.height) / height;
             for (int x = 0; x < width; x++)
             {
-                for(int y = 0; y < height; y++)
+                for (int y = 0; y < height; y++)
                 {
                     ret.SetPixel(x, y, texture.GetPixel((int)(scaleX * x), (int)(scaleY * y)));
                 }
@@ -400,14 +400,14 @@ namespace Thry
         public static void downloadFileToPath(string url, string path, Action<string> callback)
         {
             GameObject go = new GameObject("Downloader: " + url);
-            TextDownloaderTwo downloader = (TextDownloaderTwo)go.AddComponent(typeof(TextDownloaderTwo));
+            DownloaderTwo downloader = (DownloaderTwo)go.AddComponent(typeof(DownloaderTwo));
             downloader.StartDownload(url, path, save_as_file_callback, callback);
         }
 
         public static void DownloadBytesToPath(string url, string path, Action<string> callback)
         {
             GameObject go = new GameObject("Downloader: " + url);
-            TextDownloaderTwo downloader = (TextDownloaderTwo)go.AddComponent(typeof(TextDownloaderTwo));
+            DownloaderTwo downloader = (DownloaderTwo)go.AddComponent(typeof(DownloaderTwo));
             downloader.StartDownloadBytes(url, path, save_as_file_bytes_callback, callback);
         }
 
@@ -434,20 +434,34 @@ namespace Thry
             downloader.StartDownload(url, callback);
         }
 
-        private class TextDownloaderTwo : MonoBehaviour
+        private class Downloader : MonoBehaviour
+        {
+
+        }
+
+        [ExecuteInEditMode]
+        private class DownloaderTwo : Downloader
         {
             string url;
-            Action<string,string, Action<string>> callback;
+            Action<string, string, Action<string>> callback;
             Action<byte[], string, Action<string>> callback_bytes;
             string passThrough;
             Action<string> callback_passthough;
+            private bool done = true;
 
-            public void StartDownload(string url, string passThrough, Action<string,string, Action<string>> callback, Action<string> callback_passthough)
+            public void Update()
+            {
+                if (done)
+                    DestroyImmediate(this.gameObject);
+            }
+
+            public void StartDownload(string url, string passThrough, Action<string, string, Action<string>> callback, Action<string> callback_passthough)
             {
                 this.url = url;
                 this.callback = callback;
                 this.callback_passthough = callback_passthough;
                 this.passThrough = passThrough;
+                done = false;
                 StartCoroutine(GetTextFromWWW());
             }
 
@@ -457,6 +471,7 @@ namespace Thry
                 while (!webpage.isDone) yield return false;
                 string content = webpage.text;
                 callback(content, passThrough, callback_passthough);
+                done = true;
                 while (this != null)
                     DestroyImmediate(this.gameObject);
             }
@@ -467,6 +482,7 @@ namespace Thry
                 this.callback_bytes = callback;
                 this.callback_passthough = callback_passthough;
                 this.passThrough = passThrough;
+                done = false;
                 StartCoroutine(GetBytesFromWWW());
             }
 
@@ -476,21 +492,31 @@ namespace Thry
                 while (!webpage.isDone) yield return false;
                 byte[] content = webpage.bytes;
                 callback_bytes(content, passThrough, callback_passthough);
+                done = true;
                 while (this != null)
                     DestroyImmediate(this.gameObject);
             }
         }
 
-        private class TextDownloader : MonoBehaviour
+        [ExecuteInEditMode]
+        private class TextDownloader : Downloader
         {
             string url;
             Action<string> callback;
+            private bool done = true;
 
             public void StartDownload(string url, Action<string> callback)
             {
                 this.url = url;
                 this.callback = callback;
+                done = false;
                 StartCoroutine(GetTextFromWWW());
+            }
+
+            public void Update()
+            {
+                if (done)
+                    DestroyImmediate(this.gameObject);
             }
 
             private IEnumerator GetTextFromWWW()
@@ -498,8 +524,21 @@ namespace Thry
                 WWW webpage = new WWW(url);
                 while (!webpage.isDone) yield return false;
                 string content = webpage.text;
-                DestroyImmediate(this.gameObject);
                 callback(content);
+                done = true;
+                while (this != null)
+                    DestroyImmediate(this.gameObject);
+            }
+        }
+
+        [InitializeOnLoad]
+        public class DeleteDownloaders : MonoBehaviour
+        {
+            static DeleteDownloaders()
+            {
+                Downloader[] downloaders = GameObject.FindObjectsOfType<Downloader>();
+                foreach (Downloader d in downloaders)
+                    DestroyImmediate(d.gameObject);
             }
         }
 
@@ -512,7 +551,7 @@ namespace Thry
 
         public static Color ColorMath(Color col1, Color col2, float multiplier1, float multiplier2)
         {
-            return new Color(col1.r * multiplier1 + col2.r * multiplier2, col1.g * multiplier1 + col2.g * multiplier2,col1.b * multiplier1 + col2.b * multiplier2);
+            return new Color(col1.r * multiplier1 + col2.r * multiplier2, col1.g * multiplier1 + col2.g * multiplier2, col1.b * multiplier1 + col2.b * multiplier2);
         }
 
         public static float ColorDifference(Color col1, Color col2)

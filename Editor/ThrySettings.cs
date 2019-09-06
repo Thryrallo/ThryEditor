@@ -54,6 +54,8 @@ namespace Thry
         private static bool has_vrc_tools = false;
         private bool is_installing_vrc_tools = false;
 
+        public static bool is_changing_vrc_sdk = false;
+
         public const string DEFINE_SYMBOLE_VRC_SDK_INSTALLED = "VRC_SDK_EXISTS";
         public const string DEFINE_SYMBOLE_API_NET_TWO = "NET_SET_TWO_POINT_ZERO";
         public const string DEFINE_SYMBOLE_MCS_EXISTS = "MCS_EXISTS";
@@ -113,11 +115,19 @@ namespace Thry
             static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
             {
                 CheckVRCSDK(importedAssets);
+                VRCInterface.Update();
             }
         }
 
         public void Awake()
         {
+            InitVariables();
+        }
+
+        private void InitVariables()
+        {
+            is_changing_vrc_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", ".thry_after_compile_data") == "true") || (Helper.LoadValueFromFile("update_vrc_sdk", ".thry_after_compile_data") == "true");
+
             CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
             CheckMCS(); //check that MCS is imported
             SetupStyle(); //setup styles
@@ -130,7 +140,8 @@ namespace Thry
 
         private static void CheckVRCSDK()
         {
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed);
+            if (!Settings.is_changing_vrc_sdk)
+                Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed);
         }
 
         private static void CheckVRCSDK(string[] importedAssets)
@@ -138,7 +149,9 @@ namespace Thry
             bool vrcImported = false;
             foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
 
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed | vrcImported);
+            bool currently_deleteing_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", ".thry_after_compile_data") == "true");
+            if (!Settings.is_changing_vrc_sdk && !currently_deleteing_sdk)
+                Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed | vrcImported);
 
             if (vrcImported)
             {
@@ -266,7 +279,7 @@ namespace Thry
         //------------------Main GUI
         void OnGUI()
         {
-            if (!style_setup) SetupStyle();
+            if (!style_setup) InitVariables();
             GUILayout.Label("ThryEditor v" + Config.Get().verion);
 
             GUINotification();
@@ -322,23 +335,62 @@ namespace Thry
                 GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
         }
 
-        private static void GUIVRC()
+        private void GUIVRC()
         {
             if (VRCInterface.Get().sdk_is_installed)
             {
-                GUILayout.Label("VRC Sdk version: " + VRCInterface.Get().installed_sdk_version);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("VRC Sdk version: " + VRCInterface.Get().installed_sdk_version + (VRCInterface.Get().sdk_is_up_to_date ? " (newest version)" : ""));
+                RemoveVRCSDKButton();
+                GUILayout.EndHorizontal();
                 if (!VRCInterface.Get().sdk_is_up_to_date)
                 {
                     GUILayout.Label("Newest VRC SDK version: " + VRCInterface.Get().newest_sdk_version);
-                    if (GUILayout.Button("Update VRC SDK"))
-                        VRCInterface.UpdateVRCSDK();
+                    UpdateVRCSDKButton();
                 }
                 if (VRCInterface.Get().user_logged_in)
                 {
                     GUILayout.Label("VRChat user: " + EditorPrefs.GetString("sdk#username"));
                 }
-                drawLine();
             }
+            else
+            {
+                InstallVRCSDKButton();
+            }
+            drawLine();
+        }
+
+        private void InstallVRCSDKButton()
+        {
+            EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
+            if (GUILayout.Button("Install VRC SDK"))
+            {
+                is_changing_vrc_sdk = true;
+                VRCInterface.DownloadAndInstallVRCSDK();
+            }
+            EditorGUI.EndDisabledGroup();
+        }
+
+        private void RemoveVRCSDKButton()
+        {
+            EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
+            if (GUILayout.Button("Remove VRC SDK", GUILayout.ExpandWidth(false)))
+            {
+                is_changing_vrc_sdk = true;
+                VRCInterface.Get().RemoveVRCSDK(true);
+            }
+            EditorGUI.EndDisabledGroup();
+        }
+
+        private void UpdateVRCSDKButton()
+        {
+            EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
+            if (GUILayout.Button("Update VRC SDK"))
+            {
+                is_changing_vrc_sdk = true;
+                VRCInterface.Get().UpdateVRCSDK();
+            }
+            EditorGUI.EndDisabledGroup();
         }
 
         private static void GUIEditor()
