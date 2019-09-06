@@ -162,6 +162,9 @@ namespace Thry
                 sliderRect.xMax -= (kNumberWidth + 5);
             }
 
+            vec.x = Mathf.Clamp(vec.x, vec.z, vec.w);
+            vec.y = Mathf.Clamp(vec.y, vec.z, vec.w);
+
             EditorGUI.BeginChangeCheck();
             EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
             changed |= EditorGUI.EndChangeCheck();
