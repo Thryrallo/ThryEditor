@@ -149,13 +149,13 @@ namespace Thry
                 numberRect.width = kNumberWidth*2;
 
                 EditorGUI.BeginChangeCheck();
-                vec.z = EditorGUI.FloatField(numberRect, vec.z);
+                vec.x = EditorGUI.FloatField(numberRect, vec.x);
                 changed |= EditorGUI.EndChangeCheck();
 
                 numberRect.x = settingsRect.xMax - kNumberWidth * 2;
 
                 EditorGUI.BeginChangeCheck();
-                vec.w = EditorGUI.FloatField(numberRect, vec.w);
+                vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
                 sliderRect.xMin += (kNumberWidth + 5);
