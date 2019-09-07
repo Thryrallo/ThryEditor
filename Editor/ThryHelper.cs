@@ -30,6 +30,23 @@ namespace Thry
             return value;
         }
 
+        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        public static long GetCurrentUnixTimestampMillis()
+        {
+            return (long)(DateTime.UtcNow - UnixEpoch).TotalMilliseconds;
+        }
+
+        public static long GetUnityStartUpTimeStamp()
+        {
+            return GetCurrentUnixTimestampMillis() - (long)EditorApplication.timeSinceStartup * 1000;
+        }
+
+        public static bool ClassExists(string classname)
+        {
+            return System.Type.GetType(classname) != null;
+        }
+
         //-----------------------string helpers
 
         public static string FixUrl(string url)

@@ -104,4 +104,12 @@ namespace Thry
         NONE,
         PROPERTY_BOOL
     }
+
+    public class ModuleData
+    {
+        public string name = "";
+        public string description = "";
+        public string url = "";
+        public string classname = "";
+    }
 }

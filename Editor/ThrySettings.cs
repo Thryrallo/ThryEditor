@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,6 +44,8 @@ namespace Thry
         public static Shader activeShader = null;
         public static Material activeShaderMaterial = null;
         public static PresetHandler presetHandler = null;
+
+        public ModuleSettings[] moduleSettings;
 
         private bool isFirstPopop = false;
         private int updatedVersion = 0;
@@ -95,7 +99,7 @@ namespace Thry
             string[] selectedAssets = Selection.assetGUIDs;
             if (selectedAssets.Length == 1)
             {
-                Object obj = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(selectedAssets[0]));
+                UnityEngine.Object obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(AssetDatabase.GUIDToAssetPath(selectedAssets[0]));
                 if (obj.GetType() == typeof(Shader))
                 {
                     Shader shader = (Shader)obj;
@@ -132,6 +136,15 @@ namespace Thry
             CheckMCS(); //check that MCS is imported
             SetupStyle(); //setup styles
             CheckVRCSDK();
+
+            List<Type> subclasses = typeof(ModuleSettings).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ModuleSettings))).ToList<Type>();
+            Debug.Log("subclasses length: " + subclasses.Count);
+            moduleSettings = new ModuleSettings[subclasses.Count];
+            int i = 0;
+            foreach(Type classtype in subclasses)
+            {
+                moduleSettings[i++] = (ModuleSettings)Activator.CreateInstance(classtype);
+            }
 
             thry_vrc_tools_installed_version = Helper.FindFileAndReadIntoString(THRY_VRC_TOOLS_VERSION_PATH);
             has_vrc_tools = System.Type.GetType("Thry.AutoAvatarDescriptor") != null;
@@ -289,7 +302,15 @@ namespace Thry
             drawLine();
             GUIExtras();
             drawLine();
+            foreach(ModuleSettings s in moduleSettings)
+            {
+                s.Draw();
+                drawLine();
+            }
+
             GUIVRCTools();
+            drawLine();
+            GUIModulesInstalation();
         }
 
         //--------------------------GUI Helpers-----------------------------
@@ -487,6 +508,14 @@ namespace Thry
             GUILayout.Label(" - VRC Content Manager with search function, sorting function and tags for avatars");
             GUILayout.Label(" - VRC Auto Avatar descriptor: automatically fill out your avatar descriptor");
             EditorGUI.EndDisabledGroup();
+        }
+
+        private void GUIModulesInstalation()
+        {
+            for (int i = 0; i < THRY_MODULES_NAMES.Length; i++)
+            {
+                Debug.Log(THRY_MODULES_CLASSES[i]+" exists: "+Helper.ClassExists(THRY_MODULES_CLASSES[i]));
+            }
         }
 
         private static void Text(string configField, string[] content)
