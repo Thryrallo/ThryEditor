@@ -105,11 +105,22 @@ namespace Thry
         PROPERTY_BOOL
     }
 
-    public class ModuleData
+    public class ModuleHeader
     {
         public string name = "";
+        public string version = "0";
         public string description = "";
         public string url = "";
         public string classname = "";
+        public string settings_file_name = "";
+        public bool is_being_installed_or_removed = false;
+        public ModuleInfo installed_module = null;
+    }
+
+    public class ModuleInfo
+    {
+        public string version = "";
+        public List<string> requirements;
+        public List<string> files;
     }
 }

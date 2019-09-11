@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Security;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,8 +14,87 @@ using UnityEngine.Networking;
 
 namespace Thry
 {
+
+    public static class StringExpensions
+    {
+        public static string RemovePath(this string url)
+        {
+            Match m = Regex.Match(url, @"(?<=\/|^)[^\/]+$");
+            if (m.Success)
+                return m.Value;
+            return url;
+        }
+
+        public static string RemoveFileExtension(this string file)
+        {
+            Match m = Regex.Match(file, @".+?(?=\.|$)");
+            if (m.Success)
+                return m.Value;
+            return file;
+        }
+
+        public static string RemoveFileName(this string file)
+        {
+            Match m = Regex.Match(file, @".+\/");
+            if (m.Success)
+                return m.Value;
+            return file;
+        }
+
+        public static string GetDirectoryPath(this string file)
+        {
+            Match m = Regex.Match(file, @".+(?=\/)");
+            if (m.Success)
+                return m.Value;
+            return file;
+        }
+
+        public static bool EndsOnFileExtension(this string s)
+        {
+            Match m = Regex.Match(s, @"(?<=\/|^)[^\/.]+$");
+            return !m.Success;
+        }
+
+        public static string RemoveOneDirectory(this string s)
+        {
+            Match m = Regex.Match(s, @"^.*(?=\/[^\/]*)");
+            if (m.Success)
+                return m.Value;
+            return s;
+        }
+        
+    }
+
     public class Helper
     {
+
+        public const string DELETING_FOLDER = "thry_trash";
+
+        public static string FindPathOfFileWithExtension(string filename)
+        {
+            string[] guids = AssetDatabase.FindAssets(filename.RemoveFileExtension());
+            foreach(string s in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(s);
+                if (path.EndsWith(filename))
+                    return path;
+            }
+            return filename;
+        }
+
+        public static List<string> FindPathsOfFilesWithExtension(string filename)
+        {
+            List<string> ret = new List<string>();
+            string[] guids = AssetDatabase.FindAssets(filename.RemoveFileExtension());
+            foreach (string s in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(s);
+                if (path.EndsWith(filename))
+                    ret.Add(path);
+            }
+            return ret;
+        }
+
         public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
         {
             valuetype value = default(valuetype);
@@ -508,7 +588,8 @@ namespace Thry
                 WWW webpage = new WWW(url);
                 while (!webpage.isDone) yield return false;
                 byte[] content = webpage.bytes;
-                callback_bytes(content, passThrough, callback_passthough);
+                if(callback_bytes!=null)
+                    callback_bytes(content, passThrough, callback_passthough);
                 done = true;
                 while (this != null)
                     DestroyImmediate(this.gameObject);
@@ -649,6 +730,36 @@ namespace Thry
         public static bool IsPrimitive(Type t)
         {
             return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
+        }
+
+        [InitializeOnLoad]
+        public class DeleteFilesInTrash
+        {
+            static DeleteFilesInTrash()
+            {
+                if (Directory.Exists(DELETING_FOLDER)){
+                    DeleteDirectory(DELETING_FOLDER);
+                }
+            }
+            static void DeleteDirectory(string path)
+            {
+                foreach (string f in Directory.GetFiles(path))
+                    DeleteFile(f);
+                foreach (string d in Directory.GetDirectories(path))
+                    DeleteDirectory(d);
+                if (Directory.GetFiles(path).Length + Directory.GetDirectories(path).Length == 0)
+                    Directory.Delete(path);
+            }
+            static void DeleteFile(string path)
+            {
+                try
+                {
+                    File.Delete(path);
+                }catch(Exception e)
+                {
+                    e.GetType();
+                }
+            }
         }
     }
 }

@@ -537,6 +537,18 @@ public class ThryEditor : ShaderGUI
         }
     }
 
+    public static string GetThryEditorDirectoryPath()
+    {
+        string[] guids = AssetDatabase.FindAssets("ThryEditor");
+        foreach (string g in guids)
+        {
+            string p = AssetDatabase.GUIDToAssetPath(g);
+            if (p.EndsWith("/ThryEditor.cs"))
+                return p.GetDirectoryPath().RemoveOneDirectory();
+        }
+        return null;
+    }
+
     //----------Static Helper Functions
 
     //finds a property in props by name, if it doesnt exist return null

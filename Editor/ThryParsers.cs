@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace Thry
@@ -13,6 +14,7 @@ namespace Thry
         //string
         public static object Parse(string input)
         {
+            input = Regex.Replace(input, @"^\s+|\s+$","");
             if (input.StartsWith("{"))
                  return ParseObject(input);
             else if (input.StartsWith("["))
@@ -23,46 +25,48 @@ namespace Thry
 
         private static Dictionary<string,object> ParseObject(string input)
         {
+            input = input.Trim(new char[] { ' ' });
             input = input.TrimStart(new char[] { '{' });
             int depth = 0;
             int variableStart = 0;
             Dictionary<string, object> variables = new Dictionary<string, object>();
             for(int i = 0; i < input.Length; i++)
             {
-                if (input[i] == '{' || input[i] == '[')
-                    depth++;
-                else if (input[i] == '}' || input[i] == ']')
-                    depth--;
-                if ((depth==0 && input[i] == ',') || i == input.Length - 1)
+                if (i == input.Length-1 || (depth == 0 && input[i] == ','))
                 {
-                    string[] parts = input.Substring(variableStart, i- variableStart).Split(new char[] { ':' }, 2);
+                    string[] parts = input.Substring(variableStart, i - variableStart).Split(new char[] { ':' }, 2);
                     string key = parts[0];
                     object value = Parse(parts[1]);
                     variables.Add(key, value);
-                    variableStart = i+1;
+                    variableStart = i + 1;
                 }
+                else if (input[i] == '{' || input[i] == '[')
+                    depth++;
+                else if (input[i] == '}' || input[i] == ']')
+                    depth--;
+                
             }
             return variables;
         }
 
         private static List<object> ParseArray(string input)
         {
+            input = input.Trim(new char[] { ' ' });
             input = input.TrimStart(new char[] { '[' });
             int depth = 0;
             int variableStart = 0;
             List<object> variables = new List<object>();
             for (int i = 0; i < input.Length; i++)
             {
-                if (input[i] == '{' || input[i] == '[')
+                if (i == input.Length-1 || (depth == 0 && input[i] == ','))
+                {
+                    variables.Add(Parse(input.Substring(variableStart, i - variableStart)));
+                    variableStart = i + 1;
+                }
+                else if (input[i] == '{' || input[i] == '[')
                     depth++;
                 else if (input[i] == '}' || input[i] == ']')
                     depth--;
-                if ((depth == 0 && input[i] == ',') || i == input.Length - 1)
-                {
-                    object value = Parse(input.Substring(variableStart, i - variableStart));
-                    variables.Add(value);
-                    variableStart = i + 1;
-                }
             }
             return variables;
         }
@@ -94,6 +98,7 @@ namespace Thry
 
         private static object ParsePrimitive(string input)
         {
+            input = input.Trim(new char[] { ' ' });
             float floatValue;
             string value = input.TrimStart(new char[] { ' ' });
             if (float.TryParse(value, out floatValue))
@@ -102,6 +107,10 @@ namespace Thry
                     return (int)floatValue;
                 return floatValue;
             }
+            else if (input.ToLower() == "true")
+                return true;
+            else if (input.ToLower() == "false")
+                return false;
             return value;
         }
 
@@ -118,7 +127,7 @@ namespace Thry
 
         private static object ParsedToObject(object parsed,Type objtype)
         {
-            if (Helper.IsPrimitive(objtype)) return parsed;
+            if (Helper.IsPrimitive(objtype)) return PrimitiveToObject(parsed,objtype);
             if (parsed.GetType() == typeof(Dictionary<string, object>)) return DictionaryToObject(parsed, objtype);
             if (parsed.GetType() == typeof(List<object>)) return ListToObject(parsed, objtype);
             if (objtype.IsEnum && parsed.GetType() == typeof(string))
@@ -139,7 +148,6 @@ namespace Thry
             {
                 if (dict.ContainsKey(field.Name))
                 {
-                    //Debug.Log(field.Name + "::: " + ParsedToString(Helper.GetValueFromDictionary<string, object>(dict, field.Name)) + ", is prim: " + Helper.IsPrimitive(field.FieldType));
                     field.SetValue(returnObject, ParsedToObject(Helper.GetValueFromDictionary<string, object>(dict, field.Name), field.FieldType));
                 }
             }
@@ -148,9 +156,54 @@ namespace Thry
 
         private static object ListToObject(object parsed, Type objtype)
         {
-            //TODO
-            return null;
+            Type list_obj_type = objtype.GetGenericArguments()[0];
+            List<object> list_strings = (List<object>)parsed;
+            IList return_list = (IList)Activator.CreateInstance(objtype);
+            foreach (object s in list_strings)
+                return_list.Add(ParsedToObject(s, list_obj_type));
+            return return_list;
         }
 
+        private static object PrimitiveToObject(object parsed, Type objtype)
+        {
+            if (typeof(String) == objtype)
+                return parsed.ToString();
+            return parsed;
+        }
+
+        public static string ObjectToString(object obj)
+        {
+            if (Helper.IsPrimitive(obj.GetType())) return obj.ToString();
+            if (obj.GetType() == typeof(List<object>)) return ListToString(obj);
+            if (obj.GetType().IsEnum)
+            {
+                return (string)obj;
+            }
+            return ClassObjectToString(obj);
+        }
+
+        private static string ClassObjectToString(object obj)
+        {
+            string ret = "{";
+            foreach(FieldInfo field in obj.GetType().GetFields())
+            {
+                ret += field.Name + ":" + ObjectToString(field.GetValue(obj)) + ",";
+            }
+            ret = ret.TrimEnd(new char[] { ',' });
+            ret += "}";
+            return ret;
+        }
+
+        private static string ListToString(object obj)
+        {
+            string ret = "[";
+            foreach (object o in (List<object>)obj)
+            {
+                ret += ObjectToString(o) + ",";
+            }
+            ret = ret.TrimEnd(new char[] { ',' });
+            ret += "]";
+            return ret;
+        }
     }
 }
