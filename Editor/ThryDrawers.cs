@@ -90,6 +90,67 @@ namespace Thry
         }
     }
 
+    public class Curve : MaterialPropertyDrawer
+    {
+        private class CurveData{
+            public AnimationCurve curve;
+            public EditorWindow window;
+            public Texture2D texture;
+            public char color_channel = 'r';
+            public int width = 128;
+            public int height = 8;
+            public bool saved = true;
+        }
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            CurveData data = (CurveData)ThryEditor.currentlyDrawing.currentProperty.property_data;
+            if (data == null)
+            {
+                data = new CurveData();
+                data.curve = new AnimationCurve();
+                if(ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("width"))
+                    data.width = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<int>("width");
+                if (ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("height"))
+                    data.height = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<int>("height");
+                if (ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("channel"))
+                    data.color_channel = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<string>("channel")[0];
+            }
+
+            editor.TexturePropertyMiniThumbnail(position, prop, "", "");
+
+            EditorGUI.BeginChangeCheck();
+            data.curve = EditorGUI.CurveField(position, new GUIContent("       " + label.text, label.tooltip), data.curve);
+            if (EditorGUI.EndChangeCheck())
+            {
+                data.texture = Converter.CurveToTexture(data.curve, data.width, data.height, data.color_channel);
+                prop.textureValue = data.texture;
+                data.saved = false;
+            }
+
+            string windowName = "";
+            if (EditorWindow.focusedWindow != null)
+                windowName = EditorWindow.focusedWindow.titleContent.text;
+            bool isCurveEditor = windowName == "Curve";
+            if (isCurveEditor)
+                data.window = EditorWindow.focusedWindow;
+            if(data.window==null && !data.saved)
+            {
+                Debug.Log(prop.textureValue.ToString());
+                Texture saved_texture = Helper.SaveTextureAsPNG(data.texture, "Assets/textures/curves/" + data.curve.GetHashCode() + ".png", TextureWrapMode.Clamp, FilterMode.Point);
+                prop.textureValue = saved_texture;
+                data.saved = true;
+            }
+
+            ThryEditor.currentlyDrawing.currentProperty.property_data = data;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
     public class GradientDrawer : MaterialPropertyDrawer
     {
         const string GRADIENT_INFO_FILE_PATH = "Assets/.thry_gradients";
@@ -310,18 +371,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            ThryEditorGuiHelper.MinMaxSlider(position, prop);
-            /*Vector4 vec = prop.vectorValue;
-            float left = vec.x;
-            float right = vec.y;
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.MinMaxSlider(ThryEditor.currentlyDrawing.currentProperty.content, ref left, ref right, vec.z, vec.w);
-            if (EditorGUI.EndChangeCheck())
-            {
-                vec.x = left;
-                vec.y = right;
-                prop.vectorValue = vec;
-            }*/
+            ThryEditorGuiHelper.MinMaxSlider(position, label, prop);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

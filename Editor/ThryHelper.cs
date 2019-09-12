@@ -414,16 +414,16 @@ namespace Thry
 
         //----------------------------Textures------------------------------------
 
-        public static Texture SaveTextureAsPNG(Texture2D texture, string path)
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureWrapMode wrapMode, FilterMode filterMode)
         {
             byte[] encoding = texture.EncodeToPNG();
-            Debug.Log("Gradient saved at \"" + path + "\".");
+            Debug.Log("Texture saved at \"" + path + "\".");
             Helper.writeBytesToFile(encoding, path);
 
             AssetDatabase.ImportAsset(path);
             Texture tex = (Texture)EditorGUIUtility.Load(path);
-            tex.wrapMode = TextureWrapMode.Clamp;
-            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = wrapMode;
+            tex.filterMode = filterMode;
             return SetTextureImporterFormat((Texture2D)tex, true);
         }
 

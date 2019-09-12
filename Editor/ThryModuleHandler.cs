@@ -137,7 +137,7 @@ namespace Thry
             string newpath = Helper.DELETING_FOLDER + "/" + module.name + i;
             while (Directory.Exists(newpath))
                 newpath = Helper.DELETING_FOLDER + "/" + module.name + (++i);
-            Debug.Log(path + "," + newpath);
+            //Debug.Log(path + "," + newpath);
             Directory.Move(path, newpath);
             AssetDatabase.Refresh();
         }
@@ -159,7 +159,7 @@ namespace Thry
             string[] guids = AssetDatabase.FindAssets(module.settings_file_name.RemoveFileExtension());
             foreach(string g in guids)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                string path = AssetDatabase.GUIDToAssetPath(g);
                 if (path.EndsWith(module.settings_file_name.RemoveFileExtension() + ".cs"))
                 {
                     path = path.GetDirectoryPath().RemoveOneDirectory();

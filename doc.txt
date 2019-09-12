@@ -14,6 +14,10 @@ Drawers for Textures:
 	put --frameCountProp=<property name> to automatically fill a float property when creating a texture array
 [Vector2] vector with only fields for xy
 [Vector3] vector with only fields for xyz
+[Curve] texture field with curve field that creates texture from curve
+	[optional]--width=<int> default:128
+	[optional]--height=<int> default: 8
+	[optional]--channel=r|g|b|a default:r
 
 #----Settings Properties----
 

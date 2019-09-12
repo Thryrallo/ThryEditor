@@ -132,16 +132,15 @@ namespace Thry
             EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", Styles.Get().masterLabel, GUILayout.MinHeight(18));
         }
 
-        const float kPreviewWidth = 80;
-        const float kNumberWidth = 38;
+        const float kNumberWidth = 65;
 
-        public static void MinMaxSlider(Rect settingsRect, MaterialProperty prop)
+        public static void MinMaxSlider(Rect settingsRect, GUIContent content, MaterialProperty prop)
         {
             bool changed = false;
-
             Vector4 vec = prop.vectorValue;
-
             Rect sliderRect = settingsRect;
+
+            EditorGUI.LabelField(settingsRect, content);
 
             float capAtX = vec.x;
             float capAtY = vec.y;
@@ -149,20 +148,23 @@ namespace Thry
             if (settingsRect.width > 160)
             {
                 Rect numberRect = settingsRect;
-                numberRect.width = kNumberWidth*2;
+                numberRect.width = kNumberWidth+ (EditorGUI.indentLevel - 1) * 15;
+
+                numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel-1)*15;
 
                 EditorGUI.BeginChangeCheck();
-                vec.x = EditorGUI.FloatField(numberRect, vec.x);
+                vec.x = EditorGUI.FloatField(numberRect, vec.x, EditorStyles.textField);
                 changed |= EditorGUI.EndChangeCheck();
 
-                numberRect.x = settingsRect.xMax - kNumberWidth * 2;
+                numberRect.x = settingsRect.xMax - numberRect.width;
 
                 EditorGUI.BeginChangeCheck();
                 vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
-                sliderRect.xMin += (kNumberWidth + 5);
-                sliderRect.xMax -= (kNumberWidth + 5);
+                sliderRect.xMin = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
+                sliderRect.xMin += (kNumberWidth + -8);
+                sliderRect.xMax -= (kNumberWidth + -8);
             }
 
             vec.x = Mathf.Clamp(vec.x, vec.z, capAtY);

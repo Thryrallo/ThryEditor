@@ -118,10 +118,13 @@ public class ThryEditor : ShaderGUI
         public float setFloat;
         public bool updateFloat;
 
-        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions) : base(xOffset, displayName, extraOptions)
+        public bool forceOneLine = false;
+
+        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool forceOneLine) : base(xOffset, displayName, extraOptions)
         {
             this.materialProperty = materialProperty;
             drawDefault = false;
+            this.forceOneLine = forceOneLine;
         }
 
         public override void Draw()
@@ -131,10 +134,10 @@ public class ThryEditor : ShaderGUI
             DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset * 2 + 1;
-            //if (materialProperty.name == "_FlipbookTotalFrames")
-                //Debug.Log(Event.current.type + ":" + materialProperty.floatValue);
             if (drawDefault)
                 DrawDefault();
+            else if (forceOneLine)
+                currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle), this.materialProperty, this.content);
             else
                 currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
             EditorGUI.indentLevel = oldIndentLevel;
@@ -152,7 +155,7 @@ public class ThryEditor : ShaderGUI
     {
         public bool showScaleOffset = false;
 
-        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool forceThryUI) : base(materialProperty, displayName, xOffset, extraOptions)
+        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool forceThryUI) : base(materialProperty, displayName, xOffset, extraOptions, false)
         {
             drawDefault = forceThryUI;
         }
@@ -269,10 +272,12 @@ public class ThryEditor : ShaderGUI
                     DrawingData.lastPropertyUsedCustomDrawer = false;
                     current.editor.GetPropertyHeight(props[i]);
 
+                    bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
+
                     if (props[i].type == MaterialProperty.PropType.Texture)
                         newPorperty = new TextureProperty(props[i], displayName, offset, extraOptions, !DrawingData.lastPropertyUsedCustomDrawer);
                     else
-                        newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions);
+                        newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions,forceOneLine);
                     headerStack.Peek().addPart(newPorperty);
                     current.propertyDictionary.Add(props[i].name, newPorperty);
                 }
