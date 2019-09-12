@@ -6,53 +6,11 @@ using UnityEngine;
 
 namespace Thry
 {
-    public class TextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            ThryEditorGuiHelper.drawConfigTextureProperty(position, prop, label, editor, true);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
-    public class TextureNoSODrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            ThryEditorGuiHelper.drawConfigTextureProperty(position, prop, label, editor, false);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
     public class SmallTextureDrawer : MaterialPropertyDrawer
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            ThryEditorGuiHelper.drawSmallTextureProperty(position, prop, label, editor, true);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
-    public class SmallTextureNoSODrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            ThryEditorGuiHelper.drawSmallTextureProperty(position, prop, label, editor, false);
+            ThryEditorGuiHelper.drawSmallTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -66,21 +24,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            ThryEditorGuiHelper.drawBigTextureProperty(position, prop, label, editor, true);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
-    public class BigTextureNoSODrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            ThryEditorGuiHelper.drawBigTextureProperty(position, prop, label, editor, false);
+            ThryEditorGuiHelper.drawBigTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

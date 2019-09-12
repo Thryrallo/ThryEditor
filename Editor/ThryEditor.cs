@@ -48,17 +48,24 @@ public class ThryEditor : ShaderGUI
         public GUIContent content;
         public Dictionary<string, object> extraOptions;
         public System.Object property_data = null;
+        public DefineableCondition condition_show = null;
 
         public ShaderPart(int xOffset, string displayName, Dictionary<string, object> extraOptions)
         {
             this.xOffset = xOffset;
             this.extraOptions = extraOptions;
             this.content = new GUIContent(displayName, this.GetExtraOptionValue<string>(EXTRA_OPTION_HOVER_TEXT));
+            if(this.ExtraOptionExists("condition_show"))
+                this.condition_show = this.GetExtraOptionObject<DefineableCondition>("condition_show");
         }
 
         public optionValue GetExtraOptionValue<optionValue>(string key)
         {
             return (optionValue)Helper.GetValueFromDictionary<string, object>(extraOptions, key);
+        }
+        public optionValue GetExtraOptionObject<optionValue>(string key)
+        {
+            return Parsers.ConvertParsedToObject<optionValue>(Helper.GetValueFromDictionary<string, object>(extraOptions, key));
         }
         public object GetExtraOptionValue(string key)
         {
@@ -130,6 +137,9 @@ public class ThryEditor : ShaderGUI
         public override void Draw()
         {
             PreDraw();
+            if (condition_show != null)
+                if (!condition_show.Test())
+                    return;
             currentlyDrawing.currentProperty = this;
             DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
@@ -154,10 +164,12 @@ public class ThryEditor : ShaderGUI
     public class TextureProperty : ShaderProperty
     {
         public bool showScaleOffset = false;
+        public bool hasScaleOffset = false;
 
-        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool forceThryUI) : base(materialProperty, displayName, xOffset, extraOptions, false)
+        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, Dictionary<string, object> extraOptions, bool hasScaleOffset, bool forceThryUI) : base(materialProperty, displayName, xOffset, extraOptions, false)
         {
             drawDefault = forceThryUI;
+            this.hasScaleOffset = hasScaleOffset;
         }
 
         public override void PreDraw()
@@ -168,7 +180,7 @@ public class ThryEditor : ShaderGUI
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
-            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, true);
+            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasScaleOffset);
             DrawingData.lastGuiObjectRect = pos;
         }
     }
@@ -218,7 +230,7 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags
+        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags,space
     }
 
     private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -233,6 +245,8 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.header_start;
         if (name.StartsWith("m_") && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.header;
+        if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
+            return ThryPropertyType.space;
         if (name.Replace(" ","") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.instancing;
         if (name.Replace(" ", "") == "DSGI" && flags == MaterialProperty.PropFlags.HideInInspector)
@@ -299,9 +313,8 @@ public class ThryEditor : ShaderGUI
                     current.editor.GetPropertyHeight(props[i]);
 
                     bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
-
                     if (props[i].type == MaterialProperty.PropType.Texture)
-                        newPorperty = new TextureProperty(props[i], displayName, offset, extraOptions, !DrawingData.lastPropertyUsedCustomDrawer);
+                        newPorperty = new TextureProperty(props[i], displayName, offset, extraOptions, props[i].flags != MaterialProperty.PropFlags.NoScaleOffset ,!DrawingData.lastPropertyUsedCustomDrawer);
                     else
                         newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions, forceOneLine);
                     headerStack.Peek().addPart(newPorperty);
