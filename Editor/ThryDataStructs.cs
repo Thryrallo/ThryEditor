@@ -17,6 +17,9 @@ namespace Thry
         public Dictionary<string, ThryEditor.ShaderProperty> propertyDictionary;
         public List<MaterialProperty> textureArrayProperties;
         public bool firstCall;
+        public bool draw_material_option_lightmap;
+        public bool draw_material_option_instancing;
+        public bool draw_material_option_dsgi;
     }
 
     public class DrawingData

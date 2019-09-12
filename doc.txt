@@ -31,6 +31,10 @@ Drawers for Textures:
 	-Display name specifies preset file
 	-optional
 	
+[HideInInspector] DSGI //add this property for double sided illumination settings to be shown
+[HideInInspector] Instancing //add this property for instancing variants settings to be shown
+[HideInInspector] LightmapFlags //add this property for lightmap flags settings to be shown
+	
 #----Additional Editor Properties----
 
 [HideInInspector] shader_properties_label_file

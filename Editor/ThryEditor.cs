@@ -216,6 +216,34 @@ public class ThryEditor : ShaderGUI
         return extraOptions;
     }
 
+    private enum ThryPropertyType
+    {
+        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags
+    }
+
+    private ThryPropertyType GetPropertyType(MaterialProperty p)
+    {
+        string name = p.name;
+        MaterialProperty.PropFlags flags = p.flags;
+        if (name.StartsWith("footer_") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.footer;
+        if (name.StartsWith("m_end") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.header_end;
+        if (name.StartsWith("m_start") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.header_start;
+        if (name.StartsWith("m_") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.header;
+        if (name.Replace(" ","") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.instancing;
+        if (name.Replace(" ", "") == "DSGI" && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.dsgi;
+        if (name.Replace(" ", "") == "LightmapFlags" && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.lightmap_flags;
+        if (flags != MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.property;
+        return ThryPropertyType.none;
+    }
+
     //finds all properties and headers and stores them in correct order
     private void CollectAllProperties()
 	{
@@ -232,41 +260,39 @@ public class ThryEditor : ShaderGUI
 		int headerCount = 0;
 		for (int i = 0; i < props.Length; i++)
 		{
-            //if property is a footer add to footer list
-            if (props[i].name.StartsWith("footer_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-            {
-                footer.Add(props[i].displayName);
-            //if property is end if a header block pop the top header
-            }else if (props[i].name.StartsWith("m_end") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-            {
-                headerStack.Pop();
-                headerCount--;
-            } else
-            //else add new object under current header
-            {
-                string displayName = props[i].displayName;
-                if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
-                Dictionary<string, object> extraOptions = ExtractExtraOptionsFromDisplayName(ref displayName);
+            string displayName = props[i].displayName;
+            if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
+            Dictionary<string, object> extraOptions = ExtractExtraOptionsFromDisplayName(ref displayName);
 
-                int extraOffset = (int)Helper.GetValueFromDictionary<string,object>(extraOptions, EXTRA_OPTION_EXTRA_OFFSET,0);
-                int offset = extraOffset + headerCount;
+            int extraOffset = (int)Helper.GetValueFromDictionary<string, object>(extraOptions, EXTRA_OPTION_EXTRA_OFFSET, 0);
+            int offset = extraOffset + headerCount;
 
-                //if property is submenu add 1 extra offset
-                if (props[i].name.StartsWith("m_start") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-                    offset = extraOffset + ++headerCount;
-                //if property is normal menu pop out if old header
-                else if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
+            ThryPropertyType type = GetPropertyType(props[i]);
+            switch (type)
+            {
+                case ThryPropertyType.header:
                     headerStack.Pop();
-                //if proeprty is submenu or normal menu push in header stack
-                if (props[i].name.StartsWith("m_") && props[i].flags == MaterialProperty.PropFlags.HideInInspector)
-                {
+                    break;
+                case ThryPropertyType.header_start:
+                    offset = extraOffset + ++headerCount;
+                    break;
+                case ThryPropertyType.header_end:
+                    headerStack.Pop();
+                    headerCount--;
+                    break;
+            }
+            switch (type)
+            {
+                case ThryPropertyType.footer:
+                    footer.Add(props[i].displayName);
+                    break;
+                case ThryPropertyType.header:
+                case ThryPropertyType.header_start:
                     ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, extraOptions);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
-                }
-                //if property is actual property and not hidden add under current header
-                else if (props[i].flags != MaterialProperty.PropFlags.HideInInspector)
-                {
+                    break;
+                case ThryPropertyType.property:
                     ShaderProperty newPorperty = null;
 
                     DrawingData.lastPropertyUsedCustomDrawer = false;
@@ -277,10 +303,19 @@ public class ThryEditor : ShaderGUI
                     if (props[i].type == MaterialProperty.PropType.Texture)
                         newPorperty = new TextureProperty(props[i], displayName, offset, extraOptions, !DrawingData.lastPropertyUsedCustomDrawer);
                     else
-                        newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions,forceOneLine);
+                        newPorperty = new ShaderProperty(props[i], displayName, offset, extraOptions, forceOneLine);
                     headerStack.Peek().addPart(newPorperty);
                     current.propertyDictionary.Add(props[i].name, newPorperty);
-                }
+                    break;
+                case ThryPropertyType.lightmap_flags:
+                    current.draw_material_option_lightmap = true;
+                    break;
+                case ThryPropertyType.dsgi:
+                    current.draw_material_option_dsgi = true;
+                    break;
+                case ThryPropertyType.instancing:
+                    current.draw_material_option_instancing = true;
+                    break;
             }
 		}
 	}
@@ -371,6 +406,9 @@ public class ThryEditor : ShaderGUI
             current.properties = props;
             current.textureArrayProperties = new List<MaterialProperty>();
             current.firstCall = true;
+            current.draw_material_option_dsgi = false;
+            current.draw_material_option_instancing = false;
+            current.draw_material_option_lightmap = false;
         }
 
         //handle events
@@ -410,6 +448,14 @@ public class ThryEditor : ShaderGUI
 		{
             part.Draw();
 		}
+
+        //Mateiral Options
+        if (current.draw_material_option_lightmap)
+            ThryEditorGuiHelper.DrawLightmapFlagsOptions();
+        if (current.draw_material_option_instancing)
+            ThryEditorGuiHelper.DrawInstancingOptions();
+        if (current.draw_material_option_dsgi)
+            ThryEditorGuiHelper.DrawDSGIOptions();
 
         //Render Queue selection
         if (config.showRenderQueue)
