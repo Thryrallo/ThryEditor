@@ -52,19 +52,19 @@ namespace Thry
         public override string ToString() { return "{HasRightButton:" + hasRightButton + ",RightButton" + (hasRightButton ? rightButton.ToString() : "null") + "}"; }
     }
 
-    public struct ButtonData
+    public class ButtonData
     {
-        public string text;
-        public DefinableAction action;
-        public string hover;
-        public DefineableCondition condition_show;
+        public string text = "";
+        public DefinableAction action = new DefinableAction();
+        public string hover = "";
+        public DefineableCondition condition_show = new DefineableCondition();
         public override string ToString(){ return "{text:" + text + ",hover:" + hover + ",action:"+action.ToString()+",condition_show:"+ condition_show .ToString()+ "}"; }
     }
 
     public class DefinableAction
     {
-        public DefinableActionType type;
-        public string data;
+        public DefinableActionType type = DefinableActionType.NONE;
+        public string data = "";
         public void Perform()
         {
             switch (type)
@@ -85,8 +85,8 @@ namespace Thry
 
     public class DefineableCondition
     {
-        public DefineableConditionType type;
-        public string data;
+        public DefineableConditionType type = DefineableConditionType.NONE;
+        public string data = "";
         public bool Test()
         {
             switch (type)

@@ -147,7 +147,7 @@ namespace Thry
 
             if (File.Exists(TEMP_VRC_SDK_PACKAGE_PATH))
                 File.Delete(TEMP_VRC_SDK_PACKAGE_PATH);
-            Helper.DownloadBytesToPath(url, TEMP_VRC_SDK_PACKAGE_PATH, VRCSDKUpdateCallback);
+            Helper.DownloadFileASync(url, TEMP_VRC_SDK_PACKAGE_PATH, VRCSDKUpdateCallback);
         }
 
         public static void VRCSDKUpdateCallback(string data)

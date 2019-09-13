@@ -25,7 +25,7 @@ namespace Thry
         private static void LoadModules()
         {
             modules_are_being_loaded = true;
-            Helper.getStringFromUrl(THRY_MODULES_URL, delegate (string s) {
+            Helper.DownloadStringASync(THRY_MODULES_URL, delegate (string s) {
                 modules = Parsers.ParseToObject<List<ModuleHeader>>(s);
                 InitModulesVersions();
                 Helper.RepaintEditorWindow(typeof(Settings));
@@ -89,7 +89,7 @@ namespace Thry
 
         private static void InstallModule(string url, string name)
         {
-            Helper.getStringFromUrl(url, delegate (string s)
+            Helper.DownloadStringASync(url, delegate (string s)
             {
                 if (s.StartsWith("404"))
                 {
@@ -110,7 +110,7 @@ namespace Thry
                 foreach (string f in module_info.files)
                 {
                     //Debug.Log(base_url + f);
-                    Helper.DownloadBytesToPath(base_url + f, temp_path + "/" + f, delegate (string data)
+                    Helper.DownloadFileASync(base_url + f, temp_path + "/" + f, delegate (string data)
                     {
                         i++;
                         if (i == module_info.files.Count)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -489,154 +490,129 @@ namespace Thry
 
         //-------------------Downloaders-----------------------------
 
-        public static void downloadFileToPath(string url, string path)
-        {
-            downloadFileToPath(url, path, null);
-        }
-
-        public static void downloadFileToPath(string url, string path, Action<string> callback)
-        {
-            GameObject go = new GameObject("Downloader: " + url);
-            DownloaderTwo downloader = (DownloaderTwo)go.AddComponent(typeof(DownloaderTwo));
-            downloader.StartDownload(url, path, save_as_file_callback, callback);
-        }
-
-        public static void DownloadBytesToPath(string url, string path, Action<string> callback)
-        {
-            GameObject go = new GameObject("Downloader: " + url);
-            DownloaderTwo downloader = (DownloaderTwo)go.AddComponent(typeof(DownloaderTwo));
-            downloader.StartDownloadBytes(url, path, save_as_file_bytes_callback, callback);
-        }
-
-        private static void save_as_file_bytes_callback(byte[] bytes, string path, Action<string> callback)
-        {
-            writeBytesToFile(bytes, path);
-            AssetDatabase.ImportAsset(path);
-            if (callback != null)
-                callback(path);
-        }
-
-        private static void save_as_file_callback(string s, string path, Action<string> callback)
-        {
-            WriteStringToFile(s, path);
-            AssetDatabase.ImportAsset(path);
-            if (callback != null)
-                callback(s);
-        }
-
-        public static void getStringFromUrl(string url, Action<string> callback)
-        {
-            GameObject go = new GameObject("Downloader: " + url);
-            TextDownloader downloader = (TextDownloader)go.AddComponent(typeof(TextDownloader));
-            downloader.StartDownload(url, callback);
-        }
-
-        private class Downloader : MonoBehaviour
-        {
-
-        }
-
-        [ExecuteInEditMode]
-        private class DownloaderTwo : Downloader
-        {
-            string url;
-            Action<string, string, Action<string>> callback;
-            Action<byte[], string, Action<string>> callback_bytes;
-            string passThrough;
-            Action<string> callback_passthough;
-            private bool done = true;
-
-            public void Update()
-            {
-                if (done)
-                    DestroyImmediate(this.gameObject);
-            }
-
-            public void StartDownload(string url, string passThrough, Action<string, string, Action<string>> callback, Action<string> callback_passthough)
-            {
-                this.url = url;
-                this.callback = callback;
-                this.callback_passthough = callback_passthough;
-                this.passThrough = passThrough;
-                done = false;
-                StartCoroutine(GetTextFromWWW());
-            }
-
-            private IEnumerator GetTextFromWWW()
-            {
-                WWW webpage = new WWW(url);
-                while (!webpage.isDone) yield return false;
-                string content = webpage.text;
-                callback(content, passThrough, callback_passthough);
-                done = true;
-                while (this != null)
-                    DestroyImmediate(this.gameObject);
-            }
-
-            public void StartDownloadBytes(string url, string passThrough, Action<byte[], string, Action<string>> callback, Action<string> callback_passthough)
-            {
-                this.url = url;
-                this.callback_bytes = callback;
-                this.callback_passthough = callback_passthough;
-                this.passThrough = passThrough;
-                done = false;
-                StartCoroutine(GetBytesFromWWW());
-            }
-
-            private IEnumerator GetBytesFromWWW()
-            {
-                WWW webpage = new WWW(url);
-                while (!webpage.isDone) yield return false;
-                byte[] content = webpage.bytes;
-                if(callback_bytes!=null)
-                    callback_bytes(content, passThrough, callback_passthough);
-                done = true;
-                while (this != null)
-                    DestroyImmediate(this.gameObject);
-            }
-        }
-
-        [ExecuteInEditMode]
-        private class TextDownloader : Downloader
-        {
-            string url;
-            Action<string> callback;
-            private bool done = true;
-
-            public void StartDownload(string url, Action<string> callback)
-            {
-                this.url = url;
-                this.callback = callback;
-                done = false;
-                StartCoroutine(GetTextFromWWW());
-            }
-
-            public void Update()
-            {
-                if (done)
-                    DestroyImmediate(this.gameObject);
-            }
-
-            private IEnumerator GetTextFromWWW()
-            {
-                WWW webpage = new WWW(url);
-                while (!webpage.isDone) yield return false;
-                string content = webpage.text;
-                callback(content);
-                done = true;
-                while (this != null)
-                    DestroyImmediate(this.gameObject);
-            }
-        }
-
         [InitializeOnLoad]
-        public class DeleteDownloaders : MonoBehaviour
+        public class MainThreader
         {
-            static DeleteDownloaders()
+            static List<Action<string>> queue;
+            static List<object[]> arguments;
+
+            static MainThreader()
             {
-                Downloader[] downloaders = GameObject.FindObjectsOfType<Downloader>();
-                foreach (Downloader d in downloaders)
-                    DestroyImmediate(d.gameObject);
+                queue = new List<Action<string>>();
+                arguments = new List<object[]>();
+                EditorApplication.update += Update;
+            }
+
+            public static void Call(Action<string> action, params object[] args)
+            {
+                queue.Add(action);
+                arguments.Add(args);
+            }
+
+            public static void Update()
+            {
+                if (queue.Count > 0)
+                {
+                    queue[0].DynamicInvoke(arguments[0]);
+                    queue.RemoveAt(0);
+                    arguments.RemoveAt(0);
+                }
+            }
+        }
+
+        public static void DownloadFile(string url, string path)
+        {
+            DownloadAsFile(url, path);
+        }
+
+        public static void DownloadFileASync(string url, string path, Action<string> callback)
+        {
+            DownloadAsBytesASync(url, delegate (object o, DownloadDataCompletedEventArgs a) {
+                if (a.Cancelled || a.Error != null)
+                    MainThreader.Call(callback, null);
+                else
+                {
+                    Helper.writeBytesToFile(a.Result, path);
+                    MainThreader.Call(callback, path);
+                }
+            });
+        }
+
+        public static string DownloadString(string url)
+        {
+            return DownloadAsString(url);
+        }
+
+        public static void DownloadStringASync(string url, Action<string> callback)
+        {
+            DownloadAsStringASync(url, delegate(object o, DownloadStringCompletedEventArgs e) {
+                if (e.Cancelled || e.Error != null)
+                    MainThreader.Call(callback, null);
+                else
+                    MainThreader.Call(callback, e.Result);
+            });
+        }
+
+        private static void SetCertificate()
+        {
+            ServicePointManager.ServerCertificateValidationCallback =
+        delegate (object s, X509Certificate certificate,
+                 X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        { return true; };
+        }
+
+        private static string DownloadAsString(string url)
+        {
+            SetCertificate();
+            string contents = null;
+            using (var wc = new System.Net.WebClient())
+                contents = wc.DownloadString(url);
+            return contents;
+        }
+
+        private static void DownloadAsStringASync(string url, Action<object, DownloadStringCompletedEventArgs> callback)
+        {
+            SetCertificate();
+            using (var wc = new System.Net.WebClient())
+            {
+                wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(callback);
+                wc.DownloadStringAsync(new Uri(url));
+            }
+        }
+
+        private static void DownloadAsFileASync(string url, string path, Action<object, AsyncCompletedEventArgs> callback)
+        {
+            SetCertificate();
+            using (var wc = new System.Net.WebClient())
+            {
+                wc.DownloadFileCompleted += new AsyncCompletedEventHandler(callback);
+                wc.DownloadFileAsync(new Uri(url), path);
+            }
+        }
+
+        private static void DownloadAsFile(string url, string path)
+        {
+            SetCertificate();
+            using (var wc = new System.Net.WebClient())
+                wc.DownloadFile(url, path);
+        }
+
+        private static byte[] DownloadAsBytes(string url)
+        {
+            SetCertificate();
+            byte[] contents = null;
+            using (var wc = new System.Net.WebClient())
+                contents = wc.DownloadData(url);
+            return contents;
+        }
+
+        private static void DownloadAsBytesASync(string url, Action<object, DownloadDataCompletedEventArgs> callback)
+        {
+            SetCertificate();
+            using (var wc = new System.Net.WebClient())
+            {
+                wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler(callback);
+                wc.DownloadDataAsync(new Uri(url));
             }
         }
 

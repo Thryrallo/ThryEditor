@@ -58,6 +58,9 @@ namespace Thry
 
         const string THRY_MCS_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditor/master/mcs.rsp";
 
+        const string THRY_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.txt";
+        public static ButtonData thry_message = null;
+
         const string THRY_VRC_TOOLS_VERSION_PATH = "thry_vrc_tools_version";
 
         const string MCS_NEEDED_PATH = "Assets/mcs.rsp";
@@ -128,6 +131,9 @@ namespace Thry
             {
                 moduleSettings[i++] = (ModuleSettings)Activator.CreateInstance(classtype);
             }
+
+            if (thry_message == null)
+                Helper.DownloadStringASync(THRY_MESSAGE_URL, delegate (string s) { thry_message = Parsers.ParseToObject<ButtonData>(s); });
         }
 
         private static void CheckVRCSDK()
@@ -235,6 +241,7 @@ namespace Thry
 
             GUINotification();
             drawLine();
+            GUIMessage();
             GUIVRC();
             GUIEditor();
             drawLine();
@@ -289,6 +296,21 @@ namespace Thry
                 GUILayout.Label(" Thry editor has been updated", redInfostyle);
             else if (updatedVersion == 1)
                 GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+        }
+
+        private void GUIMessage()
+        {
+            if(thry_message!=null && thry_message.text.Length > 0)
+            {
+                GUIStyle style = new GUIStyle();
+                style.richText = true;
+                style.margin = new RectOffset(7, 0, 0, 0);
+                GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), style);
+                Rect r = GUILayoutUtility.GetLastRect();
+                if (Event.current.type == EventType.MouseDown && r.Contains(Event.current.mousePosition))
+                    thry_message.action.Perform();
+                drawLine();
+            }
         }
 
         private void GUIVRC()

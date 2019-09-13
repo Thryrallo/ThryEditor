@@ -14,6 +14,7 @@ namespace Thry
         //string
         public static object Parse(string input)
         {
+            Debug.Log(input);
             input = Regex.Replace(input, @"^\s+|\s+$","");
             if (input.StartsWith("{"))
                  return ParseObject(input);
@@ -32,10 +33,10 @@ namespace Thry
             Dictionary<string, object> variables = new Dictionary<string, object>();
             for(int i = 0; i < input.Length; i++)
             {
-                if (i == input.Length-1 || (depth == 0 && input[i] == ','))
+                if (i == input.Length-1 || (depth == 0 && input[i] == ',' && (i==0 || input[i-1] != '\\')))
                 {
                     string[] parts = input.Substring(variableStart, i - variableStart).Split(new char[] { ':' }, 2);
-                    string key = parts[0];
+                    string key = parts[0].Replace("\\,",",");
                     object value = Parse(parts[1]);
                     variables.Add(key, value);
                     variableStart = i + 1;
@@ -58,7 +59,7 @@ namespace Thry
             List<object> variables = new List<object>();
             for (int i = 0; i < input.Length; i++)
             {
-                if (i == input.Length-1 || (depth == 0 && input[i] == ','))
+                if (i == input.Length-1 || (depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\')))
                 {
                     variables.Add(Parse(input.Substring(variableStart, i - variableStart)));
                     variableStart = i + 1;
@@ -111,6 +112,8 @@ namespace Thry
                 return true;
             else if (input.ToLower() == "false")
                 return false;
+            value = value.Replace("\\,", ",");
+            value = value.Replace("\\n", "\n");
             return value;
         }
 
