@@ -14,7 +14,6 @@ namespace Thry
         //string
         public static object Parse(string input)
         {
-            Debug.Log(input);
             input = Regex.Replace(input, @"^\s+|\s+$","");
             if (input.StartsWith("{"))
                  return ParseObject(input);
