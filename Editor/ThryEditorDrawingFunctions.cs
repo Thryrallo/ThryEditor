@@ -316,8 +316,7 @@ namespace Thry
                 if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
                     if(options.button_right.action!=null)
                         options.button_right.action.Perform();
-                Rect cursorRect = GUILayoutUtility.GetLastRect();
-                EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
+                EditorGUIUtility.AddCursorRect(buttonRect, MouseCursor.Link);
             }
 
             var e = Event.current;
