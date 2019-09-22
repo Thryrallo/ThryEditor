@@ -120,7 +120,7 @@ namespace Thry
             }
             int height = data.texture.height == 128 ?default_height: data.texture.height;
             int width = (int)((float)data.texture.loaded_texture.width / data.texture.loaded_texture.height * height);
-            if (GUILayout.Button(data.texture.loaded_texture, new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
+            if (GUILayout.Button(new GUIContent(data.texture.loaded_texture,data.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
                 data.action.Perform();
         }
 
