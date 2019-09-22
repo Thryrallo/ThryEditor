@@ -110,6 +110,7 @@ namespace Thry
             catch (Exception e)
             {
                 Debug.LogError(input + " cannot be parsed to object of type " + typeof(type).ToString());
+                ret = Activator.CreateInstance(typeof(type));
             }
             return (type)ret;
         }
