@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Runtime.InteropServices;
@@ -126,6 +127,32 @@ namespace Thry
         public static bool ClassExists(string classname)
         {
             return System.Type.GetType(classname) != null;
+        }
+
+        public static bool NameSpaceExists(string namespace_name)
+        {
+            bool namespaceFound = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                                  from type in assembly.GetTypes()
+                                  where type.Namespace == namespace_name
+                                  select type).Any();
+            return namespaceFound;
+        }
+
+        public static string FindFile(string name)
+        {
+            return FindFile(name, null);
+        }
+
+        public static string FindFile(string name, string type)
+        {
+            string[] guids;
+            if (type != null)
+                guids = AssetDatabase.FindAssets(name + " t:" + type);
+            else
+                guids = AssetDatabase.FindAssets(name);
+            if (guids.Length == 0)
+                return null;
+            return AssetDatabase.GUIDToAssetPath(guids[0]);
         }
 
         //-----------------------string helpers

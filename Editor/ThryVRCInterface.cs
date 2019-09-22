@@ -92,7 +92,7 @@ namespace Thry
 
         private static bool IsVRCSDKInstalled()
         {
-            return System.Type.GetType("VRC.AccountEditorWindow") != null || System.Type.GetType("SDKUpdater") != null;
+            return Helper.NameSpaceExists("VRCSDK2");
         }
 
         public void RemoveVRCSDK()

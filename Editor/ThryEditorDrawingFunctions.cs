@@ -80,14 +80,14 @@ namespace Thry
         }
 
         //draw all collected footers
-        public static void drawFooters(List<string> footers)
+        public static void drawFooters(List<ButtonData> footers)
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             GUILayout.Space(2);
-            foreach (string footNote in footers)
+            foreach (ButtonData foot in footers)
             {
-                drawFooter(footNote);
+                drawFooter(foot);
                 GUILayout.Space(2);
             }
             GUILayout.FlexibleSpace();
@@ -95,25 +95,33 @@ namespace Thry
         }
 
         //draw single footer
-        private static void drawFooter(string data)
+        private static void drawFooter(ButtonData data)
         {
-            string[] splitNote = data.TrimEnd(')').Split("(".ToCharArray(), 2);
-            string value = splitNote[1];
-            string type = splitNote[0];
-            if (type == "linkButton")
-            {
-                string[] values = value.Split(",".ToCharArray());
-                drawLinkButton(70, 20, values[0], values[1]);
-            }
+            if (data.texture == null)
+                drawTextButton(70, 20,data);
+            else
+                drawImgButton(20, data);
         }
 
-        //draw a button with a link
-        private static void drawLinkButton(int Width, int Height, string title, string link)
+        private static void drawTextButton(int Width, int Height, ButtonData data)
         {
-            if (GUILayout.Button(title, GUILayout.Width(Width), GUILayout.Height(Height)))
+            if (GUILayout.Button(new GUIContent(data.text,data.hover), GUILayout.Width(Width), GUILayout.Height(Height)))
+                data.action.Perform();
+        }
+        private static void drawImgButton(int default_height, ButtonData data)
+        {
+            if (data.texture.loaded_texture == null)
             {
-                Application.OpenURL(link);
+                string path = Helper.FindFile(data.texture.name, "texture");
+                if (path != null)
+                    data.texture.loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                else
+                    data.texture.loaded_texture = new Texture();
             }
+            int height = data.texture.height == 128 ?default_height: data.texture.height;
+            int width = (int)((float)data.texture.loaded_texture.width / data.texture.loaded_texture.height * height);
+            if (GUILayout.Button(data.texture.loaded_texture, new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
+                data.action.Perform();
         }
 
         public static void DrawHeader(ref bool enabled, ref bool options, GUIContent name)

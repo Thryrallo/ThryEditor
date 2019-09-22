@@ -387,7 +387,7 @@ namespace Thry
                 }
             }
             if (ThryEditor.currentlyDrawing.firstCall)
-                ThryEditor.currentlyDrawing.textureArrayProperties.Add(prop);
+                ThryEditor.currentlyDrawing.textureArrayProperties.Add((ThryEditor.ShaderProperty)ThryEditor.currentlyDrawing.currentProperty);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

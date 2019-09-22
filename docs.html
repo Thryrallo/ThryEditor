@@ -61,6 +61,15 @@
                     <td>No</td>
                     <td>[HideInInspector] shader_properties_label_file ("poiToonLabels", Float) = 0</td>
                 </tr>
+                <tr>
+                    <td>footer_&lt;string></td>
+                    <td>Adds a footer button to the bottom of the ui. Multiple footers can be added to one shader. The displayname has to be a ButtonData object</td>
+                    <td>No</td>
+                    <td>
+                        [HideInInspector] footer_github ("{text:Github,action:{type:URL,data:https://github.com/thryrallo/thryeditor}}", Float) = 0<br />
+                        [HideInInspector] footer_discord ("{texture:{name:discord-icon,height:40},action:{type:URL,data:https://discord.gg}}", Float) = 0
+                    </td>
+                </tr>
                 <tr class="noborder"><td class="noborder"></td></tr>
                 <tr>
                     <td>DSGI</td>
@@ -190,7 +199,13 @@
                 Options are defined in the display name of a property inside curly brackets and after "--":<br />
                 In practice:
             </b><br /> _Tex("Texture--{Put all your options in here}",2D) = "white" { }<br />
-            _Tex("Texture--{offet:2,hover:read this on hover,altClick{type:URL,data:http://thryrallo.de}}",2D) = "white" { }
+            _Tex("Texture--{offet:2,hover:read this on hover,altClick{type:URL,data:http://thryrallo.de}}",2D) = "white" { }<br />
+            <font color="red">
+                Use json syntax instead to future proof your properties!<br />
+                You can use '' instead of " inside property display names
+            </font><br />
+            Example:<br />
+            {''text'':''Youtube'',''action'':{''type'':''URL'',''data'':''https://www.youtube.com/''}
             <table>
                 <tr>
                     <th>Name</th>
@@ -264,7 +279,13 @@
                     <tr>
                         <td>text</td>
                         <td>string</td>
-                        <td>Yes</td>
+                        <td>text or texture</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>texture</td>
+                        <td>TextureData</td>
+                        <td>text or texture</td>
                         <td></td>
                     </tr>
                     <tr>
@@ -317,6 +338,40 @@
                     <tr>
                         <td>URL</td>
                         <td>Opens the url in browser</td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <h3>TextureData</h3>
+                Variables:
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Value Type</th>
+                        <th>required</th>
+                        <th>default</th>
+                        <th>Explanation</th>
+                    </tr>
+                    <tr>
+                        <td>name</td>
+                        <td>string</td>
+                        <td>no</td>
+                        <td></td>
+                        <td>File name of image</td>
+                    </tr>
+                    <tr>
+                        <td>width</td>
+                        <td>int</td>
+                        <td>no</td>
+                        <td>128</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>height</td>
+                        <td>int</td>
+                        <td>no</td>
+                        <td>128</td>
+                        <td></td>
                     </tr>
                 </table>
             </div>

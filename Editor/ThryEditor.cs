@@ -20,7 +20,7 @@ public class ThryEditor : ShaderGUI
 
     private string masterLabelText = null;
 
-    private List<string> footer; //footers
+    private List<ButtonData> footer; //footers
 
 	private PresetHandler presetHandler; //handles the presets
 
@@ -243,11 +243,12 @@ public class ThryEditor : ShaderGUI
 		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>(); //header stack. used to keep track if current header to parent new objects to
 		headerStack.Push(shaderparts); //add top object as top object to stack
 		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
-		footer = new List<string>(); //init footer list
+		footer = new List<ButtonData>(); //init footer list
 		int headerCount = 0;
 		for (int i = 0; i < props.Length; i++)
 		{
             string displayName = props[i].displayName;
+            displayName = Regex.Replace(displayName, @"''", "\"");
             if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
             PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
@@ -270,7 +271,7 @@ public class ThryEditor : ShaderGUI
             switch (type)
             {
                 case ThryPropertyType.footer:
-                    footer.Add(props[i].displayName);
+                    footer.Add(Parser.ParseToObject<ButtonData>(displayName));
                     break;
                 case ThryPropertyType.header:
                 case ThryPropertyType.header_start:
@@ -386,7 +387,7 @@ public class ThryEditor : ShaderGUI
             current.editor = materialEditor;
             current.gui = this;
             current.properties = props;
-            current.textureArrayProperties = new List<MaterialProperty>();
+            current.textureArrayProperties = new List<ShaderProperty>();
             current.firstCall = true;
             current.draw_material_option_dsgi = false;
             current.draw_material_option_instancing = false;

@@ -16,7 +16,7 @@ namespace Thry
         public Shader defaultShader;
         public ThryEditor.ShaderPart currentProperty;
         public Dictionary<string, ThryEditor.ShaderProperty> propertyDictionary;
-        public List<MaterialProperty> textureArrayProperties;
+        public List<ThryEditor.ShaderProperty> textureArrayProperties;
         public bool firstCall;
         public bool draw_material_option_lightmap;
         public bool draw_material_option_instancing;
@@ -67,9 +67,18 @@ namespace Thry
     public class ButtonData
     {
         public string text = "";
+        public TextureData texture = null;
         public DefinableAction action = new DefinableAction();
         public string hover = "";
         public DefineableCondition condition_show = new DefineableCondition();
+    }
+
+    public class TextureData
+    {
+        public string name = null;
+        public int width = 128;
+        public int height = 128;
+        public Texture loaded_texture;
     }
 
     public class DefinableAction
