@@ -40,10 +40,8 @@ namespace Thry
             public AnimationCurve curve;
             public EditorWindow window;
             public Texture2D texture;
-            public char color_channel = 'r';
-            public int width = 128;
-            public int height = 8;
             public bool saved = true;
+            public ImageData imageData;
         }
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
@@ -52,12 +50,10 @@ namespace Thry
             {
                 data = new CurveData();
                 data.curve = new AnimationCurve();
-                if(ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("width"))
-                    data.width = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<int>("width");
-                if (ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("height"))
-                    data.height = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<int>("height");
-                if (ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists("channel"))
-                    data.color_channel = ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue<string>("channel")[0];
+                if (ThryEditor.currentlyDrawing.currentProperty.options.image == null)
+                    data.imageData = new ImageData();
+                else
+                    data.imageData = ThryEditor.currentlyDrawing.currentProperty.options.image;
             }
 
             editor.TexturePropertyMiniThumbnail(position, prop, "", "");
@@ -66,7 +62,7 @@ namespace Thry
             data.curve = EditorGUI.CurveField(position, new GUIContent("       " + label.text, label.tooltip), data.curve);
             if (EditorGUI.EndChangeCheck())
             {
-                data.texture = Converter.CurveToTexture(data.curve, data.width, data.height, data.color_channel);
+                data.texture = Converter.CurveToTexture(data.curve, data.imageData.width, data.imageData.height, data.imageData.channel);
                 prop.textureValue = data.texture;
                 data.saved = false;
             }
@@ -369,14 +365,6 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            if (ThryEditor.currentlyDrawing.currentProperty.property_data == null)
-            {
-                if (label.text.Contains("--frameCountProp="))
-                    ThryEditor.currentlyDrawing.currentProperty.property_data = label.text.Split(new string[] { "--frameCountProp=" }, System.StringSplitOptions.None);
-                else
-                    ThryEditor.currentlyDrawing.currentProperty.property_data = new string[] { label.text };
-            }
-            label.text = ((string[])ThryEditor.currentlyDrawing.currentProperty.property_data)[0];
             ThryEditorGuiHelper.drawConfigTextureProperty(position, prop, label, editor, true);
 
             string n = "";
@@ -388,11 +376,10 @@ namespace Thry
                 {
                     Texture2DArray tex = Converter.PathsToTexture2DArray(paths);
                     Helper.UpdateTargetsValue(prop, tex);
-                    string[] data = ((string[])ThryEditor.currentlyDrawing.currentProperty.property_data);
-                    if (data.Length > 1)
+                    if (ThryEditor.currentlyDrawing.currentProperty.options.frameCountProp != null)
                     {
                         ThryEditor.ShaderProperty p;
-                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(data[1], out p);
+                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.frameCountProp, out p);
                         if (p != null)
                             Helper.UpdateTargetsValue(p.materialProperty, tex.depth);
                     }

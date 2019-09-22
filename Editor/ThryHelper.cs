@@ -493,29 +493,40 @@ namespace Thry
         [InitializeOnLoad]
         public class MainThreader
         {
-            static List<Action<string>> queue;
-            static List<object[]> arguments;
+            private struct CallData{
+                public Action<string> action;
+                public object[] arguments;
+            }
+            static List<CallData> queue;
 
             static MainThreader()
             {
-                queue = new List<Action<string>>();
-                arguments = new List<object[]>();
+                queue = new List<CallData>();
                 EditorApplication.update += Update;
             }
 
             public static void Call(Action<string> action, params object[] args)
             {
-                queue.Add(action);
-                arguments.Add(args);
+                CallData data = new CallData();
+                data.action = action;
+                data.arguments = args;
+                if (args.Length == 0 || args[0] == null)
+                    data.arguments = new object[] { "" };
+                else
+                    data.arguments = args;
+                queue.Add(data);
             }
 
             public static void Update()
             {
                 if (queue.Count > 0)
                 {
-                    queue[0].DynamicInvoke(arguments[0]);
+                    try
+                    {
+                        queue[0].action.DynamicInvoke(queue[0].arguments);
+                    }
+                    catch{  }
                     queue.RemoveAt(0);
-                    arguments.RemoveAt(0);
                 }
             }
         }

@@ -275,17 +275,6 @@ namespace Thry
             this.currentState = !this.currentState;
         }
 
-        private void Init()
-        {
-            MenuHeaderData data = new MenuHeaderData();
-            data.hasRightButton = ThryEditor.currentlyDrawing.currentProperty.ExtraOptionExists(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT);
-            if (data.hasRightButton)
-            {
-                data.rightButton = Parsers.ConvertParsedToObject<ButtonData>(ThryEditor.currentlyDrawing.currentProperty.GetExtraOptionValue(ThryEditor.EXTRA_OPTION_BUTTON_RIGHT));
-            }
-            ThryEditor.currentlyDrawing.currentProperty.property_data = data;
-        }
-
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             var style = new GUIStyle(Styles.Get().dropDownHeader);
@@ -296,22 +285,19 @@ namespace Thry
             //rect with text
             GUI.Box(rect, content, style);
 
-            if (ThryEditor.currentlyDrawing.currentProperty.property_data == null)
-                this.Init();
-
-            MenuHeaderData data = (MenuHeaderData)ThryEditor.currentlyDrawing.currentProperty.property_data;
-            if (data.hasRightButton && (data.rightButton.condition_show == null || (data.rightButton.condition_show != null && data.rightButton.condition_show.Test())))
+            PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
+            if (options.button_right!=null && options.button_right.condition_show.Test())
             {
                 Rect buttonRect = new Rect(rect);
-                GUIContent buttoncontent = new GUIContent(data.rightButton.text, data.rightButton.hover);
+                GUIContent buttoncontent = new GUIContent(options.button_right.text, options.button_right.hover);
                 float width = Styles.Get().dropDownHeaderButton.CalcSize(buttoncontent).x;
                 width = width < rect.width/3 ? rect.width/3 : width;
                 buttonRect.x += buttonRect.width-width-10;
                 buttonRect.y += 2;
                 buttonRect.width = width;
                 if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
-                    if(data.rightButton.action!=null)
-                        data.rightButton.action.Perform();
+                    if(options.button_right.action!=null)
+                        options.button_right.action.Perform();
             }
 
             var e = Event.current;

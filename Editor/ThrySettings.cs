@@ -58,7 +58,7 @@ namespace Thry
 
         const string THRY_MCS_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditor/master/mcs.rsp";
 
-        const string THRY_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.txt";
+        const string THRY_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
         public static ButtonData thry_message = null;
 
         const string THRY_VRC_TOOLS_VERSION_PATH = "thry_vrc_tools_version";
@@ -133,7 +133,7 @@ namespace Thry
             }
 
             if (thry_message == null)
-                Helper.DownloadStringASync(THRY_MESSAGE_URL, delegate (string s) { thry_message = Parsers.ParseToObject<ButtonData>(s); });
+                Helper.DownloadStringASync(THRY_MESSAGE_URL, delegate (string s) { thry_message = Parser.ParseToObject<ButtonData>(s); });
         }
 
         private static void CheckVRCSDK()
@@ -305,6 +305,7 @@ namespace Thry
                 GUIStyle style = new GUIStyle();
                 style.richText = true;
                 style.margin = new RectOffset(7, 0, 0, 0);
+                style.wordWrap = true;
                 GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), style);
                 Rect r = GUILayoutUtility.GetLastRect();
                 if (Event.current.type == EventType.MouseDown && r.Contains(Event.current.mousePosition))
@@ -418,19 +419,31 @@ namespace Thry
             foreach (ModuleHeader module in ModuleHandler.GetModules())
             {
                 EditorGUILayout.BeginHorizontal();
+                EditorGUI.BeginDisabledGroup(!module.available_requirement_fullfilled);
                 EditorGUI.BeginChangeCheck();
-                string displayName = module.name;
+                bool is_installed = Helper.ClassExists(module.available_module.classname);
+                bool update_available = is_installed;
+                if (module.installed_module != null)
+                    update_available = Helper.compareVersions(module.installed_module.version, module.available_module.version) == 1;
+                string displayName = module.available_module.name;
                 if (module.installed_module != null)
                     displayName += " v" + module.installed_module.version;
-                bool install = GUILayout.Toggle(Helper.ClassExists(module.classname), new GUIContent(displayName, module.description), GUILayout.ExpandWidth(false));
+
+                bool install = GUILayout.Toggle(is_installed, new GUIContent(displayName, module.available_module.description), GUILayout.ExpandWidth(false));
                 if (EditorGUI.EndChangeCheck())
                     ModuleHandler.InstallRemoveModule(module,install);
-                bool update_available = false;
-                if (module.installed_module != null)
-                    update_available = Helper.compareVersions(module.installed_module.version, module.version)==1;
                 if(update_available)
-                    if (GUILayout.Button("update", GUILayout.ExpandWidth(false)))
+                    if (GUILayout.Button("update to v"+module.available_module.version, GUILayout.ExpandWidth(false)))
                         ModuleHandler.UpdateModule(module);
+                EditorGUI.EndDisabledGroup();
+                if (module.available_module.requirement != null && (update_available || !is_installed))
+                {
+                    GUIStyle requirementStyle = new GUIStyle(EditorStyles.label);
+                    requirementStyle.normal.textColor = greenStyle.normal.textColor;
+                    if(!module.available_requirement_fullfilled)
+                        requirementStyle.normal.textColor = redInfostyle.normal.textColor;
+                    GUILayout.Label("Requirements: " + module.available_module.requirement.ToString(),requirementStyle);
+                }
                 EditorGUILayout.EndHorizontal();
             }
             EditorGUI.EndDisabledGroup();

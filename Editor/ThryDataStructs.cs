@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -45,11 +46,22 @@ namespace Thry
         public EditorWindow gradientWindow;
     }
 
-    public struct MenuHeaderData
+    public class PropertyOptions
     {
-        public bool hasRightButton;
-        public ButtonData rightButton;
-        public override string ToString() { return "{HasRightButton:" + hasRightButton + ",RightButton" + (hasRightButton ? rightButton.ToString() : "null") + "}"; }
+        public int offset = 0;
+        public string hover = "";
+        public DefinableAction altClick;
+        public DefineableCondition condition_show;
+        public ButtonData button_right;
+        public ImageData image;
+        public string frameCountProp;
+    }
+
+    public class ImageData
+    {
+        public int width = 128;
+        public int height = 8;
+        public char channel = 'r';
     }
 
     public class ButtonData
@@ -58,7 +70,6 @@ namespace Thry
         public DefinableAction action = new DefinableAction();
         public string hover = "";
         public DefineableCondition condition_show = new DefineableCondition();
-        public override string ToString(){ return "{text:" + text + ",hover:" + hover + ",action:"+action.ToString()+",condition_show:"+ condition_show .ToString()+ "}"; }
     }
 
     public class DefinableAction
@@ -74,7 +85,6 @@ namespace Thry
                     break;
             }
         }
-        public override string ToString(){ return "{type:" + type + ",data:" + data + "}";}
     }
 
     public enum DefinableActionType
@@ -87,43 +97,108 @@ namespace Thry
     {
         public DefineableConditionType type = DefineableConditionType.NONE;
         public string data = "";
+        public DefineableCondition condition1;
+        public DefineableCondition condition2;
         public bool Test()
+        {
+            string comparator = GetComparetor();
+            string[] parts = Regex.Split(data, comparator);
+            string obj = parts[0];
+            string value = parts[parts.Length-1];
+            switch (type)
+            {
+                case DefineableConditionType.PROPERTY_BOOL:
+                    ThryEditor.ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[obj];
+                    if (prop == null) return false;
+                    if (comparator == "##") return prop.materialProperty.floatValue == 1;
+                    if (comparator == "==") return "" + prop.materialProperty.floatValue == parts[1];
+                    if (comparator == "!=") return ""+prop.materialProperty.floatValue != parts[1];
+                    break;
+                case DefineableConditionType.EDITOR_VERSION:
+                    int c_ev = Helper.compareVersions(Config.Get().verion, value);
+                    if (comparator == "==") return c_ev == 0;
+                    if (comparator == "!=") return c_ev != 0;
+                    if (comparator == "<") return c_ev == 1;
+                    if (comparator == ">") return c_ev == -1;
+                    break;
+                case DefineableConditionType.VRC_SDK_VERSION:
+                    int c_vrc = Helper.compareVersions(VRCInterface.Get().installed_sdk_version, value);
+                    if (comparator == "==") return c_vrc == 0;
+                    if (comparator == "!=") return c_vrc != 0;
+                    if (comparator == "<") return c_vrc == 1;
+                    if (comparator == ">") return c_vrc == -1;
+                    break;
+                case DefineableConditionType.AND:
+                    if(condition1!=null&&condition2!=null) return condition1.Test() && condition2.Test();
+                    break;
+                case DefineableConditionType.OR:
+                    if (condition1 != null && condition2 != null) return condition1.Test() || condition2.Test();
+                    break;
+            }
+            
+            return true;
+        }
+        private string GetComparetor()
+        {
+            if (data.Contains("=="))
+                return "==";
+            if (data.Contains("!="))
+                return "!=";
+            if (data.Contains(">"))
+                return ">";
+            if (data.Contains("<"))
+                return "<";
+            return "##";
+        }
+
+        public override string ToString()
         {
             switch (type)
             {
                 case DefineableConditionType.PROPERTY_BOOL:
-                    ThryEditor.ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[data];
-                    if (prop != null) return prop.materialProperty.floatValue == 1;
+                    return data;
+                case DefineableConditionType.EDITOR_VERSION:
+                    return "EDITOR_VERSION" + data;
+                case DefineableConditionType.VRC_SDK_VERSION:
+                    return "VRC_SDK_VERSION" + data;
+                case DefineableConditionType.AND:
+                    if (condition1 != null && condition2 != null) return condition1.ToString() + "&&" + condition2.ToString();
+                    break;
+                case DefineableConditionType.OR:
+                    if (condition1 != null && condition2 != null) return condition1.ToString()+"||"+condition2.ToString();
                     break;
             }
-            
-            return false;
+            return "";
         }
-        public override string ToString() { return "{type:" + type + ",data:" + data + "}"; }
     }
 
     public enum DefineableConditionType
     {
         NONE,
-        PROPERTY_BOOL
+        PROPERTY_BOOL,
+        EDITOR_VERSION,
+        VRC_SDK_VERSION,
+        AND,
+        OR
     }
 
     public class ModuleHeader
     {
-        public string name = "";
-        public string version = "0";
-        public string description = "";
         public string url = "";
-        public string classname = "";
-        public string settings_file_name = "";
         public bool is_being_installed_or_removed = false;
+        public bool available_requirement_fullfilled = true;
+        public ModuleInfo available_module = null;
         public ModuleInfo installed_module = null;
     }
 
     public class ModuleInfo
     {
-        public string version = "";
-        public List<string> requirements;
+        public string name = "";
+        public string version = "0";
+        public string description = "";
+        public string classname = "";
+        public string settings_file_name = "";
+        public DefineableCondition requirement;
         public List<string> files;
     }
 }
