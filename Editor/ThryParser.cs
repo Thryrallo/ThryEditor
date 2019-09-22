@@ -102,7 +102,16 @@ namespace Thry
         public static type ParseToObject<type>(string input)
         {
             object parsed = ParseJson(input);
-            return (type)ParsedToObject(parsed,typeof(type));
+            object ret = null;
+            try
+            {
+                ret = (type)ParsedToObject(parsed, typeof(type));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(input + " cannot be parsed to object of type " + typeof(type).ToString());
+            }
+            return (type)ret;
         }
 
         public static type ConvertParsedToObject<type>(object parsed)
