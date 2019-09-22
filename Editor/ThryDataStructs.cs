@@ -79,6 +79,18 @@ namespace Thry
         public int width = 128;
         public int height = 128;
         public Texture loaded_texture;
+        public Texture GetTextureFromName()
+        {
+            if (loaded_texture == null)
+            {
+                string path = Helper.FindFile(name, "texture");
+                if (path != null)
+                    loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                else
+                    loaded_texture = new Texture();
+            }
+            return loaded_texture;
+        }
     }
 
     public class DefinableAction

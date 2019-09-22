@@ -97,31 +97,41 @@ namespace Thry
         //draw single footer
         private static void drawFooter(ButtonData data)
         {
-            if (data.texture == null)
-                drawTextButton(70, 20,data);
-            else
-                drawImgButton(20, data);
+            Button(data,20);
         }
 
-        private static void drawTextButton(int Width, int Height, ButtonData data)
+        public static void Button(ButtonData button)
         {
-            if (GUILayout.Button(new GUIContent(data.text,data.hover), GUILayout.Width(Width), GUILayout.Height(Height)))
-                data.action.Perform();
+            Button(button, -1);
         }
-        private static void drawImgButton(int default_height, ButtonData data)
+
+        public static void Button(ButtonData button, int default_height)
         {
-            if (data.texture.loaded_texture == null)
+            GUIContent content;
+            if (button.texture == null)
             {
-                string path = Helper.FindFile(data.texture.name, "texture");
-                if (path != null)
-                    data.texture.loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                content = new GUIContent(button.text, button.hover);
+                if (default_height != -1)
+                {
+                    if (GUILayout.Button(content, GUILayout.ExpandWidth(false), GUILayout.Height(default_height)))
+                        button.action.Perform();
+                }
                 else
-                    data.texture.loaded_texture = new Texture();
+                {
+                    if (GUILayout.Button(content, GUILayout.ExpandWidth(false)))
+                        button.action.Perform();
+                }
             }
-            int height = data.texture.height == 128 ?default_height: data.texture.height;
-            int width = (int)((float)data.texture.loaded_texture.width / data.texture.loaded_texture.height * height);
-            if (GUILayout.Button(new GUIContent(data.texture.loaded_texture,data.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
-                data.action.Perform();
+            else
+            {
+                content = new GUIContent(button.texture.GetTextureFromName(), button.hover);
+                int height = (button.texture.height == 128 && default_height != -1) ? default_height : button.texture.height;
+                int width = (int)((float)button.texture.loaded_texture.width / button.texture.loaded_texture.height * height);
+                if (GUILayout.Button(new GUIContent(button.texture.loaded_texture, button.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
+                    button.action.Perform();
+            }
+            Rect cursorRect = GUILayoutUtility.GetLastRect();
+            EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
         }
 
         public static void DrawHeader(ref bool enabled, ref bool options, GUIContent name)
@@ -306,6 +316,8 @@ namespace Thry
                 if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
                     if(options.button_right.action!=null)
                         options.button_right.action.Perform();
+                Rect cursorRect = GUILayoutUtility.GetLastRect();
+                EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
             }
 
             var e = Event.current;
