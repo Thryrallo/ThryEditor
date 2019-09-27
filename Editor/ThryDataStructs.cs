@@ -37,29 +37,6 @@ namespace Thry
         public Gradient gradient;
     }
 
-    public class TextureSettings
-    {
-        public int width = 128;
-        public int height = 128;
-        public int ansioLevel = 1;
-        public FilterMode filterMode = FilterMode.Bilinear;
-        public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
-        public void ApplyModes(Texture texture)
-        {
-            texture.filterMode = filterMode;
-            texture.wrapMode = wrapMode;
-            texture.anisoLevel = ansioLevel;
-        }
-        public void ApplyModes(string path)
-        {
-            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            importer.filterMode = filterMode;
-            importer.wrapMode = wrapMode;
-            importer.anisoLevel = ansioLevel;
-            importer.SaveAndReimport();
-        }
-    }
-
     public class PropertyOptions
     {
         public int offset = 0;
@@ -68,7 +45,7 @@ namespace Thry
         public DefineableCondition condition_show;
         public ButtonData button_right;
         public ImageData image;
-        public TextureSettings texture_settings;
+        public TextureData texture;
         public string frameCountProp;
     }
 
@@ -91,8 +68,29 @@ namespace Thry
     public class TextureData
     {
         public string name = null;
+
         public int width = 128;
         public int height = 128;
+
+        public int ansioLevel = 1;
+        public FilterMode filterMode = FilterMode.Bilinear;
+        public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
+
+        public void ApplyModes(Texture texture)
+        {
+            texture.filterMode = filterMode;
+            texture.wrapMode = wrapMode;
+            texture.anisoLevel = ansioLevel;
+        }
+        public void ApplyModes(string path)
+        {
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.filterMode = filterMode;
+            importer.wrapMode = wrapMode;
+            importer.anisoLevel = ansioLevel;
+            importer.SaveAndReimport();
+        }
+
         public Texture loaded_texture;
         public Texture GetTextureFromName()
         {

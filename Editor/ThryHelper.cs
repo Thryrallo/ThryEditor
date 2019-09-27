@@ -497,7 +497,7 @@ namespace Thry
 
         //----------------------------Textures------------------------------------
 
-        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureSettings settings)
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureData settings)
         {
             if (!path.EndsWith(".png"))
                 path += ".png";

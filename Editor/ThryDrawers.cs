@@ -108,18 +108,22 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 
-            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, Screen.width - EditorGUIUtility.labelWidth - position.x - 5, position.height);
+            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, Screen.width - EditorGUIUtility.labelWidth - position.x - EditorGUI.indentLevel * 15 - 10, position.height);
             Rect gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
 
             Texture2D backgroundTexture = Helper.GetBackgroundTexture();
             Rect texCoordsRect = new Rect(0, 0, gradient_position.width / backgroundTexture.width, gradient_position.height / backgroundTexture.height);
             GUI.DrawTextureWithTexCoords(gradient_position, backgroundTexture, texCoordsRect, false);
 
-            TextureWrapMode wrap_mode = data.preview_texture.wrapMode;
-            data.preview_texture.wrapMode = TextureWrapMode.Clamp;
-            GUI.DrawTexture(gradient_position, data.preview_texture, ScaleMode.StretchToFill, true);
-            GUI.DrawTexture(border_position, data.preview_texture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
-            data.preview_texture.wrapMode = wrap_mode;
+            if (data.preview_texture != null)
+            {
+                TextureWrapMode wrap_mode = data.preview_texture.wrapMode;
+                data.preview_texture.wrapMode = TextureWrapMode.Clamp;
+                GUI.DrawTexture(gradient_position, data.preview_texture, ScaleMode.StretchToFill, true);
+                GUI.DrawTexture(border_position, data.preview_texture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
+                data.preview_texture.wrapMode = wrap_mode;
+            }else
+                GUI.DrawTexture(border_position, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
 
             if (Event.current.type == EventType.MouseDown && border_position.Contains(Event.current.mousePosition))
                 GradientEditor.Open(data, prop);
@@ -128,14 +132,7 @@ namespace Thry
         public void Init(MaterialProperty prop)
         {
             data = new GradientData();
-            if (prop.textureValue != null)
-            {
-                data.preview_texture = prop.textureValue;
-            }
-            else
-            {
-                data.preview_texture = Texture2D.whiteTexture;
-            }
+            data.preview_texture = prop.textureValue;
             is_init = true;
         }
 

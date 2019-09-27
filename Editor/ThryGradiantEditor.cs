@@ -39,19 +39,19 @@ namespace Thry
         private bool gradient_has_been_edited = false;
         private Texture privious_preview_texture;
 
-        public static TextureSettings GetTextureSettings(MaterialProperty prop)
+        public static TextureData GetTextureSettings(MaterialProperty prop)
         {
-            TextureSettings defined_default = ThryEditor.currentlyDrawing.currentProperty.options.texture_settings;
+            TextureData defined_default = ThryEditor.currentlyDrawing.currentProperty.options.texture;
             string json_texture_settings = Helper.LoadValueFromFile("gradient_texture_options_"+prop.name, ".thry_persistent_data");
             if (json_texture_settings != null)
-                return Parser.ParseToObject<TextureSettings>(json_texture_settings);
+                return Parser.ParseToObject<TextureData>(json_texture_settings);
             else if (defined_default != null)
                 return defined_default;
             else
-                return new TextureSettings();
+                return new TextureData();
         }
-        private static TextureSettings texture_settings_data;
-        private TextureSettings textureSettings
+        private static TextureData texture_settings_data;
+        private TextureData textureSettings
         {
             get
             {
@@ -78,8 +78,9 @@ namespace Thry
             {
                 if (data.preview_texture.GetType() == typeof(Texture2D))
                 {
-                    string file_name = GradientFileName(data.gradient, prop.targets[0].name);
+                    string file_name = GradientFileName(data.gradient, prop.targets[0].name); ;
                     Texture saved = Helper.SaveTextureAsPNG((Texture2D)data.preview_texture, "Assets/Textures/Gradients/" + file_name, textureSettings);
+                    file_name = Regex.Replace(file_name, @"\.((png)|(jpg))$", "");
                     Helper.SaveValueToFile(file_name, Parser.ObjectToString(data.gradient), ".thry_gradients");
                     prop.textureValue = saved;
                 }
@@ -190,9 +191,9 @@ namespace Thry
         private void TextureSettingsGUI()
         {
             EditorGUIUtility.labelWidth = 100;
-            EditorGUIUtility.fieldWidth = 100;
+            EditorGUIUtility.fieldWidth = 150;
             EditorGUILayout.LabelField("Texture options:",EditorStyles.boldLabel);
-            bool changed = GuiHelper.GUIDataStruct<TextureSettings>(textureSettings);
+            bool changed = GuiHelper.GUIDataStruct<TextureData>(textureSettings, new string[]{"name"});
             if (changed)
             {
                 Helper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.ObjectToString(textureSettings), ".thry_persistent_data");

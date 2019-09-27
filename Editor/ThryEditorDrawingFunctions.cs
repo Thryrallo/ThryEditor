@@ -96,12 +96,25 @@ namespace Thry
             }
         }
 
+
         public static bool GUIDataStruct<t>(t data)
+        {
+            return GUIDataStruct<t>(data, new string[] { });
+        }
+
+        public static bool GUIDataStruct<t>(t data, string[] exclude)
         {
             Type type = data.GetType();
             bool changed = false;
             foreach (FieldInfo f in type.GetFields())
             {
+                bool skip = false;
+                foreach (string s in exclude)
+                    if (s == f.Name)
+                        skip = true;
+                if (skip)
+                    continue;
+
                 if (f.FieldType.IsEnum)
                     changed |= GUIEnum(f, data);
                 else if (f.FieldType == typeof(string))

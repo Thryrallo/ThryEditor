@@ -263,6 +263,13 @@
                     <td>[Curve]</td>
                     <td>[Curve]_MainTex ("Texture --{image:{width:256,height:16,channel:b}}", 2D) = "white" { }</td>
                 </tr>
+                <tr>
+                    <td>texture</td>
+                    <td>TextureData</td>
+                    <td>Defines the texture settings for created gradients.</td>
+                    <td>[Gradient]</td>
+                    <td>[Gradient]_ColorRamp ("Gradient --{texture:{width:256,height:16,filterMode:Point,wrapMode:Clamp}}", 2D) = "white" { }</td>
+                </tr>
             </table>
 
             <h2>Data Structures</h2>
@@ -372,6 +379,27 @@
                         <td>no</td>
                         <td>128</td>
                         <td></td>
+                    </tr>
+                    <tr>
+                        <td>ansioLevel</td>
+                        <td>int</td>
+                        <td>no</td>
+                        <td>1</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>filterMode</td>
+                        <td>Enum(FilterMode)</td>
+                        <td>no</td>
+                        <td>Bilinear</td>
+                        <td>EnumValues: Bilinear,Point,Trilinear</td>
+                    </tr>
+                    <tr>
+                        <td>wrapMode</td>
+                        <td>Enum(TextureWrapMode)</td>
+                        <td>no</td>
+                        <td>Repeat</td>
+                        <td>EnumValues: Clamp,Mirror,MirrorOnce,Repeat</td>
                     </tr>
                 </table>
             </div>
