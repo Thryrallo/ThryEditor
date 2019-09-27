@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry
 {
@@ -30,20 +31,33 @@ namespace Thry
         public static bool lastPropertyUsedCustomDrawer;
     }
 
-    public class GradientObject : ScriptableObject
-    {
-        public Gradient gradient = new Gradient();
-    }
-
     public class GradientData
     {
-        public GradientObject gradientObj;
-        public SerializedProperty colorGradient;
-        public SerializedObject serializedGradient;
+        public Texture preview_texture;
+        public Gradient gradient;
+    }
 
-        public Texture2D texture;
-        public bool saved;
-        public EditorWindow gradientWindow;
+    public class TextureSettings
+    {
+        public int width = 128;
+        public int height = 128;
+        public int ansioLevel = 1;
+        public FilterMode filterMode = FilterMode.Bilinear;
+        public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
+        public void ApplyModes(Texture texture)
+        {
+            texture.filterMode = filterMode;
+            texture.wrapMode = wrapMode;
+            texture.anisoLevel = ansioLevel;
+        }
+        public void ApplyModes(string path)
+        {
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.filterMode = filterMode;
+            importer.wrapMode = wrapMode;
+            importer.anisoLevel = ansioLevel;
+            importer.SaveAndReimport();
+        }
     }
 
     public class PropertyOptions
@@ -54,6 +68,7 @@ namespace Thry
         public DefineableCondition condition_show;
         public ButtonData button_right;
         public ImageData image;
+        public TextureSettings texture_settings;
         public string frameCountProp;
     }
 
@@ -87,7 +102,7 @@ namespace Thry
                 if (path != null)
                     loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
                 else
-                    loaded_texture = new Texture();
+                    loaded_texture = new Texture2D(1,1);
             }
             return loaded_texture;
         }

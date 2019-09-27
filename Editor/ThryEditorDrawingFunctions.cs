@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -7,7 +9,7 @@ using UnityEngine;
 namespace Thry
 {
 
-    public class ThryEditorGuiHelper
+    public class GuiHelper
     {
 
         public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
@@ -44,6 +46,112 @@ namespace Thry
             GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
             editor.TextureProperty(position, prop, label.text, label.tooltip, scaleOffset);
             DrawingData.lastGuiObjectRect = position;
+        }
+
+        const float kNumberWidth = 65;
+
+        public static void MinMaxSlider(Rect settingsRect, GUIContent content, MaterialProperty prop)
+        {
+            bool changed = false;
+            Vector4 vec = prop.vectorValue;
+            Rect sliderRect = settingsRect;
+
+            EditorGUI.LabelField(settingsRect, content);
+
+            float capAtX = vec.x;
+            float capAtY = vec.y;
+
+            if (settingsRect.width > 160)
+            {
+                Rect numberRect = settingsRect;
+                numberRect.width = kNumberWidth + (EditorGUI.indentLevel - 1) * 15;
+
+                numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
+
+                EditorGUI.BeginChangeCheck();
+                vec.x = EditorGUI.FloatField(numberRect, vec.x, EditorStyles.textField);
+                changed |= EditorGUI.EndChangeCheck();
+
+                numberRect.x = settingsRect.xMax - numberRect.width;
+
+                EditorGUI.BeginChangeCheck();
+                vec.y = EditorGUI.FloatField(numberRect, vec.y);
+                changed |= EditorGUI.EndChangeCheck();
+
+                sliderRect.xMin = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
+                sliderRect.xMin += (kNumberWidth + -8);
+                sliderRect.xMax -= (kNumberWidth + -8);
+            }
+
+            vec.x = Mathf.Clamp(vec.x, vec.z, capAtY);
+            vec.y = Mathf.Clamp(vec.y, capAtX, vec.w);
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
+            changed |= EditorGUI.EndChangeCheck();
+
+            if (changed)
+            {
+                prop.vectorValue = vec;
+            }
+        }
+
+        public static bool GUIDataStruct<t>(t data)
+        {
+            Type type = data.GetType();
+            bool changed = false;
+            foreach (FieldInfo f in type.GetFields())
+            {
+                if (f.FieldType.IsEnum)
+                    changed |= GUIEnum(f, data);
+                else if (f.FieldType == typeof(string))
+                    changed |= GUIString(f, data);
+                else if (f.FieldType == typeof(int))
+                    changed |= GUIInt(f, data);
+                else if (f.FieldType == typeof(float))
+                    changed |= GUIFloat(f, data);
+            }
+            return changed;
+        }
+
+        private static bool GUIEnum(FieldInfo f, object o)
+        {
+            EditorGUI.BeginChangeCheck();
+            Enum e = EditorGUILayout.EnumPopup(f.Name, (Enum)f.GetValue(o), GUILayout.ExpandWidth(false));
+            bool changed = EditorGUI.EndChangeCheck();
+            if (changed)
+                f.SetValue(o, e);
+            return changed;
+        }
+
+        private static bool GUIString(FieldInfo f, object o)
+        {
+            EditorGUI.BeginChangeCheck();
+            string s = EditorGUILayout.TextField(f.Name, (string)f.GetValue(o), GUILayout.ExpandWidth(false));
+            bool changed = EditorGUI.EndChangeCheck();
+            if (changed)
+                f.SetValue(o, s);
+            return changed;
+        }
+
+        private static bool GUIInt(FieldInfo f, object o)
+        {
+            EditorGUI.BeginChangeCheck();
+            int i = EditorGUILayout.IntField(f.Name, (int)f.GetValue(o), GUILayout.ExpandWidth(false));
+            bool changed = EditorGUI.EndChangeCheck();
+            if (changed)
+                f.SetValue(o, i);
+            return changed;
+        }
+
+        private static bool GUIFloat(FieldInfo f, object o)
+        {
+            EditorGUI.BeginChangeCheck();
+            float i = EditorGUILayout.FloatField(f.Name, (float)f.GetValue(o), GUILayout.ExpandWidth(false));
+            bool changed = EditorGUI.EndChangeCheck();
+            if (changed)
+                f.SetValue(o, i);
+            return changed;
         }
 
         //draw the render queue selector
@@ -108,6 +216,7 @@ namespace Thry
         public static void Button(ButtonData button, int default_height)
         {
             GUIContent content;
+            Rect cursorRect;
             if (button.texture == null)
             {
                 content = new GUIContent(button.text, button.hover);
@@ -121,16 +230,19 @@ namespace Thry
                     if (GUILayout.Button(content, GUILayout.ExpandWidth(false)))
                         button.action.Perform();
                 }
+                cursorRect = GUILayoutUtility.GetLastRect();
             }
             else
             {
+                GUILayout.Space(4);
                 content = new GUIContent(button.texture.GetTextureFromName(), button.hover);
                 int height = (button.texture.height == 128 && default_height != -1) ? default_height : button.texture.height;
                 int width = (int)((float)button.texture.loaded_texture.width / button.texture.loaded_texture.height * height);
                 if (GUILayout.Button(new GUIContent(button.texture.loaded_texture, button.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
                     button.action.Perform();
+                cursorRect = GUILayoutUtility.GetLastRect();
+                GUILayout.Space(4);
             }
-            Rect cursorRect = GUILayoutUtility.GetLastRect();
             EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
         }
 
@@ -145,8 +257,6 @@ namespace Thry
 
         public static void DrawMasterLabel(string shaderName)
         {
-            
-
             EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", Styles.Get().masterLabel, GUILayout.MinHeight(18));
         }
 
@@ -185,54 +295,6 @@ namespace Thry
                     m.globalIlluminationFlags = value;
             EditorGUILayout.EndHorizontal();
         }
-
-        const float kNumberWidth = 65;
-
-        public static void MinMaxSlider(Rect settingsRect, GUIContent content, MaterialProperty prop)
-        {
-            bool changed = false;
-            Vector4 vec = prop.vectorValue;
-            Rect sliderRect = settingsRect;
-
-            EditorGUI.LabelField(settingsRect, content);
-
-            float capAtX = vec.x;
-            float capAtY = vec.y;
-
-            if (settingsRect.width > 160)
-            {
-                Rect numberRect = settingsRect;
-                numberRect.width = kNumberWidth+ (EditorGUI.indentLevel - 1) * 15;
-
-                numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel-1)*15;
-
-                EditorGUI.BeginChangeCheck();
-                vec.x = EditorGUI.FloatField(numberRect, vec.x, EditorStyles.textField);
-                changed |= EditorGUI.EndChangeCheck();
-
-                numberRect.x = settingsRect.xMax - numberRect.width;
-
-                EditorGUI.BeginChangeCheck();
-                vec.y = EditorGUI.FloatField(numberRect, vec.y);
-                changed |= EditorGUI.EndChangeCheck();
-
-                sliderRect.xMin = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
-                sliderRect.xMin += (kNumberWidth + -8);
-                sliderRect.xMax -= (kNumberWidth + -8);
-            }
-
-            vec.x = Mathf.Clamp(vec.x, vec.z, capAtY);
-            vec.y = Mathf.Clamp(vec.y, capAtX, vec.w);
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
-            changed |= EditorGUI.EndChangeCheck();
-
-            if (changed)
-            {
-                prop.vectorValue = vec;
-            }
-        }
     }
 
     //-----------------------------------------------------------------
@@ -247,7 +309,7 @@ namespace Thry
             this.propertyes = new List<MaterialProperty>();
             foreach (Material materialEditorTarget in materialEditor.targets)
             {
-                Object[] asArray = new Object[] { materialEditorTarget };
+                UnityEngine.Object[] asArray = new UnityEngine.Object[] { materialEditorTarget };
                 propertyes.Add(MaterialEditor.GetMaterialProperty(asArray, propertyName));
             }
 

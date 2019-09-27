@@ -64,7 +64,7 @@ namespace Thry
                 return m.Value;
             return s;
         }
-        
+
     }
 
     public class Helper
@@ -75,7 +75,7 @@ namespace Thry
         public static string FindPathOfFileWithExtension(string filename)
         {
             string[] guids = AssetDatabase.FindAssets(filename.RemoveFileExtension());
-            foreach(string s in guids)
+            foreach (string s in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(s);
                 if (path.EndsWith(filename))
@@ -132,9 +132,9 @@ namespace Thry
         public static bool NameSpaceExists(string namespace_name)
         {
             bool namespaceFound = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
-                                  from type in assembly.GetTypes()
-                                  where type.Namespace == namespace_name
-                                  select type).Any();
+                                   from type in assembly.GetTypes()
+                                   where type.Namespace == namespace_name
+                                   select type).Any();
             return namespaceFound;
         }
 
@@ -153,6 +153,50 @@ namespace Thry
             if (guids.Length == 0)
                 return null;
             return AssetDatabase.GUIDToAssetPath(guids[0]);
+        }
+
+        private static Texture2D s_BackgroundTexture;
+
+        public static Texture2D GetBackgroundTexture()
+        {
+            if (s_BackgroundTexture == null)
+                s_BackgroundTexture = CreateCheckerTexture(32, 4, 4, Color.white, new Color(0.7f, 0.7f, 0.7f));
+            return s_BackgroundTexture;
+        }
+
+        public static Texture2D CreateCheckerTexture(int numCols, int numRows, int cellPixelWidth, Color col1, Color col2)
+        {
+            int height = numRows * cellPixelWidth;
+            int width = numCols * cellPixelWidth;
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.hideFlags = HideFlags.HideAndDontSave;
+            Color[] pixels = new Color[width * height];
+
+            for (int i = 0; i < numRows; i++)
+                for (int j = 0; j < numCols; j++)
+                    for (int ci = 0; ci < cellPixelWidth; ci++)
+                        for (int cj = 0; cj < cellPixelWidth; cj++)
+                            pixels[(i * cellPixelWidth + ci) * width + j * cellPixelWidth + cj] = ((i + j) % 2 == 0) ? col1 : col2;
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+
+        /// If gradient is saved get exact value, else tries to build it from texture
+        public static Gradient GetGradient(Texture texture)
+        {
+            if (texture != null)
+            {
+                string gradient_data_string = Helper.LoadValueFromFile(texture.name, ".thry_gradients");
+                if (gradient_data_string != null)
+                {
+                    return Parser.ParseToObject<Gradient>(gradient_data_string);
+                }
+                return Converter.TextureToGradient(Helper.GetReadableTexture(texture));
+            }
+            return new Gradient();
         }
 
         //-----------------------string helpers
@@ -364,14 +408,25 @@ namespace Thry
 
         public static void SetDefineSymbol(string symbol, bool active)
         {
+            SetDefineSymbol(symbol, active, false);
+        }
+
+        public static void SetDefineSymbol(string symbol, bool active, bool refresh_if_changed)
+        {
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
                     BuildTargetGroup.Standalone);
             if (!symbols.Contains(symbol) && active)
+            {
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(
                               BuildTargetGroup.Standalone, symbols + ";" + symbol);
-            if (symbols.Contains(symbol) && !active)
+                AssetDatabase.Refresh();
+            }
+            else if (symbols.Contains(symbol) && !active)
+            {
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(
                               BuildTargetGroup.Standalone, Regex.Replace(symbols, @";?" + @symbol, ""));
+                AssetDatabase.Refresh();
+            }
         }
 
         public static void RepaintInspector(System.Type t)
@@ -442,37 +497,19 @@ namespace Thry
 
         //----------------------------Textures------------------------------------
 
-        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureWrapMode wrapMode, FilterMode filterMode)
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureSettings settings)
         {
+            if (!path.EndsWith(".png"))
+                path += ".png";
             byte[] encoding = texture.EncodeToPNG();
             Debug.Log("Texture saved at \"" + path + "\".");
             Helper.writeBytesToFile(encoding, path);
 
             AssetDatabase.ImportAsset(path);
-            Texture tex = (Texture)EditorGUIUtility.Load(path);
-            tex.wrapMode = wrapMode;
-            tex.filterMode = filterMode;
-            return SetTextureImporterFormat((Texture2D)tex, true);
-        }
-
-        public static Texture2D SetTextureImporterFormat(Texture2D texture, bool isReadable)
-        {
-            if (null == texture) return texture;
-            string assetPath = AssetDatabase.GetAssetPath(texture);
-            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (tImporter != null)
-            {
-                tImporter.isReadable = isReadable;
-                tImporter.filterMode = FilterMode.Point;
-                tImporter.alphaIsTransparency = true;
-                tImporter.wrapMode = TextureWrapMode.Clamp;
-
-                AssetDatabase.ImportAsset(assetPath);
-                AssetDatabase.Refresh();
-
-                return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-            }
-            return texture;
+            if (settings != null)
+                settings.ApplyModes(path);
+            Texture saved = AssetDatabase.LoadAssetAtPath<Texture>(path);
+            return saved;
         }
 
         public static void MakeTextureReadible(string path)
@@ -520,7 +557,8 @@ namespace Thry
         [InitializeOnLoad]
         public class MainThreader
         {
-            private struct CallData{
+            private struct CallData
+            {
                 public Action<string> action;
                 public object[] arguments;
             }
@@ -552,7 +590,7 @@ namespace Thry
                     {
                         queue[0].action.DynamicInvoke(queue[0].arguments);
                     }
-                    catch{  }
+                    catch { }
                     queue.RemoveAt(0);
                 }
             }
@@ -565,7 +603,8 @@ namespace Thry
 
         public static void DownloadFileASync(string url, string path, Action<string> callback)
         {
-            DownloadAsBytesASync(url, delegate (object o, DownloadDataCompletedEventArgs a) {
+            DownloadAsBytesASync(url, delegate (object o, DownloadDataCompletedEventArgs a)
+            {
                 if (a.Cancelled || a.Error != null)
                     MainThreader.Call(callback, null);
                 else
@@ -583,7 +622,8 @@ namespace Thry
 
         public static void DownloadStringASync(string url, Action<string> callback)
         {
-            DownloadAsStringASync(url, delegate(object o, DownloadStringCompletedEventArgs e) {
+            DownloadAsStringASync(url, delegate (object o, DownloadStringCompletedEventArgs e)
+            {
                 if (e.Cancelled || e.Error != null)
                     MainThreader.Call(callback, null);
                 else
@@ -724,11 +764,13 @@ namespace Thry
         /// </summary>
         public static int compareVersions(string v1, string v2)
         {
-            if (v1 == "" && v2 == "") return 0;
-            else if (v1 == "") return 1;
-            else if (v2 == "") return -1;
-            string[] v1Parts = Regex.Split(v1, @"\.");
-            string[] v2Parts = Regex.Split(v2, @"\.");
+            Match v1_match = Regex.Match(v1,@"\d+(\.\d+)*");
+            Match v2_match = Regex.Match(v2,@"\d+(\.\d+)*");
+            if (!v1_match.Success && !v2_match.Success) return 0;
+            else if (!v1_match.Success) return 1;
+            else if (!v2_match.Success) return -1;
+            string[] v1Parts = Regex.Split(v1_match.Value, @"\.");
+            string[] v2Parts = Regex.Split(v2_match.Value, @"\.");
             for (int i = 0; i < Math.Max(v1Parts.Length, v2Parts.Length); i++)
             {
                 if (i >= v1Parts.Length) return 1;
@@ -751,7 +793,8 @@ namespace Thry
         {
             static DeleteFilesInTrash()
             {
-                if (Directory.Exists(DELETING_FOLDER)){
+                if (Directory.Exists(DELETING_FOLDER))
+                {
                     DeleteDirectory(DELETING_FOLDER);
                 }
             }
@@ -769,7 +812,8 @@ namespace Thry
                 try
                 {
                     File.Delete(path);
-                }catch(Exception e)
+                }
+                catch (Exception e)
                 {
                     e.GetType();
                 }

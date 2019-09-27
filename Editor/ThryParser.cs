@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -109,6 +110,7 @@ namespace Thry
             }
             catch (Exception e)
             {
+                Debug.Log(e.ToString());
                 Debug.LogError(input + " cannot be parsed to object of type " + typeof(type).ToString());
                 ret = Activator.CreateInstance(typeof(type));
             }
@@ -124,7 +126,13 @@ namespace Thry
         {
             if (Helper.IsPrimitive(objtype)) return PrimitiveToObject(parsed,objtype);
             if (parsed.GetType() == typeof(Dictionary<string, object>)) return DictionaryToObject(parsed, objtype);
-            if (parsed.GetType() == typeof(List<object>)) return ListToObject(parsed, objtype);
+            if (parsed.GetType() == typeof(List<object>))
+            {
+                if (objtype.IsArray)
+                    return ArrayToObject(parsed, objtype);
+                else
+                    return ListToObject(parsed, objtype);
+            }
             if (objtype.IsEnum && parsed.GetType() == typeof(string))
             {
                 if (Enum.IsDefined(objtype, (string)parsed))
@@ -132,7 +140,7 @@ namespace Thry
                 Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Helper.ArrayToString(Enum.GetValues(objtype)));
                 return Enum.GetValues(objtype).GetValue(0);
             }
-            return parsed; 
+            return null; 
         }
 
         private static object DictionaryToObject(object parsed, Type objtype)
@@ -146,6 +154,13 @@ namespace Thry
                     field.SetValue(returnObject, ParsedToObject(Helper.GetValueFromDictionary<string, object>(dict, field.Name), field.FieldType));
                 }
             }
+            foreach (PropertyInfo property in objtype.GetProperties())
+            {
+                if (property.CanWrite && property.CanRead && property.GetIndexParameters().Length == 0 && dict.ContainsKey(property.Name))
+                {
+                    property.SetValue(returnObject, ParsedToObject(Helper.GetValueFromDictionary<string, object>(dict, property.Name), property.PropertyType), null);
+                }
+            }
             return returnObject;
         }
 
@@ -157,6 +172,22 @@ namespace Thry
             foreach (object s in list_strings)
                 return_list.Add(ParsedToObject(s, list_obj_type));
             return return_list;
+        }
+
+        private static object ArrayToObject(object parsed, Type objtype)
+        {
+            Type array_obj_type = objtype.GetElementType();
+            List<object> list_strings = (List<object>)parsed;
+            IList return_list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(array_obj_type));
+            foreach (object s in list_strings)
+            {
+                object o = ParsedToObject(s, array_obj_type);
+                if(o!=null)
+                    return_list.Add(o);
+            }
+            object return_array = Activator.CreateInstance(objtype, return_list.Count);
+            return_list.CopyTo(return_array as Array, 0);
+            return return_array;
         }
 
         private static object PrimitiveToObject(object parsed, Type objtype)
@@ -173,11 +204,11 @@ namespace Thry
             if (obj == null) return "null";
             if (Helper.IsPrimitive(obj.GetType())) return PrimitiveToString(obj);
             if (obj.GetType() == typeof(List<object>)) return ListToString(obj);
-            if (obj.GetType().IsEnum)
-            {
-                return obj.ToString();
-            }
-            return ClassObjectToString(obj);
+            if (obj.GetType().IsArray) return ListToString(obj);
+            if (obj.GetType().IsEnum) return obj.ToString();
+            if (obj.GetType().IsClass) return ClassObjectToString(obj);
+            if (obj.GetType().IsValueType && !obj.GetType().IsEnum) return ClassObjectToString(obj);
+            return "";
         }
 
         private static string ClassObjectToString(object obj)
@@ -185,7 +216,13 @@ namespace Thry
             string ret = "{";
             foreach(FieldInfo field in obj.GetType().GetFields())
             {
-                ret += "\""+field.Name + "\"" + ":" + ObjectToString(field.GetValue(obj)) + ",";
+                if(field.IsPublic)
+                    ret += "\""+field.Name + "\"" + ":" + ObjectToString(field.GetValue(obj)) + ",";
+            }
+            foreach (PropertyInfo property in obj.GetType().GetProperties())
+            {
+                if(property.CanWrite && property.CanRead && property.GetIndexParameters().Length==0)
+                    ret += "\""+ property.Name + "\"" + ":" + ObjectToString(property.GetValue(obj,null)) + ",";
             }
             ret = ret.TrimEnd(new char[] { ',' });
             ret += "}";
@@ -195,7 +232,7 @@ namespace Thry
         private static string ListToString(object obj)
         {
             string ret = "[";
-            foreach (object o in (List<object>)obj)
+            foreach (object o in obj as IEnumerable)
             {
                 ret += ObjectToString(o) + ",";
             }

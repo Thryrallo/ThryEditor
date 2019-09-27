@@ -63,7 +63,7 @@ namespace Thry
 
         const string THRY_VRC_TOOLS_VERSION_PATH = "thry_vrc_tools_version";
 
-        const string MCS_NEEDED_PATH = "Assets/mcs.rsp";
+        const string MCS_NEEDED_PATH = "Assets/";
 
         private static string[][] SETTINGS_CONTENT = new string[][]
         {
@@ -154,33 +154,34 @@ namespace Thry
 
         private static void CheckAPICompatibility()
         {
-            if (PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone) != ApiCompatibilityLevel.NET_2_0)
-            {
+            ApiCompatibilityLevel level = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
+            if (level == ApiCompatibilityLevel.NET_2_0_Subset)
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
-            }
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_API_NET_TWO, true);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_API_NET_TWO, true, true);
         }
 
         private static void CheckMCS()
         {
-            int mcs_good = CheckMCSAvailability();
+            string filename = "mcs";
+            if (Helper.compareVersions("2018", Application.unityVersion) == 1)
+                filename = "csc";
+            int mcs_good = CheckRSPAvailability(filename);
             if (mcs_good == 0)
-                MoveMCS();
+                MoveRSP(filename);
             else if (mcs_good == -1)
-                GenerateMCS();
-            mcs_good = CheckMCSAvailability();
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_MCS_EXISTS, mcs_good == 1);
+                GenerateRSP(filename);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLE_MCS_EXISTS, mcs_good == 1, true);
         }
 
-        private static int CheckMCSAvailability()
+        private static int CheckRSPAvailability(string filename)
         {
             bool mcs_wrong_path = false;
-            foreach (string id in AssetDatabase.FindAssets("mcs"))
+            foreach (string id in AssetDatabase.FindAssets(filename))
             {
                 string path = AssetDatabase.GUIDToAssetPath(id);
-                if (path.Contains(MCS_NEEDED_PATH))
+                if (path.Contains(MCS_NEEDED_PATH+ filename))
                     return 1;
-                else if (path.Contains("mcs.rsp"))
+                else if (path.Contains(filename+".rsp"))
                     mcs_wrong_path = true;
             }
             if (mcs_wrong_path)
@@ -188,21 +189,21 @@ namespace Thry
             return -1;
         }
 
-        private static void MoveMCS()
+        private static void MoveRSP(string name)
         {
             foreach (string id in AssetDatabase.FindAssets("mcs"))
             {
                 string path = AssetDatabase.GUIDToAssetPath(id);
                 if (path.Contains("mcs.rsp"))
-                    AssetDatabase.MoveAsset(path, MCS_NEEDED_PATH);
+                    AssetDatabase.MoveAsset(path, MCS_NEEDED_PATH+ name + ".rsp");
             }
             AssetDatabase.Refresh();
         }
 
-        private static void GenerateMCS()
+        private static void GenerateRSP(string name)
         {
             string mcs_data = "-r:System.Drawing.dll";
-            Helper.WriteStringToFile(mcs_data, MCS_NEEDED_PATH);
+            Helper.WriteStringToFile(mcs_data, MCS_NEEDED_PATH+ name+ ".rsp");
             AssetDatabase.Refresh();
             CheckMCS();
         }

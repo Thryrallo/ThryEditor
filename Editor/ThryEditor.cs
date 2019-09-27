@@ -157,7 +157,7 @@ public class ThryEditor : ShaderGUI
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
-            ThryEditorGuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasScaleOffset);
+            GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasScaleOffset);
             DrawingData.lastGuiObjectRect = pos;
         }
     }
@@ -420,7 +420,7 @@ public class ThryEditor : ShaderGUI
             window.Focus();
         }
         //draw master label if exists
-		if (masterLabelText != null) ThryEditorGuiHelper.DrawMasterLabel(masterLabelText);
+		if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText);
         //draw presets if exists
 
         presetHandler.drawPresets(current.properties, current.materials);
@@ -434,18 +434,18 @@ public class ThryEditor : ShaderGUI
 
         //Mateiral Options
         if (current.draw_material_option_lightmap)
-            ThryEditorGuiHelper.DrawLightmapFlagsOptions();
+            GuiHelper.DrawLightmapFlagsOptions();
         if (current.draw_material_option_instancing)
-            ThryEditorGuiHelper.DrawInstancingOptions();
+            GuiHelper.DrawInstancingOptions();
         if (current.draw_material_option_dsgi)
-            ThryEditorGuiHelper.DrawDSGIOptions();
+            GuiHelper.DrawDSGIOptions();
 
         //Render Queue selection
         if (config.showRenderQueue)
         {
             if (config.renderQueueShaders)
             {
-                customQueueFieldInput = ThryEditorGuiHelper.drawRenderQueueSelector(current.defaultShader, customQueueFieldInput);
+                customQueueFieldInput = GuiHelper.drawRenderQueueSelector(current.defaultShader, customQueueFieldInput);
                 EditorGUILayout.LabelField("Default: " + current.defaultShader.name);
                 EditorGUILayout.LabelField("Shader: " + current.shader.name);
             }
@@ -456,7 +456,7 @@ public class ThryEditor : ShaderGUI
         }
 
         //footer
-        ThryEditorGuiHelper.drawFooters(footer);
+        GuiHelper.drawFooters(footer);
 
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
         if (reloadNextDraw) reloadNextDraw = false;
