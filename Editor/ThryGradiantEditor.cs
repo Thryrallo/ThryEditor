@@ -14,6 +14,7 @@ namespace Thry
         public static void Open(GradientData data, MaterialProperty prop)
         {
             data.gradient = Helper.GetGradient(prop.textureValue);
+            texture_settings_data = null;
             GradientEditor window = (GradientEditor)EditorWindow.GetWindow(typeof(GradientEditor));
             window.privious_preview_texture = prop.textureValue;
             window.prop = prop;
