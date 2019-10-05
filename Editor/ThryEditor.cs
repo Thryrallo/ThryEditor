@@ -196,7 +196,8 @@ public class ThryEditor : ShaderGUI
             string[] parts = displayName.Split(new string[] { EXTRA_OPTION_PREFIX }, 2, System.StringSplitOptions.None);
             displayName = parts[0];
             PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
-            return options;
+            if(options!=null)
+                return options;
         }
         return new PropertyOptions();
     }
