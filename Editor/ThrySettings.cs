@@ -205,7 +205,6 @@ namespace Thry
             string mcs_data = "-r:System.Drawing.dll";
             Helper.WriteStringToFile(mcs_data, MCS_NEEDED_PATH+ name+ ".rsp");
             AssetDatabase.Refresh();
-            CheckMCS();
         }
 
         //------------------Helpers----------------------------
