@@ -262,7 +262,7 @@ namespace Thry
         private void GUINotification()
         {
             if (isFirstPopop)
-                GUILayout.Label(" Thry Shader Editor successfully installed. This is the editor settings window.", Styles.Get().yellowStyle);
+                GUILayout.Label(" Thry Shader Editor successfully installed. This is the editor settings window.", Styles.Get().greenStyle);
             else if (updatedVersion == -1)
                 GUILayout.Label(" Thry editor has been updated", Styles.Get().greenStyle);
             else if (updatedVersion == 1)
