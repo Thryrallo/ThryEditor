@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -8,17 +11,19 @@ namespace Thry
 {
     public class Config
     {
-        //static methods
+        // consts
+        private const string PATH_CONFIG_FILE = "Thry/Config.json";
+        private const string VERSION = "0.22";
+
+        // static
         private static Config config;
-        private const string CONFIG_FILE_PATH = "Assets/.ThryConfig.json";
-        private const string VERSION = "0.21.4";
 
         [InitializeOnLoad]
         public class Startup
         {
             static Startup()
             {
-                if (!File.Exists(CONFIG_FILE_PATH)) Settings.firstTimePopup();
+                if (!File.Exists(PATH_CONFIG_FILE)) Settings.firstTimePopup();
                 else
                 {
                     int versionComparision = Helper.compareVersions(VERSION, Get().verion);
@@ -35,20 +40,10 @@ namespace Thry
         //load the config from file
         private static Config LoadConfig()
         {
-            Config config = null;
-            if (File.Exists(CONFIG_FILE_PATH))
-            {
-                StreamReader reader = new StreamReader(CONFIG_FILE_PATH);
-                config = JsonUtility.FromJson<Config>(reader.ReadToEnd());
-                reader.Close();
-            }
-            else
-            {
-                File.CreateText(CONFIG_FILE_PATH).Close();
-                config = new Config();
-                config.save();
-            }
-            return config;
+            if (File.Exists(PATH_CONFIG_FILE))
+                return JsonUtility.FromJson<Config>(Helper.ReadFileIntoString(PATH_CONFIG_FILE));
+            new Config().save();
+            return new Config();
         }
 
         public static Config Get()
@@ -65,18 +60,11 @@ namespace Thry
         public string gradient_name = "gradient_<hash>.png";
 
         public bool showImportPopup = false;
-        public string verion = "0";
+        public string verion = VERSION;
 
         public void save()
         {
-            StreamWriter writer = new StreamWriter(CONFIG_FILE_PATH, false);
-            writer.WriteLine(this.SaveToString());
-            writer.Close();
-        }
-
-        public string SaveToString()
-        {
-            return JsonUtility.ToJson(this);
+            Helper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
         }
     }
 }

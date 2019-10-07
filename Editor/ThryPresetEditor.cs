@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -44,7 +47,7 @@ namespace Thry
             foreach (string g in sguids)
             {
                 Shader s = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g));
-                if (new Material(s).HasProperty("shader_presets") && !s.name.Contains("-queue")) shaders.Add(s);
+                if (new Material(s).HasProperty(ThryEditor.PROPERTY_NAME_PRESETS_FILE) && !s.name.Contains("-queue")) shaders.Add(s);
                 if (s == Settings.activeShader) selectedShaderIndex = shaders.Count - 1;
             }
             this.shaders = new string[shaders.Count];

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -43,7 +46,7 @@ namespace Thry
         public static TextureData GetTextureSettings(MaterialProperty prop)
         {
             TextureData defined_default = ThryEditor.currentlyDrawing.currentProperty.options.texture;
-            string json_texture_settings = Helper.LoadValueFromFile("gradient_texture_options_"+prop.name, ".thry_persistent_data");
+            string json_texture_settings = Helper.LoadValueFromFile("gradient_texture_options_"+prop.name, PATH.PERSISTENT_DATA);
             if (json_texture_settings != null)
                 return Parser.ParseToObject<TextureData>(json_texture_settings);
             else if (defined_default != null)
@@ -80,9 +83,9 @@ namespace Thry
                 if (data.preview_texture.GetType() == typeof(Texture2D))
                 {
                     string file_name = GradientFileName(data.gradient, prop.targets[0].name); ;
-                    Texture saved = Helper.SaveTextureAsPNG((Texture2D)data.preview_texture, "Assets/Textures/Gradients/" + file_name, textureSettings);
+                    Texture saved = Helper.SaveTextureAsPNG((Texture2D)data.preview_texture, PATH.TEXTURES_DIR+"/Gradients/" + file_name, textureSettings);
                     file_name = Regex.Replace(file_name, @"\.((png)|(jpg))$", "");
-                    Helper.SaveValueToFile(file_name, Parser.ObjectToString(data.gradient), ".thry_gradients");
+                    Helper.SaveValueToFile(file_name, Parser.ObjectToString(data.gradient), PATH.GRADIENT_INFO_FILE);
                     prop.textureValue = saved;
                 }
             }
@@ -197,7 +200,7 @@ namespace Thry
             bool changed = GuiHelper.GUIDataStruct<TextureData>(textureSettings, new string[]{"name"});
             if (changed)
             {
-                Helper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.ObjectToString(textureSettings), ".thry_persistent_data");
+                Helper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.ObjectToString(textureSettings), PATH.PERSISTENT_DATA);
                 UpdateGradientPreviewTexture();
             }
         }

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -27,6 +30,11 @@ namespace Thry
             return url;
         }
 
+        /// <summary>
+        /// returns string up to (excluding) last '.'
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns>returns input string if not possible</returns>
         public static string RemoveFileExtension(this string file)
         {
             Match m = Regex.Match(file, @".+?(?=\.|$)");
@@ -35,6 +43,11 @@ namespace Thry
             return file;
         }
 
+        /// <summary>
+        /// returns string up to (including) last '/'
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns>returns input string if not possible</returns>
         public static string RemoveFileName(this string file)
         {
             Match m = Regex.Match(file, @".+\/");
@@ -43,12 +56,17 @@ namespace Thry
             return file;
         }
 
+        /// <summary>
+        /// returns string up to (excluding) last '/'
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns>returns emtpy string if not possible</returns>
         public static string GetDirectoryPath(this string file)
         {
             Match m = Regex.Match(file, @".+(?=\/)");
             if (m.Success)
                 return m.Value;
-            return file;
+            return "";
         }
 
         public static bool EndsOnFileExtension(this string s)
@@ -69,9 +87,11 @@ namespace Thry
 
     public class Helper
     {
-
-        public const string DELETING_FOLDER = "thry_trash";
-
+        /// <summary>
+        /// Finds the path of the specified file in the Unity AssetDatabase
+        /// </summary>
+        /// <param name="filename">Name of file</param>
+        /// <returns>if found returns path else returns filename</returns>
         public static string FindPathOfFileWithExtension(string filename)
         {
             string[] guids = AssetDatabase.FindAssets(filename.RemoveFileExtension());
@@ -84,6 +104,11 @@ namespace Thry
             return filename;
         }
 
+        /// <summary>
+        /// Finds the paths of all files with specified name in the Unity AssetDatabase
+        /// </summary>
+        /// <param name="filename">Name of files</param>
+        /// <returns>if found returns paths list</returns>
         public static List<string> FindPathsOfFilesWithExtension(string filename)
         {
             List<string> ret = new List<string>();
@@ -189,7 +214,7 @@ namespace Thry
         {
             if (texture != null)
             {
-                string gradient_data_string = Helper.LoadValueFromFile(texture.name, ".thry_gradients");
+                string gradient_data_string = Helper.LoadValueFromFile(texture.name, PATH.GRADIENT_INFO_FILE);
                 if (gradient_data_string != null)
                 {
                     return Parser.ParseToObject<Gradient>(gradient_data_string);
@@ -327,27 +352,6 @@ namespace Thry
             }
         }
 
-        //used to parse extra options in display name like offset
-        public static int propertyOptionToInt(string optionName, string displayName)
-        {
-            int ret = 0;
-            string value = getPropertyOptionValue(optionName, displayName);
-            int.TryParse(value, out ret);
-            return ret;
-        }
-
-        public static string getPropertyOptionValue(string optionName, string displayName)
-        {
-            string pattern = @"" + ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX + "[^-]+";
-            Match match = Regex.Match(displayName, pattern);
-            if (match.Success)
-            {
-                string value = match.Value.Replace(ThryEditor.EXTRA_OPTION_PREFIX + optionName + ThryEditor.EXTRA_OPTION_INFIX, "");
-                return value;
-            }
-            return "";
-        }
-
         //-----------------------File Interaction---------------------
 
         public static string FindFileAndReadIntoString(string fileName)
@@ -367,7 +371,11 @@ namespace Thry
 
         public static string ReadFileIntoString(string path)
         {
-            if (!File.Exists(path)) File.Create(path).Close();
+            if (!File.Exists(path))
+            {
+                CreateFileWithDirectories(path);
+                return "";
+            }
             StreamReader reader = new StreamReader(path);
             string ret = reader.ReadToEnd();
             reader.Close();
@@ -376,9 +384,7 @@ namespace Thry
 
         public static void WriteStringToFile(string s, string path)
         {
-            Match dirMatch = Regex.Match(path, @".*\/");
-            if (dirMatch.Success) Directory.CreateDirectory(dirMatch.Value);
-            if (!File.Exists(path)) File.Create(path).Close();
+            if (!File.Exists(path)) CreateFileWithDirectories(path);
             StreamWriter writer = new StreamWriter(path, false);
             writer.Write(s);
             writer.Close();
@@ -386,9 +392,7 @@ namespace Thry
 
         public static bool writeBytesToFile(byte[] bytes, string path)
         {
-            Match dirMatch = Regex.Match(path, @".*\/");
-            if (dirMatch.Success) Directory.CreateDirectory(dirMatch.Value);
-            if (!File.Exists(path)) File.Create(path).Close();
+            if (!File.Exists(path)) if (!File.Exists(path)) CreateFileWithDirectories(path);
             try
             {
                 using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
@@ -402,6 +406,14 @@ namespace Thry
                 Debug.Log("Exception caught in process: " + ex.ToString());
                 return false;
             }
+        }
+
+        public static void CreateFileWithDirectories(string path)
+        {
+            string dir_path = path.GetDirectoryPath();
+            if(dir_path!="")
+                Directory.CreateDirectory(dir_path);
+            File.Create(path).Close();
         }
 
         //-------------------Unity Helpers-----------------------------
@@ -793,9 +805,9 @@ namespace Thry
         {
             static DeleteFilesInTrash()
             {
-                if (Directory.Exists(DELETING_FOLDER))
+                if (Directory.Exists(PATH.DELETING_DIR))
                 {
-                    DeleteDirectory(DELETING_FOLDER);
+                    DeleteDirectory(PATH.DELETING_DIR);
                 }
             }
             static void DeleteDirectory(string path)

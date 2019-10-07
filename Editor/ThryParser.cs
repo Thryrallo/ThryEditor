@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;

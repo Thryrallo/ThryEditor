@@ -1,3 +1,6 @@
+// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -7,27 +10,31 @@ using Thry;
 
 public class ThryEditor : ShaderGUI
 {
-    public const string EXTRA_OPTION_PREFIX = "--";
-    public const string EXTRA_OPTION_INFIX = "=";
-    public const string EXTRA_OPTION_EXTRA_OFFSET = "extraOffset"; //can be used to specify and extra x-offset for properties
-    public const string EXTRA_OPTION_HOVER_TEXT = "hover";
-    public const string EXTRA_OPTION_ALT_CLICK = "altClick";
-    public const string EXTRA_OPTION_BUTTON_RIGHT = "button_right";
+    public const string EXTRA_OPTIONS_PREFIX = "--";
     public const float MATERIAL_NOT_RESET = 69.12f;
 
-    private ShaderHeader shaderparts; //stores headers and properties in correct order
-    private Texture2D settingsTexture;
+    public const string PROPERTY_NAME_USING_THRY_EDITOR = "shader_is_using_thry_editor";
+    public const string PROPERTY_NAME_MASTER_LABEL = "shader_master_label";
+    public const string PROPERTY_NAME_PRESETS_FILE = "shader_presets";
+    public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
 
+    private static Texture2D settingsTexture;
+
+    // Stores the different shader properties
+    private ShaderHeader shaderparts;
+
+    // UI Instance Variables
+	private PresetHandler presetHandler;
+    private int customRenderQueueFieldInput = -1;
+
+    // shader specified values
     private string masterLabelText = null;
+    private List<ButtonData> footer;
 
-    private List<ButtonData> footer; //footers
-
-	private PresetHandler presetHandler; //handles the presets
-
-    private int customQueueFieldInput = -1;
-
+    // sates
     private static bool reloadNextDraw = false;
     private bool firstOnGUICall = true;
+    private bool wasUsed = false;
 
     public static bool HadMouseDownRepaint = false;
     public static bool HadMouseDown = false;
@@ -35,8 +42,7 @@ public class ThryEditor : ShaderGUI
 
     public static Vector2 lastDragPosition;
 
-    private bool wasUsed = false;
-
+    // Contains Editor Data
     private EditorData current;
     public static EditorData currentlyDrawing;
 
@@ -168,7 +174,7 @@ public class ThryEditor : ShaderGUI
     {
         //load display names from file if it exists
         MaterialProperty label_file_property = null;
-        foreach (MaterialProperty m in current.properties) if (m.name == "shader_properties_label_file") label_file_property = m;
+        foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LABEL_FILE) label_file_property = m;
         Dictionary<string, string> labels = new Dictionary<string, string>();
         if (label_file_property != null)
         {
@@ -193,7 +199,7 @@ public class ThryEditor : ShaderGUI
     {
         if (displayName.Contains("--"))
         {
-            string[] parts = displayName.Split(new string[] { EXTRA_OPTION_PREFIX }, 2, System.StringSplitOptions.None);
+            string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
             displayName = parts[0];
             PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
             if(options!=null)
@@ -341,12 +347,15 @@ public class ThryEditor : ShaderGUI
         CollectAllProperties();
 
         //init settings texture
-        byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
-        settingsTexture = new Texture2D(2, 2);
-        settingsTexture.LoadImage(fileData);
+        if (settingsTexture == null)
+        {
+            byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
+            settingsTexture = new Texture2D(2, 2);
+            settingsTexture.LoadImage(fileData);
+        }
 
         //init master label
-        MaterialProperty shader_master_label = FindProperty(current.properties, "shader_master_label");
+        MaterialProperty shader_master_label = FindProperty(current.properties, PROPERTY_NAME_MASTER_LABEL);
         if (shader_master_label != null) masterLabelText = shader_master_label.displayName;
 
         current.shader = current.materials[0].shader;
@@ -360,7 +369,7 @@ public class ThryEditor : ShaderGUI
             UpdateRenderQueueInstance();
         }
 
-        foreach (MaterialProperty p in current.properties) if (p.name == "shader_is_using_thry_editor") p.floatValue = MATERIAL_NOT_RESET;
+        foreach (MaterialProperty p in current.properties) if (p.name == PROPERTY_NAME_USING_THRY_EDITOR) p.floatValue = MATERIAL_NOT_RESET;
 
         if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = false;
@@ -446,7 +455,7 @@ public class ThryEditor : ShaderGUI
         {
             if (config.renderQueueShaders)
             {
-                customQueueFieldInput = GuiHelper.drawRenderQueueSelector(current.defaultShader, customQueueFieldInput);
+                customRenderQueueFieldInput = GuiHelper.drawRenderQueueSelector(current.defaultShader, customRenderQueueFieldInput);
                 EditorGUILayout.LabelField("Default: " + current.defaultShader.name);
                 EditorGUILayout.LabelField("Shader: " + current.shader.name);
             }
@@ -471,7 +480,7 @@ public class ThryEditor : ShaderGUI
         if (wasUsed && e.type == EventType.Repaint)
         {
             foreach (MaterialProperty p in props)
-                if (p.name == "shader_is_using_thry_editor" && p.floatValue != MATERIAL_NOT_RESET)
+                if (p.name == PROPERTY_NAME_USING_THRY_EDITOR && p.floatValue != MATERIAL_NOT_RESET)
                 {
                     reloadNextDraw = true;
                     TextTextureDrawer.ResetMaterials();

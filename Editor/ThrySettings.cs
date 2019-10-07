@@ -1,4 +1,6 @@
-﻿
+﻿// Material/Shader Inspector for Unity 2017/2018
+// Copyright (C) 2019 Thryrallo
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -50,20 +52,11 @@ namespace Thry
         private bool isFirstPopop = false;
         private int updatedVersion = 0;
 
+        private bool is_init = false;
+
         public static bool is_changing_vrc_sdk = false;
-
-        public const string DEFINE_SYMBOLE_VRC_SDK_INSTALLED = "VRC_SDK_EXISTS";
-        public const string DEFINE_SYMBOLE_API_NET_TWO = "NET_SET_TWO_POINT_ZERO";
-        public const string DEFINE_SYMBOLE_MCS_EXISTS = "MCS_EXISTS";
-
-        const string THRY_MCS_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditor/master/mcs.rsp";
-
-        const string THRY_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
+        
         public static ButtonData thry_message = null;
-
-        const string THRY_VRC_TOOLS_VERSION_PATH = "thry_vrc_tools_version";
-
-        const string MCS_NEEDED_PATH = "Assets/";
 
         private static string[][] SETTINGS_CONTENT = new string[][]
         {
@@ -91,7 +84,7 @@ namespace Thry
                 {
                     Shader shader = (Shader)obj;
                     Material m = new Material(shader);
-                    if (m.HasProperty(Shader.PropertyToID("shader_is_using_thry_editor")))
+                    if (m.HasProperty(Shader.PropertyToID(ThryEditor.PROPERTY_NAME_USING_THRY_EDITOR)))
                     {
                         setActiveShader(shader);
                     }
@@ -117,11 +110,10 @@ namespace Thry
 
         private void InitVariables()
         {
-            is_changing_vrc_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", ".thry_after_compile_data") == "true") || (Helper.LoadValueFromFile("update_vrc_sdk", ".thry_after_compile_data") == "true");
+            is_changing_vrc_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true") || (Helper.LoadValueFromFile("update_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true");
 
             CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
             CheckMCS(); //check that MCS is imported
-            SetupStyle(); //setup styles
             CheckVRCSDK();
 
             List<Type> subclasses = typeof(ModuleSettings).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ModuleSettings))).ToList<Type>();
@@ -132,14 +124,16 @@ namespace Thry
                 moduleSettings[i++] = (ModuleSettings)Activator.CreateInstance(classtype);
             }
 
+            is_init = true;
+
             if (thry_message == null)
-                Helper.DownloadStringASync(THRY_MESSAGE_URL, delegate (string s) { thry_message = Parser.ParseToObject<ButtonData>(s); });
+                Helper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, delegate (string s) { thry_message = Parser.ParseToObject<ButtonData>(s); });
         }
 
         private static void CheckVRCSDK()
         {
             if (!Settings.is_changing_vrc_sdk)
-                Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed);
+                Helper.SetDefineSymbol(DEFINE_SYMBOLS.VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed);
         }
 
         private static void CheckVRCSDK(string[] importedAssets)
@@ -147,9 +141,9 @@ namespace Thry
             bool vrcImported = false;
             foreach (string s in importedAssets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
 
-            bool currently_deleteing_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", ".thry_after_compile_data") == "true");
+            bool currently_deleteing_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true");
             if (!Settings.is_changing_vrc_sdk && !currently_deleteing_sdk)
-                Helper.SetDefineSymbol(DEFINE_SYMBOLE_VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed | vrcImported);
+                Helper.SetDefineSymbol(DEFINE_SYMBOLS.VRC_SDK_INSTALLED, VRCInterface.Get().sdk_is_installed | vrcImported);
         }
 
         private static void CheckAPICompatibility()
@@ -157,11 +151,12 @@ namespace Thry
             ApiCompatibilityLevel level = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
             if (level == ApiCompatibilityLevel.NET_2_0_Subset)
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_API_NET_TWO, true, true);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLS.API_NET_TWO, true, true);
         }
 
         private static void CheckMCS()
         {
+            //change to decision based on .net version
             string filename = "mcs";
             if (Helper.compareVersions("2018", Application.unityVersion) == 1)
                 filename = "csc";
@@ -170,7 +165,7 @@ namespace Thry
                 MoveRSP(filename);
             else if (mcs_good == -1)
                 GenerateRSP(filename);
-            Helper.SetDefineSymbol(DEFINE_SYMBOLE_MCS_EXISTS, mcs_good == 1, true);
+            Helper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, mcs_good == 1, true);
         }
 
         private static int CheckRSPAvailability(string filename)
@@ -179,7 +174,7 @@ namespace Thry
             foreach (string id in AssetDatabase.FindAssets(filename))
             {
                 string path = AssetDatabase.GUIDToAssetPath(id);
-                if (path.Contains(MCS_NEEDED_PATH+ filename))
+                if (path.Contains(PATH.RSP_NEEDED_PATH+ filename))
                     return 1;
                 else if (path.Contains(filename+".rsp"))
                     mcs_wrong_path = true;
@@ -195,7 +190,7 @@ namespace Thry
             {
                 string path = AssetDatabase.GUIDToAssetPath(id);
                 if (path.Contains("mcs.rsp"))
-                    AssetDatabase.MoveAsset(path, MCS_NEEDED_PATH+ name + ".rsp");
+                    AssetDatabase.MoveAsset(path, PATH.RSP_NEEDED_PATH + name + ".rsp");
             }
             AssetDatabase.Refresh();
         }
@@ -203,7 +198,7 @@ namespace Thry
         private static void GenerateRSP(string name)
         {
             string mcs_data = "-r:System.Drawing.dll";
-            Helper.WriteStringToFile(mcs_data, MCS_NEEDED_PATH+ name+ ".rsp");
+            Helper.WriteStringToFile(mcs_data, PATH.RSP_NEEDED_PATH + name+ ".rsp");
             AssetDatabase.Refresh();
         }
 
@@ -236,7 +231,7 @@ namespace Thry
         //------------------Main GUI
         void OnGUI()
         {
-            if (!style_setup) InitVariables();
+            if (!is_init) InitVariables();
             GUILayout.Label("ThryEditor v" + Config.Get().verion);
 
             GUINotification();
@@ -257,30 +252,6 @@ namespace Thry
 
         //--------------------------GUI Helpers-----------------------------
 
-        private static GUIStyle redInfostyle;
-        private static GUIStyle redStyle;
-        private static GUIStyle yellowStyle;
-        private static GUIStyle greenStyle;
-        private static bool style_setup = false;
-
-        private static void SetupStyle()
-        {
-            redInfostyle = new GUIStyle();
-            redInfostyle.normal.textColor = Color.red;
-            redInfostyle.fontSize = 16;
-
-            redStyle = new GUIStyle();
-            redStyle.normal.textColor = Color.red;
-
-            yellowStyle = new GUIStyle();
-            yellowStyle.normal.textColor = Color.yellow;
-
-            greenStyle = new GUIStyle();
-            greenStyle.normal.textColor = new Color(0, 0.5f, 0);
-
-            style_setup = true;
-        }
-
         private static void drawLine()
         {
             Rect rect = EditorGUILayout.GetControlRect(false, 1);
@@ -291,11 +262,11 @@ namespace Thry
         private void GUINotification()
         {
             if (isFirstPopop)
-                GUILayout.Label(" Please review your thry editor configuration", redInfostyle);
+                GUILayout.Label(" Thry Shader Editor successfully installed. This is the editor settings window.", Styles.Get().yellowStyle);
             else if (updatedVersion == -1)
-                GUILayout.Label(" Thry editor has been updated", redInfostyle);
+                GUILayout.Label(" Thry editor has been updated", Styles.Get().greenStyle);
             else if (updatedVersion == 1)
-                GUILayout.Label(" Warning: Thry editor version has declined", redInfostyle);
+                GUILayout.Label(" Warning: The Version of Thry Editor has declined", Styles.Get().yellowStyle);
         }
 
         private void GUIMessage()
@@ -392,16 +363,16 @@ namespace Thry
             Text("gradient_name", SETTINGS_CONTENT[(int)SETTINGS_IDX.gradient_file_name], false);
             string gradient_name = config.gradient_name;
             if (gradient_name.Contains("<hash>"))
-                GUILayout.Label("Good naming.", greenStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label("Good naming.", Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<material>"))
                 if (gradient_name.Contains("<prop>"))
-                    GUILayout.Label("Good naming.", greenStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label("Good naming.", Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
                 else
-                    GUILayout.Label("Consider adding <hash> or <prop>.", yellowStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label("Consider adding <hash> or <prop>.", Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<prop>"))
-                GUILayout.Label("Consider adding <material>.", yellowStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label("Consider adding <material>.", Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
             else
-                GUILayout.Label("Add <material> <hash> or <prop> to destingish between gradients.", redStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label("Add <material> <hash> or <prop> to destingish between gradients.", Styles.Get().redStyle, GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
         }
 
@@ -438,11 +409,10 @@ namespace Thry
                 EditorGUI.EndDisabledGroup();
                 if (module.available_module.requirement != null && (update_available || !is_installed))
                 {
-                    GUIStyle requirementStyle = new GUIStyle(EditorStyles.label);
-                    requirementStyle.normal.textColor = greenStyle.normal.textColor;
-                    if(!module.available_requirement_fullfilled)
-                        requirementStyle.normal.textColor = redInfostyle.normal.textColor;
-                    GUILayout.Label("Requirements: " + module.available_module.requirement.ToString(),requirementStyle);
+                    if(module.available_requirement_fullfilled)
+                        GUILayout.Label("Requirements: " + module.available_module.requirement.ToString(), Styles.Get().greenStyle);
+                    else
+                        GUILayout.Label("Requirements: " + module.available_module.requirement.ToString(), Styles.Get().redStyle);
                 }
                 EditorGUILayout.EndHorizontal();
             }
