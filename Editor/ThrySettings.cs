@@ -117,7 +117,6 @@ namespace Thry
             is_changing_vrc_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true") || (Helper.LoadValueFromFile("update_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true");
 
             CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
-            CheckRuntimeVersion();
             CheckDrawingDll(); //check that drawing.dll is imported
             CheckVRCSDK();
 
@@ -147,15 +146,6 @@ namespace Thry
             if (level == ApiCompatibilityLevel.NET_2_0_Subset)
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
             Helper.SetDefineSymbol(DEFINE_SYMBOLS.API_NET_TWO, true, true);
-        }
-
-        private static void CheckRuntimeVersion()
-        {
-            if(Helper.compareVersions("2018", Application.unityVersion) == 1)
-            {
-                if (PlayerSettings.scriptingRuntimeVersion == ScriptingRuntimeVersion.Legacy)
-                    PlayerSettings.scriptingRuntimeVersion = ScriptingRuntimeVersion.Latest;
-            }
         }
 
         private static void CheckDrawingDll()
