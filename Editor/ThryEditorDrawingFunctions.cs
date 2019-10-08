@@ -21,7 +21,7 @@ namespace Thry
             else drawSmallTextureProperty(position, prop, label, editor, scaleOffset);
         }
 
-        public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
+        public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset, bool has_panning_field = false)
         {
             Rect thumbnailPos = position;
             thumbnailPos.x += scaleOffset ? 20 : 0;
@@ -33,7 +33,17 @@ namespace Thry
                 if (Event.current.type == EventType.Repaint)
                     EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showScaleOffset, false);
                 //test click and draw scale/offset
-                if (DrawingData.currentTexProperty.showScaleOffset) ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
+                if (DrawingData.currentTexProperty.showScaleOffset)
+                {
+                    ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
+                    if (has_panning_field && ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null)
+                    {
+                        ThryEditor.ShaderProperty pan_property = ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.currentlyDrawing.currentProperty.options.reference_property];
+                        EditorGUI.indentLevel *= 2;
+                        ThryEditor.currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(pan_property.content, Styles.Get().vectorPropertyStyle), pan_property.materialProperty, pan_property.content);
+                        EditorGUI.indentLevel /= 2;
+                    }
+                }
                 if (ThryEditor.MouseClick && position.Contains(Event.current.mousePosition))
                 {
                     DrawingData.currentTexProperty.showScaleOffset = !DrawingData.currentTexProperty.showScaleOffset;

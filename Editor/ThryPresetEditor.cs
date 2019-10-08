@@ -40,20 +40,7 @@ namespace Thry
         private bool newPreset = false;
         private string newPresetName;
 
-        private void loadShaders()
-        {
-            string[] sguids = AssetDatabase.FindAssets("t:shader");
-            List<Shader> shaders = new List<Shader>();
-            foreach (string g in sguids)
-            {
-                Shader s = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g));
-                if (new Material(s).HasProperty(ThryEditor.PROPERTY_NAME_PRESETS_FILE) && !s.name.Contains("-queue")) shaders.Add(s);
-                if (s == Settings.activeShader) selectedShaderIndex = shaders.Count - 1;
-            }
-            this.shaders = new string[shaders.Count];
-            Shader[] ar = shaders.ToArray();
-            for (int i = 0; i < shaders.Count; i++) this.shaders[i] = ar[i].name;
-        }
+        
 
         private static GUIStyle propertyBackground;
 
@@ -72,7 +59,12 @@ namespace Thry
 
         void OnGUI()
         {
-            if (shaders == null) loadShaders();
+            if (shaders == null)
+            {
+                this.shaders = Helper.GetThryEditorShaderNames();
+                for(int i= 0;i < shaders.Length;i++)
+                    if (shaders[i] == Settings.activeShader.name) selectedShaderIndex = i;
+            }
             if (propertyBackground == null) setupStyle();
             Shader activeShader = Settings.activeShader;
             int newIndex = EditorGUILayout.Popup(selectedShaderIndex, shaders, GUILayout.MaxWidth(500));

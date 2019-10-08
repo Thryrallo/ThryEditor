@@ -108,14 +108,10 @@ namespace Thry
             AssetDatabase.Refresh();
         }
 
-        [InitializeOnLoad]
-        public class Startup
+        public static void OnCompile()
         {
-            static Startup()
-            {
-                if (Helper.LoadValueFromFile("delete_vrc_sdk",  PATH.AFTER_COMPILE_DATA)=="true")
-                    DeleteVRCSDKFolder();
-            }
+            if (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true")
+                DeleteVRCSDKFolder();
         }
 
         private static void DeleteVRCSDKFolder()
@@ -157,6 +153,33 @@ namespace Thry
             AssetDatabase.ImportPackage(PATH.TEMP_VRC_SDK_PACKAGE, false);
             File.Delete(PATH.TEMP_VRC_SDK_PACKAGE);
             Update();
+        }
+
+        public static void SetVRCDefineSybolIfSDKImported(string[] importedAssets)
+        {
+            bool currently_deleteing_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true");
+            if (!Settings.is_changing_vrc_sdk && !currently_deleteing_sdk && AssetsContainVRCSDK(importedAssets))
+            {
+                Helper.SetDefineSymbol(DEFINE_SYMBOLS.VRC_SDK_INSTALLED, true);
+                Update();
+            }
+        }
+
+        public static void SetVRCDefineSybolIfSDKDeleted(string[] importedAssets)
+        {
+            bool currently_deleteing_sdk = (Helper.LoadValueFromFile("delete_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true");
+            if (!Settings.is_changing_vrc_sdk && !currently_deleteing_sdk && AssetsContainVRCSDK(importedAssets))
+            {
+                Helper.SetDefineSymbol(DEFINE_SYMBOLS.VRC_SDK_INSTALLED, false);
+                Update();
+            }
+        }
+
+        public static bool AssetsContainVRCSDK(string[] assets)
+        {
+            bool vrcImported = false;
+            foreach (string s in assets) if (s.Contains("VRCSDK2.dll")) vrcImported = true;
+            return vrcImported; 
         }
     }
 }

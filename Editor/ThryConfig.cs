@@ -13,26 +13,22 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "0.22.1";
+        private const string VERSION = "0.23";
 
         // static
         private static Config config;
 
-        [InitializeOnLoad]
-        public class Startup
+        public static void OnCompile()
         {
-            static Startup()
+            if (!File.Exists(PATH_CONFIG_FILE)) Settings.firstTimePopup();
+            else
             {
-                if (!File.Exists(PATH_CONFIG_FILE)) Settings.firstTimePopup();
-                else
+                int versionComparision = Helper.compareVersions(VERSION, Get().verion);
+                if (versionComparision != 0)
                 {
-                    int versionComparision = Helper.compareVersions(VERSION, Get().verion);
-                    if (versionComparision != 0)
-                    {
-                        config.verion = VERSION;
-                        config.save();
-                        Settings.updatedPopup(versionComparision);
-                    }
+                    config.verion = VERSION;
+                    config.save();
+                    Settings.updatedPopup(versionComparision);
                 }
             }
         }
@@ -61,6 +57,11 @@ namespace Thry
 
         public bool showImportPopup = false;
         public string verion = VERSION;
+
+        public bool share_user_data = true;
+        public bool share_installed_unity_version = true;
+        public bool share_installed_editor_version = true;
+        public bool share_used_shaders = true;
 
         public void save()
         {

@@ -122,6 +122,38 @@ namespace Thry
             return ret;
         }
 
+        public static void SendAnalytics()
+        {
+            string url_values_postfix = "?hash="+ GetMacAddress().GetHashCode();
+            if (Config.Get().share_installed_editor_version) url_values_postfix += "&editor=" + Config.Get().verion;
+            if (Config.Get().share_installed_unity_version) url_values_postfix += "&unity=" + Application.unityVersion;
+            if (Config.Get().share_used_shaders) url_values_postfix += "&shaders="+Parser.ObjectToString(GetThryEditorShaderNames());
+            DownloadStringASync(URL.DATA_SHARE_SEND+url_values_postfix, null);
+        }
+
+        public static string GetMacAddress()
+        {
+            return (from nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                where nic.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up
+                select nic.GetPhysicalAddress().ToString()
+            ).FirstOrDefault();
+        }
+
+        public static string[] GetThryEditorShaderNames()
+        {
+            string[] sguids = AssetDatabase.FindAssets("t:shader");
+            List<Shader> shaders = new List<Shader>();
+            foreach (string g in sguids)
+            {
+                Shader s = AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g));
+                if (new Material(s).HasProperty(ThryEditor.PROPERTY_NAME_PRESETS_FILE) && !s.name.Contains("-queue")) shaders.Add(s);
+            }
+            string[] shader_names = new string[shaders.Count];
+            Shader[] ar = shaders.ToArray();
+            for (int i = 0; i < shaders.Count; i++) shader_names[i] = ar[i].name;
+            return shader_names;
+        }
+
         public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
         {
             valuetype value = default(valuetype);
@@ -411,7 +443,7 @@ namespace Thry
         public static void CreateFileWithDirectories(string path)
         {
             string dir_path = path.GetDirectoryPath();
-            if(dir_path!="")
+            if (dir_path != "")
                 Directory.CreateDirectory(dir_path);
             File.Create(path).Close();
         }
@@ -425,19 +457,25 @@ namespace Thry
 
         public static void SetDefineSymbol(string symbol, bool active, bool refresh_if_changed)
         {
-            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                    BuildTargetGroup.Standalone);
-            if (!symbols.Contains(symbol) && active)
+            try
             {
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, symbols + ";" + symbol);
-                AssetDatabase.Refresh();
-            }
-            else if (symbols.Contains(symbol) && !active)
+                string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
+                        BuildTargetGroup.Standalone);
+                if (!symbols.Contains(symbol) && active)
+                {
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                                  BuildTargetGroup.Standalone, symbols + ";" + symbol);
+                    AssetDatabase.Refresh();
+                }
+                else if (symbols.Contains(symbol) && !active)
+                {
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(
+                                  BuildTargetGroup.Standalone, Regex.Replace(symbols, @";?" + @symbol, ""));
+                    AssetDatabase.Refresh();
+                }
+            }catch(Exception e)
             {
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                              BuildTargetGroup.Standalone, Regex.Replace(symbols, @";?" + @symbol, ""));
-                AssetDatabase.Refresh();
+                e.ToString();
             }
         }
 
@@ -584,6 +622,8 @@ namespace Thry
 
             public static void Call(Action<string> action, params object[] args)
             {
+                if (action == null)
+                    return;
                 CallData data = new CallData();
                 data.action = action;
                 data.arguments = args;
@@ -776,8 +816,8 @@ namespace Thry
         /// </summary>
         public static int compareVersions(string v1, string v2)
         {
-            Match v1_match = Regex.Match(v1,@"\d+(\.\d+)*");
-            Match v2_match = Regex.Match(v2,@"\d+(\.\d+)*");
+            Match v1_match = Regex.Match(v1, @"\d+(\.\d+)*");
+            Match v2_match = Regex.Match(v2, @"\d+(\.\d+)*");
             if (!v1_match.Success && !v2_match.Success) return 0;
             else if (!v1_match.Success) return 1;
             else if (!v2_match.Success) return -1;
@@ -800,16 +840,16 @@ namespace Thry
             return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
         }
 
-        [InitializeOnLoad]
-        public class DeleteFilesInTrash
+        public class TashHandler
         {
-            static DeleteFilesInTrash()
+            public static void EmptyThryTrash()
             {
                 if (Directory.Exists(PATH.DELETING_DIR))
                 {
                     DeleteDirectory(PATH.DELETING_DIR);
                 }
             }
+
             static void DeleteDirectory(string path)
             {
                 foreach (string f in Directory.GetFiles(path))

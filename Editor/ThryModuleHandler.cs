@@ -69,19 +69,15 @@ namespace Thry
                 RemoveModule(module);
         }
 
-        [InitializeOnLoad]
-        public class Startup
+        public static void OnCompile()
         {
-            static Startup()
+            string url = Helper.LoadValueFromFile("update_module_url", PATH.AFTER_COMPILE_DATA);
+            string name = Helper.LoadValueFromFile("update_module_name", PATH.AFTER_COMPILE_DATA);
+            if (url != null && url.Length > 0 && name != null && name.Length > 0)
             {
-                string url = Helper.LoadValueFromFile("update_module_url", PATH.AFTER_COMPILE_DATA);
-                string name = Helper.LoadValueFromFile("update_module_name", PATH.AFTER_COMPILE_DATA);
-                if (url != null && url.Length > 0 && name != null && name.Length > 0)
-                {
-                    InstallModule(url, name);
-                    Helper.SaveValueToFile("update_module_url", "", PATH.AFTER_COMPILE_DATA);
-                    Helper.SaveValueToFile("update_module_url", "", PATH.AFTER_COMPILE_DATA);
-                }
+                InstallModule(url, name);
+                Helper.SaveValueToFile("update_module_url", "", PATH.AFTER_COMPILE_DATA);
+                Helper.SaveValueToFile("update_module_url", "", PATH.AFTER_COMPILE_DATA);
             }
         }
 
@@ -103,7 +99,7 @@ namespace Thry
 
         private static void InstallModule(string url, string name)
         {
-
+            EditorUtility.DisplayProgressBar( name + " download progress", "", 0);
             Helper.DownloadStringASync(url, delegate (string s)
             {
                 if (s.StartsWith("404"))
@@ -128,8 +124,10 @@ namespace Thry
                     Helper.DownloadFileASync(base_url + f, temp_path + "/" + f, delegate (string data)
                     {
                         i++;
+                        EditorUtility.DisplayProgressBar("Downloading files for "+name, "Downloaded "+ base_url + f, (float)i / module_info.files.Count);
                         if (i == module_info.files.Count)
                         {
+                            EditorUtility.ClearProgressBar();
                             if (!Directory.Exists(thry_modules_path))
                                 Directory.CreateDirectory(thry_modules_path);
                             Directory.Move(temp_path, install_path);

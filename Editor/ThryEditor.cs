@@ -286,6 +286,7 @@ public class ThryEditor : ShaderGUI
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
                     break;
+                case ThryPropertyType.none:
                 case ThryPropertyType.property:
                     ShaderProperty newPorperty = null;
 
@@ -297,8 +298,9 @@ public class ThryEditor : ShaderGUI
                         newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags != MaterialProperty.PropFlags.NoScaleOffset ,!DrawingData.lastPropertyUsedCustomDrawer);
                     else
                         newPorperty = new ShaderProperty(props[i], displayName, offset, options, forceOneLine);
-                    headerStack.Peek().addPart(newPorperty);
                     current.propertyDictionary.Add(props[i].name, newPorperty);
+                    if (type == ThryPropertyType.property)
+                        headerStack.Peek().addPart(newPorperty);
                     break;
                 case ThryPropertyType.lightmap_flags:
                     current.draw_material_option_lightmap = true;

@@ -37,6 +37,20 @@ namespace Thry
         }
     }
 
+    public class PanningTextureDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset,true);
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
     public class Curve : MaterialPropertyDrawer
     {
         private class CurveData{
@@ -293,10 +307,10 @@ namespace Thry
                 {
                     Texture2DArray tex = Converter.PathsToTexture2DArray(paths);
                     Helper.UpdateTargetsValue(prop, tex);
-                    if (ThryEditor.currentlyDrawing.currentProperty.options.frameCountProp != null)
+                    if (ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null)
                     {
                         ThryEditor.ShaderProperty p;
-                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.frameCountProp, out p);
+                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.reference_property, out p);
                         if (p != null)
                             Helper.UpdateTargetsValue(p.materialProperty, tex.depth);
                     }

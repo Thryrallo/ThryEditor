@@ -31,6 +31,9 @@ namespace Thry
     {
         public const string PUBLIC_MODULES_COLLECTION = "https://raw.githubusercontent.com/Thryrallo/ThryEditor/master/modules.json";
         public const string SETTINGS_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
+
+        public const string DATA_SHARE_SEND = "http://thryeditor.thryrallo.de/send_analytics.php";
+        public const string DATA_SHARE_GET_MY_DATA = "http://thryeditor.thryrallo.de/get_my_data.php";
     }
 
     public class DEFINE_SYMBOLS
@@ -79,7 +82,7 @@ namespace Thry
         public ButtonData button_right;
         public ImageData image;
         public TextureData texture;
-        public string frameCountProp;
+        public string reference_property;
     }
 
     public class ImageData

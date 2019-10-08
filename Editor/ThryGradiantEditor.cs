@@ -24,6 +24,7 @@ namespace Thry
             window.data = data;
             window.SetGradient(data.gradient);
             window.gradient_has_been_edited = false;
+            window.minSize = new Vector2(350, 350);
             window.Show();
         }
 
@@ -158,7 +159,7 @@ namespace Thry
                 InitSomeStuff();
             float gradientEditorHeight = Mathf.Min(position.height, 146);
             float distBetween = 10f;
-            float presetLibraryHeight = Mathf.Min(position.height - gradientEditorHeight - distBetween,130);
+            float presetLibraryHeight = Mathf.Min(position.height - gradientEditorHeight - distBetween-135,130);
 
             Rect gradientEditorRect = new Rect(10, 10, position.width - 20, gradientEditorHeight - 20);
             Rect gradientLibraryRect = new Rect(0, gradientEditorHeight + distBetween, position.width, presetLibraryHeight);
