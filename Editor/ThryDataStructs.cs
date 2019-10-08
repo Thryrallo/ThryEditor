@@ -80,6 +80,7 @@ namespace Thry
         public ImageData image;
         public TextureData texture;
         public string reference_property;
+        public bool force_texture_options = false;
     }
 
     public class ImageData

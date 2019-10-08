@@ -14,7 +14,7 @@ namespace Thry
     public class GradientEditor : EditorWindow
     {
 
-        public static void Open(GradientData data, MaterialProperty prop)
+        public static void Open(GradientData data, MaterialProperty prop, bool show_texture_options=true)
         {
             data.gradient = Helper.GetGradient(prop.textureValue);
             texture_settings_data = null;
@@ -24,6 +24,7 @@ namespace Thry
             window.data = data;
             window.SetGradient(data.gradient);
             window.gradient_has_been_edited = false;
+            window.show_texture_options = show_texture_options;
             window.minSize = new Vector2(350, 350);
             window.Show();
         }
@@ -41,12 +42,16 @@ namespace Thry
 
         private bool inited = false;
 
+        private bool show_texture_options = true;
+
         private bool gradient_has_been_edited = false;
         private Texture privious_preview_texture;
 
         public static TextureData GetTextureSettings(MaterialProperty prop)
         {
             TextureData defined_default = ThryEditor.currentlyDrawing.currentProperty.options.texture;
+            if (ThryEditor.currentlyDrawing.currentProperty.options.force_texture_options && defined_default!=null)
+                return defined_default;
             string json_texture_settings = Helper.LoadValueFromFile("gradient_texture_options_"+prop.name, PATH.PERSISTENT_DATA);
             if (json_texture_settings != null)
                 return Parser.ParseToObject<TextureData>(json_texture_settings);
@@ -182,7 +187,8 @@ namespace Thry
             if(GUILayout.Button("Discard Changes",GUILayout.ExpandWidth(false)))
                 DiscardChanges();
             GUILayout.EndHorizontal();
-            TextureSettingsGUI();
+            if(show_texture_options)
+                TextureSettingsGUI();
         }
 
         private void DiscardChanges()

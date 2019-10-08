@@ -141,7 +141,7 @@ namespace Thry
                 GUI.DrawTexture(border_position, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
 
             if (Event.current.type == EventType.MouseDown && border_position.Contains(Event.current.mousePosition))
-                GradientEditor.Open(data, prop);
+                GradientEditor.Open(data, prop, !ThryEditor.currentlyDrawing.currentProperty.options.force_texture_options);
         }
 
         public void Init(MaterialProperty prop)
