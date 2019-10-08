@@ -281,45 +281,10 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
         }
 
-        public static void DrawMasterLabel(string shaderName)
+        public static void DrawMasterLabel(string shaderName, float y)
         {
-            EditorGUILayout.LabelField("<size=16>" + shaderName + "</size>", Styles.Get().masterLabel, GUILayout.MinHeight(18));
-        }
-
-        public static void DrawDSGIOptions()
-        {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            EditorGUI.BeginChangeCheck();
-            bool value = EditorGUILayout.Toggle("Double Sided Global Illumination", ThryEditor.currentlyDrawing.materials[0].doubleSidedGI, GUILayout.ExpandWidth(false));
-            if (EditorGUI.EndChangeCheck())
-                foreach (Material m in ThryEditor.currentlyDrawing.materials)
-                    m.doubleSidedGI = value;
-            EditorGUILayout.EndHorizontal();
-        }
-
-        public static void DrawInstancingOptions()
-        {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            EditorGUI.BeginChangeCheck();
-            bool value = EditorGUILayout.Toggle("Instancing", ThryEditor.currentlyDrawing.materials[0].enableInstancing, GUILayout.ExpandWidth(false));
-            if (EditorGUI.EndChangeCheck())
-                foreach (Material m in ThryEditor.currentlyDrawing.materials)
-                    m.enableInstancing = value;
-            EditorGUILayout.EndHorizontal();
-        }
-
-        public static void DrawLightmapFlagsOptions()
-        {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            EditorGUI.BeginChangeCheck();
-            MaterialGlobalIlluminationFlags value = (MaterialGlobalIlluminationFlags)EditorGUILayout.EnumPopup(ThryEditor.currentlyDrawing.materials[0].globalIlluminationFlags, GUILayout.ExpandWidth(false));
-            if (EditorGUI.EndChangeCheck())
-                foreach (Material m in ThryEditor.currentlyDrawing.materials)
-                    m.globalIlluminationFlags = value;
-            EditorGUILayout.EndHorizontal();
+            Rect rect = new Rect(0, y, Screen.width, 18);
+            EditorGUI.LabelField(rect,"<size=16>" + shaderName + "</size>", Styles.Get().masterLabel);
         }
     }
 

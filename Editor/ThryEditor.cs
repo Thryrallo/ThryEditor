@@ -144,6 +144,43 @@ public class ThryEditor : ShaderGUI
         public virtual void DrawDefault() { }
     }
 
+    public class InstancingProperty : ShaderProperty
+    {
+        public InstancingProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
+        {
+            drawDefault = true;
+        }
+
+        public override void DrawDefault()
+        {
+            currentlyDrawing.editor.EnableInstancingField();
+        }
+    }
+    public class GIProperty : ShaderProperty
+    {
+        public GIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
+        {
+            drawDefault = true;
+        }
+
+        public override void DrawDefault()
+        {
+            currentlyDrawing.editor.LightmapEmissionFlagsProperty(xOffset, true);
+        }
+    }
+    public class DSGIProperty : ShaderProperty
+    {
+        public DSGIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
+        {
+            drawDefault = true;
+        }
+
+        public override void DrawDefault()
+        {
+            currentlyDrawing.editor.DoubleSidedGIField();
+        }
+    }
+
     public class TextureProperty : ShaderProperty
     {
         public bool showScaleOffset = false;
@@ -275,6 +312,7 @@ public class ThryEditor : ShaderGUI
                     headerCount--;
                     break;
             }
+            ShaderProperty newPorperty = null;
             switch (type)
             {
                 case ThryPropertyType.footer:
@@ -288,8 +326,6 @@ public class ThryEditor : ShaderGUI
                     break;
                 case ThryPropertyType.none:
                 case ThryPropertyType.property:
-                    ShaderProperty newPorperty = null;
-
                     DrawingData.lastPropertyUsedCustomDrawer = false;
                     current.editor.GetPropertyHeight(props[i]);
 
@@ -298,19 +334,22 @@ public class ThryEditor : ShaderGUI
                         newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags != MaterialProperty.PropFlags.NoScaleOffset ,!DrawingData.lastPropertyUsedCustomDrawer);
                     else
                         newPorperty = new ShaderProperty(props[i], displayName, offset, options, forceOneLine);
-                    current.propertyDictionary.Add(props[i].name, newPorperty);
-                    if (type == ThryPropertyType.property)
-                        headerStack.Peek().addPart(newPorperty);
                     break;
                 case ThryPropertyType.lightmap_flags:
-                    current.draw_material_option_lightmap = true;
+                    newPorperty = new GIProperty(props[i], displayName, offset, options, false);
                     break;
                 case ThryPropertyType.dsgi:
-                    current.draw_material_option_dsgi = true;
+                    newPorperty = new DSGIProperty(props[i], displayName, offset, options, false);
                     break;
                 case ThryPropertyType.instancing:
-                    current.draw_material_option_instancing = true;
+                    newPorperty = new InstancingProperty(props[i], displayName, offset, options, false);
                     break;
+            }
+            if (newPorperty != null)
+            {
+                current.propertyDictionary.Add(props[i].name, newPorperty);
+                if (type != ThryPropertyType.none)
+                    headerStack.Peek().addPart(newPorperty);
             }
 		}
 	}
@@ -351,7 +390,7 @@ public class ThryEditor : ShaderGUI
         //init settings texture
         if (settingsTexture == null)
         {
-            byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thrySettigsIcon")[0]));
+            byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thry_settings_icon")[0]));
             settingsTexture = new Texture2D(2, 2);
             settingsTexture.LoadImage(fileData);
         }
@@ -401,9 +440,6 @@ public class ThryEditor : ShaderGUI
             current.properties = props;
             current.textureArrayProperties = new List<ShaderProperty>();
             current.firstCall = true;
-            current.draw_material_option_dsgi = false;
-            current.draw_material_option_instancing = false;
-            current.draw_material_option_lightmap = false;
         }
 
         //handle events
@@ -426,13 +462,14 @@ public class ThryEditor : ShaderGUI
         //editor settings button + shader name + presets
         EditorGUILayout.BeginHorizontal();
         //draw editor settings button
-        if (GUILayout.Button(settingsTexture, new GUILayoutOption[] { GUILayout.MaxWidth(24), GUILayout.MaxHeight(18) })) {
+        if (GUILayout.Button(new GUIContent(" Thry Editor",settingsTexture), EditorStyles.largeLabel ,new GUILayoutOption[] { GUILayout.MaxHeight(20) })) {
             Settings window = Settings.getInstance();
             window.Show();
             window.Focus();
         }
+        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
         //draw master label if exists
-		if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText);
+        if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, GUILayoutUtility.GetLastRect().y);
         //draw presets if exists
 
         presetHandler.drawPresets(current.properties, current.materials);
@@ -443,14 +480,6 @@ public class ThryEditor : ShaderGUI
 		{
             part.Draw();
 		}
-
-        //Mateiral Options
-        if (current.draw_material_option_lightmap)
-            GuiHelper.DrawLightmapFlagsOptions();
-        if (current.draw_material_option_instancing)
-            GuiHelper.DrawInstancingOptions();
-        if (current.draw_material_option_dsgi)
-            GuiHelper.DrawDSGIOptions();
 
         //Render Queue selection
         if (config.showRenderQueue)
