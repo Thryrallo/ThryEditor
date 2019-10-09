@@ -35,6 +35,8 @@ namespace Thry
 
         public const string DATA_SHARE_SEND = "http://thryeditor.thryrallo.de/send_analytics.php";
         public const string DATA_SHARE_GET_MY_DATA = "http://thryeditor.thryrallo.de/get_my_data.php";
+        public const string COUNT_PROJECT = "http://thryeditor.thryrallo.de/count_project.php";
+        public const string COUNT_USER = "http://thryeditor.thryrallo.de/count_user.php";
     }
 
     public class DEFINE_SYMBOLS

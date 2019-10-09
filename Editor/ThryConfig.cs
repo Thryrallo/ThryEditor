@@ -13,7 +13,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "0.23.4";
+        private const string VERSION = "0.23.5";
 
         // static
         private static Config config;
@@ -58,7 +58,7 @@ namespace Thry
         public bool showImportPopup = false;
         public string verion = VERSION;
 
-        public bool share_user_data = true;
+        public bool share_user_data = false;
         public bool share_installed_unity_version = true;
         public bool share_installed_editor_version = true;
         public bool share_used_shaders = true;
