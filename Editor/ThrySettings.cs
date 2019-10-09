@@ -28,8 +28,8 @@ namespace Thry
         public static void firstTimePopup()
         {
             Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
-            is_data_share_expanded = true;
             window.isFirstPopop = true;
+            window.is_data_share_expanded = true;
             window.Show();
         }
 
@@ -168,7 +168,7 @@ namespace Thry
                 }else
                     AssetDatabase.MoveAsset(rsp_path, PATH.RSP_NEEDED_PATH + filename + ".rsp");
             }else
-                AddDrawingDLLToRSP(rsp_path);
+                AddDrawingDLLToRSP(PATH.RSP_NEEDED_PATH + filename + ".rsp");
 
             Helper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, rsp_good, true);
         }
@@ -341,8 +341,8 @@ namespace Thry
             EditorGUI.EndDisabledGroup();
         }
 
-        static bool is_editor_expanded = true;
-        private static void GUIEditor()
+        bool is_editor_expanded = true;
+        private void GUIEditor()
         {
             is_editor_expanded = Foldout("Editor", is_editor_expanded);
             if (is_editor_expanded)
@@ -376,21 +376,19 @@ namespace Thry
             GUILayout.EndHorizontal();
         }
 
-        static bool is_extras_expanded = false;
-        private static void GUIExtras()
+        bool is_extras_expanded = false;
+        private void GUIExtras()
         {
             is_extras_expanded = Foldout("Extras", is_extras_expanded);
             if (is_extras_expanded)
             {
                 EditorGUI.indentLevel += 2;
-                Config config = Config.Get();
-
                 Toggle("showImportPopup", SETTINGS_CONTENT[(int)SETTINGS_IDX.show_popup_on_import]);
                 EditorGUI.indentLevel -= 2;
             }
         }
 
-        static bool is_data_share_expanded = false;
+        bool is_data_share_expanded = false;
         private void GUIShareData()
         {
             is_data_share_expanded = Foldout("User Data Collection", is_data_share_expanded);

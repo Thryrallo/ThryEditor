@@ -35,16 +35,18 @@ namespace Thry
         private static void AssetsImported(string[] assets)
         {
             VRCInterface.SetVRCDefineSybolIfSDKImported(assets);
+            ShaderHelper.AssetsImported(assets);
         }
 
         private static void AssetsMoved(string[] movedAssets, string[] movedFromAssetPaths)
         {
-
+            ShaderHelper.AssetsMoved(movedFromAssetPaths, movedAssets);
         }
 
         private static void AssetsDeleted(string[] assets)
         {
             VRCInterface.SetVRCDefineSybolIfSDKDeleted(assets);
+            ShaderHelper.AssetsDeleted(assets);
         }
     }
 }

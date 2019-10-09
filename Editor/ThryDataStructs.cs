@@ -20,6 +20,7 @@ namespace Thry
         public const string PERSISTENT_DATA = "Thry/persistent_data";
         public const string AFTER_COMPILE_DATA = "Thry/after_compile_data";
         public const string MATERIALS_BACKUP_FILE = "Thry/materialsBackup.txt";
+        public const string THRY_EDITOR_SHADERS = "Thry/shaders";
 
         public const string GRADIENT_INFO_FILE = "Thry/gradients";
         public const string TEXT_INFO_FILE = "Thry/text_textures";

@@ -61,9 +61,10 @@ namespace Thry
         {
             if (shaders == null)
             {
-                this.shaders = Helper.GetThryEditorShaderNames();
-                for(int i= 0;i < shaders.Length;i++)
-                    if (shaders[i] == Settings.activeShader.name) selectedShaderIndex = i;
+                this.shaders = ShaderHelper.GetThryEditorShaderNames();
+                if(Settings.activeShader != null)
+                    for(int i= 0;i < shaders.Length;i++)
+                        if (shaders[i] == Settings.activeShader.name) selectedShaderIndex = i;
             }
             if (propertyBackground == null) setupStyle();
             Shader activeShader = Settings.activeShader;
