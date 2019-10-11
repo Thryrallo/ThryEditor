@@ -36,8 +36,6 @@ namespace Thry
         public static void updatedPopup(int compare)
         {
             Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
-            if(Config.Get().share_user_data)
-                Helper.SendAnalytics();
             window.updatedVersion = compare;
             window.Show();
         }
@@ -48,6 +46,7 @@ namespace Thry
         }
 
         public const string RSP_DRAWING_DLL_CODE = "-r:System.Drawing.dll";
+        public const string RSP_DRAWING_DLL_REGEX = @"-r:\s*System\.Drawing\.dll";
 
         public static Shader activeShader = null;
         public static Material activeShaderMaterial = null;
@@ -81,7 +80,7 @@ namespace Thry
 
         public void OnDestroy()
         {
-            if (isFirstPopop && Config.Get().share_user_data)
+            if ((isFirstPopop|| updatedVersion!=0) && Config.Get().share_user_data)
                 Helper.SendAnalytics();
             if (!EditorPrefs.GetBool("thry_has_counted_user", false))
             {
@@ -91,6 +90,7 @@ namespace Thry
                         EditorPrefs.SetBool("thry_has_counted_user", true);
                 });
             }
+            
             string projectPrefix = PlayerSettings.companyName + "." +PlayerSettings.productName;
             if (!EditorPrefs.GetBool(projectPrefix+"_thry_has_counted_project", false))
             {
@@ -212,7 +212,7 @@ namespace Thry
         private static bool DoesRSPContainDrawingDLL(string rsp_path)
         {
             string rsp_data = Helper.ReadFileIntoString(rsp_path);
-            return (rsp_data.Contains(RSP_DRAWING_DLL_CODE));
+            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_REGEX).Success);
         }
 
         private static void AddDrawingDLLToRSP(string rsp_path)
