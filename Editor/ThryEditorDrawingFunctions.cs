@@ -228,6 +228,17 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
         }
 
+        public static void DrawLocaleSelection(GUIContent label, string[] locales, int selected)
+        {
+            EditorGUI.BeginChangeCheck();
+            selected = EditorGUILayout.Popup(label.text, selected, locales);
+            if(EditorGUI.EndChangeCheck())
+            {
+                ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
+                ThryEditor.reload();
+            }
+        }
+
         //draw single footer
         private static void drawFooter(ButtonData data)
         {
@@ -243,33 +254,36 @@ namespace Thry
         {
             GUIContent content;
             Rect cursorRect;
-            if (button.texture == null)
+            if (button != null)
             {
-                content = new GUIContent(button.text, button.hover);
-                if (default_height != -1)
+                if (button.texture == null)
                 {
-                    if (GUILayout.Button(content, GUILayout.ExpandWidth(false), GUILayout.Height(default_height)))
-                        button.action.Perform();
+                    content = new GUIContent(button.text, button.hover);
+                    if (default_height != -1)
+                    {
+                        if (GUILayout.Button(content, GUILayout.ExpandWidth(false), GUILayout.Height(default_height)))
+                            button.action.Perform();
+                    }
+                    else
+                    {
+                        if (GUILayout.Button(content, GUILayout.ExpandWidth(false)))
+                            button.action.Perform();
+                    }
+                    cursorRect = GUILayoutUtility.GetLastRect();
                 }
                 else
                 {
-                    if (GUILayout.Button(content, GUILayout.ExpandWidth(false)))
+                    GUILayout.Space(4);
+                    content = new GUIContent(button.texture.GetTextureFromName(), button.hover);
+                    int height = (button.texture.height == 128 && default_height != -1) ? default_height : button.texture.height;
+                    int width = (int)((float)button.texture.loaded_texture.width / button.texture.loaded_texture.height * height);
+                    if (GUILayout.Button(new GUIContent(button.texture.loaded_texture, button.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
                         button.action.Perform();
+                    cursorRect = GUILayoutUtility.GetLastRect();
+                    GUILayout.Space(4);
                 }
-                cursorRect = GUILayoutUtility.GetLastRect();
+                EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
             }
-            else
-            {
-                GUILayout.Space(4);
-                content = new GUIContent(button.texture.GetTextureFromName(), button.hover);
-                int height = (button.texture.height == 128 && default_height != -1) ? default_height : button.texture.height;
-                int width = (int)((float)button.texture.loaded_texture.width / button.texture.loaded_texture.height * height);
-                if (GUILayout.Button(new GUIContent(button.texture.loaded_texture, button.hover), new GUIStyle(), GUILayout.MaxWidth(width), GUILayout.Height(height)))
-                    button.action.Perform();
-                cursorRect = GUILayoutUtility.GetLastRect();
-                GUILayout.Space(4);
-            }
-            EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
         }
 
         public static void DrawHeader(ref bool enabled, ref bool options, GUIContent name)

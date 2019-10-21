@@ -17,6 +17,7 @@ public class ThryEditor : ShaderGUI
     public const string PROPERTY_NAME_MASTER_LABEL = "shader_master_label";
     public const string PROPERTY_NAME_PRESETS_FILE = "shader_presets";
     public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
+    public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
 
     private static Texture2D settingsTexture;
 
@@ -180,6 +181,18 @@ public class ThryEditor : ShaderGUI
             currentlyDrawing.editor.DoubleSidedGIField();
         }
     }
+    public class LocaleProperty : ShaderProperty
+    {
+        public LocaleProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
+        {
+            drawDefault = true;
+        }
+
+        public override void DrawDefault()
+        {
+            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale_names, currentlyDrawing.gui.selected_locale);
+        }
+    }
 
     public class TextureProperty : ShaderProperty
     {
@@ -247,7 +260,7 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags,space
+        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags,locale,space
     }
 
     private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -270,9 +283,38 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.dsgi;
         if (name.Replace(" ", "") == "LightmapFlags" && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.lightmap_flags;
+        if (name.Replace(" ", "") == PROPERTY_NAME_LOCALE)
+            return ThryPropertyType.locale;
         if (flags != MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.property;
         return ThryPropertyType.none;
+    }
+
+    private string[] locale_names = null;
+    private int selected_locale = 0;
+
+    private string[][] LoadLocales()
+    {
+        MaterialProperty locales_property = null;
+        string[][] locales = null;
+        foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
+        if (locales_property != null)
+        {
+            string displayName = locales_property.displayName;
+            PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
+            string[] guids = AssetDatabase.FindAssets(options.file_name);
+            if (guids.Length == 0 || options.file_name == null)
+            {
+                Debug.LogWarning("Locales File could not be found");
+                return locales;
+            }
+            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            selected_locale = (int)locales_property.floatValue;
+            string locales_string = Thry.Helper.ReadFileIntoString(path);
+            locales = Thry.Parser.ParseLocale(locales_string, selected_locale);
+            locale_names = Thry.Parser.ParseLocalenames(locales_string);
+        }
+        return locales;
     }
 
     //finds all properties and headers and stores them in correct order
@@ -281,6 +323,7 @@ public class ThryEditor : ShaderGUI
         //load display names from file if it exists
         MaterialProperty[] props = current.properties;
         Dictionary<string, string> labels = LoadDisplayNamesFromFile();
+        string[][] locales = LoadLocales();
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
@@ -292,7 +335,11 @@ public class ThryEditor : ShaderGUI
 		for (int i = 0; i < props.Length; i++)
 		{
             string displayName = props[i].displayName;
+            if(locales!=null)
+                foreach (string[] replace in locales)
+                    displayName = displayName.Replace("locale::"+replace[0], replace[1]);
             displayName = Regex.Replace(displayName, @"''", "\"");
+            
             if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
             PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
@@ -343,6 +390,9 @@ public class ThryEditor : ShaderGUI
                     break;
                 case ThryPropertyType.instancing:
                     newPorperty = new InstancingProperty(props[i], displayName, offset, options, false);
+                    break;
+                case ThryPropertyType.locale:
+                    newPorperty = new LocaleProperty(props[i], displayName, offset, options, false);
                     break;
             }
             if (newPorperty != null)
@@ -432,7 +482,7 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
-        if (firstOnGUICall || reloadNextDraw)
+        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout)
         {
             current = new EditorData();
             current.editor = materialEditor;
@@ -449,7 +499,7 @@ public class ThryEditor : ShaderGUI
         if (HadMouseDown && e.type == EventType.Repaint) HadMouseDownRepaint = true;
 
         //first time call inits
-        if (firstOnGUICall || reloadNextDraw) OnOpen();
+        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout) OnOpen();
 
         currentlyDrawing = current;
 
@@ -500,7 +550,7 @@ public class ThryEditor : ShaderGUI
         GuiHelper.drawFooters(footer);
 
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
-        if (reloadNextDraw) reloadNextDraw = false;
+        if (reloadNextDraw && Event.current.type==EventType.Layout) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
 
         //save last drag position, because mouse postion is wrong on drag dropped event
