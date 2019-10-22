@@ -119,7 +119,8 @@ namespace Thry
                 Init(prop);
 
             EditorGUI.BeginChangeCheck();
-            editor.TexturePropertyMiniThumbnail(position, prop, label.text, label.tooltip);
+            PropertyOptions options =  ThryEditor.currentlyDrawing.currentProperty.options;
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, options.has_tile_offset, options.has_panning);
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 

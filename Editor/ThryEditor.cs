@@ -64,19 +64,23 @@ public class ThryEditor : ShaderGUI
         public abstract void Draw();
     }
 
-    public class ShaderHeader : ShaderPart
+    public class ShaderGroup : ShaderPart
     {
-        public ThryEditorHeader guiElement;
         public List<ShaderPart> parts = new List<ShaderPart>();
 
-        public ShaderHeader() : base(0, "", new PropertyOptions())
+        public ShaderGroup() : base(0, "", new PropertyOptions())
         {
 
         }
 
-        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(xOffset, displayName, options)
+        public ShaderGroup(PropertyOptions options) : base(0, "", new PropertyOptions())
         {
-            this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
+            this.options = options;
+        }
+
+        public ShaderGroup(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(xOffset, displayName, options)
+        {
+            
         }
 
         public void addPart(ShaderPart part)
@@ -86,17 +90,44 @@ public class ThryEditor : ShaderGUI
 
         public override void Draw()
         {
-            currentlyDrawing.currentProperty = this;
-            guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
-            testAltClick(DrawingData.lastGuiObjectRect, this);
-            if (guiElement.getState())
-            {
-                EditorGUILayout.Space();
+            if(options.condition_show.Test())
                 foreach (ShaderPart part in parts)
                 {
                     part.Draw();
                 }
-                EditorGUILayout.Space();
+        }
+    }
+
+    public class ShaderHeader : ShaderGroup
+    {
+        public ThryEditorHeader guiElement;
+
+        public ShaderHeader() : base()
+        {
+
+        }
+
+        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(prop, materialEditor, displayName, xOffset, options)
+        {
+            this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
+        }
+
+        public override void Draw()
+        {
+            if (options.condition_show.Test())
+            {
+                currentlyDrawing.currentProperty = this;
+                guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
+                testAltClick(DrawingData.lastGuiObjectRect, this);
+                if (guiElement.getState())
+                {
+                    EditorGUILayout.Space();
+                    foreach (ShaderPart part in parts)
+                    {
+                        part.Draw();
+                    }
+                    EditorGUILayout.Space();
+                }
             }
         }
     }
@@ -260,7 +291,7 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property, footer,header,header_end,header_start,instancing,dsgi,lightmap_flags,locale,space
+        none,property, footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
     }
 
     private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -275,6 +306,10 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.header_start;
         if (name.StartsWith("m_") && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.header;
+        if (name.StartsWith("g_start") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.group_start;
+        if (name.StartsWith("g_end") && flags == MaterialProperty.PropFlags.HideInInspector)
+            return ThryPropertyType.group_end;
         if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
             return ThryPropertyType.space;
         if (name.Replace(" ","") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
@@ -327,7 +362,7 @@ public class ThryEditor : ShaderGUI
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
-		Stack<ShaderHeader> headerStack = new Stack<ShaderHeader>(); //header stack. used to keep track if current header to parent new objects to
+		Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if current header to parent new objects to
 		headerStack.Push(shaderparts); //add top object as top object to stack
 		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
 		footer = new List<ButtonData>(); //init footer list
@@ -371,11 +406,18 @@ public class ThryEditor : ShaderGUI
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
                     break;
+                case ThryPropertyType.group_start:
+                    ShaderGroup new_group = new ShaderGroup(options);
+                    headerStack.Peek().addPart(new_group);
+                    headerStack.Push(new_group);
+                    break;
+                case ThryPropertyType.group_end:
+                    headerStack.Pop();
+                    break;
                 case ThryPropertyType.none:
                 case ThryPropertyType.property:
                     DrawingData.lastPropertyUsedCustomDrawer = false;
                     current.editor.GetPropertyHeight(props[i]);
-
                     bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                     if (props[i].type == MaterialProperty.PropType.Texture)
                         newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags != MaterialProperty.PropFlags.NoScaleOffset ,!DrawingData.lastPropertyUsedCustomDrawer);
