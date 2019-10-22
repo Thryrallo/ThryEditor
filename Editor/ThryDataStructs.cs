@@ -290,4 +290,9 @@ namespace Thry
         public DefineableCondition requirement;
         public List<string> files;
     }
+
+    public enum TextureDisplayType
+    {
+        small,big,stylized_big
+    }
 }
