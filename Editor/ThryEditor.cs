@@ -53,12 +53,14 @@ public class ThryEditor : ShaderGUI
         public GUIContent content;
         public System.Object property_data = null;
         public PropertyOptions options;
+        public bool reference_properties_exist = false;
 
         public ShaderPart(int xOffset, string displayName, PropertyOptions options)
         {
             this.xOffset = xOffset;
             this.options = options;
             this.content = new GUIContent(displayName, options.hover);
+            this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
         }
 
         public abstract void Draw();
@@ -158,7 +160,7 @@ public class ThryEditor : ShaderGUI
             currentlyDrawing.currentProperty = this;
             DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
-            EditorGUI.indentLevel = xOffset * 2 + 1;
+            EditorGUI.indentLevel = xOffset + 1;
             if (drawDefault)
                 DrawDefault();
             else if (forceOneLine)
@@ -227,13 +229,15 @@ public class ThryEditor : ShaderGUI
 
     public class TextureProperty : ShaderProperty
     {
-        public bool showScaleOffset = false;
+        public bool showFoldoutProperties = false;
+        public bool hasFoldoutProperties = false;
         public bool hasScaleOffset = false;
 
         public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI) : base(materialProperty, displayName, xOffset, options, false)
         {
             drawDefault = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
+            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist;
         }
 
         public override void PreDraw()
@@ -244,7 +248,7 @@ public class ThryEditor : ShaderGUI
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
-            GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasScaleOffset);
+            GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasFoldoutProperties);
             DrawingData.lastGuiObjectRect = pos;
         }
     }

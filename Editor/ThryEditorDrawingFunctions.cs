@@ -15,52 +15,56 @@ namespace Thry
     public class GuiHelper
     {
 
-        public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset, bool panning=false)
+        public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
         {
             switch (Config.Get().default_texture_type)
             {
                 case TextureDisplayType.small:
-                    drawSmallTextureProperty(position, prop, label, editor, scaleOffset,panning);
+                    drawSmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
-                    if(panning==false)
-                        drawBigTextureProperty(position, prop, label, editor, scaleOffset);
+                    if(DrawingData.currentTexProperty.reference_properties_exist)
+                        drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
-                        drawStylizedBigTextureProperty(position, prop, label, editor, scaleOffset,panning);
+                        drawBigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
                     break;
 
                 case TextureDisplayType.stylized_big:
-                    drawStylizedBigTextureProperty(position, prop, label, editor, scaleOffset,panning);
+                    drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
             }
         }
 
-        public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset, bool has_panning_field = false)
+        public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
         {
             Rect thumbnailPos = position;
-            thumbnailPos.x += scaleOffset ? 20 : 0;
-            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop,label.text, (scaleOffset? "Click here for scale / offset":"") + (label.tooltip != "" ? " | " : "") + label.tooltip);
-            if (scaleOffset && DrawingData.currentTexProperty != null)
+            thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
+            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop,label.text, (hasFoldoutProperties ? "Click here for extra properties":"") + (label.tooltip != "" ? " | " : "") + label.tooltip);
+            if (hasFoldoutProperties && DrawingData.currentTexProperty != null)
             {
                 //draw dropdown triangle
-                thumbnailPos.x += ThryEditor.currentlyDrawing.currentProperty.xOffset * 30;
+                thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
                 if (Event.current.type == EventType.Repaint)
-                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showScaleOffset, false);
+                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
                 //test click and draw scale/offset
-                if (DrawingData.currentTexProperty.showScaleOffset)
+                if (DrawingData.currentTexProperty.showFoldoutProperties)
                 {
-                    ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
-                    if (has_panning_field && ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null)
-                    {
-                        ThryEditor.ShaderProperty pan_property = ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.currentlyDrawing.currentProperty.options.reference_property];
-                        EditorGUI.indentLevel *= 2;
-                        ThryEditor.currentlyDrawing.editor.ShaderProperty(pan_property.materialProperty, pan_property.content);
-                        EditorGUI.indentLevel /= 2;
-                    }
+                    if(DrawingData.currentTexProperty.hasScaleOffset)
+                        ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
+
+                    PropertyOptions options = DrawingData.currentTexProperty.options;
+                    if(options.reference_properties!=null)
+                        foreach(string r_property in options.reference_properties)
+                        {
+                            ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                            EditorGUI.indentLevel *= 2;
+                            ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                            EditorGUI.indentLevel /= 2;
+                        }
                 }
                 if (ThryEditor.MouseClick && position.Contains(Event.current.mousePosition))
                 {
-                    DrawingData.currentTexProperty.showScaleOffset = !DrawingData.currentTexProperty.showScaleOffset;
+                    DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
                     editor.Repaint();
                 }
             }
@@ -81,10 +85,8 @@ namespace Thry
         }
 
         static int texturePickerWindow  = -1;
-        public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset, bool panning=false)
+        public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
         {
-            bool is_displaying_panning = scaleOffset && panning && ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null;
-
             position.x += (EditorGUI.indentLevel) * 15;
             position.width -= (EditorGUI.indentLevel) * 15;
             Rect rect = GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
@@ -93,16 +95,24 @@ namespace Thry
             Rect border = new Rect(rect);
             border.position = new Vector2(border.x, border.y-position.height);
             border.height += position.height;
-            if (is_displaying_panning)
-                border.height += 25;
+
+            if (DrawingData.currentTexProperty.reference_properties_exist)
+            {
+                border.height += 8;
+                foreach (string r_property in DrawingData.currentTexProperty.options.reference_properties)
+                {
+                    border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[r_property].materialProperty);
+                }
+            }
+            
 
             //background
-            GUI.DrawTexture(border, Styles.white_rounded_texture, ScaleMode.StretchToFill, true);
+            GUI.DrawTexture(border, Styles.rounded_texture, ScaleMode.StretchToFill, true);
             Rect quad = new Rect(border);
             quad.width = quad.height/2;
-            GUI.DrawTextureWithTexCoords(quad, Styles.white_rounded_texture, new Rect(0, 0, 0.5f, 1), true);
+            GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0, 0, 0.5f, 1), true);
             quad.x += border.width - quad.width;
-            GUI.DrawTextureWithTexCoords(quad, Styles.white_rounded_texture, new Rect(0.5f, 0, 0.5f, 1), true);
+            GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0.5f, 0, 0.5f, 1), true);
 
             quad.width = border.height - 4;
             quad.height = quad.width;
@@ -156,25 +166,33 @@ namespace Thry
             }
 
             //scale offset rect
-            if (scaleOffset)
+            if (hasFoldoutProperties)
             {
-                Rect scale_offset_rect = new Rect(position);
-                scale_offset_rect.y += 37;
-                scale_offset_rect.width -= 2 + preview_rect.width + 10;
-                editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
-                if (is_displaying_panning)
+                if (DrawingData.currentTexProperty.hasScaleOffset)
                 {
-                    ThryEditor.ShaderProperty pan_property = ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.currentlyDrawing.currentProperty.options.reference_property];
-                    EditorGUI.indentLevel *= 2;
-                    ThryEditor.currentlyDrawing.editor.ShaderProperty(pan_property.materialProperty, pan_property.content);
-                    EditorGUI.indentLevel /= 2;
+                    Rect scale_offset_rect = new Rect(position);
+                    scale_offset_rect.y += 37;
+                    scale_offset_rect.width -= 2 + preview_rect.width + 10;
+                    editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
                 }
+
+                PropertyOptions options = DrawingData.currentTexProperty.options;
+                if (options.reference_properties != null)
+                    foreach (string r_property in options.reference_properties)
+                    {
+                        ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                        EditorGUI.indentLevel *= 2;
+                        ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                        EditorGUI.indentLevel /= 2;
+                    }
             }
 
             Rect label_rect = new Rect(position);
             label_rect.x += 2;
             label_rect.y += 2;
             GUI.Label(label_rect, label);
+
+            GUILayoutUtility.GetRect(0, 5);
 
             DrawingData.lastGuiObjectRect = position;
         }
@@ -481,7 +499,7 @@ namespace Thry
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             var style = new GUIStyle(Styles.Get().dropDownHeader);
-            style.margin.left = 30 * xOffset;
+            style.margin.left = 15 * xOffset + 15;
 
             var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
             DrawingData.lastGuiObjectRect = rect;

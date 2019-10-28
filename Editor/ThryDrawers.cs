@@ -51,20 +51,6 @@ namespace Thry
         }
     }
 
-    public class PanningTextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            GuiHelper.drawConfigTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset,true);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
     public class Curve : MaterialPropertyDrawer
     {
         private class CurveData{
@@ -134,7 +120,7 @@ namespace Thry
 
             EditorGUI.BeginChangeCheck();
             PropertyOptions options =  ThryEditor.currentlyDrawing.currentProperty.options;
-            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, options.has_tile_offset, options.has_panning);
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 
@@ -273,7 +259,7 @@ namespace Thry
         {
             Vector3 vec = new Vector3(prop.vectorValue.x, prop.vectorValue.y, prop.vectorValue.z);
             EditorGUI.BeginChangeCheck();
-            vec = EditorGUILayout.Vector3Field(label, vec);
+            vec = EditorGUI.Vector3Field(position, label, vec);
             if (EditorGUI.EndChangeCheck())
             {
                 prop.vectorValue = new Vector4(vec.x, vec.y, vec.z, prop.vectorValue.w);
@@ -283,7 +269,7 @@ namespace Thry
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
             DrawingData.lastPropertyUsedCustomDrawer = true;
-            return 0;
+            return base.GetPropertyHeight(prop, label, editor);
         }
     }
 
@@ -293,7 +279,7 @@ namespace Thry
         {
             Vector2 vec = new Vector2(prop.vectorValue.x, prop.vectorValue.y);
             EditorGUI.BeginChangeCheck();
-            vec = EditorGUILayout.Vector2Field(label, vec);
+            vec = EditorGUI.Vector2Field(position, label, vec);
             if (EditorGUI.EndChangeCheck())
             {
                 prop.vectorValue = new Vector4(vec.x, vec.y, prop.vectorValue.z, prop.vectorValue.w);
@@ -303,7 +289,7 @@ namespace Thry
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
             DrawingData.lastPropertyUsedCustomDrawer = true;
-            return 0;
+            return base.GetPropertyHeight(prop, label, editor);
         }
     }
 
@@ -322,10 +308,10 @@ namespace Thry
                 {
                     Texture2DArray tex = Converter.PathsToTexture2DArray(paths);
                     Helper.UpdateTargetsValue(prop, tex);
-                    if (ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null)
+                    if (ThryEditor.currentlyDrawing.currentProperty.reference_properties_exist)
                     {
                         ThryEditor.ShaderProperty p;
-                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.reference_property, out p);
+                        ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.reference_properties[0], out p);
                         if (p != null)
                             Helper.UpdateTargetsValue(p.materialProperty, tex.depth);
                     }

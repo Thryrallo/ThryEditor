@@ -82,11 +82,9 @@ namespace Thry
         public ButtonData button_right;
         public ImageData image;
         public TextureData texture;
-        public string reference_property;
+        public string[] reference_properties;
         public bool force_texture_options = false;
         public string file_name;
-        public bool has_tile_offset = false;
-        public bool has_panning = false;
     }
 
     public class ImageData
