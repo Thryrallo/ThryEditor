@@ -1,3 +1,6 @@
+translator := Ponponsan
+translation := 翻訳
+
 locale := 言語
 locale_tooltip := ThryEditorの言語を選択してください
 

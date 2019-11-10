@@ -1,5 +1,5 @@
-translator := 
-translation := Translation
+translator := Spanish Hub
+translation := TraducciÃ³n
 
 locale := Language
 locale_tooltip := Select Language for ThryEditor
@@ -47,7 +47,7 @@ share_installed_editor_version_tooltip :=
 share_used_shaders := Comparta los nombres de los sombreadores instalados utilizando el editor thry
 share_used_shaders_tooltip :=
 
-share_data_info_message := Los datos se identifican con un hash de su macaddress. Esto es para asegurarnos de que no registremos a ningún usuario dos veces, mientras mantenemos todos los datos anónimos.
+share_data_info_message := Los datos se identifican con un hash de su macaddress. Esto es para asegurarnos de que no registremos a ningï¿½n usuario dos veces, mientras mantenemos todos los datos anï¿½nimos.
 
 button_get_my_data := Mostrar todos los datos recopilados sobre mi
 

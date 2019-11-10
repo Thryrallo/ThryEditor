@@ -491,6 +491,8 @@ public class ThryEditor : ShaderGUI
         //collect shader properties
         CollectAllProperties();
 
+        presetHandler = new PresetHandler(current.properties);
+
         //init settings texture
         if (settingsTexture == null)
         {
@@ -569,8 +571,7 @@ public class ThryEditor : ShaderGUI
         //sync shader and get preset handler
         Config config = Config.Get();
         if(current.materials!=null)
-            Settings.setActiveShader(current.materials[0].shader);
-        presetHandler = Settings.presetHandler;
+            Settings.setActiveShader(current.materials[0].shader, presetHandler);
 
 
         //editor settings button + shader name + presets

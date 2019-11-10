@@ -80,7 +80,7 @@ namespace Thry
             }
             if (activeShader != null)
             {
-                PresetHandler presetHandler = Settings.presetHandler;
+                PresetHandler presetHandler = Settings.activePresetHandler;
                 if (presetHandler.shaderHasPresetPath())
                 {
                     Dictionary<string, List<string[]>> presets = presetHandler.getPresets();

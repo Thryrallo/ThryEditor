@@ -47,7 +47,7 @@ namespace Thry
 
         public static Shader activeShader = null;
         public static Material activeShaderMaterial = null;
-        public static PresetHandler presetHandler = null;
+        public static PresetHandler activePresetHandler = null;
 
         public ModuleSettings[] moduleSettings;
 
@@ -141,12 +141,14 @@ namespace Thry
 
         //------------------Helpers----------------------------
 
-        public static void setActiveShader(Shader shader)
+        public static void setActiveShader(Shader shader, PresetHandler presetHandler = null)
         {
             if (shader != activeShader)
             {
                 activeShader = shader;
-                presetHandler = new PresetHandler(shader);
+                if (presetHandler == null)
+                    presetHandler = new PresetHandler(shader);
+                activePresetHandler = presetHandler;
                 activeShaderMaterial = new Material(shader);
             }
         }
@@ -518,6 +520,7 @@ namespace Thry
             {
                 Config.Get().locale = Locale.available_locales[Locale.selected_locale_index];
                 Config.Get().save();
+                ThryEditor.reload();
                 ThryEditor.repaint();
             }
         }
