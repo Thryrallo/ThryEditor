@@ -196,6 +196,8 @@ namespace Thry
                     if (comparator == "!=") return c_ev != 0;
                     if (comparator == "<") return c_ev == 1;
                     if (comparator == ">") return c_ev == -1;
+                    if (comparator == ">=") return c_ev == -1 || c_ev == 0;
+                    if (comparator == "<=") return c_ev == 1 || c_ev == 0;
                     break;
                 case DefineableConditionType.VRC_SDK_VERSION:
                     int c_vrc = Helper.compareVersions(VRCInterface.Get().installed_sdk_version, value);
@@ -203,6 +205,8 @@ namespace Thry
                     if (comparator == "!=") return c_vrc != 0;
                     if (comparator == "<") return c_vrc == 1;
                     if (comparator == ">") return c_vrc == -1;
+                    if (comparator == ">=") return c_vrc == -1 || c_vrc == 0;
+                    if (comparator == "<=") return c_vrc == 1 || c_vrc == 0;
                     break;
                 case DefineableConditionType.TEXTURE_SET:
                     ThryEditor.ShaderProperty shaderProperty = ThryEditor.currentlyDrawing.propertyDictionary[data];
@@ -235,6 +239,10 @@ namespace Thry
                 return ">";
             if (data.Contains("<"))
                 return "<";
+            if (data.Contains(">="))
+                return ">=";
+            if (data.Contains("<="))
+                return "<=";
             return "##";
         }
 
