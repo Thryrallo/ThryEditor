@@ -34,7 +34,7 @@ namespace Thry
         public const string SETTINGS_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
 
         public const string DATA_SHARE_SEND = "http://thryeditor.thryrallo.de/send_analytics.php";
-        public const string DATA_SHARE_GET_MY_DATA = "http://thryeditor.thryrallo.de/get_my_data.php";
+        public const string DATA_SHARE_GET_MY_DATA = "https://thryeditor.thryrallo.de/get_my_data.php";
         public const string COUNT_PROJECT = "http://thryeditor.thryrallo.de/count_project.php";
         public const string COUNT_USER = "http://thryeditor.thryrallo.de/count_user.php";
     }
@@ -64,6 +64,7 @@ namespace Thry
     {
         public static ThryEditor.TextureProperty currentTexProperty;
         public static Rect lastGuiObjectRect;
+        public static Rect lastGuiObjectHeaderRect;
         public static bool lastPropertyUsedCustomDrawer;
     }
 
@@ -83,6 +84,7 @@ namespace Thry
         public ImageData image;
         public TextureData texture;
         public string[] reference_properties;
+        public string reference_property;
         public bool force_texture_options = false;
         public string file_name;
     }
@@ -134,7 +136,7 @@ namespace Thry
         {
             if (loaded_texture == null)
             {
-                string path = Helper.FindFile(name, "texture");
+                string path = FileHelper.FindFile(name, "texture");
                 if (path != null)
                     loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
                 else

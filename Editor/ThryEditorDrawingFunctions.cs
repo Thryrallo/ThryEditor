@@ -15,7 +15,7 @@ namespace Thry
     public class GuiHelper
     {
 
-        public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
+        public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             switch (Config.Get().default_texture_type)
             {
@@ -30,7 +30,7 @@ namespace Thry
                     break;
 
                 case TextureDisplayType.stylized_big:
-                    drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
+                    drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties, skip_drag_and_drop_handling);
                     break;
             }
         }
@@ -57,35 +57,43 @@ namespace Thry
                         foreach(string r_property in options.reference_properties)
                         {
                             ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                            EditorGUIUtility.labelWidth += EditorGUI.indentLevel * 15;
                             EditorGUI.indentLevel *= 2;
-                            ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                            ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);                           
                             EditorGUI.indentLevel /= 2;
+                            EditorGUIUtility.labelWidth -= EditorGUI.indentLevel * 15;
                         }
                 }
-                if (ThryEditor.MouseClick && position.Contains(Event.current.mousePosition))
+                if (ThryEditor.input.MouseClick && position.Contains(Event.current.mousePosition))
                 {
                     DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
                     editor.Repaint();
                 }
             }
 
-            DrawingData.lastGuiObjectRect = position;
+            DrawingData.lastGuiObjectHeaderRect = position;
+            Rect object_rect = new Rect(position);
+            object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
+            DrawingData.lastGuiObjectRect = object_rect;
         }
 
         public static void drawBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
         {
-            GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
+            Rect rect = GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
             float defaultLabelWidth = EditorGUIUtility.labelWidth;
             float defaultFieldWidth = EditorGUIUtility.fieldWidth;
             editor.SetDefaultGUIWidths();
             editor.TextureProperty(position, prop, label.text, label.tooltip, scaleOffset);
             EditorGUIUtility.labelWidth = defaultLabelWidth;
             EditorGUIUtility.fieldWidth = defaultFieldWidth;
-            DrawingData.lastGuiObjectRect = position;
+            DrawingData.lastGuiObjectHeaderRect = position;
+            Rect object_rect = new Rect(position);
+            object_rect.height += rect.height;
+            DrawingData.lastGuiObjectRect = object_rect;
         }
 
         static int texturePickerWindow  = -1;
-        public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
+        public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             position.x += (EditorGUI.indentLevel) * 15;
             position.width -= (EditorGUI.indentLevel) * 15;
@@ -164,6 +172,17 @@ namespace Thry
             {
                 EditorGUIUtility.PingObject(prop.textureValue);
             }
+            
+            if(!skip_drag_and_drop_handling)
+                if((ThryEditor.input.is_drag_drop_event) && preview_rect.Contains(ThryEditor.input.mouse_position) && DragAndDrop.objectReferences[0] is Texture)
+                {
+                    DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    if(ThryEditor.input.is_drop_event)
+                    {
+                        DragAndDrop.AcceptDrag();
+                        prop.textureValue = (Texture)DragAndDrop.objectReferences[0];
+                    }
+                }
 
             //scale offset rect
             if (hasFoldoutProperties)
@@ -194,7 +213,8 @@ namespace Thry
 
             GUILayoutUtility.GetRect(0, 5);
 
-            DrawingData.lastGuiObjectRect = position;
+            DrawingData.lastGuiObjectHeaderRect = position;
+            DrawingData.lastGuiObjectRect = border;
         }
 
         const float kNumberWidth = 65;
@@ -502,7 +522,7 @@ namespace Thry
             style.margin.left = 15 * xOffset + 15;
 
             var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
-            DrawingData.lastGuiObjectRect = rect;
+            DrawingData.lastGuiObjectHeaderRect = rect;
             //rect with text
             GUI.Box(rect, content, style);
 

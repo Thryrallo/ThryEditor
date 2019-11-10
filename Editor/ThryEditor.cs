@@ -37,12 +37,21 @@ public class ThryEditor : ShaderGUI
     private bool firstOnGUICall = true;
     private bool wasUsed = false;
 
-    public static bool HadMouseDownRepaint = false;
-    public static bool HadMouseDown = false;
-    public static bool MouseClick = false;
+    public struct InputEvent
+    {
+        public bool HadMouseDownRepaint;
+        public bool HadMouseDown;
+        public bool MouseClick;
 
-    public static Vector2 lastDragPosition;
+        public bool is_alt_down;
 
+        public bool is_drag_drop_event;
+        public bool is_drop_event;
+
+        public Vector2 mouse_position;
+    }
+
+    public static InputEvent input = new InputEvent();
     // Contains Editor Data
     private EditorData current;
     public static EditorData currentlyDrawing;
@@ -120,7 +129,7 @@ public class ThryEditor : ShaderGUI
             {
                 currentlyDrawing.currentProperty = this;
                 guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
-                testAltClick(DrawingData.lastGuiObjectRect, this);
+                testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
                 if (guiElement.getState())
                 {
                     EditorGUILayout.Space();
@@ -158,7 +167,7 @@ public class ThryEditor : ShaderGUI
                 if (!options.condition_show.Test())
                     return;
             currentlyDrawing.currentProperty = this;
-            DrawingData.lastGuiObjectRect = new Rect(-1,-1,-1,-1);
+            DrawingData.lastGuiObjectHeaderRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset + 1;
             if (drawDefault)
@@ -168,9 +177,9 @@ public class ThryEditor : ShaderGUI
             else
                 currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
             EditorGUI.indentLevel = oldIndentLevel;
-            if (DrawingData.lastGuiObjectRect.x==-1) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
+            if (DrawingData.lastGuiObjectHeaderRect.x==-1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
 
-            testAltClick(DrawingData.lastGuiObjectRect, this);
+            testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
         }
 
         public virtual void PreDraw() { }
@@ -249,7 +258,7 @@ public class ThryEditor : ShaderGUI
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
             GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasFoldoutProperties);
-            DrawingData.lastGuiObjectRect = pos;
+            DrawingData.lastGuiObjectHeaderRect = pos;
         }
     }
 
@@ -270,7 +279,7 @@ public class ThryEditor : ShaderGUI
                 return labels;
             }
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            string[] data = Regex.Split(Thry.Helper.ReadFileIntoString(path), @"\r?\n");
+            string[] data = Regex.Split(Thry.FileHelper.ReadFileIntoString(path), @"\r?\n");
             foreach (string d in data)
             {
                 string[] set = Regex.Split(d, ":=");
@@ -349,7 +358,7 @@ public class ThryEditor : ShaderGUI
             }
             string path = AssetDatabase.GUIDToAssetPath(guids[0]);
             selected_locale = (int)locales_property.floatValue;
-            string locales_string = Thry.Helper.ReadFileIntoString(path);
+            string locales_string = Thry.FileHelper.ReadFileIntoString(path);
             locales = Thry.Parser.ParseLocale(locales_string, selected_locale);
             locale_names = Thry.Parser.ParseLocalenames(locales_string);
         }
@@ -456,15 +465,14 @@ public class ThryEditor : ShaderGUI
     {
         if (current.materials != null) foreach (Material m in current.materials)
             if (m.shader.renderQueue != m.renderQueue)
-                Thry.Helper.UpdateRenderQueue(m, current.defaultShader);
+                Thry.MaterialHelper.UpdateRenderQueue(m, current.defaultShader);
     }
 
     //-------------Draw Functions----------------
 
     private static void testAltClick(Rect rect, ShaderPart property)
     {
-        var e = Event.current;
-        if (HadMouseDownRepaint && e.alt && rect.Contains(e.mousePosition))
+        if (input.HadMouseDownRepaint && input.is_alt_down && rect.Contains(input.mouse_position))
         {
             if (property.options.altClick != null)
                 property.options.altClick.Perform();
@@ -525,6 +533,18 @@ public class ThryEditor : ShaderGUI
         firstOnGUICall = true;
     }
 
+    private void UpdateEvents()
+    {
+        Event e = Event.current;
+        input.MouseClick = e.type == EventType.MouseDown;
+        if (input.MouseClick) input.HadMouseDown = true;
+        if (input.HadMouseDown && e.type == EventType.Repaint) input.HadMouseDownRepaint = true;
+        input.is_alt_down = e.alt;
+        input.mouse_position = e.mousePosition;
+        input.is_drop_event = e.type == EventType.DragPerform;
+        input.is_drag_drop_event = input.is_drop_event || e.type == EventType.DragUpdated;
+    }
+
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
@@ -539,10 +559,7 @@ public class ThryEditor : ShaderGUI
         }
 
         //handle events
-        Event e = Event.current;
-        MouseClick = e.type == EventType.MouseDown;
-        if (MouseClick) HadMouseDown = true;
-        if (HadMouseDown && e.type == EventType.Repaint) HadMouseDownRepaint = true;
+        UpdateEvents();
 
         //first time call inits
         if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout) OnOpen();
@@ -551,7 +568,8 @@ public class ThryEditor : ShaderGUI
 
         //sync shader and get preset handler
         Config config = Config.Get();
-        Settings.setActiveShader(current.materials[0].shader);
+        if(current.materials!=null)
+            Settings.setActiveShader(current.materials[0].shader);
         presetHandler = Settings.presetHandler;
 
 
@@ -564,6 +582,7 @@ public class ThryEditor : ShaderGUI
             window.Focus();
         }
         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+
         //draw master label if exists
         if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, GUILayoutUtility.GetLastRect().y);
         //draw presets if exists
@@ -595,13 +614,10 @@ public class ThryEditor : ShaderGUI
         //footer
         GuiHelper.drawFooters(footer);
 
+        Event e = Event.current;
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
         if (reloadNextDraw && Event.current.type==EventType.Layout) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
-
-        //save last drag position, because mouse postion is wrong on drag dropped event
-        if (Event.current.type == EventType.DragUpdated)
-            lastDragPosition= Event.current.mousePosition;
 
         //test if material has been reset
         if (wasUsed && e.type == EventType.Repaint)
@@ -610,7 +626,6 @@ public class ThryEditor : ShaderGUI
                 if (p.name == PROPERTY_NAME_USING_THRY_EDITOR && p.floatValue != MATERIAL_NOT_RESET)
                 {
                     reloadNextDraw = true;
-                    TextTextureDrawer.ResetMaterials();
                     break;
                 }
             wasUsed = false;
@@ -618,8 +633,8 @@ public class ThryEditor : ShaderGUI
 
         if (e.type == EventType.Used) wasUsed = true;
         if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance();
-        if (HadMouseDownRepaint) HadMouseDown = false;
-        HadMouseDownRepaint = false;
+        if (input.HadMouseDownRepaint) input.HadMouseDown = false;
+        input.HadMouseDownRepaint = false;
         current.firstCall = false;
     }
 
