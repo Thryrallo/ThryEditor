@@ -235,14 +235,14 @@ namespace Thry
                 return "==";
             if (data.Contains("!="))
                 return "!=";
-            if (data.Contains(">"))
-                return ">";
-            if (data.Contains("<"))
-                return "<";
             if (data.Contains(">="))
                 return ">=";
             if (data.Contains("<="))
                 return "<=";
+            if (data.Contains(">"))
+                return ">";
+            if (data.Contains("<"))
+                return "<";
             return "##";
         }
 
