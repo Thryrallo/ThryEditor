@@ -20,18 +20,7 @@ namespace Thry
             }
         }
 
-        [InitializeOnLoad]
-        public class OnStartup
-        {
-            static OnStartup()
-            {
-                CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
-                CheckDrawingDll(); //check that drawing.dll is imported
-            }
-        }
-
-
-        private static void CheckAPICompatibility()
+        public static void CheckAPICompatibility()
         {
             ApiCompatibilityLevel level = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
             if (level == ApiCompatibilityLevel.NET_2_0_Subset)
@@ -46,7 +35,7 @@ namespace Thry
             return "mcs";
         }
 
-        private static void CheckDrawingDll()
+        public static void CheckDrawingDll()
         {
             string rsp_path = null;
             string filename = GetRSPFilename();
