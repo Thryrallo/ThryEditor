@@ -58,15 +58,12 @@ namespace Thry
                 case RSP_State.missing_drawing_dll:
                     AddDrawingDLLToRSP(PATH.RSP_NEEDED_PATH + filename + ".rsp");
                     break;
-                case RSP_State.wrong_path:
-                    AssetDatabase.MoveAsset(rsp_path, PATH.RSP_NEEDED_PATH + filename + ".rsp");
-                    break;
             }
 
             UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, true, true);
         }
 
-        private enum RSP_State { correct=3, wrong_path=2, missing=0, missing_drawing_dll=1};
+        private enum RSP_State { correct=2, missing=0, missing_drawing_dll=1};
 
         private static RSP_State CheckRSPState(string rsp_name, ref string rsp_path)
         {
@@ -75,9 +72,11 @@ namespace Thry
             {
                 string path = AssetDatabase.GUIDToAssetPath(id);
                 int new_state = 0;
-                if (path == PATH.RSP_NEEDED_PATH + rsp_name + ".rsp") new_state = 3;
-                else if (path.EndsWith(rsp_name + ".rsp")) new_state = 2;
-                else if (DoesRSPContainDrawingDLL(rsp_path)) new_state = 1;
+                bool correctPath = path == PATH.RSP_NEEDED_PATH + rsp_name + ".rsp";
+                bool includesDrawingDLL = DoesRSPContainDrawingDLL(rsp_path);
+
+                if (correctPath && includesDrawingDLL) new_state = 2;
+                else if (correctPath) new_state = 1;
 
                 if (new_state > state)
                 {
