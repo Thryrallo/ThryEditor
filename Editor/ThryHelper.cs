@@ -223,6 +223,18 @@ namespace Thry
             }
         }
 
+        public static void MoveDirectoryToTrash(string path)
+        {
+            string name = path.RemovePath();
+            if (!Directory.Exists(PATH.DELETING_DIR))
+                Directory.CreateDirectory(PATH.DELETING_DIR);
+            int i = 0;
+            string newpath = PATH.DELETING_DIR + "/" + name + i;
+            while (Directory.Exists(newpath))
+                newpath = PATH.DELETING_DIR + "/" + name + (++i);
+            Directory.Move(path, newpath);
+        }
+
         static void DeleteDirectory(string path)
         {
             foreach (string f in Directory.GetFiles(path))

@@ -550,7 +550,7 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
-        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout)
+        if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout))
         {
             current = new EditorData();
             current.editor = materialEditor;
@@ -564,14 +564,14 @@ public class ThryEditor : ShaderGUI
         UpdateEvents();
 
         //first time call inits
-        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout) OnOpen();
+        if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
 
         currentlyDrawing = current;
 
         //sync shader and get preset handler
         Config config = Config.Get();
         if(current.materials!=null)
-            Settings.setActiveShader(current.materials[0].shader, presetHandler);
+            Mediator.SetActiveShader(current.materials[0].shader, presetHandler: presetHandler);
 
 
         //editor settings button + shader name + presets
@@ -724,16 +724,23 @@ public class ThryEditor : ShaderGUI
         }
     }
 
+    private static string edtior_directory_path;
     public static string GetThryEditorDirectoryPath()
     {
-        string[] guids = AssetDatabase.FindAssets("ThryEditor");
-        foreach (string g in guids)
+        if (edtior_directory_path == null)
         {
-            string p = AssetDatabase.GUIDToAssetPath(g);
-            if (p.EndsWith("/ThryEditor.cs"))
-                return p.GetDirectoryPath().RemoveOneDirectory();
+            string[] guids = AssetDatabase.FindAssets("ThryEditor");
+            foreach (string g in guids)
+            {
+                string p = AssetDatabase.GUIDToAssetPath(g);
+                if (p.EndsWith("/ThryEditor.cs"))
+                {
+                    edtior_directory_path = p.GetDirectoryPath().RemoveOneDirectory();
+                    break;
+                }
+            }
         }
-        return null;
+        return edtior_directory_path;
     }
 
     //----------Static Helper Functions

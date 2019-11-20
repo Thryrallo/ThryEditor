@@ -53,10 +53,12 @@ namespace Thry
         {
             if (Helper.ClassExists(m.available_module.classname))
             {
-                string path = GetModuleDirectoryPath(m) + "/module.json";
+                string module_path = GetModuleDirectoryPath(m);
+                string path = module_path + "/module.json";
                 if (File.Exists(path))
                 {
                     m.installed_module = Parser.ParseToObject<ModuleInfo>(FileHelper.ReadFileIntoString(path));
+                    m.path = module_path;
                 }
             }
         }
@@ -143,27 +145,8 @@ namespace Thry
             module.is_being_installed_or_removed = true;
             foreach (Action f in pre_module_remove_functions)
                 f.Invoke();
-            string path = GetModuleDirectoryPath(module);
-            int i = 0;
-            if (!Directory.Exists(PATH.DELETING_DIR))
-                Directory.CreateDirectory(PATH.DELETING_DIR);
-            string newpath = PATH.DELETING_DIR + "/" + module.available_module.name + i;
-            while (Directory.Exists(newpath))
-                newpath = PATH.DELETING_DIR + "/" + module.available_module.name + (++i);
-            Directory.Move(path, newpath);
+            TrashHandler.MoveDirectoryToTrash(module.path);
             AssetDatabase.Refresh();
-        }
-
-        private static void DeleteDirectory(string path)
-        {
-            foreach(string p in Directory.GetFiles(path))
-            {
-                File.SetAttributes(p, FileAttributes.Normal);
-                File.Delete(p);
-            }
-            foreach (string p in Directory.GetDirectories(path))
-                DeleteDirectory(p);
-            Directory.Delete(path);
         }
 
         private static string GetModuleDirectoryPath(ModuleHeader module)
@@ -187,6 +170,13 @@ namespace Thry
         public static void RegisterPreModuleRemoveFunction(Action function)
         {
             pre_module_remove_functions.Add(function);
+        }
+
+        public static void OnEditorRemove()
+        {
+            string dir_path = ThryEditor.GetThryEditorDirectoryPath() + "/thry_modules";
+            if (Directory.Exists(dir_path))
+                TrashHandler.MoveDirectoryToTrash(dir_path);
         }
     }
 

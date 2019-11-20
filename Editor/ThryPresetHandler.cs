@@ -22,7 +22,7 @@ namespace Thry
         //variabled for the preset selector
         public int selectedPreset = 0;
         private string[] presetOptions;
-        string newPresetName = Locale.locale["new_preset_name"];
+        string newPresetName = Locale.thry["new_preset_name"];
 
         public PresetHandler(MaterialProperty[] props)
         {
@@ -110,7 +110,7 @@ namespace Thry
             }
             else if (hasPresets && !presetsLoaded)
             {
-                GUILayout.Label(Locale.locale["message_presets_file_missing"]);
+                GUILayout.Label(Locale.thry["message_presets_file_missing"]);
             }
         }
 
@@ -118,7 +118,7 @@ namespace Thry
         {
             newPresetName = GUILayout.TextField(newPresetName, GUILayout.MaxWidth(100));
 
-            if (GUILayout.Button(Locale.locale["add"], GUILayout.Width(40), GUILayout.Height(20)))
+            if (GUILayout.Button(Locale.thry["add"], GUILayout.Width(40), GUILayout.Height(20)))
             {
                 addNewPreset(newPresetName, props, materials);
             }
@@ -148,9 +148,9 @@ namespace Thry
             }
             reader.Close();
             presetOptions = new string[presets.Count + 3];
-            presetOptions[0] = Locale.locale["presets"];
-            presetOptions[presets.Count + 1] = Locale.locale["manage_presets"];
-            presetOptions[presets.Count + 2] = Locale.locale["new_preset"];
+            presetOptions[0] = Locale.thry["presets"];
+            presetOptions[presets.Count + 1] = Locale.thry["manage_presets"];
+            presetOptions[presets.Count + 2] = Locale.thry["new_preset"];
             int i = 1;
             foreach (string k in presets.Keys) presetOptions[i++] = k;
             presetsLoaded = true;
@@ -248,7 +248,7 @@ namespace Thry
             //fix all preset variables
             presets.Add(name, sets);
             addToPresetOptions(name);
-            newPresetName = Locale.locale["new_preset_name"];
+            newPresetName = Locale.thry["new_preset_name"];
 
             //save all presets into file
             savePresets();
@@ -293,7 +293,7 @@ namespace Thry
 
         public void applyPreset(string presetName, MaterialProperty[] props, Material[] materials)
         {
-            ThryEditor.addUndo(Locale.locale["apply_preset"] +": " + presetName);
+            ThryEditor.addUndo(Locale.thry["apply_preset"] +": " + presetName);
             List<string[]> sets;
             if (presets.TryGetValue(presetName, out sets))
             {

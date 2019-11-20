@@ -51,7 +51,7 @@ namespace Thry
         }
     }
 
-    public class Curve : MaterialPropertyDrawer
+    public class CurveDrawer : MaterialPropertyDrawer
     {
         private class CurveData{
             public AnimationCurve curve;

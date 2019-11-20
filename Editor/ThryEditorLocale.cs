@@ -64,7 +64,7 @@ namespace Thry
         }
 
         private static Dictionary<string, string> loaded_locale;
-        public static Dictionary<string,string> locale
+        public static Dictionary<string,string> thry
         {
             get
             {

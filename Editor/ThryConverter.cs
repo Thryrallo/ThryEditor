@@ -4,10 +4,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-#if DOT_NET_TWO_POINT_ZERO_OR_ABOVE
 #if IMAGING_DLL_EXISTS
 using System.Drawing.Imaging;
-#endif
 #endif
 using System.IO;
 using System.Text.RegularExpressions;
@@ -227,7 +225,6 @@ namespace Thry
         public static Texture2DArray GifToTextureArray(string path)
         {
             Texture2DArray array = null;
-#if DOT_NET_TWO_POINT_ZERO_OR_ABOVE
 #if IMAGING_DLL_EXISTS
             EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "", 0);
             System.Drawing.Image IMG = System.Drawing.Image.FromFile(path);
@@ -253,7 +250,6 @@ namespace Thry
             array.Apply();
             string newPath = path.Replace(".gif", ".asset");
             AssetDatabase.CreateAsset(array, newPath);
-#endif
 #endif
             return array;
         }

@@ -282,6 +282,7 @@ namespace Thry
     public class ModuleHeader
     {
         public string url = "";
+        public string path;
         public bool is_being_installed_or_removed = false;
         public bool available_requirement_fullfilled = true;
         public ModuleInfo available_module = null;
