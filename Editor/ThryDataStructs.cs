@@ -66,6 +66,7 @@ namespace Thry
         public static Rect lastGuiObjectRect;
         public static Rect lastGuiObjectHeaderRect;
         public static bool lastPropertyUsedCustomDrawer;
+        public static bool is_enabled = true;
     }
 
     public class GradientData
@@ -80,6 +81,7 @@ namespace Thry
         public string hover = "";
         public DefinableAction altClick;
         public DefineableCondition condition_show = new DefineableCondition();
+        public DefineableCondition condition_enable = null;
         public ButtonData button_right;
         public ImageData image;
         public TextureData texture;
