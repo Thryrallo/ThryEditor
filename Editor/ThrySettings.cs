@@ -181,11 +181,11 @@ namespace Thry
         private void GUINotification()
         {
             if (isFirstPopop)
-                GUILayout.Label(" " + Locale.thry["first_install_message"], Styles.Get().greenStyle);
+                GUILayout.Label(" " + Locale.editor.Get("first_install_message"), Styles.Get().greenStyle);
             else if (updatedVersion == -1)
-                GUILayout.Label(" " + Locale.thry["update_message"], Styles.Get().greenStyle);
+                GUILayout.Label(" " + Locale.editor.Get("update_message"), Styles.Get().greenStyle);
             else if (updatedVersion == 1)
-                GUILayout.Label(" " + Locale.thry["downgrade_message"], Styles.Get().yellowStyle);
+                GUILayout.Label(" " + Locale.editor.Get("downgrade_message"), Styles.Get().yellowStyle);
         }
 
         private void GUIMessage()
@@ -209,17 +209,17 @@ namespace Thry
             if (VRCInterface.Get().sdk_is_installed)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("VRC Sdk "+Locale.thry["version"]+": " + VRCInterface.Get().installed_sdk_version + (VRCInterface.Get().sdk_is_up_to_date ? " ("+ Locale.thry["newest"]+ " "+Locale.thry["version"]+")" : ""));
+                GUILayout.Label("VRC Sdk "+Locale.editor.Get("version")+": " + VRCInterface.Get().installed_sdk_version + (VRCInterface.Get().sdk_is_up_to_date ? " ("+ Locale.editor.Get("newest")+ " "+Locale.editor.Get("version")+")" : ""));
                 RemoveVRCSDKButton();
                 GUILayout.EndHorizontal();
                 if (!VRCInterface.Get().sdk_is_up_to_date)
                 {
-                    GUILayout.Label(Locale.thry["newest"] +" VRC SDK "+ Locale.thry["version"] +": " + VRCInterface.Get().newest_sdk_version);
+                    GUILayout.Label(Locale.editor.Get("newest") +" VRC SDK "+ Locale.editor.Get("version") +": " + VRCInterface.Get().newest_sdk_version);
                     UpdateVRCSDKButton();
                 }
                 if (VRCInterface.Get().user_logged_in)
                 {
-                    GUILayout.Label("VRChat "+ Locale.thry["user"]+": " + EditorPrefs.GetString("sdk#username"));
+                    GUILayout.Label("VRChat "+ Locale.editor.Get("user")+": " + EditorPrefs.GetString("sdk#username"));
                 }
             }
             else
@@ -232,7 +232,7 @@ namespace Thry
         private void InstallVRCSDKButton()
         {
             EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
-            if (GUILayout.Button(Locale.thry["button_install_vrc_sdk"]))
+            if (GUILayout.Button(Locale.editor.Get("button_install_vrc_sdk")))
             {
                 is_changing_vrc_sdk = true;
                 VRCInterface.DownloadAndInstallVRCSDK();
@@ -243,7 +243,7 @@ namespace Thry
         private void RemoveVRCSDKButton()
         {
             EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
-            if (GUILayout.Button(Locale.thry["button_remove_vrc_sdk"], GUILayout.ExpandWidth(false)))
+            if (GUILayout.Button(Locale.editor.Get("button_remove_vrc_sdk"), GUILayout.ExpandWidth(false)))
             {
                 is_changing_vrc_sdk = true;
                 VRCInterface.Get().RemoveVRCSDK(true);
@@ -254,7 +254,7 @@ namespace Thry
         private void UpdateVRCSDKButton()
         {
             EditorGUI.BeginDisabledGroup(is_changing_vrc_sdk);
-            if (GUILayout.Button(Locale.thry["button_update_vrc_sdk"]))
+            if (GUILayout.Button(Locale.editor.Get("button_update_vrc_sdk")))
             {
                 is_changing_vrc_sdk = true;
                 VRCInterface.Get().UpdateVRCSDK();
@@ -265,7 +265,7 @@ namespace Thry
         bool is_editor_expanded = true;
         private void GUIEditor()
         {
-            is_editor_expanded = Foldout(Locale.thry["header_editor"], is_editor_expanded);
+            is_editor_expanded = Foldout(Locale.editor.Get("header_editor"), is_editor_expanded);
             if (is_editor_expanded)
             {
                 EditorGUI.indentLevel += 2;
@@ -284,23 +284,23 @@ namespace Thry
             Text("gradient_name", false);
             string gradient_name = Config.Get().gradient_name;
             if (gradient_name.Contains("<hash>"))
-                GUILayout.Label(Locale.thry["gradient_good_naming"], Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<material>"))
                 if (gradient_name.Contains("<prop>"))
-                    GUILayout.Label(Locale.thry["gradient_good_naming"], Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
                 else
-                    GUILayout.Label(Locale.thry["gradient_add_hash_or_prop"], Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label(Locale.editor.Get("gradient_add_hash_or_prop"), Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<prop>"))
-                GUILayout.Label(Locale.thry["gradient_add_material"], Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_add_material"), Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
             else
-                GUILayout.Label(Locale.thry["gradient_add_material_or_prop"], Styles.Get().redStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_add_material_or_prop"), Styles.Get().redStyle, GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
         }
 
         bool is_extras_expanded = false;
         private void GUIExtras()
         {
-            is_extras_expanded = Foldout(Locale.thry["header_extras"], is_extras_expanded);
+            is_extras_expanded = Foldout(Locale.editor.Get("header_extras"), is_extras_expanded);
             if (is_extras_expanded)
             {
                 EditorGUI.indentLevel += 2;
@@ -312,12 +312,12 @@ namespace Thry
         bool is_data_share_expanded = false;
         private void GUIShareData()
         {
-            is_data_share_expanded = Foldout(Locale.thry["header_user_data_collection"], is_data_share_expanded);
+            is_data_share_expanded = Foldout(Locale.editor.Get("header_user_data_collection"), is_data_share_expanded);
             if (is_data_share_expanded)
             {
                 EditorGUI.indentLevel += 2;
                 Toggle("share_user_data", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField(Locale.thry["share_data_info_message"]);
+                EditorGUILayout.LabelField(Locale.editor.Get("share_data_info_message"));
                 if (Config.Get().share_user_data)
                 {
                     Toggle("share_installed_unity_version");
@@ -325,12 +325,12 @@ namespace Thry
                     Toggle("share_used_shaders");
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(EditorGUI.indentLevel * 15);
-                    if (GUILayout.Button(Locale.thry["button_get_my_data"], GUILayout.ExpandWidth(false)))
+                    if (GUILayout.Button(Locale.editor.Get("button_get_my_data"), GUILayout.ExpandWidth(false)))
                     {
                         WebHelper2.DownloadStringASync(URL.DATA_SHARE_GET_MY_DATA+"?hash="+WebHelper.GetMacAddress().GetHashCode(), delegate(string s){
                             TextPopup popup = ScriptableObject.CreateInstance<TextPopup>();
                             popup.position = new Rect(Screen.width / 2, Screen.height / 2, 512, 480);
-                            popup.titleContent = new GUIContent(Locale.thry["your_data"]);
+                            popup.titleContent = new GUIContent(Locale.editor.Get("your_data"));
                             popup.text = s;
                             popup.ShowUtility();
                         });
@@ -347,7 +347,7 @@ namespace Thry
             private Vector2 scroll;
             void OnGUI()
             {
-                EditorGUILayout.SelectableLabel(Locale.thry["my_data_header"], EditorStyles.boldLabel);
+                EditorGUILayout.SelectableLabel(Locale.editor.Get("my_data_header"), EditorStyles.boldLabel);
                 Rect last = GUILayoutUtility.GetLastRect();
                 
                 Rect data_rect = new Rect(0, last.height, Screen.width, Screen.height - last.height);
@@ -362,7 +362,7 @@ namespace Thry
             if (ModuleHandler.GetModules() == null)
                 return;
             if (ModuleHandler.GetModules().Count > 0)
-                GUILayout.Label(Locale.thry["header_modules"], EditorStyles.boldLabel);
+                GUILayout.Label(Locale.editor.Get("header_modules"), EditorStyles.boldLabel);
             bool disabled = false;
             foreach (ModuleHeader module in ModuleHandler.GetModules())
                 if (module.is_being_installed_or_removed)
@@ -391,9 +391,9 @@ namespace Thry
                 if (module.available_module.requirement != null && (update_available || !is_installed))
                 {
                     if(module.available_requirement_fullfilled)
-                        GUILayout.Label(Locale.thry["requirements"] +": " + module.available_module.requirement.ToString(), Styles.Get().greenStyle);
+                        GUILayout.Label(Locale.editor.Get("requirements") +": " + module.available_module.requirement.ToString(), Styles.Get().greenStyle);
                     else
-                        GUILayout.Label(Locale.thry["requirements"] + ": " + module.available_module.requirement.ToString(), Styles.Get().redStyle);
+                        GUILayout.Label(Locale.editor.Get("requirements") + ": " + module.available_module.requirement.ToString(), Styles.Get().redStyle);
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -402,7 +402,7 @@ namespace Thry
 
         private static void Text(string configField, bool createHorizontal = true)
         {
-            Text(configField, Locale.thry[configField], Locale.thry[configField + "_tooltip"], createHorizontal);
+            Text(configField, Locale.editor.Get(configField), Locale.editor.Get(configField + "_tooltip"), createHorizontal);
         }
 
         private static void Text(string configField, string[] content, bool createHorizontal=true)
@@ -435,7 +435,7 @@ namespace Thry
 
         private static void Toggle(string configField, GUIStyle label_style = null)
         {
-            Toggle(configField, Locale.thry[configField], Locale.thry[configField + "_tooltip"], label_style);
+            Toggle(configField, Locale.editor.Get(configField), Locale.editor.Get(configField + "_tooltip"), label_style);
         }
 
         private static void Toggle(string configField, string[] content, GUIStyle label_style = null)
@@ -461,7 +461,7 @@ namespace Thry
 
         private static void Dropdown(string configField)
         {
-            Dropdown(configField, Locale.thry[configField],Locale.thry[configField+"_tooltip"]);
+            Dropdown(configField, Locale.editor.Get(configField),Locale.editor.Get(configField+"_tooltip"));
         }
 
         private static void Dropdown(string configField, string[] content)
@@ -495,14 +495,14 @@ namespace Thry
         {
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.BeginHorizontal();
-            GUILayout.Label(new GUIContent(Locale.thry["locale"], Locale.thry["locale_tooltip"]), GUILayout.ExpandWidth(false));
-            Locale.selected_locale_index = EditorGUILayout.Popup(Locale.selected_locale_index, Locale.available_locales, GUILayout.ExpandWidth(false));
-            if(Locale.thry["translator"].Length>0)
-                GUILayout.Label(Locale.thry["translation"] +": "+Locale.thry["translator"], GUILayout.ExpandWidth(false));
+            GUILayout.Label(new GUIContent(Locale.editor.Get("locale"), Locale.editor.Get("locale_tooltip")), GUILayout.ExpandWidth(false));
+            Locale.editor.selected_locale_index = EditorGUILayout.Popup(Locale.editor.selected_locale_index, Locale.editor.available_locales, GUILayout.ExpandWidth(false));
+            if(Locale.editor.Get("translator").Length>0)
+                GUILayout.Label(Locale.editor.Get("translation") +": "+Locale.editor.Get("translator"), GUILayout.ExpandWidth(false));
             EditorGUILayout.EndHorizontal();
             if(EditorGUI.EndChangeCheck())
             {
-                Config.Get().locale = Locale.available_locales[Locale.selected_locale_index];
+                Config.Get().locale = Locale.editor.available_locales[Locale.editor.selected_locale_index];
                 Config.Get().save();
                 ThryEditor.reload();
                 ThryEditor.repaint();

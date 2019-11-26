@@ -247,7 +247,7 @@ public class ThryEditor : ShaderGUI
 
         public override void DrawDefault()
         {
-            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale_names, currentlyDrawing.gui.selected_locale);
+            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale.available_locales, currentlyDrawing.gui.locale.selected_locale_index);
         }
     }
 
@@ -353,31 +353,20 @@ public class ThryEditor : ShaderGUI
         return ThryPropertyType.none;
     }
 
-    private string[] locale_names = null;
-    private int selected_locale = 0;
+    private Locale locale;
 
-    private string[][] LoadLocales()
+    private void LoadLocales()
     {
         MaterialProperty locales_property = null;
-        string[][] locales = null;
+        locale = null;
         foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
         if (locales_property != null)
         {
             string displayName = locales_property.displayName;
             PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
-            string[] guids = AssetDatabase.FindAssets(options.file_name);
-            if (guids.Length == 0 || options.file_name == null)
-            {
-                Debug.LogWarning("Locales File could not be found");
-                return locales;
-            }
-            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            selected_locale = (int)locales_property.floatValue;
-            string locales_string = Thry.FileHelper.ReadFileIntoString(path);
-            locales = Thry.Parser.ParseLocale(locales_string, selected_locale);
-            locale_names = Thry.Parser.ParseLocalenames(locales_string);
+            locale = new Locale(options.file_name);
+            locale.selected_locale_index = (int)locales_property.floatValue;
         }
-        return locales;
     }
 
     //finds all properties and headers and stores them in correct order
@@ -386,7 +375,7 @@ public class ThryEditor : ShaderGUI
         //load display names from file if it exists
         MaterialProperty[] props = current.properties;
         Dictionary<string, string> labels = LoadDisplayNamesFromFile();
-        string[][] locales = LoadLocales();
+        LoadLocales();
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
@@ -398,9 +387,9 @@ public class ThryEditor : ShaderGUI
 		for (int i = 0; i < props.Length; i++)
 		{
             string displayName = props[i].displayName;
-            if(locales!=null)
-                foreach (string[] replace in locales)
-                    displayName = displayName.Replace("locale::"+replace[0], replace[1]);
+            if (locale != null)
+                foreach (string key in locale.GetAllKeys())
+                    displayName = displayName.Replace("locale::" + key, locale.Get(key));
             displayName = Regex.Replace(displayName, @"''", "\"");
             
             if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];

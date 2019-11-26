@@ -134,7 +134,23 @@ namespace Thry
             {
                 TextureWrapMode wrap_mode = data.preview_texture.wrapMode;
                 data.preview_texture.wrapMode = TextureWrapMode.Clamp;
+                bool vertical = data.preview_texture.height > data.preview_texture.width;
+                Vector2 pivot = new Vector2();
+                if (vertical)
+                {
+                    pivot = new Vector2(gradient_position.x, gradient_position.y + gradient_position.height);
+                    GUIUtility.RotateAroundPivot(-90, pivot);
+                    gradient_position.y += gradient_position.height;
+                    float h = gradient_position.width;
+                    gradient_position.width = gradient_position.height;
+                    gradient_position.y += h;
+                    gradient_position.height = -h;
+                }
                 GUI.DrawTexture(gradient_position, data.preview_texture, ScaleMode.StretchToFill, true);
+                if (vertical)
+                {
+                    GUIUtility.RotateAroundPivot(90, pivot);
+                }
                 GUI.DrawTexture(border_position, data.preview_texture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
                 data.preview_texture.wrapMode = wrap_mode;
             }else
@@ -255,6 +271,20 @@ namespace Thry
         {
             DrawingData.lastPropertyUsedCustomDrawer = true;
             return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
+    public class HelpboxDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            EditorGUILayout.HelpBox(label.text, MessageType.Info);
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return 0;
         }
     }
 }
