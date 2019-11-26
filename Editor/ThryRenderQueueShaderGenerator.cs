@@ -52,7 +52,7 @@ namespace Thry
 
             GUILayout.Label("With thry editor the render queue selection in the material editor creates copies of the shader with different queues to make it work in vrchat. \n With this tool you can pre create those shader files so you don't have to wait.");
 
-            Shader activeShader = Settings.activeShader;
+            Shader activeShader = Mediator.active_shader;
 
             if (activeShader != null) poiShaders[0] = ShaderHelper.getDefaultShaderName(activeShader.name);
             else poiShaders[0] = "None";
@@ -61,7 +61,7 @@ namespace Thry
             {
                 selectedShader = newSelectShader;
                 activeShader = Shader.Find(poiShaders[newSelectShader]);
-                Settings.setActiveShader(activeShader);
+                Mediator.SetActiveShader(activeShader);
             }
 
             if (activeShader != null)

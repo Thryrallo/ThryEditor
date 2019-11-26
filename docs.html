@@ -196,6 +196,12 @@
                     <td></td>
                     <td>[Curve]_ColorCurve("Curve",2D)= "white" { }</td>
                 </tr>
+                <tr>
+                    <td>[Helpbox]</td>
+                    <td>Creates an info box</td>
+                    <td></td>
+                    <td>[Helpbox]_MainHelpbox("This is the text inside the info box",Float)= 0</td>
+                </tr>
             </table>
 
             <h2>Supported Default Unity Flags</h2>
@@ -274,6 +280,13 @@
                     <td>let's you define a condition that has to be true for this property to be shown in the ui</td>
                     <td>No</td>
                     <td>_Tex("Texture--{condition_show:{type:PROPERTY_BOOL,data:_ForceOpaque==1}}",2D) = "white" { }</td>
+                </tr>
+                <tr>
+                    <td>condition_enable</td>
+                    <td>Condition</td>
+                    <td>let's you define a condition that has to be true for this property to be enabled</td>
+                    <td>No</td>
+                    <td>_Tex("Texture--{condition_enable:{type:PROPERTY_BOOL,data:_ForceOpaque==1}}",2D) = "white" { }</td>
                 </tr>
                 <tr>
                     <td>button_right</td>

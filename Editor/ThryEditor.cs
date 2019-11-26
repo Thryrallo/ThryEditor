@@ -72,7 +72,27 @@ public class ThryEditor : ShaderGUI
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
         }
 
-        public abstract void Draw();
+        public abstract void DrawInternal();
+
+        public void Draw()
+        {
+            bool is_enabled = DrawingData.is_enabled;
+            if (options.condition_enable != null && is_enabled)
+            {
+                DrawingData.is_enabled = options.condition_enable.Test();
+                EditorGUI.BeginDisabledGroup(!DrawingData.is_enabled);
+            }
+            if (options.condition_show.Test())
+            {
+                DrawInternal();
+                testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
+            }
+            if (options.condition_enable != null && is_enabled)
+            {
+                DrawingData.is_enabled = true;
+                EditorGUI.EndDisabledGroup();
+            }
+        }
     }
 
     public class ShaderGroup : ShaderPart
@@ -99,13 +119,12 @@ public class ThryEditor : ShaderGUI
             parts.Add(part);
         }
 
-        public override void Draw()
+        public override void DrawInternal()
         {
-            if(options.condition_show.Test())
-                foreach (ShaderPart part in parts)
-                {
-                    part.Draw();
-                }
+            foreach (ShaderPart part in parts)
+            {
+                part.Draw();
+            }
         }
     }
 
@@ -123,23 +142,22 @@ public class ThryEditor : ShaderGUI
             this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
         }
 
-        public override void Draw()
+        public override void DrawInternal()
         {
-            if (options.condition_show.Test())
+            
+            currentlyDrawing.currentProperty = this;
+            guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
+            Rect headerRect = DrawingData.lastGuiObjectHeaderRect;
+            if (guiElement.getState())
             {
-                currentlyDrawing.currentProperty = this;
-                guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
-                testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
-                if (guiElement.getState())
+                EditorGUILayout.Space();
+                foreach (ShaderPart part in parts)
                 {
-                    EditorGUILayout.Space();
-                    foreach (ShaderPart part in parts)
-                    {
-                        part.Draw();
-                    }
-                    EditorGUILayout.Space();
+                    part.Draw();
                 }
+                EditorGUILayout.Space();
             }
+            DrawingData.lastGuiObjectHeaderRect = headerRect;
         }
     }
 
@@ -160,26 +178,23 @@ public class ThryEditor : ShaderGUI
             this.forceOneLine = forceOneLine;
         }
 
-        public override void Draw()
+        public override void DrawInternal()
         {
             PreDraw();
-            if (options.condition_show != null)
-                if (!options.condition_show.Test())
-                    return;
             currentlyDrawing.currentProperty = this;
             DrawingData.lastGuiObjectHeaderRect = new Rect(-1,-1,-1,-1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset + 1;
+
             if (drawDefault)
                 DrawDefault();
             else if (forceOneLine)
                 currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle), this.materialProperty, this.content);
             else
                 currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
+
             EditorGUI.indentLevel = oldIndentLevel;
             if (DrawingData.lastGuiObjectHeaderRect.x==-1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
-
-            testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
         }
 
         public virtual void PreDraw() { }
@@ -232,7 +247,7 @@ public class ThryEditor : ShaderGUI
 
         public override void DrawDefault()
         {
-            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale_names, currentlyDrawing.gui.selected_locale);
+            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale.available_locales, currentlyDrawing.gui.locale.selected_locale_index);
         }
     }
 
@@ -338,31 +353,20 @@ public class ThryEditor : ShaderGUI
         return ThryPropertyType.none;
     }
 
-    private string[] locale_names = null;
-    private int selected_locale = 0;
+    private Locale locale;
 
-    private string[][] LoadLocales()
+    private void LoadLocales()
     {
         MaterialProperty locales_property = null;
-        string[][] locales = null;
+        locale = null;
         foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
         if (locales_property != null)
         {
             string displayName = locales_property.displayName;
             PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
-            string[] guids = AssetDatabase.FindAssets(options.file_name);
-            if (guids.Length == 0 || options.file_name == null)
-            {
-                Debug.LogWarning("Locales File could not be found");
-                return locales;
-            }
-            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-            selected_locale = (int)locales_property.floatValue;
-            string locales_string = Thry.FileHelper.ReadFileIntoString(path);
-            locales = Thry.Parser.ParseLocale(locales_string, selected_locale);
-            locale_names = Thry.Parser.ParseLocalenames(locales_string);
+            locale = new Locale(options.file_name);
+            locale.selected_locale_index = (int)locales_property.floatValue;
         }
-        return locales;
     }
 
     //finds all properties and headers and stores them in correct order
@@ -371,7 +375,7 @@ public class ThryEditor : ShaderGUI
         //load display names from file if it exists
         MaterialProperty[] props = current.properties;
         Dictionary<string, string> labels = LoadDisplayNamesFromFile();
-        string[][] locales = LoadLocales();
+        LoadLocales();
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
@@ -383,9 +387,9 @@ public class ThryEditor : ShaderGUI
 		for (int i = 0; i < props.Length; i++)
 		{
             string displayName = props[i].displayName;
-            if(locales!=null)
-                foreach (string[] replace in locales)
-                    displayName = displayName.Replace("locale::"+replace[0], replace[1]);
+            if (locale != null)
+                foreach (string key in locale.GetAllKeys())
+                    displayName = displayName.Replace("locale::" + key, locale.Get(key));
             displayName = Regex.Replace(displayName, @"''", "\"");
             
             if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
@@ -550,7 +554,7 @@ public class ThryEditor : ShaderGUI
     //-------------Main Function--------------
     public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
 	{
-        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout)
+        if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout))
         {
             current = new EditorData();
             current.editor = materialEditor;
@@ -564,14 +568,14 @@ public class ThryEditor : ShaderGUI
         UpdateEvents();
 
         //first time call inits
-        if ((firstOnGUICall || reloadNextDraw) && Event.current.type == EventType.Layout) OnOpen();
+        if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
 
         currentlyDrawing = current;
 
         //sync shader and get preset handler
         Config config = Config.Get();
         if(current.materials!=null)
-            Settings.setActiveShader(current.materials[0].shader, presetHandler);
+            Mediator.SetActiveShader(current.materials[0].shader, presetHandler: presetHandler);
 
 
         //editor settings button + shader name + presets
@@ -724,16 +728,23 @@ public class ThryEditor : ShaderGUI
         }
     }
 
+    private static string edtior_directory_path;
     public static string GetThryEditorDirectoryPath()
     {
-        string[] guids = AssetDatabase.FindAssets("ThryEditor");
-        foreach (string g in guids)
+        if (edtior_directory_path == null)
         {
-            string p = AssetDatabase.GUIDToAssetPath(g);
-            if (p.EndsWith("/ThryEditor.cs"))
-                return p.GetDirectoryPath().RemoveOneDirectory();
+            string[] guids = AssetDatabase.FindAssets("ThryEditor");
+            foreach (string g in guids)
+            {
+                string p = AssetDatabase.GUIDToAssetPath(g);
+                if (p.EndsWith("/ThryEditor.cs"))
+                {
+                    edtior_directory_path = p.GetDirectoryPath().RemoveOneDirectory();
+                    break;
+                }
+            }
         }
-        return null;
+        return edtior_directory_path;
     }
 
     //----------Static Helper Functions

@@ -46,7 +46,7 @@ namespace Thry
 
         private void loadActiveShader()
         {
-            Shader activeShader = Settings.activeShader;
+            Shader activeShader = Mediator.active_shader;
             if (activeShader != null && this.shaders != null) for (int i = 0; i < this.shaders.Length; i++) if (this.shaders[i] == activeShader.name) selectedShaderIndex = i;
         }
 
@@ -62,32 +62,32 @@ namespace Thry
             if (shaders == null)
             {
                 this.shaders = ShaderHelper.GetThryEditorShaderNames();
-                if(Settings.activeShader != null)
+                if(Mediator.active_shader != null)
                     for(int i= 0;i < shaders.Length;i++)
-                        if (shaders[i] == Settings.activeShader.name) selectedShaderIndex = i;
+                        if (shaders[i] == Mediator.active_shader.name) selectedShaderIndex = i;
             }
             if (propertyBackground == null) setupStyle();
-            Shader activeShader = Settings.activeShader;
+            Shader activeShader = Mediator.active_shader;
             int newIndex = EditorGUILayout.Popup(selectedShaderIndex, shaders, GUILayout.MaxWidth(500));
             if (selectedShaderIndex == -1) newIndex = 0;
             if (newIndex != selectedShaderIndex)
             {
                 selectedShaderIndex = newIndex;
                 selectedPreset = 0;
-                Settings.setActiveShader(Shader.Find(shaders[selectedShaderIndex]));
-                activeShader = Settings.activeShader;
+                Mediator.SetActiveShader(Shader.Find(shaders[selectedShaderIndex]));
+                activeShader = Mediator.active_shader;
                 reloadProperties = true;
             }
             if (activeShader != null)
             {
-                PresetHandler presetHandler = Settings.activePresetHandler;
+                PresetHandler presetHandler = Mediator.active_shader_preset_handler;
                 if (presetHandler.shaderHasPresetPath())
                 {
                     Dictionary<string, List<string[]>> presets = presetHandler.getPresets();
                     string[] presetStrings = new string[presets.Count + 1];
                     int i = 0;
                     foreach (KeyValuePair<string, List<string[]>> entry in presets) presetStrings[i++] = entry.Key;
-                    presetStrings[presets.Count] = Locale.locale["new_preset2"];
+                    presetStrings[presets.Count] = Locale.editor.Get("new_preset2");
                     GUILayout.BeginHorizontal();
                     int newSelectedPreset = EditorGUILayout.Popup(selectedPreset, presetStrings, GUILayout.MaxWidth(500));
                     if (newSelectedPreset != selectedPreset || reloadProperties)
@@ -96,7 +96,7 @@ namespace Thry
                         if (newSelectedPreset == presetStrings.Length - 1)
                         {
                             newPreset = true;
-                            newPresetName = Locale.locale["new_preset_name2"];
+                            newPresetName = Locale.editor.Get("new_preset_name2");
                             properties = null;
                         }
                         else
@@ -114,7 +114,7 @@ namespace Thry
                             newPreset = false;
                         }
                     }
-                    if (GUILayout.Button(Locale.locale["delete"], GUILayout.MaxWidth(80)))
+                    if (GUILayout.Button(Locale.editor.Get("delete"), GUILayout.MaxWidth(80)))
                     {
                         presetHandler.removePreset(presetStrings[selectedPreset]);
                         reloadProperties = true;
@@ -125,7 +125,7 @@ namespace Thry
                     {
                         GUILayout.BeginHorizontal();
                         newPresetName = GUILayout.TextField(newPresetName, GUILayout.MaxWidth(150));
-                        if (GUILayout.Button(Locale.locale["add_preset"], GUILayout.MaxWidth(80)))
+                        if (GUILayout.Button(Locale.editor.Get("add_preset"), GUILayout.MaxWidth(80)))
                         {
                             presetHandler.addNewPreset(newPresetName);
                             reloadProperties = true;
@@ -188,7 +188,7 @@ namespace Thry
                             {
                                 properties[i][1] = GUILayout.TextField(properties[i][1], GUILayout.MaxWidth(204));
                             }
-                            if (GUILayout.Button(Locale.locale["delete"], GUILayout.MaxWidth(80)))
+                            if (GUILayout.Button(Locale.editor.Get("delete"), GUILayout.MaxWidth(80)))
                             {
                                 properties.RemoveAt(i);
                                 this.reloadProperties = true;
@@ -199,7 +199,7 @@ namespace Thry
                         //new preset gui
                         GUILayout.BeginHorizontal();
                         addPropertyIndex = EditorGUILayout.Popup(addPropertyIndex, unusedProperties, GUILayout.MaxWidth(150));
-                        if (GUILayout.Button(Locale.locale["add"], GUILayout.MaxWidth(80)))
+                        if (GUILayout.Button(Locale.editor.Get("add"), GUILayout.MaxWidth(80)))
                         {
                             this.reloadProperties = true;
                             properties.Add(new string[] { unusedProperties[addPropertyIndex], "" });
@@ -208,7 +208,7 @@ namespace Thry
                         GUILayout.EndHorizontal();
                     }
                     GUILayout.EndScrollView();
-                    if (GUILayout.Button(Locale.locale["save"], GUILayout.MinWidth(50))) saveProperties(presetHandler, presetStrings);
+                    if (GUILayout.Button(Locale.editor.Get("save"), GUILayout.MinWidth(50))) saveProperties(presetHandler, presetStrings);
                     Event e = Event.current;
                     if (e.isKey)
                     {
@@ -223,7 +223,7 @@ namespace Thry
 
         private void saveProperties(PresetHandler presetHandler, string[] presetStrings)
         {
-            Debug.Log(Locale.locale["preset_saved"]);
+            Debug.Log(Locale.editor.Get("preset_saved"));
             presetHandler.setPreset(presetStrings[selectedPreset], properties);
             Repaint();
         }

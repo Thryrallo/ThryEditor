@@ -4,10 +4,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-#if DOT_NET_TWO_POINT_ZERO_OR_ABOVE
 #if IMAGING_DLL_EXISTS
 using System.Drawing.Imaging;
-#endif
 #endif
 using System.IO;
 using System.Text.RegularExpressions;
@@ -64,127 +62,158 @@ namespace Thry
         }
 
         //--Start--Gradient
-
         public static Gradient TextureToGradient(Texture2D texture)
         {
-            Debug.Log("Texture converted to gradient.");
+            texture = Gradient_Resize(texture);
+            Color[] values = Gradient_Sample(texture);
+            //values = Gradient_Smooth(values);
+            Color[] delta = CalcDelta(values);
+            delta[0] = delta[1];
+            Color[] delta_delta = CalcDelta(delta);
+            //PrintColorArray(delta_delta);
+            List<Color[]> changes = DeltaDeltaToChanges(delta_delta,values);
+            changes = RemoveChangesUnderDistanceThreshold(changes);
+            SortChanges(changes);
+            //PrintColorList(changes);
+            return ConstructGradient(changes,values);
+        }
 
-            int d = (int)Mathf.Sqrt(Mathf.Pow(texture.width, 2) + Mathf.Pow(texture.height, 2));
-            List<GradientColorKey> colorKeys = new List<GradientColorKey>();
-            List<GradientAlphaKey> alphaKeys = new List<GradientAlphaKey>();
-            colorKeys.Add(new GradientColorKey(texture.GetPixel(texture.width - 1, texture.height - 1), 1));
-            alphaKeys.Add(new GradientAlphaKey(texture.GetPixel(texture.width - 1, texture.height - 1).a, 1));
-            colorKeys.Add(new GradientColorKey(texture.GetPixel(0, 0), 0));
-            alphaKeys.Add(new GradientAlphaKey(texture.GetPixel(0, 0).a, 0));
-            int colKeys = 0;
-            int alphaKeysCount = 0;
+        private static Texture2D Gradient_Resize(Texture2D texture)
+        {
+            return TextureHelper.Resize(texture, 512, 512);
+        }
 
-            bool isFlat = false;
-            bool isNotFlat = false;
-
-            float[][] prevSteps = new float[][] { GetSteps(GetColorAtI(texture, 0, d), GetColorAtI(texture, 1, d)), GetSteps(GetColorAtI(texture, 0, d), GetColorAtI(texture, 1, d)) };
-
-            bool wasFlat = false;
-            int maxBetweenFlats = 3;
-            int minFlat = 3;
-            int flats = 0;
-            int prevFlats = 0;
-            int nonFlats = 0;
-            float[][] steps = new float[d][];
-            float[] alphaStep = new float[d];
-            Color prevColor = GetColorAtI(texture, 0, d);
-            for (int i = 0; i < d; i++)
+        private static Color[] Gradient_Sample(Texture2D texture)
+        {
+            texture.wrapMode = TextureWrapMode.Clamp;
+            int length = texture.width;
+            Color[] ar = new Color[length];
+            for(int i = 0; i < length; i++)
             {
-                Color col = GetColorAtI(texture, i, d);
-                steps[i] = GetSteps(prevColor, col);
-                alphaStep[i] = Mathf.Abs(prevColor.a - col.a);
-                prevColor = col;
+                ar[i] = texture.GetPixel(i, i);
             }
-            for (int r = 0; r < 1; r++)
-            {
-                for (int i = 1; i < d - 1; i++)
-                {
-                    //Debug.Log(i+": "+steps[i][0] + "," + steps[i][1] + ","+steps[i][0]);
-                    bool returnToOldVal = false;
-                    if (!SameSteps(steps[i], steps[i + 1]) && SimilarSteps(steps[i], steps[i + 1], 0.1f))
-                    {
-                        int n = i;
-                        while (++n < d && SimilarSteps(steps[i - 1], steps[n], 0.1f))
-                            if (SameSteps(steps[i - 1], steps[n])) returnToOldVal = true;
-                    }
-                    if (returnToOldVal) steps[i] = steps[i - 1];
+            return ar;
+        }
 
-                    returnToOldVal = false;
-                    //Debug.Log(i + ": " + steps[i][0] + "," + steps[i][1] + "," + steps[i][0]);
+        private static Color[] Gradient_Smooth(Color[] values)
+        {
+            Color[] ar = new Color[values.Length];
+            ar[0] = values[0];
+            ar[ar.Length - 1] = values[ar.Length - 1];
+            for(int i = 1; i < values.Length-1; i++)
+            {
+                ar[i] = new Color();
+                ar[i].r = (values[i - 1].r + values[i].r + values[i + 1].r) / 3;
+                ar[i].g = (values[i - 1].g + values[i].g + values[i + 1].g) / 3;
+                ar[i].b = (values[i - 1].b + values[i].b + values[i + 1].b) / 3;
+            }
+            return ar;
+        }
+
+        private static Color[] CalcDelta(Color[] values)
+        {
+            Color[] delta = new Color[values.Length];
+            delta[0] = new Color(0, 0, 0);
+            for(int i = 1; i < values.Length; i++)
+            {
+                delta[i] = ColorSubtract(values[i - 1], values[i]);
+            }
+            return delta;
+        }
+
+        private static List<Color[]> DeltaDeltaToChanges(Color[] deltadelta, Color[] values)
+        {
+            List<Color[]> changes = new List<Color[]>();
+            for (int i = 0; i < deltadelta.Length; i++)
+            {
+                if (deltadelta[i].r != 0 || deltadelta[i].g != 0 || deltadelta[i].b != 0)
+                {
+                    deltadelta[i].a = i/512.0f;
+                    Color[] new_change = new Color[2];
+                    new_change[0] = deltadelta[i];
+                    new_change[1] = values[i];
+                    changes.Add(new_change);
                 }
             }
+            return changes;
+        }
 
-
-            Color lastStableColor = GetColorAtI(texture, 0, d);
-            float lastStableTime = 0;
-            bool added = false;
-            for (int i = 1; i < d; i++)
+        const float GRADIENT_DISTANCE_THRESHOLD = 0.05f;
+        private static List<Color[]> RemoveChangesUnderDistanceThreshold(List<Color[]> changes)
+        {
+            List<Color[]> new_changes = new List<Color[]>();
+            new_changes.Add(changes[0]);
+            for(int i = 1; i < changes.Count; i++)
             {
-                Color col = GetColorAtI(texture, i, d);
-                float[] newColSteps = steps[i];
-                float time = (float)(i) / d;
 
-                float[] diff = new float[] { prevSteps[0][0] - newColSteps[0], prevSteps[0][1] - newColSteps[1], prevSteps[0][2] - newColSteps[2] };
-
-                if (diff[0] == 0 && diff[1] == 0 && diff[2] == 0)
+                if (changes[i][0].a-new_changes[new_changes.Count-1][0].a < GRADIENT_DISTANCE_THRESHOLD)
                 {
-                    lastStableColor = col;
-                    lastStableTime = time;
-                    added = false;
+                    if (ColorValueForDelta(new_changes[new_changes.Count - 1][0]) < ColorValueForDelta(changes[i][0]))
+                    {
+                        new_changes.RemoveAt(new_changes.Count - 1);
+                        new_changes.Add(changes[i]);
+                    }
                 }
                 else
                 {
-                    if (added == false && colKeys++ < 6) colorKeys.Add(new GradientColorKey(lastStableColor, lastStableTime));
-                    added = true;
+                    new_changes.Add(changes[i]);
                 }
-
-                float alphaDiff = Mathf.Abs(alphaStep[i - 1] - alphaStep[i]);
-                if (alphaDiff > 0.05 && ++alphaKeysCount < 6) alphaKeys.Add(new GradientAlphaKey(col.a, time));
-
-                prevSteps[1] = prevSteps[0];
-                prevSteps[0] = newColSteps;
-
-                bool thisOneFlat = newColSteps[0] == 0 && newColSteps[1] == 0 && newColSteps[2] == 0;
-                if (thisOneFlat) flats++;
-                else if (!wasFlat && !thisOneFlat) nonFlats++;
-                else if (wasFlat && !thisOneFlat) { prevFlats = flats; flats = 0; nonFlats = 1; }
-                if (flats >= minFlat && prevFlats >= minFlat && nonFlats <= maxBetweenFlats) isFlat = true;
-                if (nonFlats > maxBetweenFlats) isNotFlat = true;
-                wasFlat = thisOneFlat;
             }
+            return new_changes;
+        }
+
+        private static void SortChanges(List<Color[]> changes)
+        {
+            changes.Sort(delegate (Color[] x, Color[] y)
+            {
+                float sizeX = ColorValueForDelta(x[0]);
+                float sizeY = ColorValueForDelta(y[0]);
+                if (sizeX < sizeY) return 1;
+                else if (sizeY < sizeX) return -1;
+                return 0;
+            });
+        }
+
+        private static Gradient ConstructGradient(List<Color[]> changes, Color[] values)
+        {
+            List<GradientAlphaKey> alphas = new List<GradientAlphaKey>();
+            List<GradientColorKey> colors = new List<GradientColorKey>();
+            for(int i = 0; i < 6 && i < changes.Count; i++)
+            {
+                colors.Add(new GradientColorKey(changes[i][1], changes[i][0].a));
+                //Debug.Log("key " + changes[i][0].a);
+            }
+            colors.Add(new GradientColorKey(values[0], 0));
+            colors.Add(new GradientColorKey(values[values.Length-1], 1));
+            alphas.Add(new GradientAlphaKey(1, 0));
+            alphas.Add(new GradientAlphaKey(1, 1));
             Gradient gradient = new Gradient();
-            gradient.SetKeys(colorKeys.ToArray(), alphaKeys.ToArray());
-            if (isFlat && !isNotFlat) gradient.mode = GradientMode.Fixed;
+            gradient.SetKeys(colors.ToArray(), alphas.ToArray());
             return gradient;
         }
 
-        private static bool SimilarSteps(float[] steps1, float[] steps2, float perc)
+        private static void PrintColorArray(Color[] ar)
         {
-            if (Mathf.Abs(steps1[0] - steps2[0]) > perc || Mathf.Abs(steps1[1] - steps2[1]) > perc || Mathf.Abs(steps1[2] - steps2[2]) > perc) return false;
-            return steps1[0] == steps2[0] || steps1[1] == steps2[1] || steps1[2] == steps2[2];
+            foreach (Color c in ar)
+                Debug.Log(c.ToString());
+        }private static void PrintColorList(List<Color[]> ar)
+        {
+            foreach (Color[] x in ar)
+                Debug.Log(ColorValueForDelta (x[0])+ ":"+x[0].ToString());
         }
 
-        private static bool SameSteps(float[] steps1, float[] steps2)
+        private static float ColorValueForDelta(Color col)
         {
-            return steps1[0] == steps2[0] && steps1[1] == steps2[1] && steps1[2] == steps2[2];
+            return Mathf.Abs(col.r) + Mathf.Abs(col.g) + Mathf.Abs(col.b);
         }
 
-        private static float[] GetSteps(Color col1, Color col2)
+        private static Color ColorAdd(Color col1, Color col2)
         {
-            return new float[] { col1.r - col2.r, col1.g - col2.g, col1.b - col2.b };
+            return new Color(col1.r + col2.r, col1.g + col2.g, col1.b + col2.b);
         }
-
-        private static Color GetColorAtI(Texture2D texture, int i, int d)
+        private static Color ColorSubtract(Color col1, Color col2)
         {
-            int y = (int)(((float)i) / d * texture.height);
-            int x = (int)(((float)i) / d * texture.width);
-            Color col = texture.GetPixel(x, y);
-            return col;
+            return new Color(col1.r - col2.r, col1.g - col2.g, col1.b - col2.b);
         }
 
         public static Texture2D GradientToTexture(Gradient gradient, int width, int height)
@@ -227,7 +256,6 @@ namespace Thry
         public static Texture2DArray GifToTextureArray(string path)
         {
             Texture2DArray array = null;
-#if DOT_NET_TWO_POINT_ZERO_OR_ABOVE
 #if IMAGING_DLL_EXISTS
             EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "", 0);
             System.Drawing.Image IMG = System.Drawing.Image.FromFile(path);
@@ -253,7 +281,6 @@ namespace Thry
             array.Apply();
             string newPath = path.Replace(".gif", ".asset");
             AssetDatabase.CreateAsset(array, newPath);
-#endif
 #endif
             return array;
         }

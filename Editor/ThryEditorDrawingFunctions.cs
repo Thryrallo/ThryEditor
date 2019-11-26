@@ -46,28 +46,32 @@ namespace Thry
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
                 if (Event.current.type == EventType.Repaint)
                     EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
-                //test click and draw scale/offset
-                if (DrawingData.currentTexProperty.showFoldoutProperties)
-                {
-                    if(DrawingData.currentTexProperty.hasScaleOffset)
-                        ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
 
-                    PropertyOptions options = DrawingData.currentTexProperty.options;
-                    if(options.reference_properties!=null)
-                        foreach(string r_property in options.reference_properties)
-                        {
-                            ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
-                            EditorGUIUtility.labelWidth += EditorGUI.indentLevel * 15;
-                            EditorGUI.indentLevel *= 2;
-                            ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);                           
-                            EditorGUI.indentLevel /= 2;
-                            EditorGUIUtility.labelWidth -= EditorGUI.indentLevel * 15;
-                        }
-                }
-                if (ThryEditor.input.MouseClick && position.Contains(Event.current.mousePosition))
+                if (DrawingData.is_enabled)
                 {
-                    DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
-                    editor.Repaint();
+                    //test click and draw scale/offset
+                    if (DrawingData.currentTexProperty.showFoldoutProperties)
+                    {
+                        if (DrawingData.currentTexProperty.hasScaleOffset)
+                            ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
+
+                        PropertyOptions options = DrawingData.currentTexProperty.options;
+                        if (options.reference_properties != null)
+                            foreach (string r_property in options.reference_properties)
+                            {
+                                ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                                EditorGUIUtility.labelWidth += EditorGUI.indentLevel * 15;
+                                EditorGUI.indentLevel *= 2;
+                                ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                                EditorGUI.indentLevel /= 2;
+                                EditorGUIUtility.labelWidth -= EditorGUI.indentLevel * 15;
+                            }
+                    }
+                    if (ThryEditor.input.MouseClick && position.Contains(Event.current.mousePosition))
+                    {
+                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
+                        editor.Repaint();
+                    }
                 }
             }
 
