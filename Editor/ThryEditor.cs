@@ -319,7 +319,7 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property, footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
+        none,property,master_label, footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
     }
 
     private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -340,6 +340,8 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.group_end;
         if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
             return ThryPropertyType.space;
+        if (name == PROPERTY_NAME_MASTER_LABEL)
+            return ThryPropertyType.master_label;
         if (name.Replace(" ","") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.instancing;
         if (name.Replace(" ", "") == "DSGI" && flags == MaterialProperty.PropFlags.HideInInspector)
@@ -414,6 +416,9 @@ public class ThryEditor : ShaderGUI
             ShaderProperty newPorperty = null;
             switch (type)
             {
+                case ThryPropertyType.master_label:
+                    masterLabelText = displayName;
+                    break;
                 case ThryPropertyType.footer:
                     footer.Add(Parser.ParseToObject<ButtonData>(displayName));
                     break;
@@ -504,10 +509,6 @@ public class ThryEditor : ShaderGUI
             settingsTexture = new Texture2D(2, 2);
             settingsTexture.LoadImage(fileData);
         }
-
-        //init master label
-        MaterialProperty shader_master_label = FindProperty(current.properties, PROPERTY_NAME_MASTER_LABEL);
-        if (shader_master_label != null) masterLabelText = shader_master_label.displayName;
 
         current.shader = current.materials[0].shader;
         string defaultShaderName = current.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
