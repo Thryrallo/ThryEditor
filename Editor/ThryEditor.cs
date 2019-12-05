@@ -19,6 +19,15 @@ public class ThryEditor : ShaderGUI
     public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
     public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
 
+    public class CRect
+    {
+        public Rect r;
+        public CRect(Rect r)
+        {
+            this.r = r;
+        }
+    }
+
     private static Texture2D settingsTexture;
 
     // Stores the different shader properties
@@ -72,9 +81,9 @@ public class ThryEditor : ShaderGUI
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
         }
 
-        public abstract void DrawInternal();
+        public abstract void DrawInternal(CRect rect = null);
 
-        public void Draw()
+        public void Draw(CRect rect = null)
         {
             bool is_enabled = DrawingData.is_enabled;
             if (options.condition_enable != null && is_enabled)
@@ -84,7 +93,7 @@ public class ThryEditor : ShaderGUI
             }
             if (options.condition_show.Test())
             {
-                DrawInternal();
+                DrawInternal(rect);
                 testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
             }
             if (options.condition_enable != null && is_enabled)
@@ -119,7 +128,7 @@ public class ThryEditor : ShaderGUI
             parts.Add(part);
         }
 
-        public override void DrawInternal()
+        public override void DrawInternal(CRect rect = null)
         {
             foreach (ShaderPart part in parts)
             {
@@ -142,7 +151,7 @@ public class ThryEditor : ShaderGUI
             this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
         }
 
-        public override void DrawInternal()
+        public override void DrawInternal(CRect rect = null)
         {
             
             currentlyDrawing.currentProperty = this;
@@ -178,11 +187,14 @@ public class ThryEditor : ShaderGUI
             this.forceOneLine = forceOneLine;
         }
 
-        public override void DrawInternal()
+        public override void DrawInternal(CRect rect = null)
         {
             PreDraw();
             currentlyDrawing.currentProperty = this;
-            DrawingData.lastGuiObjectHeaderRect = new Rect(-1,-1,-1,-1);
+            if (rect != null)
+                DrawingData.lastGuiObjectHeaderRect = rect.r;
+            else
+                DrawingData.lastGuiObjectHeaderRect = new Rect(-1, -1, -1, -1);
             int oldIndentLevel = EditorGUI.indentLevel;
             EditorGUI.indentLevel = xOffset + 1;
 
@@ -190,6 +202,8 @@ public class ThryEditor : ShaderGUI
                 DrawDefault();
             else if (forceOneLine)
                 currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle), this.materialProperty, this.content);
+            else if(rect!=null)
+                currentlyDrawing.editor.ShaderProperty(rect.r,this.materialProperty, this.content);
             else
                 currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
 

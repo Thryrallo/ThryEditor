@@ -522,15 +522,30 @@ namespace Thry
 
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
+            PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
             var style = new GUIStyle(Styles.Get().dropDownHeader);
             style.margin.left = 15 * xOffset + 15;
 
-            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
+            Rect rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
             DrawingData.lastGuiObjectHeaderRect = rect;
             //rect with text
-            GUI.Box(rect, content, style);
+            if (options.reference_property != null)
+            {
+                GUI.Box(rect, "", style);
+                Rect togglePropertyRect = new Rect(rect);
+                togglePropertyRect.x -= 11;
+                togglePropertyRect.y += 2;
+                ThryEditor.ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+                float labelWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = UnityHelper.CalculateLengthOfText(prop.content.text) + EditorGUI.indentLevel * 15 + 45;
+                prop.Draw(new ThryEditor.CRect(togglePropertyRect));
+                EditorGUIUtility.labelWidth = labelWidth;
+            }
+            else
+            {
+                GUI.Box(rect, content, style);
+            }
 
-            PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
             if (options.button_right!=null && options.button_right.condition_show.Test())
             {
                 Rect buttonRect = new Rect(rect);

@@ -98,6 +98,25 @@ namespace Thry
             }
             return null;
         }
+
+        public static int CalculateLengthOfText(string message, Font font= null)
+        {
+            if (font == null)
+                font = GUI.skin.font;
+            int totalLength = 0;
+
+            CharacterInfo characterInfo = new CharacterInfo();
+
+            char[] arr = message.ToCharArray();
+
+            foreach (char c in arr)
+            {
+                font.GetCharacterInfo(c, out characterInfo, font.fontSize);
+                totalLength += characterInfo.advance;
+            }
+
+            return totalLength;
+        }
     }
 
 }
