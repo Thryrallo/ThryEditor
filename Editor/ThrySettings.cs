@@ -181,11 +181,11 @@ namespace Thry
         private void GUINotification()
         {
             if (isFirstPopop)
-                GUILayout.Label(" " + Locale.editor.Get("first_install_message"), Styles.Get().greenStyle);
+                GUILayout.Label(" " + Locale.editor.Get("first_install_message"), Styles.greenStyle);
             else if (updatedVersion == -1)
-                GUILayout.Label(" " + Locale.editor.Get("update_message"), Styles.Get().greenStyle);
+                GUILayout.Label(" " + Locale.editor.Get("update_message"), Styles.greenStyle);
             else if (updatedVersion == 1)
-                GUILayout.Label(" " + Locale.editor.Get("downgrade_message"), Styles.Get().yellowStyle);
+                GUILayout.Label(" " + Locale.editor.Get("downgrade_message"), Styles.yellowStyle);
         }
 
         private void GUIMessage()
@@ -284,16 +284,16 @@ namespace Thry
             Text("gradient_name", false);
             string gradient_name = Config.Get().gradient_name;
             if (gradient_name.Contains("<hash>"))
-                GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.greenStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<material>"))
                 if (gradient_name.Contains("<prop>"))
-                    GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.Get().greenStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label(Locale.editor.Get("gradient_good_naming"), Styles.greenStyle, GUILayout.ExpandWidth(false));
                 else
-                    GUILayout.Label(Locale.editor.Get("gradient_add_hash_or_prop"), Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
+                    GUILayout.Label(Locale.editor.Get("gradient_add_hash_or_prop"), Styles.yellowStyle, GUILayout.ExpandWidth(false));
             else if (gradient_name.Contains("<prop>"))
-                GUILayout.Label(Locale.editor.Get("gradient_add_material"), Styles.Get().yellowStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_add_material"), Styles.yellowStyle, GUILayout.ExpandWidth(false));
             else
-                GUILayout.Label(Locale.editor.Get("gradient_add_material_or_prop"), Styles.Get().redStyle, GUILayout.ExpandWidth(false));
+                GUILayout.Label(Locale.editor.Get("gradient_add_material_or_prop"), Styles.redStyle, GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
         }
 
@@ -391,9 +391,9 @@ namespace Thry
                 if (module.available_module.requirement != null && (update_available || !is_installed))
                 {
                     if(module.available_requirement_fullfilled)
-                        GUILayout.Label(Locale.editor.Get("requirements") +": " + module.available_module.requirement.ToString(), Styles.Get().greenStyle);
+                        GUILayout.Label(Locale.editor.Get("requirements") +": " + module.available_module.requirement.ToString(), Styles.greenStyle);
                     else
-                        GUILayout.Label(Locale.editor.Get("requirements") + ": " + module.available_module.requirement.ToString(), Styles.Get().redStyle);
+                        GUILayout.Label(Locale.editor.Get("requirements") + ": " + module.available_module.requirement.ToString(), Styles.redStyle);
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -534,8 +534,8 @@ namespace Thry
 
         private static bool Foldout(GUIContent content, bool expanded)
         {
-            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.Get().dropDownHeader);
-            GUI.Box(rect, content, Styles.Get().dropDownHeader);
+            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.dropDownHeader);
+            GUI.Box(rect, content, Styles.dropDownHeader);
             var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
             Event e = Event.current;
             if (e.type == EventType.Repaint)

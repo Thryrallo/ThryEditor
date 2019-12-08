@@ -43,5 +43,18 @@ namespace Thry
                 return activeShaderPresetHandler;
             }
         }
+
+        private static Material m_copy;
+        public static Material copy_material
+        {
+            set
+            {
+                m_copy = value;
+            }
+            get
+            {
+                return m_copy;
+            }
+        }
     }
 }

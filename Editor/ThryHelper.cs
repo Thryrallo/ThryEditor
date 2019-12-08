@@ -134,7 +134,54 @@ namespace Thry
             return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
         }
 
-        
+        public static void testAltClick(Rect rect, ShaderPart property)
+        {
+            if (ThryEditor.input.HadMouseDownRepaint && ThryEditor.input.is_alt_down && rect.Contains(ThryEditor.input.mouse_position))
+            {
+                if (property.options.altClick != null)
+                    property.options.altClick.Perform();
+            }
+        }
+
+        public static string GetStringBetweenBracketsAndAfterId(string input, string id, char[] brackets)
+        {
+            string[] parts = Regex.Split(input, id);
+            if (parts.Length > 1)
+            {
+                char[] behind_id = parts[1].ToCharArray();
+                int i = 0;
+                int begin = 0;
+                int end = behind_id.Length - 1;
+                int depth = 0;
+                bool escaped = false;
+                while (i < behind_id.Length)
+                {
+                    if (behind_id[i] == brackets[0] && !escaped)
+                    {
+                        if (depth == 0)
+                            begin = i;
+                        depth++;
+                    }
+                    else if (behind_id[i] == brackets[1] && !escaped)
+                    {
+                        depth--;
+                        if (depth == 0)
+                        {
+                            end = i;
+                            break;
+                        }
+                    }
+
+                    if (behind_id[i] == '\\')
+                        escaped = !escaped;
+                    else
+                        escaped = false;
+                    i++;
+                }
+                return parts[1].Substring(begin, end);
+            }
+            return input;
+        }
     }
 
     public class FileHelper

@@ -117,6 +117,57 @@ namespace Thry
 
             return totalLength;
         }
+
+        public static void ToggleKeyword(Material material, string keyword, bool turn_on)
+        {
+            bool is_on = material.IsKeywordEnabled(keyword);
+            if (is_on && !turn_on)
+                material.DisableKeyword(keyword);
+            else if (!is_on && turn_on)
+                material.EnableKeyword(keyword);
+        }
+
+        public static void ToggleKeyword(Material[] materials, string keyword, bool on)
+        {
+            foreach (Material m in materials)
+                ToggleKeyword(m,keyword,on);
+        }
+
+        public static void ToggleKeyword(MaterialProperty p, string keyword, bool on)
+        {
+            foreach (UnityEngine.Object o in p.targets)
+                ToggleKeyword((Material)o, keyword, on);
+        }
+
+        public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
+        {
+            switch (p.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    float f = source.GetFloat(p.name);
+                    p.floatValue = f;
+                    string[] drawer = ShaderHelper.GetDrawer(p);
+                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
+                        ToggleKeyword(p, drawer[1], f == 1);
+                    break;
+                case MaterialProperty.PropType.Color:
+                    Color c = source.GetColor(p.name);
+                    p.colorValue = c;
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    Vector4 vector = source.GetVector(p.name);
+                    p.vectorValue = vector;
+                    break;
+                case MaterialProperty.PropType.Texture:
+                    Texture t = source.GetTexture(p.name);
+                    Vector2 offset = source.GetTextureOffset(p.name);
+                    Vector2 scale = source.GetTextureScale(p.name);
+                    p.textureValue = t;
+                    p.textureScaleAndOffset = new Vector4(scale.x, scale.y, offset.x, offset.y);
+                    break;
+            } 
+        }
     }
 
 }

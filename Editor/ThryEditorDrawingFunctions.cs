@@ -59,7 +59,7 @@ namespace Thry
                         if (options.reference_properties != null)
                             foreach (string r_property in options.reference_properties)
                             {
-                                ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                                ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
                                 EditorGUIUtility.labelWidth += EditorGUI.indentLevel * 15;
                                 EditorGUI.indentLevel *= 2;
                                 ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
@@ -83,7 +83,7 @@ namespace Thry
 
         public static void drawBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
         {
-            Rect rect = GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
+            Rect rect = GUILayoutUtility.GetRect(label, Styles.bigTextureStyle);
             float defaultLabelWidth = EditorGUIUtility.labelWidth;
             float defaultFieldWidth = EditorGUIUtility.fieldWidth;
             editor.SetDefaultGUIWidths();
@@ -101,7 +101,7 @@ namespace Thry
         {
             position.x += (EditorGUI.indentLevel) * 15;
             position.width -= (EditorGUI.indentLevel) * 15;
-            Rect rect = GUILayoutUtility.GetRect(label, Styles.Get().bigTextureStyle);
+            Rect rect = GUILayoutUtility.GetRect(label, Styles.bigTextureStyle);
             rect.x += (EditorGUI.indentLevel) * 15;
             rect.width -= (EditorGUI.indentLevel) * 15;
             Rect border = new Rect(rect);
@@ -203,7 +203,7 @@ namespace Thry
                 if (options.reference_properties != null)
                     foreach (string r_property in options.reference_properties)
                     {
-                        ThryEditor.ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                        ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
                         EditorGUI.indentLevel *= 2;
                         ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
                         EditorGUI.indentLevel /= 2;
@@ -451,14 +451,14 @@ namespace Thry
             var r = EditorGUILayout.BeginHorizontal("box");
             enabled = EditorGUILayout.Toggle(enabled, EditorStyles.radioButton, GUILayout.MaxWidth(15.0f));
             options = GUI.Toggle(r, options, GUIContent.none, new GUIStyle());
-            EditorGUILayout.LabelField(name, Styles.Get().dropDownHeaderLabel);
+            EditorGUILayout.LabelField(name, Styles.dropDownHeaderLabel);
             EditorGUILayout.EndHorizontal();
         }
 
         public static void DrawMasterLabel(string shaderName, float y)
         {
             Rect rect = new Rect(0, y, Screen.width, 18);
-            EditorGUI.LabelField(rect,"<size=16>" + shaderName + "</size>", Styles.Get().masterLabel);
+            EditorGUI.LabelField(rect,"<size=16>" + shaderName + "</size>", Styles.masterLabel);
         }
     }
 
@@ -466,32 +466,18 @@ namespace Thry
 
     public class ThryEditorHeader
     {
-        private List<MaterialProperty> propertyes;
+        private MaterialProperty property;
         private bool currentState;
 
-        public ThryEditorHeader(MaterialEditor materialEditor, string propertyName)
+        public ThryEditorHeader(MaterialProperty prop)
         {
-            this.propertyes = new List<MaterialProperty>();
-            foreach (Material materialEditorTarget in materialEditor.targets)
-            {
-                UnityEngine.Object[] asArray = new UnityEngine.Object[] { materialEditorTarget };
-                propertyes.Add(MaterialEditor.GetMaterialProperty(asArray, propertyName));
-            }
-
+            this.property = prop;
             this.currentState = fetchState();
         }
 
         public bool fetchState()
         {
-            foreach (MaterialProperty materialProperty in propertyes)
-            {
-                if (materialProperty.floatValue == 1)
-                    return true;
-            }
-
-
-
-            return false;
+            return property.floatValue == 1;
         }
 
         public bool getState()
@@ -503,74 +489,122 @@ namespace Thry
         {
 
             if (getState())
-            {
-                foreach (MaterialProperty materialProperty in propertyes)
-                {
-                    materialProperty.floatValue = 0;
-                }
-            }
+                property.floatValue = 0;
             else
-            {
-                foreach (MaterialProperty materialProperty in propertyes)
-                {
-                    materialProperty.floatValue = 1;
-                }
-            }
-
+                property.floatValue = 1;
             this.currentState = !this.currentState;
         }
 
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
         {
             PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
-            var style = new GUIStyle(Styles.Get().dropDownHeader);
+            Event e = Event.current;
+            GUIStyle style = new GUIStyle(Styles.dropDownHeader);
             style.margin.left = 15 * xOffset + 15;
 
             Rect rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
             DrawingData.lastGuiObjectHeaderRect = rect;
-            //rect with text
+
+            DrawBoxAndContent(rect, e, content, options, style);
+            DrawButton(rect , options, e, style);
+            
+            DrawSmallArrow(rect,e);
+            HandleToggleInput(e,rect);
+        }
+
+        private void DrawBoxAndContent(Rect rect, Event e, GUIContent content, PropertyOptions options, GUIStyle style)
+        {
             if (options.reference_property != null)
             {
                 GUI.Box(rect, "", style);
+                DrawDowdownSettings(rect, e);
+
                 Rect togglePropertyRect = new Rect(rect);
                 togglePropertyRect.x -= 11;
                 togglePropertyRect.y += 2;
-                ThryEditor.ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+                ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
                 float labelWidth = EditorGUIUtility.labelWidth;
+                float fieldWidth = EditorGUIUtility.fieldWidth;
                 EditorGUIUtility.labelWidth = UnityHelper.CalculateLengthOfText(prop.content.text) + EditorGUI.indentLevel * 15 + 45;
-                prop.Draw(new ThryEditor.CRect(togglePropertyRect));
+                EditorGUIUtility.fieldWidth = 20;
+                prop.Draw(new CRect(togglePropertyRect), content);
                 EditorGUIUtility.labelWidth = labelWidth;
+                EditorGUIUtility.fieldWidth = fieldWidth;
             }
             else
             {
                 GUI.Box(rect, content, style);
+                DrawDowdownSettings(rect, e);
             }
 
-            if (options.button_right!=null && options.button_right.condition_show.Test())
+        }
+
+        private void DrawButton(Rect rect, PropertyOptions options, Event e, GUIStyle style)
+        {
+            if (options.button_right != null && options.button_right.condition_show.Test())
             {
                 Rect buttonRect = new Rect(rect);
                 GUIContent buttoncontent = new GUIContent(options.button_right.text, options.button_right.hover);
-                float width = Styles.Get().dropDownHeaderButton.CalcSize(buttoncontent).x;
-                width = width < rect.width/3 ? rect.width/3 : width;
-                buttonRect.x += buttonRect.width-width-10;
+                float width = Styles.dropDownHeaderButton.CalcSize(buttoncontent).x;
+                width = width < rect.width / 3 ? rect.width / 3 : width;
+                buttonRect.x += buttonRect.width - width - 35;
                 buttonRect.y += 2;
                 buttonRect.width = width;
-                if (GUI.Button(buttonRect, buttoncontent, Styles.Get().dropDownHeaderButton))
-                    if(options.button_right.action!=null)
+                if (GUI.Button(buttonRect, buttoncontent, Styles.dropDownHeaderButton))
+                {
+                    if (options.button_right.action != null)
                         options.button_right.action.Perform();
+                    e.Use();
+                }
                 EditorGUIUtility.AddCursorRect(buttonRect, MouseCursor.Link);
             }
+        }
 
-            var e = Event.current;
+        private void DrawDowdownSettings(Rect rect, Event e)
+        {
+            Rect buttonRect = new Rect(rect);
+            buttonRect.width = 20;
+            buttonRect.x += rect.width - 25;
+            buttonRect.y += 1;
+            buttonRect.height -= 4;
+            if (GUI.Button(buttonRect, Styles.dropdown_settings_icon, EditorStyles.largeLabel))
+            {
+                e.Use();
+                buttonRect.y += 8;
+                ShowHeaderContextMenu(buttonRect, ThryEditor.currentlyDrawing.currentProperty, ThryEditor.currentlyDrawing.materials[0]);
+            }
+        }
 
-            var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
+        void ShowHeaderContextMenu(Rect position,ShaderPart property, Material material)
+        {
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Reset"), false, delegate()
+            {
+                property.CopyFromMaterial(new Material(material.shader));
+            });
+            menu.AddItem(new GUIContent("Copy"), false, delegate()
+            {
+                Mediator.copy_material = material;
+            });
+            menu.AddItem(new GUIContent("Paste"), false, delegate()
+            {
+                property.CopyFromMaterial(Mediator.copy_material);
+            });
+            menu.DropDown(position);
+        }
+
+        private void DrawSmallArrow(Rect rect, Event e)
+        {
             if (e.type == EventType.Repaint)
             {
-                //small arrow
+                var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
                 EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
             }
+        }
 
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition)&&!e.alt)
+        private void HandleToggleInput(Event e, Rect rect)
+        {
+            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition) && !e.alt)
             {
                 this.Toggle();
                 e.Use();

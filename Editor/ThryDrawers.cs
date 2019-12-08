@@ -13,7 +13,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, ((TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -27,7 +27,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.drawBigTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
+            GuiHelper.drawBigTextureProperty(position, prop, label, editor, ((TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -41,7 +41,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.drawStylizedBigTextureProperty(position, prop, label, editor, ((ThryEditor.TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
+            GuiHelper.drawStylizedBigTextureProperty(position, prop, label, editor, ((TextureProperty)ThryEditor.currentlyDrawing.currentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -53,52 +53,68 @@ namespace Thry
 
     public class CurveDrawer : MaterialPropertyDrawer
     {
-        private class CurveData{
-            public AnimationCurve curve;
-            public EditorWindow window;
-            public Texture2D texture;
-            public bool saved = true;
-            public ImageData imageData;
+        public AnimationCurve curve;
+        public EditorWindow window;
+        public Texture2D texture;
+        public bool saved = true;
+        public ImageData imageData;
+
+        public CurveDrawer()
+        {
+            curve = new AnimationCurve();
         }
+
+        private void Init()
+        {
+            if (imageData == null)
+            {
+                if (ThryEditor.currentlyDrawing.currentProperty.options.image == null)
+                    imageData = new ImageData();
+                else
+                    imageData = ThryEditor.currentlyDrawing.currentProperty.options.image;
+            }
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            CurveData data = (CurveData)ThryEditor.currentlyDrawing.currentProperty.property_data;
-            if (data == null)
-            {
-                data = new CurveData();
-                data.curve = new AnimationCurve();
-                if (ThryEditor.currentlyDrawing.currentProperty.options.image == null)
-                    data.imageData = new ImageData();
-                else
-                    data.imageData = ThryEditor.currentlyDrawing.currentProperty.options.image;
-            }
+            Init();
 
             editor.TexturePropertyMiniThumbnail(position, prop, "", "");
 
             EditorGUI.BeginChangeCheck();
-            data.curve = EditorGUI.CurveField(position, new GUIContent("       " + label.text, label.tooltip), data.curve);
+            curve = EditorGUI.CurveField(position, new GUIContent("       " + label.text, label.tooltip), curve);
             if (EditorGUI.EndChangeCheck())
-            {
-                data.texture = Converter.CurveToTexture(data.curve, data.imageData.width, data.imageData.height, data.imageData.channel);
-                prop.textureValue = data.texture;
-                data.saved = false;
-            }
+                UpdateCurveTexture(prop);
 
+            CheckWindowForCurveEditor();
+
+            if (window == null && !saved)
+                Save(prop);
+        }
+
+        private void UpdateCurveTexture(MaterialProperty prop)
+        {
+            texture = Converter.CurveToTexture(curve, imageData.width, imageData.height, imageData.channel);
+            prop.textureValue = texture;
+            saved = false;
+        }
+
+        private void CheckWindowForCurveEditor()
+        {
             string windowName = "";
             if (EditorWindow.focusedWindow != null)
                 windowName = EditorWindow.focusedWindow.titleContent.text;
             bool isCurveEditor = windowName == "Curve";
             if (isCurveEditor)
-                data.window = EditorWindow.focusedWindow;
-            if(data.window==null && !data.saved)
-            {
-                Debug.Log(prop.textureValue.ToString());
-                Texture saved_texture = TextureHelper.SaveTextureAsPNG(data.texture, PATH.TEXTURES_DIR+ "curves/" + data.curve.GetHashCode() + ".png", null);
-                prop.textureValue = saved_texture;
-                data.saved = true;
-            }
+                window = EditorWindow.focusedWindow;
+        }
 
-            ThryEditor.currentlyDrawing.currentProperty.property_data = data;
+        private void Save(MaterialProperty prop)
+        {
+            Debug.Log(prop.textureValue.ToString());
+            Texture saved_texture = TextureHelper.SaveTextureAsPNG(texture, PATH.TEXTURES_DIR + "curves/" + curve.GetHashCode() + ".png", null);
+            prop.textureValue = saved_texture;
+            saved = true;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -113,6 +129,16 @@ namespace Thry
        GradientData data;
         bool is_init = false;
 
+        Rect border_position;
+        Rect gradient_position;
+
+        private void Init(MaterialProperty prop)
+        {
+            data = new GradientData();
+            data.preview_texture = prop.textureValue;
+            is_init = true;
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             if (!is_init)
@@ -123,48 +149,58 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 
-            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, Screen.width - EditorGUIUtility.labelWidth - position.x - EditorGUI.indentLevel * 15 - 10, position.height);
-            Rect gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
-
-            Texture2D backgroundTexture = TextureHelper.GetBackgroundTexture();
-            Rect texCoordsRect = new Rect(0, 0, gradient_position.width / backgroundTexture.width, gradient_position.height / backgroundTexture.height);
-            GUI.DrawTextureWithTexCoords(gradient_position, backgroundTexture, texCoordsRect, false);
-
-            if (data.preview_texture != null)
-            {
-                TextureWrapMode wrap_mode = data.preview_texture.wrapMode;
-                data.preview_texture.wrapMode = TextureWrapMode.Clamp;
-                bool vertical = data.preview_texture.height > data.preview_texture.width;
-                Vector2 pivot = new Vector2();
-                if (vertical)
-                {
-                    pivot = new Vector2(gradient_position.x, gradient_position.y + gradient_position.height);
-                    GUIUtility.RotateAroundPivot(-90, pivot);
-                    gradient_position.y += gradient_position.height;
-                    float h = gradient_position.width;
-                    gradient_position.width = gradient_position.height;
-                    gradient_position.y += h;
-                    gradient_position.height = -h;
-                }
-                GUI.DrawTexture(gradient_position, data.preview_texture, ScaleMode.StretchToFill, true);
-                if (vertical)
-                {
-                    GUIUtility.RotateAroundPivot(90, pivot);
-                }
-                GUI.DrawTexture(border_position, data.preview_texture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
-                data.preview_texture.wrapMode = wrap_mode;
-            }else
-                GUI.DrawTexture(border_position, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
+            UpdateRects(position);
+            GradientField();
 
             if (Event.current.type == EventType.MouseDown && border_position.Contains(Event.current.mousePosition))
                 GradientEditor.Open(data, prop, !ThryEditor.currentlyDrawing.currentProperty.options.force_texture_options);
         }
 
-        public void Init(MaterialProperty prop)
+        private void UpdateRects(Rect position)
         {
-            data = new GradientData();
-            data.preview_texture = prop.textureValue;
-            is_init = true;
+            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, Screen.width - EditorGUIUtility.labelWidth - position.x - EditorGUI.indentLevel * 15 - 10, position.height);
+            gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
+        }
+
+        private void GradientField()
+        {
+            DrawBackgroundTexture();
+            if (data.preview_texture != null)
+                DrawGradientTexture();
+            else
+                GUI.DrawTexture(border_position, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
+        }
+
+        private void DrawBackgroundTexture()
+        {
+            Texture2D backgroundTexture = TextureHelper.GetBackgroundTexture();
+            Rect texCoordsRect = new Rect(0, 0, gradient_position.width / backgroundTexture.width, gradient_position.height / backgroundTexture.height);
+            GUI.DrawTextureWithTexCoords(gradient_position, backgroundTexture, texCoordsRect, false);
+        }
+
+        private void DrawGradientTexture()
+        {
+            TextureWrapMode wrap_mode = data.preview_texture.wrapMode;
+            data.preview_texture.wrapMode = TextureWrapMode.Clamp;
+            bool vertical = data.preview_texture.height > data.preview_texture.width;
+            Vector2 pivot = new Vector2();
+            if (vertical)
+            {
+                pivot = new Vector2(gradient_position.x, gradient_position.y + gradient_position.height);
+                GUIUtility.RotateAroundPivot(-90, pivot);
+                gradient_position.y += gradient_position.height;
+                float h = gradient_position.width;
+                gradient_position.width = gradient_position.height;
+                gradient_position.y += h;
+                gradient_position.height = -h;
+            }
+            GUI.DrawTexture(gradient_position, data.preview_texture, ScaleMode.StretchToFill, true);
+            if (vertical)
+            {
+                GUIUtility.RotateAroundPivot(90, pivot);
+            }
+            GUI.DrawTexture(border_position, data.preview_texture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);
+            data.preview_texture.wrapMode = wrap_mode;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -246,7 +282,7 @@ namespace Thry
                 }
             }
             if (ThryEditor.currentlyDrawing.firstCall)
-                ThryEditor.currentlyDrawing.textureArrayProperties.Add((ThryEditor.ShaderProperty)ThryEditor.currentlyDrawing.currentProperty);
+                ThryEditor.currentlyDrawing.textureArrayProperties.Add((ShaderProperty)ThryEditor.currentlyDrawing.currentProperty);
         }
 
         public void HanldeDropEvent(MaterialProperty prop)
@@ -258,7 +294,7 @@ namespace Thry
                 MaterialHelper.UpdateTargetsValue(prop, tex);
                 if (ThryEditor.currentlyDrawing.currentProperty.options.reference_property != null)
                 {
-                    ThryEditor.ShaderProperty p;
+                    ShaderProperty p;
                     ThryEditor.currentlyDrawing.propertyDictionary.TryGetValue(ThryEditor.currentlyDrawing.currentProperty.options.reference_property, out p);
                     if (p != null)
                         MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);

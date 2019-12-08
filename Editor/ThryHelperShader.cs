@@ -51,6 +51,75 @@ namespace Thry
             return Shader.Find(newerShaderName);
         }
 
+        private static Dictionary<Shader, Dictionary<string, string[]>> shader_property_drawers = new Dictionary<Shader, Dictionary<string, string[]>>();
+        public static string[] GetDrawer(MaterialProperty property)
+        {
+            Shader shader = ((Material)property.targets[0]).shader;
+
+            if (!shader_property_drawers.ContainsKey(shader))
+                LoadShaderPropertyDrawers(shader);
+
+            Dictionary<string, string[]> property_drawers = shader_property_drawers[shader];
+            if (property_drawers.ContainsKey(property.name))
+                return property_drawers[property.name];
+            return null;
+        }
+
+        public static void LoadShaderPropertyDrawers(Shader shader)
+        {
+            string path = AssetDatabase.GetAssetPath(shader);
+            string code = FileHelper.ReadFileIntoString(path);
+            code = Helper.GetStringBetweenBracketsAndAfterId(code, "Properties", new char[] { '{', '}' });
+            MatchCollection matchCollection = Regex.Matches(code, @"\[.*\].*(?=\()");
+            Dictionary<string, string[]> property_drawers = new Dictionary<string, string[]>();
+            foreach (Match match in matchCollection)
+            {
+                string[] drawers_or_flag_code = GetDrawersFlagsCode(match.Value);
+                string drawer_code = GetNonFlagDrawer(drawers_or_flag_code);
+                if (drawer_code == null)
+                    continue;
+
+                string property_name = Regex.Match(match.Value, @"(?<=\])[^\[]*$").Value.Trim();
+
+                List<string> drawer_and_parameters = new List<string>();
+                drawer_and_parameters.Add(Regex.Split(drawer_code, @"\(")[0]);
+
+                GetDrawerParameters(drawer_code, drawer_and_parameters);
+
+                property_drawers[property_name] = drawer_and_parameters.ToArray();
+            }
+            shader_property_drawers[shader] = property_drawers;
+        }
+
+        private static void GetDrawerParameters(string code, List<string> list)
+        {
+            MatchCollection matchCollection = Regex.Matches(code, @"(?<=\(|,).*?(?=\)|,)");
+            foreach (Match m in matchCollection)
+                list.Add(m.Value);
+        }
+
+        private static string GetNonFlagDrawer(string[] codes)
+        {
+            foreach (string c in codes)
+                if (!DrawerIsFlag(c))
+                    return c;
+            return null;
+        }
+
+        private static bool DrawerIsFlag(string code)
+        {
+            return (code == "HideInInspector" || code == "NoScaleOffset" || code == "Normal" || code == "HDR" || code == "Gamma"|| code == "PerRendererData");
+        }
+
+        private static string[] GetDrawersFlagsCode(string line)
+        {
+            MatchCollection matchCollection = Regex.Matches(line, @"(?<=\[).*?(?=\])");
+            string[] codes = new string[matchCollection.Count];
+            int i = 0;
+            foreach (Match m in matchCollection)
+                codes[i++] = m.Value;
+            return codes;
+        }
         //------------Track ThryEditor shaders-------------------
 
         public class ThryEditorShader

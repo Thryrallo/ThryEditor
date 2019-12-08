@@ -11,85 +11,133 @@ namespace Thry
     public class Styles
     {
 
-        private static Styles stylesObject;
+        private static GUIStyle s_masterLabel;
+        private static GUIStyle s_dropDownHeader;
+        private static GUIStyle s_dropDownHeaderLabel;
+        private static GUIStyle s_dropDownHeaderButton;
+        private static GUIStyle s_bigTextureStyle;
+        private static GUIStyle s_vectorPropertyStyle;
 
-        public static Styles Get()
+        private static GUIStyle s_redStyle;
+        private static GUIStyle s_yellowStyle;
+        private static GUIStyle s_greenStyle;
+
+        public static GUIStyle masterLabel
         {
-            if (stylesObject == null) stylesObject = new Styles();
-            return stylesObject;
+            get
+            {
+                if (s_masterLabel == null)
+                {
+                    s_masterLabel = new GUIStyle(GUI.skin.label);
+                    s_masterLabel.richText = true;
+                    s_masterLabel.alignment = TextAnchor.MiddleCenter;
+                }
+                return s_masterLabel;
+            }
         }
 
-        public GUIStyle masterLabel;
-        public GUIStyle dropDownHeader;
-        public GUIStyle dropDownHeaderLabel;
-        public GUIStyle dropDownHeaderButton;
-        public GUIStyle bigTextureStyle;
-        public GUIStyle vectorPropertyStyle;
-
-        public GUIStyle redStyle;
-        public GUIStyle yellowStyle;
-        public GUIStyle greenStyle;
-
-        private Styles()
+        public static GUIStyle dropDownHeader
         {
-            InitMasterLabel();
-            InitDropdownHeaderStyle();
-            InitDropDownHeaderLabel();
-            InitDropDownHeaderButton();
-            InitBigTextureStyle();
-            InitVectorProperty();
-            InitColoredStyles();
+            get {
+                if (s_dropDownHeader == null) {
+                    s_dropDownHeader = new GUIStyle("ShurikenModuleTitle");
+                    s_dropDownHeader.font = new GUIStyle(EditorStyles.label).font;
+                    s_dropDownHeader.border = new RectOffset(15, 7, 4, 4);
+                    s_dropDownHeader.fixedHeight = 22;
+                    s_dropDownHeader.contentOffset = new Vector2(20f, -2f);
+                }
+                return s_dropDownHeader;
+            }
         }
 
-        private void InitMasterLabel()
+        public static GUIStyle dropDownHeaderLabel
         {
-            masterLabel = new GUIStyle(GUI.skin.label);
-            masterLabel.richText = true;
-            masterLabel.alignment = TextAnchor.MiddleCenter;
+            get
+            {
+                if (s_dropDownHeaderLabel == null)
+                {
+                    s_dropDownHeaderLabel = new GUIStyle(EditorStyles.boldLabel);
+                    s_dropDownHeaderLabel.alignment = TextAnchor.MiddleCenter;
+                }
+                return s_dropDownHeaderLabel;
+            }
         }
 
-        private void InitDropdownHeaderStyle()
+        public static GUIStyle dropDownHeaderButton
         {
-            dropDownHeader = new GUIStyle("ShurikenModuleTitle");
-            dropDownHeader.font = new GUIStyle(EditorStyles.label).font;
-            dropDownHeader.border = new RectOffset(15, 7, 4, 4);
-            dropDownHeader.fixedHeight = 22;
-            dropDownHeader.contentOffset = new Vector2(20f, -2f);
+            get
+            {
+                if (s_dropDownHeaderButton == null)
+                {
+                    s_dropDownHeaderButton = new GUIStyle(EditorStyles.toolbarButton);
+                }
+                return s_dropDownHeaderButton;
+            }
         }
 
-        private void InitDropDownHeaderLabel()
+        public static GUIStyle bigTextureStyle
         {
-            dropDownHeaderLabel = new GUIStyle(EditorStyles.boldLabel);
-            dropDownHeaderLabel.alignment = TextAnchor.MiddleCenter;
+            get
+            {
+                if (s_bigTextureStyle == null)
+                {
+                    s_bigTextureStyle = new GUIStyle();
+                    s_bigTextureStyle.fixedHeight = 48;
+                }
+                return s_bigTextureStyle;
+            }
         }
 
-        private void InitDropDownHeaderButton()
+        public static GUIStyle vectorPropertyStyle
         {
-            dropDownHeaderButton = new GUIStyle(EditorStyles.toolbarButton);
+            get
+            {
+                if (s_vectorPropertyStyle == null)
+                {
+                    s_vectorPropertyStyle = new GUIStyle();
+                    s_vectorPropertyStyle.padding = new RectOffset(0, 0, 2, 2);
+                }
+                return s_vectorPropertyStyle;
+            }
         }
 
-        private void InitBigTextureStyle()
+        public static GUIStyle greenStyle
         {
-            bigTextureStyle = new GUIStyle();
-            bigTextureStyle.fixedHeight = 48;
+            get
+            {
+                if (s_greenStyle == null)
+                {
+                    s_greenStyle = new GUIStyle();
+                    s_greenStyle.normal.textColor = new Color(0, 0.5f, 0);
+                }
+                return s_greenStyle;
+            }
         }
 
-        private void InitVectorProperty()
+        public static GUIStyle yellowStyle
         {
-            vectorPropertyStyle = new GUIStyle();
-            vectorPropertyStyle.padding = new RectOffset(0, 0, 2, 2);
+            get
+            {
+                if (s_yellowStyle == null)
+                {
+                    s_yellowStyle = new GUIStyle();
+                    s_yellowStyle.normal.textColor = new Color(1, 0.79f, 0);
+                }
+                return s_yellowStyle;
+            }
         }
 
-        private void InitColoredStyles()
+        public static GUIStyle redStyle
         {
-            redStyle = new GUIStyle();
-            redStyle.normal.textColor = Color.red;
-
-            yellowStyle = new GUIStyle();
-            yellowStyle.normal.textColor = new Color(1, 0.79f, 0);
-
-            greenStyle = new GUIStyle();
-            greenStyle.normal.textColor = new Color(0, 0.5f, 0);
+            get
+            {
+                if (s_redStyle == null)
+                {
+                    s_redStyle = new GUIStyle();
+                    s_redStyle.normal.textColor = Color.red;
+                }
+                return s_redStyle;
+            }
         }
 
         private static Texture2D p_rounded_texture;
@@ -98,17 +146,51 @@ namespace Thry
             get{
                 if (p_rounded_texture == null)
                 {
-                    string search_name = "thry_white_rect";
+                    string search_name = RESOURCE_NAME.WHITE_RECT;
                     if (EditorGUIUtility.isProSkin)
-                        search_name = "thry_dark_rect";
-                    string[] guids = AssetDatabase.FindAssets(search_name+" t:texture");
-                    if (guids.Length == 0)
-                        p_rounded_texture = Texture2D.whiteTexture;
-                    else
-                        p_rounded_texture = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                        search_name = RESOURCE_NAME.DARK_RECT;
+                    p_rounded_texture = LoadTextureByFileName(search_name);
                 }
                 return p_rounded_texture;
             }
+        }
+
+        private static Texture2D t_settings_icon;
+        public static Texture2D settings_icon
+        {
+            get
+            {
+                if (t_settings_icon == null)
+                {
+                    t_settings_icon = LoadTextureByFileName(RESOURCE_NAME.SETTINGS_ICON_TEXTURE);
+                }
+                return t_settings_icon;
+            }
+        }
+
+        private static Texture2D t_dropdown_settings_icon;
+        public static Texture2D dropdown_settings_icon
+        {
+            get
+            {
+                if (t_dropdown_settings_icon == null)
+                {
+                    t_dropdown_settings_icon = LoadTextureByFileName(RESOURCE_NAME.DROPDOWN_SETTINGS_TEXTURE);
+                }
+                return t_dropdown_settings_icon;
+            }
+        }
+
+
+        private static Texture2D LoadTextureByFileName(string search_name)
+        {
+            Texture2D tex;
+            string[] guids = AssetDatabase.FindAssets(search_name + " t:texture");
+            if (guids.Length == 0)
+                tex = Texture2D.whiteTexture;
+            else
+                tex = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
+            return tex;
         }
     }
 }

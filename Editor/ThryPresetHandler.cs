@@ -311,7 +311,14 @@ namespace Thry
                         else if (p.type == MaterialProperty.PropType.Float || p.type == MaterialProperty.PropType.Range)
                         {
                             float value;
-                            if (float.TryParse(set[1], out value)) foreach (Material m in materials) m.SetFloat(Shader.PropertyToID(set[0]), value);
+                            //if (float.TryParse(set[1], out value)) foreach (Material m in materials) m.SetFloat(Shader.PropertyToID(set[0]), value);
+                            if (float.TryParse(set[1], out value))
+                            {
+                                p.floatValue = value;
+                                string[] drawer = ShaderHelper.GetDrawer(p);
+                                if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
+                                    UnityHelper.ToggleKeyword(p, drawer[1], value == 1);
+                            }
                         }
                         else if (p.type == MaterialProperty.PropType.Vector)
                         {

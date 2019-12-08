@@ -13,7 +13,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "1.2a3";
+        private const string VERSION = "1.2a5";
 
         // static
         private static Config config;
@@ -24,12 +24,14 @@ namespace Thry
             else
             {
                 int versionComparision = Helper.compareVersions(VERSION, Get().verion);
-                if (versionComparision != 0)
+                if (versionComparision > 0)
                 {
                     config.verion = VERSION;
                     config.save();
                     Settings.updatedPopup(versionComparision);
                 }
+                else if (versionComparision == -1)
+                    Debug.Log(">>> Thry Editor has been updated to version " + VERSION);
             }
         }
 
