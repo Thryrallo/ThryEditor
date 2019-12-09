@@ -86,7 +86,7 @@ namespace Thry
     public class PropertyOptions
     {
         public int offset = 0;
-        public string hover = "";
+        public string tooltip = "";
         public DefinableAction altClick;
         public DefineableCondition condition_show = new DefineableCondition();
         public DefineableCondition condition_enable = null;

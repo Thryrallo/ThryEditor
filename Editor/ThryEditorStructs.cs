@@ -40,7 +40,7 @@ namespace Thry
         {
             this.xOffset = xOffset;
             this.options = options;
-            this.content = new GUIContent(displayName, options.hover);
+            this.content = new GUIContent(displayName, options.tooltip);
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
         }
 
