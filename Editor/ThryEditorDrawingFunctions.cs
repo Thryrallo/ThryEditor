@@ -584,7 +584,7 @@ namespace Thry
             });
             menu.AddItem(new GUIContent("Copy"), false, delegate()
             {
-                Mediator.copy_material = material;
+                Mediator.copy_material = new Material(material);
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate()
             {
