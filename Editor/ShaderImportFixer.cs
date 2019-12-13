@@ -119,7 +119,6 @@ namespace Thry
             string default_shader_name = ShaderHelper.getDefaultShaderName(m.shader.name);
             if (default_shader_name.Equals(backedup_shader_name))
                 return;
-            Debug.Log("save: " + default_shader_name+" == "+ backedup_shader_name);
             FileHelper.SaveValueToFile(guid, default_shader_name, PATH.MATERIALS_BACKUP_FILE);
         }
 
