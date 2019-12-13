@@ -254,7 +254,7 @@ namespace Thry
         public static Texture2DArray GifToTextureArray(string path)
         {
             Texture2DArray array = null;
-            if (Helper.NameSpaceExists("System.Drawing"))
+            if ((Type.GetType("System.Drawing.Image, System.Drawing") != null))
             {
                 Type t_img = Type.GetType("System.Drawing.Image, System.Drawing");
                 MethodInfo m_from_file = t_img.GetMethod("FromFile", new Type[] { typeof(string) });

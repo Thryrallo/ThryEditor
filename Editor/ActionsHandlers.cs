@@ -1,6 +1,7 @@
 ﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -19,6 +20,7 @@ namespace Thry
             VRCInterface.OnCompile();
             Config.OnCompile();
             ModuleHandler.OnCompile();
+            ShaderImportFixer.OnCompile();
             TrashHandler.EmptyThryTrash();
 
             UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
@@ -41,6 +43,7 @@ namespace Thry
         private static void AssetsImported(string[] assets)
         {
             VRCInterface.SetVRCDefineSybolIfSDKImported(assets);
+            ShaderImportFixer.OnImport(assets);
             ShaderHelper.AssetsImported(assets);
         }
 
@@ -60,6 +63,7 @@ namespace Thry
                 Config.Get().verion = "0";
                 Config.Get().save();
                 ModuleHandler.OnEditorRemove();
+                VRCInterface.RemoveDefineSymbols();
             }
         }
 

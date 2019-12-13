@@ -13,7 +13,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "1.2a7";
+        private const string VERSION = "1.2a8";
 
         // static
         private static Config config;
@@ -24,12 +24,13 @@ namespace Thry
             else
             {
                 int versionComparision = Helper.compareVersions(VERSION, Get().verion);
-                if (versionComparision > 0)
+                if(versionComparision != 0)
                 {
                     config.verion = VERSION;
                     config.save();
-                    Settings.updatedPopup(versionComparision);
                 }
+                if (versionComparision == 1)
+                    Settings.updatedPopup(versionComparision);
                 else if (versionComparision == -1)
                     Debug.Log(">>> Thry Editor has been updated to version " + VERSION);
             }
@@ -59,7 +60,7 @@ namespace Thry
 
         public string gradient_name = "gradient_<hash>.png";
 
-        public bool showImportPopup = false;
+        public bool restore_materials = true;
         public string verion = VERSION;
 
         public bool share_user_data = false;

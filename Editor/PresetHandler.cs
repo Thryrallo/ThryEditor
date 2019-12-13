@@ -317,7 +317,7 @@ namespace Thry
                                 p.floatValue = value;
                                 string[] drawer = ShaderHelper.GetDrawer(p);
                                 if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                                    UnityHelper.ToggleKeyword(p, drawer[1], value == 1);
+                                    MaterialHelper.ToggleKeyword(p, drawer[1], value == 1);
                             }
                         }
                         else if (p.type == MaterialProperty.PropType.Vector)

@@ -174,6 +174,11 @@ namespace Thry
             }
         }
 
+        public static void RemoveDefineSymbols()
+        {
+            UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.VRC_SDK_INSTALLED, false);
+        }
+
         public static bool AssetsContainVRCSDK(string[] assets)
         {
             bool vrcImported = false;

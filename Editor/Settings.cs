@@ -43,6 +43,7 @@ namespace Thry
         public new void Show()
         {
             base.Show();
+            this.titleContent = new GUIContent("Thry Settings");
         }
 
         public ModuleSettings[] moduleSettings;
@@ -304,7 +305,7 @@ namespace Thry
             if (is_extras_expanded)
             {
                 EditorGUI.indentLevel += 2;
-                Toggle("showImportPopup");
+                Toggle("restore_materials");
                 EditorGUI.indentLevel -= 2;
             }
         }

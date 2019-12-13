@@ -79,5 +79,9 @@ namespace Thry
             FileHelper.WriteStringToFile(rsp_data, rsp_path);
         }
 
+        public static void RemoveDefineSymbols()
+        {
+            UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, false);
+        }
     }
 }

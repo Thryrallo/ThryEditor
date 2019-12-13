@@ -19,11 +19,13 @@ namespace Thry
 
         public const string PERSISTENT_DATA = "Thry/persistent_data";
         public const string AFTER_COMPILE_DATA = "Thry/after_compile_data";
-        public const string MATERIALS_BACKUP_FILE = "Thry/materialsBackup.txt";
+        public const string MATERIALS_BACKUP_FILE = "Thry/materialsBackup";
         public const string THRY_EDITOR_SHADERS = "Thry/shaders";
 
         public const string GRADIENT_INFO_FILE = "Thry/gradients";
         public const string TEXT_INFO_FILE = "Thry/text_textures";
+
+        public const string LINKED_MATERIALS_FILE = "Thry/linked_materials.json";
 
         public const string TEMP_VRC_SDK_PACKAGE = "./vrc_sdk_package.unitypackage";
     }
@@ -42,7 +44,6 @@ namespace Thry
     public class DEFINE_SYMBOLS
     {
         public const string VRC_SDK_INSTALLED = "VRC_SDK_EXISTS";
-        public const string API_NET_TWO = "DOT_NET_TWO_POINT_ZERO_OR_ABOVE";
         public const string IMAGING_EXISTS = "IMAGING_DLL_EXISTS";
     }
 
@@ -52,6 +53,8 @@ namespace Thry
         public const string SETTINGS_ICON_TEXTURE = "thry_settings_icon";
         public const string WHITE_RECT = "thry_white_rect";
         public const string DARK_RECT = "thry_dark_rect";
+        public const string ACTICE_LINK_ICON = "thry_link_icon_active";
+        public const string INACTICE_LINK_ICON = "thry_link_icon_inactive";
     }
 
     public struct EditorData
@@ -186,8 +189,15 @@ namespace Thry
         public DefineableCondition condition2;
         public bool Test()
         {
-            if (type == DefineableConditionType.NONE)
-                return true;
+            switch (type)
+            {
+                case DefineableConditionType.NONE:
+                    return true;
+                case DefineableConditionType.TRUE:
+                    return true;
+                case DefineableConditionType.FALSE:
+                    return false;
+            }
             string comparator = GetComparetor();
             string[] parts = Regex.Split(data, comparator);
             string obj = parts[0];
@@ -281,6 +291,8 @@ namespace Thry
     public enum DefineableConditionType
     {
         NONE,
+        TRUE,
+        FALSE,
         PROPERTY_BOOL,
         EDITOR_VERSION,
         VRC_SDK_VERSION,

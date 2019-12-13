@@ -1,17 +1,12 @@
-﻿// Material/Shader Inspector for Unity 2017/2018
-// Copyright (C) 2019 Thryrallo
-
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
 namespace Thry
 {
-
     public class GuiHelper
     {
 
@@ -23,7 +18,7 @@ namespace Thry
                     drawSmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
-                    if(DrawingData.currentTexProperty.reference_properties_exist)
+                    if (DrawingData.currentTexProperty.reference_properties_exist)
                         drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
                         drawBigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
@@ -39,7 +34,7 @@ namespace Thry
         {
             Rect thumbnailPos = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
-            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop,label.text, (hasFoldoutProperties ? "Click here for extra properties":"") + (label.tooltip != "" ? " | " : "") + label.tooltip);
+            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, (hasFoldoutProperties ? "Click here for extra properties" : "") + (label.tooltip != "" ? " | " : "") + label.tooltip);
             if (hasFoldoutProperties && DrawingData.currentTexProperty != null)
             {
                 //draw dropdown triangle
@@ -96,7 +91,7 @@ namespace Thry
             DrawingData.lastGuiObjectRect = object_rect;
         }
 
-        static int texturePickerWindow  = -1;
+        static int texturePickerWindow = -1;
         public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             position.x += (EditorGUI.indentLevel) * 15;
@@ -105,7 +100,7 @@ namespace Thry
             rect.x += (EditorGUI.indentLevel) * 15;
             rect.width -= (EditorGUI.indentLevel) * 15;
             Rect border = new Rect(rect);
-            border.position = new Vector2(border.x, border.y-position.height);
+            border.position = new Vector2(border.x, border.y - position.height);
             border.height += position.height;
 
             if (DrawingData.currentTexProperty.reference_properties_exist)
@@ -116,12 +111,12 @@ namespace Thry
                     border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[r_property].materialProperty);
                 }
             }
-            
+
 
             //background
             GUI.DrawTexture(border, Styles.rounded_texture, ScaleMode.StretchToFill, true);
             Rect quad = new Rect(border);
-            quad.width = quad.height/2;
+            quad.width = quad.height / 2;
             GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0, 0, 0.5f, 1), true);
             quad.x += border.width - quad.width;
             GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0.5f, 0, 0.5f, 1), true);
@@ -133,7 +128,7 @@ namespace Thry
 
 
             Rect preview_rect_border = new Rect(position);
-            preview_rect_border.height = rect.height + position.height-6;
+            preview_rect_border.height = rect.height + position.height - 6;
             preview_rect_border.width = preview_rect_border.height;
             preview_rect_border.y += 3;
             preview_rect_border.x += position.width - preview_rect_border.width - 3;
@@ -146,9 +141,10 @@ namespace Thry
             {
                 Rect mixedRect = new Rect(preview_rect);
                 mixedRect.y -= 5;
-                mixedRect.x += mixedRect.width / 2 -4;
+                mixedRect.x += mixedRect.width / 2 - 4;
                 GUI.Label(mixedRect, "_");
-            }else if (prop.textureValue != null)
+            }
+            else if (prop.textureValue != null)
             {
                 GUI.DrawTexture(preview_rect, prop.textureValue);
             }
@@ -158,30 +154,30 @@ namespace Thry
             Rect select_rect = new Rect(preview_rect);
             select_rect.height = 12;
             select_rect.y += preview_rect.height - 12;
-            if(Event.current.commandName== "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID()== texturePickerWindow)
+            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
                 ThryEditor.repaint();
             }
-            if (Event.current.commandName== "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID()== texturePickerWindow)
+            if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
             {
                 texturePickerWindow = -1;
             }
-            if(GUI.Button(select_rect, "Select", EditorStyles.miniButton))
+            if (GUI.Button(select_rect, "Select", EditorStyles.miniButton))
             {
-                EditorGUIUtility.ShowObjectPicker<Texture>(prop.textureValue,false,"",0);
+                EditorGUIUtility.ShowObjectPicker<Texture>(prop.textureValue, false, "", 0);
                 texturePickerWindow = EditorGUIUtility.GetObjectPickerControlID();
             }
             else if (Event.current.type == EventType.MouseDown && preview_rect.Contains(Event.current.mousePosition))
             {
                 EditorGUIUtility.PingObject(prop.textureValue);
             }
-            
-            if(!skip_drag_and_drop_handling)
-                if((ThryEditor.input.is_drag_drop_event) && preview_rect.Contains(ThryEditor.input.mouse_position) && DragAndDrop.objectReferences[0] is Texture)
+
+            if (!skip_drag_and_drop_handling)
+                if ((ThryEditor.input.is_drag_drop_event) && preview_rect.Contains(ThryEditor.input.mouse_position) && DragAndDrop.objectReferences[0] is Texture)
                 {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-                    if(ThryEditor.input.is_drop_event)
+                    if (ThryEditor.input.is_drop_event)
                     {
                         DragAndDrop.AcceptDrag();
                         prop.textureValue = (Texture)DragAndDrop.objectReferences[0];
@@ -269,6 +265,22 @@ namespace Thry
             }
         }
 
+        public static bool DrawListField<type>(List<type> list) where type : UnityEngine.Object
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add", EditorStyles.miniButton))
+                list.Add(null);
+            if (GUILayout.Button("Remove", EditorStyles.miniButton))
+                if (list.Count > 0)
+                    list.RemoveAt(list.Count - 1);
+            GUILayout.EndHorizontal();
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i] = (type)EditorGUILayout.ObjectField(list[i], typeof(type), false);
+            }
+            return false;
+        }
 
         public static bool GUIDataStruct<t>(t data)
         {
@@ -363,7 +375,7 @@ namespace Thry
             int newQueueSelection = EditorGUILayout.Popup(queueSelection, queueOptions, GUILayout.MaxWidth(100));
             int newQueue = queueOptionsQueues[newQueueSelection];
             if (queueSelection != newQueueSelection) customQueueFieldInput = newQueue;
-            int newCustomQueueFieldInput = EditorGUILayout.IntField(customQueueFieldInput, GUILayout.MaxWidth(65));
+            int newCustomQueueFieldInput = EditorGUILayout.DelayedIntField(customQueueFieldInput, GUILayout.MaxWidth(65));
             bool isInput = customQueueFieldInput != newCustomQueueFieldInput || queueSelection != newQueueSelection;
             customQueueFieldInput = newCustomQueueFieldInput;
             foreach (Material m in ThryEditor.currentlyDrawing.materials)
@@ -392,7 +404,7 @@ namespace Thry
         {
             EditorGUI.BeginChangeCheck();
             selected = EditorGUILayout.Popup(label.text, selected, locales);
-            if(EditorGUI.EndChangeCheck())
+            if (EditorGUI.EndChangeCheck())
             {
                 ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
                 ThryEditor.reload();
@@ -402,7 +414,7 @@ namespace Thry
         //draw single footer
         private static void drawFooter(ButtonData data)
         {
-            Button(data,20);
+            Button(data, 20);
         }
 
         public static void Button(ButtonData button)
@@ -458,157 +470,7 @@ namespace Thry
         public static void DrawMasterLabel(string shaderName, float y)
         {
             Rect rect = new Rect(0, y, Screen.width, 18);
-            EditorGUI.LabelField(rect,"<size=16>" + shaderName + "</size>", Styles.masterLabel);
-        }
-    }
-
-    //-----------------------------------------------------------------
-
-    public class ThryEditorHeader
-    {
-        private MaterialProperty property;
-        private bool currentState;
-
-        public ThryEditorHeader(MaterialProperty prop)
-        {
-            this.property = prop;
-            this.currentState = fetchState();
-        }
-
-        public bool fetchState()
-        {
-            return property.floatValue == 1;
-        }
-
-        public bool getState()
-        {
-            return this.currentState;
-        }
-
-        public void Toggle()
-        {
-
-            if (getState())
-                property.floatValue = 0;
-            else
-                property.floatValue = 1;
-            this.currentState = !this.currentState;
-        }
-
-        public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
-        {
-            PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
-            Event e = Event.current;
-            GUIStyle style = new GUIStyle(Styles.dropDownHeader);
-            style.margin.left = 15 * xOffset + 15;
-
-            Rect rect = GUILayoutUtility.GetRect(16f + 20f, 22f, style);
-            DrawingData.lastGuiObjectHeaderRect = rect;
-
-            DrawBoxAndContent(rect, e, content, options, style);
-            DrawButton(rect , options, e, style);
-            
-            DrawSmallArrow(rect,e);
-            HandleToggleInput(e,rect);
-        }
-
-        private void DrawBoxAndContent(Rect rect, Event e, GUIContent content, PropertyOptions options, GUIStyle style)
-        {
-            if (options.reference_property != null)
-            {
-                GUI.Box(rect, "", style);
-                DrawDowdownSettings(rect, e);
-
-                Rect togglePropertyRect = new Rect(rect);
-                togglePropertyRect.x -= 11;
-                togglePropertyRect.y += 2;
-                ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
-                float labelWidth = EditorGUIUtility.labelWidth;
-                float fieldWidth = EditorGUIUtility.fieldWidth;
-                EditorGUIUtility.labelWidth = UnityHelper.CalculateLengthOfText(prop.content.text) + EditorGUI.indentLevel * 15 + 45;
-                EditorGUIUtility.fieldWidth = 20;
-                prop.Draw(new CRect(togglePropertyRect), content);
-                EditorGUIUtility.labelWidth = labelWidth;
-                EditorGUIUtility.fieldWidth = fieldWidth;
-            }
-            else
-            {
-                GUI.Box(rect, content, style);
-                DrawDowdownSettings(rect, e);
-            }
-
-        }
-
-        private void DrawButton(Rect rect, PropertyOptions options, Event e, GUIStyle style)
-        {
-            if (options.button_right != null && options.button_right.condition_show.Test())
-            {
-                Rect buttonRect = new Rect(rect);
-                GUIContent buttoncontent = new GUIContent(options.button_right.text, options.button_right.hover);
-                float width = Styles.dropDownHeaderButton.CalcSize(buttoncontent).x;
-                width = width < rect.width / 3 ? rect.width / 3 : width;
-                buttonRect.x += buttonRect.width - width - 35;
-                buttonRect.y += 2;
-                buttonRect.width = width;
-                if (GUI.Button(buttonRect, buttoncontent, Styles.dropDownHeaderButton))
-                {
-                    if (options.button_right.action != null)
-                        options.button_right.action.Perform();
-                    e.Use();
-                }
-                EditorGUIUtility.AddCursorRect(buttonRect, MouseCursor.Link);
-            }
-        }
-
-        private void DrawDowdownSettings(Rect rect, Event e)
-        {
-            Rect buttonRect = new Rect(rect);
-            buttonRect.width = 20;
-            buttonRect.x += rect.width - 25;
-            buttonRect.y += 1;
-            buttonRect.height -= 4;
-            if (GUI.Button(buttonRect, Styles.dropdown_settings_icon, EditorStyles.largeLabel))
-            {
-                e.Use();
-                buttonRect.y += 8;
-                ShowHeaderContextMenu(buttonRect, ThryEditor.currentlyDrawing.currentProperty, ThryEditor.currentlyDrawing.materials[0]);
-            }
-        }
-
-        void ShowHeaderContextMenu(Rect position,ShaderPart property, Material material)
-        {
-            var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Reset"), false, delegate()
-            {
-                property.CopyFromMaterial(new Material(material.shader));
-            });
-            menu.AddItem(new GUIContent("Copy"), false, delegate()
-            {
-                Mediator.copy_material = new Material(material);
-            });
-            menu.AddItem(new GUIContent("Paste"), false, delegate()
-            {
-                property.CopyFromMaterial(Mediator.copy_material);
-            });
-            menu.DropDown(position);
-        }
-
-        private void DrawSmallArrow(Rect rect, Event e)
-        {
-            if (e.type == EventType.Repaint)
-            {
-                var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-                EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
-            }
-        }
-
-        private void HandleToggleInput(Event e, Rect rect)
-        {
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition) && !e.alt)
-            {
-                this.Toggle();
-                e.Use();
-            }
+            EditorGUI.LabelField(rect, "<size=16>" + shaderName + "</size>", Styles.masterLabel);
         }
     }
 }

@@ -205,31 +205,52 @@ namespace Thry
 
         //-----------------------Value To File Saver----------------------
 
-        private static Dictionary<string, string> textFileData = new Dictionary<string, string>();
+        private static Dictionary<string, Dictionary<string,string>> textFileData = new Dictionary<string, Dictionary<string, string>>();
 
         public static string LoadValueFromFile(string key, string path)
         {
-            if (!textFileData.ContainsKey(path)) textFileData[path] = ReadFileIntoString(path);
-            Match m = Regex.Match(textFileData[path], Regex.Escape(key) + @"\s*:=.*(?=\r?\n)");
-            string value = Regex.Replace(m.Value, key + @"\s*:=\s*", "");
-            if (m.Success) return value;
+            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            if (textFileData[path].ContainsKey(key))
+                return textFileData[path][key];
             return null;
         }
 
-
-        public static bool SaveValueToFileKeyIsRegex(string keyRegex, string value, string path)
+        public static Dictionary<string,string> LoadDictionaryFromFile(string path)
         {
-            if (!textFileData.ContainsKey(path)) textFileData[path] = ReadFileIntoString(path);
-            Match m = Regex.Match(textFileData[path], keyRegex + @"\s*:=.*\r?\n");
-            if (m.Success) textFileData[path] = textFileData[path].Replace(m.Value, m.Value.Substring(0, m.Value.IndexOf(":=")) + ":=" + value + "\n");
-            else textFileData[path] += Regex.Unescape(keyRegex) + ":=" + value + "\n";
-            WriteStringToFile(textFileData[path], path);
-            return true;
+            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            return textFileData[path];
+        }
+
+        private static void ReadFileIntoTextFileData(string path)
+        {
+            string data = ReadFileIntoString(path);
+            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            MatchCollection matchCollection = Regex.Matches(data, @".*\s*:=.*(?=\r?\n)");
+            foreach(Match m in matchCollection)
+            {
+                string[] keyvalue = m.Value.Split(new string[] { ":=" }, 2, StringSplitOptions.RemoveEmptyEntries);
+                dictionary[keyvalue[0]] = keyvalue[1];
+            }
+            textFileData[path] = dictionary; 
         }
 
         public static bool SaveValueToFile(string key, string value, string path)
         {
-            return SaveValueToFileKeyIsRegex(Regex.Escape(key), value, path);
+            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            textFileData[path][key] = value;
+            return SaveDictionaryToFile(path, textFileData[path]);
+        }
+
+        public static bool SaveDictionaryToFile(string path, Dictionary<string,string> dictionary)
+        {
+            textFileData[path] = dictionary;
+            string data = "";
+            foreach (KeyValuePair<string, string> keyvalue in textFileData[path])
+            {
+                data += keyvalue.Key + ":=" + keyvalue.Value + "\n";
+            }
+            WriteStringToFile(data, path);
+            return true;
         }
 
         //-----------------------File Interaction---------------------
@@ -451,7 +472,6 @@ namespace Thry
                 Shader renderQueueShader = defaultShader;
                 if (material.renderQueue != renderQueueShader.renderQueue) renderQueueShader = ShaderHelper.createRenderQueueShaderIfNotExists(defaultShader, material.renderQueue, true);
                 material.shader = renderQueueShader;
-                ShaderImportFixer.backupSingleMaterial(material);
             }
         }
 
@@ -486,6 +506,87 @@ namespace Thry
                 ((Material)m).SetFloat(prop.name, f);
             }
             prop.floatValue = f;
+        }
+
+        public static void ToggleKeyword(Material material, string keyword, bool turn_on)
+        {
+            bool is_on = material.IsKeywordEnabled(keyword);
+            if (is_on && !turn_on)
+                material.DisableKeyword(keyword);
+            else if (!is_on && turn_on)
+                material.EnableKeyword(keyword);
+        }
+
+        public static void ToggleKeyword(Material[] materials, string keyword, bool on)
+        {
+            foreach (Material m in materials)
+                ToggleKeyword(m, keyword, on);
+        }
+
+        public static void ToggleKeyword(MaterialProperty p, string keyword, bool on)
+        {
+            foreach (UnityEngine.Object o in p.targets)
+                ToggleKeyword((Material)o, keyword, on);
+        }
+
+        public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
+        {
+            switch (p.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    float f = source.GetFloat(p.name);
+                    p.floatValue = f;
+                    string[] drawer = ShaderHelper.GetDrawer(p);
+                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
+                        ToggleKeyword(p, drawer[1], f == 1);
+                    break;
+                case MaterialProperty.PropType.Color:
+                    Color c = source.GetColor(p.name);
+                    p.colorValue = c;
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    Vector4 vector = source.GetVector(p.name);
+                    p.vectorValue = vector;
+                    break;
+                case MaterialProperty.PropType.Texture:
+                    Texture t = source.GetTexture(p.name);
+                    Vector2 offset = source.GetTextureOffset(p.name);
+                    Vector2 scale = source.GetTextureScale(p.name);
+                    p.textureValue = t;
+                    p.textureScaleAndOffset = new Vector4(scale.x, scale.y, offset.x, offset.y);
+                    break;
+            }
+        }
+
+        public static void CopyPropertyValueToMaterial(MaterialProperty source, Material target)
+        {
+            switch (source.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    float f = source.floatValue;
+                    target.SetFloat(source.name, f);
+                    string[] drawer = ShaderHelper.GetDrawer(source);
+                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
+                        ToggleKeyword(target, drawer[1], f == 1);
+                    break;
+                case MaterialProperty.PropType.Color:
+                    Color c = source.colorValue;
+                    target.SetColor(source.name, c);
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    Vector4 vector = source.vectorValue;
+                    target.SetVector(source.name, vector);
+                    break;
+                case MaterialProperty.PropType.Texture:
+                    Texture t = source.textureValue;
+                    Vector4 scaleoffset = source.textureScaleAndOffset;
+                    target.SetTexture(source.name, t);
+                    target.SetTextureOffset(source.name, new Vector2(scaleoffset.z,scaleoffset.w));
+                    target.SetTextureScale(source.name, new Vector2(scaleoffset.x,scaleoffset.y));
+                    break;
+            }
         }
     }
 

@@ -32,12 +32,14 @@ namespace Thry
     {
         public int xOffset = 0;
         public GUIContent content;
+        public MaterialProperty materialProperty;
         public System.Object property_data = null;
         public PropertyOptions options;
         public bool reference_properties_exist = false;
 
-        public ShaderPart(int xOffset, string displayName, PropertyOptions options)
+        public ShaderPart(MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
+            this.materialProperty = prop;
             this.xOffset = xOffset;
             this.options = options;
             this.content = new GUIContent(displayName, options.tooltip);
@@ -46,6 +48,7 @@ namespace Thry
 
         public abstract void DrawInternal(GUIContent content, CRect rect = null);
         public abstract void CopyFromMaterial(Material m);
+        public abstract void CopyToMaterial(Material m);
 
         public void Draw(CRect rect = null, GUIContent content = null)
         {
@@ -74,17 +77,17 @@ namespace Thry
     {
         public List<ShaderPart> parts = new List<ShaderPart>();
 
-        public ShaderGroup() : base(0, "", new PropertyOptions())
+        public ShaderGroup() : base(null, 0, "", new PropertyOptions())
         {
 
         }
 
-        public ShaderGroup(PropertyOptions options) : base(0, "", new PropertyOptions())
+        public ShaderGroup(PropertyOptions options) : base(null, 0, "", new PropertyOptions())
         {
             this.options = options;
         }
 
-        public ShaderGroup(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(xOffset, displayName, options)
+        public ShaderGroup(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(prop, xOffset, displayName, options)
         {
 
         }
@@ -96,8 +99,18 @@ namespace Thry
 
         public override void CopyFromMaterial(Material m)
         {
+            if (options.reference_property != null)
+                ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property].CopyFromMaterial(m);
             foreach (ShaderPart p in parts)
                 p.CopyFromMaterial(m);
+        }
+
+        public override void CopyToMaterial(Material m)
+        {
+            if (options.reference_property != null)
+                ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property].CopyToMaterial(m);
+            foreach (ShaderPart p in parts)
+                p.CopyToMaterial(m);
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null)
@@ -126,6 +139,7 @@ namespace Thry
         public override void DrawInternal(GUIContent content, CRect rect = null)
         {
             ThryEditor.currentlyDrawing.currentProperty = this;
+            EditorGUI.BeginChangeCheck();
             guiElement.Foldout(xOffset, content, ThryEditor.currentlyDrawing.gui);
             Rect headerRect = DrawingData.lastGuiObjectHeaderRect;
             if (guiElement.getState())
@@ -137,13 +151,22 @@ namespace Thry
                 }
                 EditorGUILayout.Space();
             }
+            if (EditorGUI.EndChangeCheck())
+                HandleLinkedMaterials();
             DrawingData.lastGuiObjectHeaderRect = headerRect;
+        }
+
+        private void HandleLinkedMaterials()
+        {
+            List<Material> linked_materials = MaterialLinker.GetLinked(materialProperty);
+            if (linked_materials != null)
+                foreach (Material m in linked_materials)
+                    this.CopyToMaterial(m);
         }
     }
 
     public class ShaderProperty : ShaderPart
     {
-        public MaterialProperty materialProperty;
         public bool drawDefault;
 
         public float setFloat;
@@ -151,16 +174,20 @@ namespace Thry
 
         public bool forceOneLine = false;
 
-        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(xOffset, displayName, options)
+        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
         {
-            this.materialProperty = materialProperty;
             drawDefault = false;
             this.forceOneLine = forceOneLine;
         }
 
         public override void CopyFromMaterial(Material m)
         {
-            UnityHelper.CopyPropertyValueFromMaterial(materialProperty, m);
+            MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
+        }
+
+        public override void CopyToMaterial(Material m)
+        {
+            MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null)

@@ -63,11 +63,10 @@ namespace Thry
         private static List<object> ParseArray(string input)
         {
             input = input.Trim(new char[] { ' ' });
-            input = input.TrimStart(new char[] { '[' });
             int depth = 0;
-            int variableStart = 0;
+            int variableStart = 1;
             List<object> variables = new List<object>();
-            for (int i = 0; i < input.Length; i++)
+            for (int i = 1; i < input.Length; i++)
             {
                 if (i == input.Length-1 || (depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\')))
                 {

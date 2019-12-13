@@ -225,6 +225,12 @@ public class ThryEditor : ShaderGUI
             }
 		}
 	}
+    
+    private MaterialProperty FindProperty(string name)
+    {
+        return System.Array.Find(current.properties,
+                       element => element.name == name);
+    }
 
     //-------------Functions------------------
 
@@ -268,14 +274,12 @@ public class ThryEditor : ShaderGUI
 
         foreach (MaterialProperty p in current.properties) if (p.name == PROPERTY_NAME_USING_THRY_EDITOR) p.floatValue = MATERIAL_NOT_RESET;
 
-        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = false;
     }
 
     public override void OnClosed(Material  material)
     {
         base.OnClosed(material);
-        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = true;
     }
 
@@ -315,6 +319,7 @@ public class ThryEditor : ShaderGUI
 
         //first time call inits
         if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
+        current.shader = current.materials[0].shader;
 
         currentlyDrawing = current;
 
@@ -377,6 +382,7 @@ public class ThryEditor : ShaderGUI
                 if (p.name == PROPERTY_NAME_USING_THRY_EDITOR && p.floatValue != MATERIAL_NOT_RESET)
                 {
                     reloadNextDraw = true;
+                    HandleReset();
                     break;
                 }
             wasUsed = false;
@@ -387,6 +393,11 @@ public class ThryEditor : ShaderGUI
         if (input.HadMouseDownRepaint) input.HadMouseDown = false;
         input.HadMouseDownRepaint = false;
         current.firstCall = false;
+    }
+
+    private void HandleReset()
+    {
+        MaterialLinker.UnlinkAll(current.materials[0]);
     }
 
     public static void reload()

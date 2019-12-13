@@ -161,9 +161,7 @@ namespace Thry
             get
             {
                 if (t_settings_icon == null)
-                {
                     t_settings_icon = LoadTextureByFileName(RESOURCE_NAME.SETTINGS_ICON_TEXTURE);
-                }
                 return t_settings_icon;
             }
         }
@@ -174,10 +172,30 @@ namespace Thry
             get
             {
                 if (t_dropdown_settings_icon == null)
-                {
                     t_dropdown_settings_icon = LoadTextureByFileName(RESOURCE_NAME.DROPDOWN_SETTINGS_TEXTURE);
-                }
                 return t_dropdown_settings_icon;
+            }
+        }
+
+        private static Texture2D t_ative_link_icon;
+        public static Texture2D active_link_icon
+        {
+            get
+            {
+                if (t_ative_link_icon == null)
+                    t_ative_link_icon = LoadTextureByFileName(RESOURCE_NAME.ACTICE_LINK_ICON);
+                return t_ative_link_icon;
+            }
+        }
+
+        private static Texture2D t_inactive_link_icon;
+        public static Texture2D inactive_link_icon
+        {
+            get
+            {
+                if (t_inactive_link_icon == null)
+                    t_inactive_link_icon = LoadTextureByFileName(RESOURCE_NAME.INACTICE_LINK_ICON);
+                return t_inactive_link_icon;
             }
         }
 
