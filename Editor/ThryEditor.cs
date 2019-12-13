@@ -19,8 +19,6 @@ public class ThryEditor : ShaderGUI
     public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
     public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
 
-    private static Texture2D settingsTexture;
-
     // Stores the different shader properties
     private ShaderHeader shaderparts;
 
@@ -37,245 +35,10 @@ public class ThryEditor : ShaderGUI
     private bool firstOnGUICall = true;
     private bool wasUsed = false;
 
-    public struct InputEvent
-    {
-        public bool HadMouseDownRepaint;
-        public bool HadMouseDown;
-        public bool MouseClick;
-
-        public bool is_alt_down;
-
-        public bool is_drag_drop_event;
-        public bool is_drop_event;
-
-        public Vector2 mouse_position;
-    }
-
     public static InputEvent input = new InputEvent();
     // Contains Editor Data
     private EditorData current;
     public static EditorData currentlyDrawing;
-
-    public abstract class ShaderPart
-    {
-        public int xOffset = 0;
-        public GUIContent content;
-        public System.Object property_data = null;
-        public PropertyOptions options;
-        public bool reference_properties_exist = false;
-
-        public ShaderPart(int xOffset, string displayName, PropertyOptions options)
-        {
-            this.xOffset = xOffset;
-            this.options = options;
-            this.content = new GUIContent(displayName, options.hover);
-            this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
-        }
-
-        public abstract void DrawInternal();
-
-        public void Draw()
-        {
-            bool is_enabled = DrawingData.is_enabled;
-            if (options.condition_enable != null && is_enabled)
-            {
-                DrawingData.is_enabled = options.condition_enable.Test();
-                EditorGUI.BeginDisabledGroup(!DrawingData.is_enabled);
-            }
-            if (options.condition_show.Test())
-            {
-                DrawInternal();
-                testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
-            }
-            if (options.condition_enable != null && is_enabled)
-            {
-                DrawingData.is_enabled = true;
-                EditorGUI.EndDisabledGroup();
-            }
-        }
-    }
-
-    public class ShaderGroup : ShaderPart
-    {
-        public List<ShaderPart> parts = new List<ShaderPart>();
-
-        public ShaderGroup() : base(0, "", new PropertyOptions())
-        {
-
-        }
-
-        public ShaderGroup(PropertyOptions options) : base(0, "", new PropertyOptions())
-        {
-            this.options = options;
-        }
-
-        public ShaderGroup(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(xOffset, displayName, options)
-        {
-            
-        }
-
-        public void addPart(ShaderPart part)
-        {
-            parts.Add(part);
-        }
-
-        public override void DrawInternal()
-        {
-            foreach (ShaderPart part in parts)
-            {
-                part.Draw();
-            }
-        }
-    }
-
-    public class ShaderHeader : ShaderGroup
-    {
-        public ThryEditorHeader guiElement;
-
-        public ShaderHeader() : base()
-        {
-
-        }
-
-        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(prop, materialEditor, displayName, xOffset, options)
-        {
-            this.guiElement = new ThryEditorHeader(materialEditor, prop.name);
-        }
-
-        public override void DrawInternal()
-        {
-            
-            currentlyDrawing.currentProperty = this;
-            guiElement.Foldout(xOffset, content, currentlyDrawing.gui);
-            Rect headerRect = DrawingData.lastGuiObjectHeaderRect;
-            if (guiElement.getState())
-            {
-                EditorGUILayout.Space();
-                foreach (ShaderPart part in parts)
-                {
-                    part.Draw();
-                }
-                EditorGUILayout.Space();
-            }
-            DrawingData.lastGuiObjectHeaderRect = headerRect;
-        }
-    }
-
-    public class ShaderProperty : ShaderPart
-    {
-        public MaterialProperty materialProperty;
-        public bool drawDefault;
-
-        public float setFloat;
-        public bool updateFloat;
-
-        public bool forceOneLine = false;
-
-        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(xOffset, displayName, options)
-        {
-            this.materialProperty = materialProperty;
-            drawDefault = false;
-            this.forceOneLine = forceOneLine;
-        }
-
-        public override void DrawInternal()
-        {
-            PreDraw();
-            currentlyDrawing.currentProperty = this;
-            DrawingData.lastGuiObjectHeaderRect = new Rect(-1,-1,-1,-1);
-            int oldIndentLevel = EditorGUI.indentLevel;
-            EditorGUI.indentLevel = xOffset + 1;
-
-            if (drawDefault)
-                DrawDefault();
-            else if (forceOneLine)
-                currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle), this.materialProperty, this.content);
-            else
-                currentlyDrawing.editor.ShaderProperty(this.materialProperty, this.content);
-
-            EditorGUI.indentLevel = oldIndentLevel;
-            if (DrawingData.lastGuiObjectHeaderRect.x==-1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
-        }
-
-        public virtual void PreDraw() { }
-
-        public virtual void DrawDefault() { }
-    }
-
-    public class InstancingProperty : ShaderProperty
-    {
-        public InstancingProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
-        {
-            drawDefault = true;
-        }
-
-        public override void DrawDefault()
-        {
-            currentlyDrawing.editor.EnableInstancingField();
-        }
-    }
-    public class GIProperty : ShaderProperty
-    {
-        public GIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
-        {
-            drawDefault = true;
-        }
-
-        public override void DrawDefault()
-        {
-            currentlyDrawing.editor.LightmapEmissionFlagsProperty(xOffset, true);
-        }
-    }
-    public class DSGIProperty : ShaderProperty
-    {
-        public DSGIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
-        {
-            drawDefault = true;
-        }
-
-        public override void DrawDefault()
-        {
-            currentlyDrawing.editor.DoubleSidedGIField();
-        }
-    }
-    public class LocaleProperty : ShaderProperty
-    {
-        public LocaleProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset,options, forceOneLine)
-        {
-            drawDefault = true;
-        }
-
-        public override void DrawDefault()
-        {
-            GuiHelper.DrawLocaleSelection(this.content,currentlyDrawing.gui.locale.available_locales, currentlyDrawing.gui.locale.selected_locale_index);
-        }
-    }
-
-    public class TextureProperty : ShaderProperty
-    {
-        public bool showFoldoutProperties = false;
-        public bool hasFoldoutProperties = false;
-        public bool hasScaleOffset = false;
-
-        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI) : base(materialProperty, displayName, xOffset, options, false)
-        {
-            drawDefault = forceThryUI;
-            this.hasScaleOffset = hasScaleOffset;
-            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist;
-        }
-
-        public override void PreDraw()
-        {
-            DrawingData.currentTexProperty = this;
-        }
-
-        public override void DrawDefault()
-        {
-            Rect pos = GUILayoutUtility.GetRect(content, Styles.Get().vectorPropertyStyle);
-            GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, currentlyDrawing.editor, hasFoldoutProperties);
-            DrawingData.lastGuiObjectHeaderRect = pos;
-        }
-    }
 
     //-------------Init functions--------------------
 
@@ -319,10 +82,10 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property,master_label, footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
+        none,property,master_label,footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
     }
 
-    private ThryPropertyType GetPropertyType(MaterialProperty p)
+    private ThryPropertyType GetPropertyType(MaterialProperty p, PropertyOptions options)
     {
         string name = p.name;
         MaterialProperty.PropFlags flags = p.flags;
@@ -350,12 +113,12 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.lightmap_flags;
         if (name.Replace(" ", "") == PROPERTY_NAME_LOCALE)
             return ThryPropertyType.locale;
-        if (flags != MaterialProperty.PropFlags.HideInInspector)
+        if (flags != MaterialProperty.PropFlags.HideInInspector && !options.hide_in_inspector)
             return ThryPropertyType.property;
         return ThryPropertyType.none;
     }
 
-    private Locale locale;
+    public Locale locale;
 
     private void LoadLocales()
     {
@@ -399,7 +162,7 @@ public class ThryEditor : ShaderGUI
 
             int offset = options.offset + headerCount;
 
-            ThryPropertyType type = GetPropertyType(props[i]);
+            ThryPropertyType type = GetPropertyType(props[i],options);
             switch (type)
             {
                 case ThryPropertyType.header:
@@ -467,6 +230,12 @@ public class ThryEditor : ShaderGUI
             }
 		}
 	}
+    
+    private MaterialProperty FindProperty(string name)
+    {
+        return System.Array.Find(current.properties,
+                       element => element.name == name);
+    }
 
     //-------------Functions------------------
 
@@ -478,15 +247,6 @@ public class ThryEditor : ShaderGUI
     }
 
     //-------------Draw Functions----------------
-
-    private static void testAltClick(Rect rect, ShaderPart property)
-    {
-        if (input.HadMouseDownRepaint && input.is_alt_down && rect.Contains(input.mouse_position))
-        {
-            if (property.options.altClick != null)
-                property.options.altClick.Perform();
-        }
-    }
 
     public void OnOpen()
     {
@@ -502,14 +262,6 @@ public class ThryEditor : ShaderGUI
 
         presetHandler = new PresetHandler(current.properties);
 
-        //init settings texture
-        if (settingsTexture == null)
-        {
-            byte[] fileData = File.ReadAllBytes(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("thry_settings_icon")[0]));
-            settingsTexture = new Texture2D(2, 2);
-            settingsTexture.LoadImage(fileData);
-        }
-
         current.shader = current.materials[0].shader;
         string defaultShaderName = current.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
         current.defaultShader = Shader.Find(defaultShaderName);
@@ -523,14 +275,12 @@ public class ThryEditor : ShaderGUI
 
         foreach (MaterialProperty p in current.properties) if (p.name == PROPERTY_NAME_USING_THRY_EDITOR) p.floatValue = MATERIAL_NOT_RESET;
 
-        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = false;
     }
 
     public override void OnClosed(Material  material)
     {
         base.OnClosed(material);
-        if (current.materials != null) foreach (Material m in current.materials) ShaderImportFixer.backupSingleMaterial(m);
         firstOnGUICall = true;
     }
 
@@ -570,6 +320,7 @@ public class ThryEditor : ShaderGUI
 
         //first time call inits
         if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
+        current.shader = current.materials[0].shader;
 
         currentlyDrawing = current;
 
@@ -582,7 +333,7 @@ public class ThryEditor : ShaderGUI
         //editor settings button + shader name + presets
         EditorGUILayout.BeginHorizontal();
         //draw editor settings button
-        if (GUILayout.Button(new GUIContent(" Thry Editor",settingsTexture), EditorStyles.largeLabel ,new GUILayoutOption[] { GUILayout.MaxHeight(20) })) {
+        if (GUILayout.Button(new GUIContent(" Thry Editor",Styles.settings_icon), EditorStyles.largeLabel ,new GUILayoutOption[] { GUILayout.MaxHeight(20) })) {
             Settings window = Settings.getInstance();
             window.Show();
             window.Focus();
@@ -632,6 +383,7 @@ public class ThryEditor : ShaderGUI
                 if (p.name == PROPERTY_NAME_USING_THRY_EDITOR && p.floatValue != MATERIAL_NOT_RESET)
                 {
                     reloadNextDraw = true;
+                    HandleReset();
                     break;
                 }
             wasUsed = false;
@@ -642,6 +394,11 @@ public class ThryEditor : ShaderGUI
         if (input.HadMouseDownRepaint) input.HadMouseDown = false;
         input.HadMouseDownRepaint = false;
         current.firstCall = false;
+    }
+
+    private void HandleReset()
+    {
+        MaterialLinker.UnlinkAll(current.materials[0]);
     }
 
     public static void reload()
