@@ -179,11 +179,14 @@ namespace Thry
         private static MaterialLinkerPopupWindow window;
         public static void Popup(Rect activeation_rect, List<Material> linked_materials, MaterialProperty p)
         {
+            Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+            pos.x = Mathf.Min(EditorWindow.focusedWindow.position.x + EditorWindow.focusedWindow.position.width - 250, pos.x);
+            pos.y = Mathf.Min(EditorWindow.focusedWindow.position.y + EditorWindow.focusedWindow.position.height - 200, pos.y);
+
             Load();
             if (window != null)
                 window.Close();
             window = ScriptableObject.CreateInstance<MaterialLinkerPopupWindow>();
-            Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
             window.position = new Rect(pos.x, pos.y, 250, 200);
             window.Init(linked_materials, p);
             window.ShowPopup();
