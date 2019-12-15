@@ -149,13 +149,6 @@ namespace Thry
                 icon = Styles.active_link_icon;
             if (GUI.Button(buttonRect, icon, EditorStyles.largeLabel))
             {
-
-                buttonRect.width = 150;
-                buttonRect.x = Mathf.Min(Screen.width - buttonRect.width, buttonRect.x);
-                buttonRect.height = 60;
-                float maxY = GUIUtility.ScreenToGUIPoint(new Vector2(0, EditorWindow.focusedWindow.position.y + Screen.height)).y - 2.5f * buttonRect.height;
-                buttonRect.y = Mathf.Min(buttonRect.y - buttonRect.height / 2, maxY);
-
                 MaterialLinker.Popup(buttonRect,linked_materials, ThryEditor.currentlyDrawing.currentProperty.materialProperty);
                 e.Use();
             }
