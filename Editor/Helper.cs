@@ -229,7 +229,8 @@ namespace Thry
             foreach(Match m in matchCollection)
             {
                 string[] keyvalue = m.Value.Split(new string[] { ":=" }, 2, StringSplitOptions.RemoveEmptyEntries);
-                dictionary[keyvalue[0]] = keyvalue[1];
+                if(keyvalue.Length>1)
+                    dictionary[keyvalue[0]] = keyvalue[1];
             }
             textFileData[path] = dictionary; 
         }
