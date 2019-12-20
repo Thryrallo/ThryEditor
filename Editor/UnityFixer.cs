@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -37,7 +38,7 @@ namespace Thry
 
         public static void CheckDrawingDll()
         {
-            if (!Helper.NameSpaceExists("System.Drawing"))
+            if (Type.GetType("System.Drawing.Image, System.Drawing") == null)
             {
                 string filename = GetRSPFilename();
                 RSP_State state = CheckRSPState(filename);
