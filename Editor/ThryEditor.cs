@@ -17,6 +17,7 @@ public class ThryEditor : ShaderGUI
     public const string PROPERTY_NAME_PRESETS_FILE = "shader_presets";
     public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
     public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
+    public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
 
     // Stores the different shader properties
     private ShaderHeader shaderparts;
@@ -38,6 +39,9 @@ public class ThryEditor : ShaderGUI
     // Contains Editor Data
     private EditorData current;
     public static EditorData currentlyDrawing;
+
+    private DefineableAction[] on_swap_to_actions = null;
+    private bool swapped_to_shader = false;
 
     //-------------Init functions--------------------
 
@@ -81,7 +85,7 @@ public class ThryEditor : ShaderGUI
 
     private enum ThryPropertyType
     {
-        none,property,master_label,footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,space
+        none,property,master_label,footer,header,header_end,header_start,group_start,group_end,instancing,dsgi,lightmap_flags,locale,on_swap_to,space
     }
 
     private ThryPropertyType GetPropertyType(MaterialProperty p, PropertyOptions options)
@@ -104,6 +108,8 @@ public class ThryEditor : ShaderGUI
             return ThryPropertyType.space;
         if (name == PROPERTY_NAME_MASTER_LABEL)
             return ThryPropertyType.master_label;
+        if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS)
+            return ThryPropertyType.on_swap_to;
         if (name.Replace(" ","") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
             return ThryPropertyType.instancing;
         if (name.Replace(" ", "") == "DSGI" && flags == MaterialProperty.PropFlags.HideInInspector)
@@ -174,6 +180,9 @@ public class ThryEditor : ShaderGUI
                     headerStack.Pop();
                     headerCount--;
                     break;
+                case ThryPropertyType.on_swap_to:
+                    on_swap_to_actions = options.actions;
+                    break;
             }
             ShaderProperty newPorperty = null;
             switch (type)
@@ -223,6 +232,8 @@ public class ThryEditor : ShaderGUI
             }
             if (newPorperty != null)
             {
+                if (current.propertyDictionary.ContainsKey(props[i].name))
+                    continue;
                 current.propertyDictionary.Add(props[i].name, newPorperty);
                 if (type != ThryPropertyType.none)
                     headerStack.Peek().addPart(newPorperty);
@@ -287,6 +298,7 @@ public class ThryEditor : ShaderGUI
     {
         base.AssignNewShaderToMaterial(material, oldShader, newShader);
         firstOnGUICall = true;
+        swapped_to_shader = true;
     }
 
     private void UpdateEvents()
@@ -374,6 +386,15 @@ public class ThryEditor : ShaderGUI
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
         if (reloadNextDraw && Event.current.type==EventType.Layout) reloadNextDraw = false;
         if (isUndo) reloadNextDraw = true;
+
+        //on swap
+        if (on_swap_to_actions != null && swapped_to_shader)
+        {
+            foreach (DefineableAction a in on_swap_to_actions)
+                a.Perform();
+            on_swap_to_actions = null;
+            swapped_to_shader = false;
+        }
 
         //test if material has been reset
         if (wasUsed && e.type == EventType.Repaint)

@@ -97,6 +97,7 @@ namespace Thry
         public DefineableCondition condition_show = new DefineableCondition();
         public DefineableCondition condition_enable = null;
         public PropertyValueAction[] on_value_actions;
+        public DefineableAction[] actions;
         public ButtonData button_right;
         public TextureData texture;
         public string[] reference_properties;

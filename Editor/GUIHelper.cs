@@ -92,6 +92,7 @@ namespace Thry
         }
 
         static int texturePickerWindow = -1;
+        static MaterialProperty texturePickerWindowProperty = null;
         public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             position.x += (EditorGUI.indentLevel) * 15;
@@ -154,7 +155,7 @@ namespace Thry
             Rect select_rect = new Rect(preview_rect);
             select_rect.height = 12;
             select_rect.y += preview_rect.height - 12;
-            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
+            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty == prop)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
                 ThryEditor.repaint();
@@ -162,11 +163,13 @@ namespace Thry
             if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
             {
                 texturePickerWindow = -1;
+                texturePickerWindowProperty = null;
             }
             if (GUI.Button(select_rect, "Select", EditorStyles.miniButton))
             {
                 EditorGUIUtility.ShowObjectPicker<Texture>(prop.textureValue, false, "", 0);
                 texturePickerWindow = EditorGUIUtility.GetObjectPickerControlID();
+                texturePickerWindowProperty = prop;
             }
             else if (Event.current.type == EventType.MouseDown && preview_rect.Contains(Event.current.mousePosition))
             {

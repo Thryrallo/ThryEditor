@@ -87,6 +87,8 @@ namespace Thry
 
             foreach (GameObject o in prev_gameobjects)
             {
+                if (o == null)
+                    continue;
                 Renderer renderer = o.GetComponent<Renderer>();
                 if (renderer != null)
                 {
