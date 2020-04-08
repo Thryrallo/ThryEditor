@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using Thry;
+using System;
+using System.Reflection;
 
 public class ThryEditor : ShaderGUI
 {
@@ -77,7 +79,7 @@ public class ThryEditor : ShaderGUI
             string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
             displayName = parts[0];
             PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
-            if(options!=null)
+            if (options!=null)
                 return options;
         }
         return new PropertyOptions();
@@ -154,18 +156,54 @@ public class ThryEditor : ShaderGUI
 		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
 		footer = new List<ButtonData>(); //init footer list
 		int headerCount = 0;
-		for (int i = 0; i < props.Length; i++)
+
+        Type materialPropertyDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialPropertyHandler");
+        MethodInfo getPropertyHandlerMethod = materialPropertyDrawerType.GetMethod("GetShaderPropertyHandler", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+        PropertyInfo drawerProperty = materialPropertyDrawerType.GetProperty("propertyDrawer");
+
+        Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
+        FieldInfo keyWordField = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        for (int i = 0; i < props.Length; i++)
 		{
             string displayName = props[i].displayName;
             if (locale != null)
                 foreach (string key in locale.GetAllKeys())
-                    displayName = displayName.Replace("locale::" + key, locale.Get(key));
+                    if(displayName.Contains("locale::" + key))
+                        displayName = displayName.Replace("locale::" + key, locale.Get(key));
             displayName = Regex.Replace(displayName, @"''", "\"");
-            
+
             if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
             PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
             int offset = options.offset + headerCount;
+
+            //Handle keywords
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { current.shader, props[i].name });
+            //if has custom drawer
+            if (propertyHandler != null)
+            {
+                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
+                //if custom drawer exists
+                if (propertyDrawer != null)
+                {
+                    if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
+                    {
+                        object keyword = keyWordField.GetValue(propertyDrawer);
+                        if (keyword != null)
+                        {
+                            foreach(Material m in current.materials)
+                            {
+                                if (m.GetFloat(props[i].name) == 1)
+                                    m.EnableKeyword((string)keyword);
+                                else
+                                    m.DisableKeyword((string)keyword);
+                            }
+                        }
+                    }
+                }
+            }
+
 
             ThryPropertyType type = GetPropertyType(props[i],options);
             switch (type)
@@ -238,7 +276,7 @@ public class ThryEditor : ShaderGUI
                 if (type != ThryPropertyType.none)
                     headerStack.Peek().addPart(newPorperty);
             }
-		}
+        }
 	}
     
     private MaterialProperty FindProperty(string name)
@@ -263,18 +301,18 @@ public class ThryEditor : ShaderGUI
         Config config = Config.Get();
 
         //get material targets
-        Object[] targets = current.editor.targets;
+        UnityEngine.Object[] targets = current.editor.targets;
         current.materials = new Material[targets.Length];
         for (int i = 0; i < targets.Length; i++) current.materials[i] = targets[i] as Material;
-
-        //collect shader properties
-        CollectAllProperties();
 
         presetHandler = new PresetHandler(current.properties);
 
         current.shader = current.materials[0].shader;
         string defaultShaderName = current.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
         current.defaultShader = Shader.Find(defaultShaderName);
+
+        //collect shader properties
+        CollectAllProperties();
 
         //update render queue if render queue selection is deactivated
         if (!config.renderQueueShaders && !config.showRenderQueue)
