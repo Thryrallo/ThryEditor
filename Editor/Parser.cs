@@ -16,7 +16,7 @@ namespace Thry
 
         public static object ParseJson(string input)
         {
-            input = input.Replace("\\n", "\n");
+            //input = input.Replace("\\n", "\n");
             return ParseJsonPart(input);
         }
 
@@ -50,8 +50,8 @@ namespace Thry
                         string[] parts = input.Substring(variableStart, i - variableStart).Split(new char[] { ':' }, 2);
                         if (parts.Length < 2)
                             break;
-                        string key = "" + ParsePrimitive(parts[0]);
-                        object value = ParseJson(parts[1]);
+                        string key = "" + ParsePrimitive(parts[0].Trim());
+                        object value = ParseJsonPart(parts[1]);
                         variables.Add(key, value);
                         variableStart = i + 1;
                     }
@@ -75,7 +75,7 @@ namespace Thry
             {
                 if (i == input.Length - 1 || (depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\')))
                 {
-                    variables.Add(ParseJson(input.Substring(variableStart, i - variableStart)));
+                    variables.Add(ParseJsonPart(input.Substring(variableStart, i - variableStart)));
                     variableStart = i + 1;
                 }
                 else if (input[i] == '{' || input[i] == '[')
