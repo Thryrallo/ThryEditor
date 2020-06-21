@@ -194,7 +194,7 @@ namespace Thry
 
         private class MaterialLinkerPopupWindow : EditorWindow
         {
-
+            private Vector2 scrollPos;
             private List<Material> linked_materials;
             private MaterialProperty materialProperty;
 
@@ -218,8 +218,9 @@ namespace Thry
             void OnGUI()
             {
                 GUILayout.Label("Linked Materials", EditorStyles.boldLabel);
-                GuiHelper.DrawListField<Material>(linked_materials);
-                //GUILayout.Box("Drag and Drop New Material", EditorStyles.helpBox);
+                float listMaxHeight = this.position.height - 110;
+                GuiHelper.DrawListField<Material>(linked_materials, listMaxHeight, ref scrollPos);
+                GUILayout.Box("Drag and Drop new Material", EditorStyles.helpBox, GUILayout.MinHeight(30));
                 //Rect drag_rect = GUILayoutUtility.GetLastRect();
                 Rect lastRect = GUILayoutUtility.GetLastRect();
                 Rect drag_rect = new Rect(0, lastRect.y, Screen.width, Screen.height - lastRect.y - 30);

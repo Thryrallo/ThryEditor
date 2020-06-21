@@ -330,6 +330,7 @@ namespace Thry
                     continue;
                 foreach (ThryEditorShader s in thry_editor_shaders)
                 {
+                    if (s == null) continue;
                     if (s.path == old_paths[i])
                     {
                         s.path = paths[i];

@@ -410,7 +410,9 @@ namespace Thry
             //add update notification
             if (module.ui_expanded)
             {
+                EditorGUI.indentLevel += 1;
                 ModuleUIDetails(module);
+                EditorGUI.indentLevel -= 1;
             }
 
             EditorGUI.EndDisabledGroup();

@@ -380,17 +380,17 @@ public class ThryEditor : ShaderGUI
 
 
         //editor settings button + shader name + presets
-        EditorGUILayout.BeginHorizontal();
+        Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
         //draw editor settings button
         if (GUILayout.Button(new GUIContent(" Thry Editor",Styles.settings_icon), EditorStyles.largeLabel ,new GUILayoutOption[] { GUILayout.MaxHeight(20) })) {
-            Settings window = Settings.getInstance();
+            Thry.Settings window = Thry.Settings.getInstance();
             window.Show();
             window.Focus();
         }
         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
 
         //draw master label if exists
-        if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, GUILayoutUtility.GetLastRect().y);
+        if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
         //draw presets if exists
 
         presetHandler.drawPresets(current.properties, current.materials);

@@ -63,20 +63,18 @@ namespace Thry
         {
             if (options.reference_property != null)
             {
-                GUI.Box(rect, "", style);
+                GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), style);
                 DrawIcons(rect, e);
                 DrawButton(rect, options, e, style);
 
                 Rect togglePropertyRect = new Rect(rect);
-                togglePropertyRect.x -= 11;
+                togglePropertyRect.x = 20;
                 togglePropertyRect.y += 2;
-                ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
-                float labelWidth = EditorGUIUtility.labelWidth;
+                togglePropertyRect.width = 50;
                 float fieldWidth = EditorGUIUtility.fieldWidth;
-                EditorGUIUtility.labelWidth = UnityHelper.CalculateLengthOfText(prop.content.text) + EditorGUI.indentLevel * 15 + 45;
                 EditorGUIUtility.fieldWidth = 20;
-                prop.Draw(new CRect(togglePropertyRect), content);
-                EditorGUIUtility.labelWidth = labelWidth;
+                ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+                prop.Draw(new CRect(togglePropertyRect), new GUIContent());
                 EditorGUIUtility.fieldWidth = fieldWidth;
             }
             else
@@ -88,6 +86,13 @@ namespace Thry
 
         }
 
+        /// <summary>
+        /// Draws extra buttons in the header
+        /// </summary>
+        /// <param name="rect"></param>
+        /// <param name="options"></param>
+        /// <param name="e"></param>
+        /// <param name="style"></param>
         private void DrawButton(Rect rect, PropertyOptions options, Event e, GUIStyle style)
         {
             if (options.button_right != null && options.button_right.condition_show.Test())
@@ -109,6 +114,11 @@ namespace Thry
             }
         }
 
+        /// <summary>
+        /// Draws the icons for ThryEditor features like linking and copying
+        /// </summary>
+        /// <param name="rect"></param>
+        /// <param name="e"></param>
         private void DrawIcons(Rect rect, Event e)
         {
             DrawDowdownSettings(rect, e);

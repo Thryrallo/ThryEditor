@@ -253,53 +253,19 @@ namespace Thry
 
         public static Texture2DArray GifToTextureArray(string path)
         {
-            Texture2DArray array = null;
             if ((Type.GetType("System.Drawing.Image, System.Drawing") != null))
             {
-                Type t_img = Type.GetType("System.Drawing.Image, System.Drawing");
-                MethodInfo m_from_file = t_img.GetMethod("FromFile", new Type[] { typeof(string) });
-                MethodInfo m_get_frame_count = t_img.GetMethod("GetFrameCount");
-                MethodInfo m_select_active_frame = t_img.GetMethod("SelectActiveFrame");
-
-                MethodInfo m_dispose = t_img.GetMethod("Dispose");
-                PropertyInfo p_width = t_img.GetProperty("Width");
-                PropertyInfo p_height = t_img.GetProperty("Width");
-
-                Type t_frame_dim = Type.GetType("System.Drawing.Imaging.FrameDimension, System.Drawing");
-                PropertyInfo p_frame_time = t_frame_dim.GetProperty("Time");
-
-                Type t_bitmap = Type.GetType("System.Drawing.Bitmap, System.Drawing");
-                PropertyInfo p_bitmap_raw_format = t_bitmap.GetProperty("RawFormat");
-                ConstructorInfo c_bitmap = t_bitmap.GetConstructor(new Type[] { t_img });
-
-                Type t_format = Type.GetType("System.Drawing.Imaging.ImageFormat, System.Drawing");
-                MethodInfo m_save = t_img.GetMethod("Save", new Type[] { typeof(MemoryStream), t_format });
-
-                EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "", 0);
-                object IMG = m_from_file.Invoke(null, new object[] { path });
-                int Length = (int)m_get_frame_count.Invoke(IMG, new object[] { p_frame_time.GetValue(null, null) });
-
-                m_select_active_frame.Invoke(IMG, new object[] { p_frame_time.GetValue(null, null), 0 });
-                array = new Texture2DArray((int)p_width.GetValue(IMG,null), (int)p_height.GetValue(IMG, null), Length, TextureFormat.RGBA32, true, false);
-
-                for (int i = 0; i < Length; i++)
+                List<Texture2D> array = GetGifFrames(path);
+                Texture2DArray arrayTexture = new Texture2DArray(array[0].width, array[0].height, array.Count, TextureFormat.RGBA32, true, false);
+                for (int i = 0; i < array.Count; i++)
                 {
-                    EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "Converting frame #" + i, (float)i / Length);
-                    m_select_active_frame.Invoke(IMG, new object[] { p_frame_time.GetValue(null, null), i });
-                    object bitmap = c_bitmap.Invoke(new object[] { IMG });
-                    MemoryStream msFinger = new MemoryStream();
-                    m_save.Invoke(IMG, new object[] { msFinger, p_bitmap_raw_format.GetValue(bitmap, null) });
-                    Texture2D texture = new Texture2D((int)p_width.GetValue(IMG, null), (int)p_height.GetValue(IMG, null));
-                    texture.LoadImage(msFinger.ToArray());
-                    array.SetPixels(texture.GetPixels(), i);
+                    arrayTexture.SetPixels(array[i].GetPixels(0), i, 0);
                 }
-                m_dispose.Invoke(IMG, null);
-                EditorUtility.ClearProgressBar();
+                arrayTexture.Apply();
 
-                array.Apply();
                 string newPath = path.Replace(".gif", ".asset");
-                AssetDatabase.CreateAsset(array, newPath);
-
+                AssetDatabase.CreateAsset(arrayTexture, newPath);
+                return arrayTexture;
             }
             else
             {
@@ -307,7 +273,73 @@ namespace Thry
                 UnityFixer.CheckDrawingDll();
                 Debug.LogWarning("System.Drawing could not be found. Trying to automatically fix by adding csc/mcs.");
             }
-            return array;
+            return null;
+        }
+
+        private static List<Texture2D> GetGifFrames(string path)
+        {
+            Type t_Image = Type.GetType("System.Drawing.Image, System.Drawing");
+            MethodInfo m_GetFrameCount = t_Image.GetMethod("GetFrameCount");
+            MethodInfo m_FromFile = t_Image.GetMethod("FromFile", new Type[] { typeof(string) });
+            MethodInfo m_SelectActiveFrame = t_Image.GetMethod("SelectActiveFrame");
+            PropertyInfo p_imgage_FrameDimensionList = t_Image.GetProperty("FrameDimensionsList");
+            MethodInfo p_imgage_GetFrameCount = t_Image.GetMethod("GetFrameCount");
+            PropertyInfo p_Image_Width = t_Image.GetProperty("Width");
+            PropertyInfo p_Image_Heigth = t_Image.GetProperty("Height");
+
+            Type t_FrameDimension = Type.GetType("System.Drawing.Imaging.FrameDimension, System.Drawing");
+            ConstructorInfo c_FrameDimension = t_FrameDimension.GetConstructor(new Type[] { typeof(System.Guid) });
+
+            Type t_Bitmap = Type.GetType("System.Drawing.Bitmap, System.Drawing");
+            PropertyInfo p_Bitmap_raw_format = t_Bitmap.GetProperty("RawFormat");
+            ConstructorInfo c_Bitmap = t_Bitmap.GetConstructor(new Type[] { typeof(int), typeof(int) });
+            MethodInfo m_GetPixel = t_Bitmap.GetMethod("GetPixel", new Type[] { typeof(int), typeof(int)});
+
+            Type t_Point = Type.GetType("System.Drawing.Point, System.Drawing");
+            FieldInfo f_PointEmtpy = t_Point.GetField("Empty");
+
+            Type t_Graphics = Type.GetType("System.Drawing.Graphics, System.Drawing");
+            MethodInfo m_Graphics_FromImage = t_Graphics.GetMethod("FromImage", new Type[] { t_Bitmap });
+            MethodInfo m_Graphics_DrawImage = t_Graphics.GetMethod("DrawImage", new Type[] { t_Image, t_Point });
+
+            Type t_Color = Type.GetType("System.Drawing.Color, System.Drawing");
+            PropertyInfo p_R = t_Color.GetProperty("R");
+            PropertyInfo p_G = t_Color.GetProperty("G");
+            PropertyInfo p_B = t_Color.GetProperty("B");
+            PropertyInfo p_A = t_Color.GetProperty("A");
+
+            List<Texture2D> gifFrames = new List<Texture2D>();
+            var gifImage = m_FromFile.Invoke(null, new object[] { path });
+            var dimension = c_FrameDimension.Invoke(new object[] { ((System.Guid[])p_imgage_FrameDimensionList.GetValue(gifImage))[0] });
+
+            int frameCount = (int)p_imgage_GetFrameCount.Invoke(gifImage, new object[] { dimension });
+            for (int i = 0; i < frameCount; i++)
+            {
+                EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "Converting frame #" + i, (float)i / frameCount);
+                m_SelectActiveFrame.Invoke(gifImage, new object[] { dimension, i });
+                int width = (int)p_Image_Width.GetValue(gifImage);
+                int height = (int)p_Image_Heigth.GetValue(gifImage);
+                var frame = c_Bitmap.Invoke(new object[] { width, height });
+
+                var graphics = m_Graphics_FromImage.Invoke(null, new object[] { frame });
+                var emptyPoint = f_PointEmtpy.GetValue(null);
+                m_Graphics_DrawImage.Invoke(graphics, new object[] { gifImage, emptyPoint });
+                var frameTexture = new Texture2D(width, height);
+
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        var sourceColor = m_GetPixel.Invoke(frame, new object[] { x, y });
+                        frameTexture.SetPixel(x, height - 1 - y, new Color32((byte)p_R.GetValue(sourceColor), (byte)p_G.GetValue(sourceColor), (byte)p_B.GetValue(sourceColor), (byte)p_A.GetValue(sourceColor)));
+                    }
+                }
+
+                frameTexture.Apply();
+                gifFrames.Add(frameTexture);
+            }
+            EditorUtility.ClearProgressBar();
+            return gifFrames;
         }
 
         public static Texture2DArray Testure2DListToTexture2DArray(List<Texture2D> list, string path)

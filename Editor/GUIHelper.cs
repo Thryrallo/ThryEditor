@@ -284,6 +284,24 @@ namespace Thry
             }
             return false;
         }
+        public static bool DrawListField<type>(List<type> list, float maxHeight, ref Vector2 scrollPosition) where type : UnityEngine.Object
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add", EditorStyles.miniButton))
+                list.Add(null);
+            if (GUILayout.Button("Remove", EditorStyles.miniButton))
+                if (list.Count > 0)
+                    list.RemoveAt(list.Count - 1);
+            GUILayout.EndHorizontal();
+
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.MaxHeight(maxHeight));
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i] = (type)EditorGUILayout.ObjectField(list[i], typeof(type), false);
+            }
+            GUILayout.EndScrollView();
+            return false;
+        }
 
         public static bool GUIDataStruct<t>(t data)
         {
@@ -470,9 +488,9 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
         }
 
-        public static void DrawMasterLabel(string shaderName, float y)
+        public static void DrawMasterLabel(string shaderName, Rect parent)
         {
-            Rect rect = new Rect(0, y, Screen.width, 18);
+            Rect rect = new Rect(0, parent.y, parent.width, 18);
             EditorGUI.LabelField(rect, "<size=16>" + shaderName + "</size>", Styles.masterLabel);
         }
     }

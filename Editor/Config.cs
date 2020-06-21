@@ -13,7 +13,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "1.4.0";
+        private const string VERSION = "1.5.0";
 
         // static
         private static Config config;
@@ -54,7 +54,7 @@ namespace Thry
         //actual config class
         public TextureDisplayType default_texture_type = TextureDisplayType.small;
         public bool showRenderQueue = true;
-        public bool renderQueueShaders = true;
+        public bool renderQueueShaders = false;
 
         public string locale = "English";
 
@@ -71,6 +71,15 @@ namespace Thry
         public void save()
         {
             FileHelper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
+        }
+
+        private void OnUpgrade(string oldVersion)
+        {
+            if (Helper.compareVersions(oldVersion, "1.4.0") < 1)
+            {
+                renderQueueShaders = false;
+                save();
+            }
         }
     }
 }
