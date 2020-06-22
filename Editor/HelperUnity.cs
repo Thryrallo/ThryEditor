@@ -115,7 +115,7 @@ namespace Thry
         {
             if (font == null)
                 font = GUI.skin.font;
-            int totalLength = 0;
+            float totalLength = 0;
 
             CharacterInfo characterInfo = new CharacterInfo();
 
@@ -127,7 +127,7 @@ namespace Thry
                 totalLength += characterInfo.advance;
             }
 
-            return totalLength;
+            return (int)totalLength;
         }
     }
 

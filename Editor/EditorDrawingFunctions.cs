@@ -68,13 +68,18 @@ namespace Thry
                 DrawButton(rect, options, e, style);
 
                 Rect togglePropertyRect = new Rect(rect);
-                togglePropertyRect.x = 20;
+                togglePropertyRect.x += 5;
                 togglePropertyRect.y += 2;
-                togglePropertyRect.width = 50;
+                togglePropertyRect.height -= 4;
+                togglePropertyRect.width = GUI.skin.font.fontSize*3;
                 float fieldWidth = EditorGUIUtility.fieldWidth;
                 EditorGUIUtility.fieldWidth = 20;
                 ShaderProperty prop = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+
+                int xOffset = prop.xOffset;
+                prop.xOffset = 0;
                 prop.Draw(new CRect(togglePropertyRect), new GUIContent());
+                prop.xOffset = xOffset;
                 EditorGUIUtility.fieldWidth = fieldWidth;
             }
             else
