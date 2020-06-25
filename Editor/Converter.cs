@@ -310,15 +310,15 @@ namespace Thry
 
             List<Texture2D> gifFrames = new List<Texture2D>();
             var gifImage = m_FromFile.Invoke(null, new object[] { path });
-            var dimension = c_FrameDimension.Invoke(new object[] { ((System.Guid[])p_imgage_FrameDimensionList.GetValue(gifImage))[0] });
+            var dimension = c_FrameDimension.Invoke(new object[] { ((System.Guid[])p_imgage_FrameDimensionList.GetValue(gifImage, null))[0] });
 
             int frameCount = (int)p_imgage_GetFrameCount.Invoke(gifImage, new object[] { dimension });
             for (int i = 0; i < frameCount; i++)
             {
                 EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "Converting frame #" + i, (float)i / frameCount);
                 m_SelectActiveFrame.Invoke(gifImage, new object[] { dimension, i });
-                int width = (int)p_Image_Width.GetValue(gifImage);
-                int height = (int)p_Image_Heigth.GetValue(gifImage);
+                int width = (int)p_Image_Width.GetValue(gifImage, null);
+                int height = (int)p_Image_Heigth.GetValue(gifImage, null);
                 var frame = c_Bitmap.Invoke(new object[] { width, height });
 
                 var graphics = m_Graphics_FromImage.Invoke(null, new object[] { frame });
@@ -331,7 +331,7 @@ namespace Thry
                     for (int y = 0; y < height; y++)
                     {
                         var sourceColor = m_GetPixel.Invoke(frame, new object[] { x, y });
-                        frameTexture.SetPixel(x, height - 1 - y, new Color32((byte)p_R.GetValue(sourceColor), (byte)p_G.GetValue(sourceColor), (byte)p_B.GetValue(sourceColor), (byte)p_A.GetValue(sourceColor)));
+                        frameTexture.SetPixel(x, height - 1 - y, new Color32((byte)p_R.GetValue(sourceColor, null), (byte)p_G.GetValue(sourceColor, null), (byte)p_B.GetValue(sourceColor, null), (byte)p_A.GetValue(sourceColor, null)));
                     }
                 }
 
