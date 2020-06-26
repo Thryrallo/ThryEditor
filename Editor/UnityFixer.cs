@@ -11,7 +11,9 @@ namespace Thry
     public class UnityFixer
     {
         public const string RSP_DRAWING_DLL_CODE = "\n-r:System.Drawing.dll";
+        public const string RSP_DRAWING_DLL_DEFINE_CODE = "\n-define:SYSTEM_DRAWING";
         public const string RSP_DRAWING_DLL_REGEX = @"-r:\s*System\.Drawing\.dll";
+        public const string RSP_DRAWING_DLL_DEFINE_REGEX = @"-define:\s*SYSTEM_DRAWING";
 
         public static void OnAssetDeleteCheckDrawingDLL(string[] deleted_assets)
         {
@@ -38,33 +40,27 @@ namespace Thry
 
         public static void CheckDrawingDll()
         {
-            if (Type.GetType("System.Drawing.Image, System.Drawing") == null)
+            string filename = GetRSPFilename();
+            string path = PATH.RSP_NEEDED_PATH + filename + ".rsp";
+            bool refresh = true;
+            bool containsDLL = DoesRSPContainDrawingDLL(path);
+            bool containsDefine = DoesRSPContainDrawingDLLDefine(path);
+            if (!containsDefine && !containsDLL)
             {
-                string filename = GetRSPFilename();
-                RSP_State state = CheckRSPState(filename);
-                switch (state)
-                {
-                    case RSP_State.missing:
-                    case RSP_State.missing_drawing_dll:
-                        AddDrawingDLLToRSP(PATH.RSP_NEEDED_PATH + filename + ".rsp");
-                        break;
-                }
-                UnityFixer.CheckAPICompatibility();
+                AddDrawingDLLToRSP(path);
+                AddDrawingDLLDefineToRSP(path);
             }
-            UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, true, true);
+            else if (!containsDLL)
+                AddDrawingDLLToRSP(path);
+            else if (!containsDefine)
+                AddDrawingDLLDefineToRSP(path);
+            else
+                refresh = false;
+            if (refresh)
+                AssetDatabase.ImportAsset(path);
         }
 
-        private enum RSP_State { correct=2, missing=0, missing_drawing_dll=1};
 
-        private static RSP_State CheckRSPState(string rsp_name)
-        {
-            string path = PATH.RSP_NEEDED_PATH + rsp_name + ".rsp";
-            if (!File.Exists(path))
-                return RSP_State.missing;
-            else if (!DoesRSPContainDrawingDLL(path))
-                return RSP_State.missing_drawing_dll;
-            return RSP_State.correct;
-        }
 
         private static bool DoesRSPContainDrawingDLL(string rsp_path)
         {
@@ -73,10 +69,24 @@ namespace Thry
             return (Regex.Match(rsp_data, RSP_DRAWING_DLL_REGEX).Success);
         }
 
+        private static bool DoesRSPContainDrawingDLLDefine(string rsp_path)
+        {
+            if (!File.Exists(rsp_path)) return false;
+            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
+            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_DEFINE_REGEX).Success);
+        }
+
         private static void AddDrawingDLLToRSP(string rsp_path)
         {
             string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
             rsp_data += RSP_DRAWING_DLL_CODE;
+            FileHelper.WriteStringToFile(rsp_data, rsp_path);
+        }
+
+        private static void AddDrawingDLLDefineToRSP(string rsp_path)
+        {
+            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
+            rsp_data += RSP_DRAWING_DLL_DEFINE_CODE;
             FileHelper.WriteStringToFile(rsp_data, rsp_path);
         }
 
