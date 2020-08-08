@@ -198,18 +198,19 @@ namespace Thry
 
         private void GUIVRC()
         {
-            if (VRCInterface.Get().sdk_is_installed)
+            if (VRCInterface.Get().sdk_information.type != VRCInterface.VRC_SDK_Type.NONE)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("VRC Sdk "+Locale.editor.Get("version")+": " + VRCInterface.Get().installed_sdk_version + (VRCInterface.Get().sdk_is_up_to_date ? " ("+ Locale.editor.Get("newest")+ " "+Locale.editor.Get("version")+ ")(not reliably reported in 2018)" : ""));
+                string sdkUptodateString = (VRCInterface.Get().sdk_information.is_sdk_up_to_date ? " (" + Locale.editor.Get("newest") + " " + Locale.editor.Get("version") + ")" : "");
+                GUILayout.Label("VRC Sdk "+Locale.editor.Get("version")+": " + VRCInterface.Get().sdk_information.installed_version + sdkUptodateString);
                 RemoveVRCSDKButton();
                 GUILayout.EndHorizontal();
-                if (!VRCInterface.Get().sdk_is_up_to_date)
+                if (!VRCInterface.Get().sdk_information.is_sdk_up_to_date)
                 {
-                    GUILayout.Label(Locale.editor.Get("newest") +" VRC SDK "+ Locale.editor.Get("version") +": " + VRCInterface.Get().newest_sdk_version);
+                    GUILayout.Label(Locale.editor.Get("newest") +" VRC SDK "+ Locale.editor.Get("version") +": " + VRCInterface.Get().sdk_information.available_version);
                     UpdateVRCSDKButton();
                 }
-                if (VRCInterface.Get().user_logged_in)
+                if (VRCInterface.Get().sdk_information.is_user_logged_in)
                 {
                     GUILayout.Label("VRChat "+ Locale.editor.Get("user")+": " + EditorPrefs.GetString("sdk#username"));
                 }

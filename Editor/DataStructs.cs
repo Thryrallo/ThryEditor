@@ -55,6 +55,8 @@ namespace Thry
         public const string DARK_RECT = "thry_dark_rect";
         public const string ACTICE_LINK_ICON = "thry_link_icon_active";
         public const string INACTICE_LINK_ICON = "thry_link_icon_inactive";
+        public const string VISIVILITY_ICON = "thry_visiblity_icon";
+        public const string SEARCH_ICON = "thry_magnifying_glass_icon";
     }
 
     public struct EditorData
@@ -254,9 +256,9 @@ namespace Thry
                     if (comparator == "<=") return c_ev == 1 || c_ev == 0;
                     break;
                 case DefineableConditionType.VRC_SDK_VERSION:
-                    if (VRCInterface.Get().sdk_is_installed == false)
+                    if (VRCInterface.Get().sdk_information.type != VRCInterface.VRC_SDK_Type.NONE)
                         return false;
-                    int c_vrc = Helper.compareVersions(VRCInterface.Get().installed_sdk_version, value);
+                    int c_vrc = Helper.compareVersions(VRCInterface.Get().sdk_information.installed_version, value);
                     if (comparator == "==") return c_vrc == 0;
                     if (comparator == "!=") return c_vrc != 0;
                     if (comparator == "<") return c_vrc == 1;

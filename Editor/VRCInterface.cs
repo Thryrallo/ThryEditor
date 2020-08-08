@@ -1,11 +1,13 @@
 ﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,54 +26,43 @@ namespace Thry
             instance = new VRCInterface();
         }
 
-        private const string SDK2_URL = "https://vrchat.com/download/sdk2";
-        private const string SDK3_URL = "https://vrchat.com/download/sdk3";
+        private RemoteConfig remoteConfig;
 
-        public bool sdk_is_installed;
-        public bool sdk_is_up_to_date;
-        public string installed_sdk_version;
-        public string newest_sdk_version;
-        public string sdk_path = null;
-        public string udon_path = null;
+        public SDK_Information sdk_information;
 
-        public bool user_logged_in;
+        public class SDK_Information
+        {
+            public VRC_SDK_Type type;
+            public bool is_user_logged_in = false;
+            public string installed_version = "0";
+            public string available_version = "0";
+            public string local_sdk_path;
+            public string udon_path;
+            public bool is_sdk_up_to_date = true;
+        }
 
         public enum VRC_SDK_Type
         {
-            NONE = 1,
-            SDK_2= 2,
-            SDK_3 = 3
+            NONE = 0,
+            SDK_2= 1,
+            SDK_3 = 2
         }
 
         private VRCInterface()
         {
-            sdk_is_installed = IsVRCSDKInstalled();
+            sdk_information = new SDK_Information();
+            sdk_information.type = GetInstalledSDKType();
+            InitLocalInformation();
             InitSDKVersionVariables();
-            InitUserVariables();
         }
 
-        private void InitSDKVersionVariables()
+        private void InitLocalInformation()
         {
-            if (!sdk_is_installed)
-                return;
-            installed_sdk_version = GetInstalledSDKVersionAndInitPath();
-            newest_sdk_version = "0";
-            sdk_is_up_to_date = true;
-#if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
-            VRC.Core.RemoteConfig.Init(delegate ()
-            {
-                newest_sdk_version = GetNewestSDKVersion();
-                sdk_is_up_to_date = SDKIsUpToDate();
-            });
-#endif
+            sdk_information.is_user_logged_in = EditorPrefs.HasKey("sdk#username");
+            InitInstalledSDKVersionAndPaths();
         }
 
-        private void InitUserVariables()
-        {
-            user_logged_in = EditorPrefs.HasKey("sdk#username");
-        }
-        
-        private string GetInstalledSDKVersionAndInitPath()
+        private void InitInstalledSDKVersionAndPaths()
         {
             string[] guids = AssetDatabase.FindAssets("version");
             string path = null;
@@ -85,26 +76,73 @@ namespace Thry
                     u_path = p;
             }
             if (path == null || !File.Exists(path))
-                return "";
-            sdk_path = Regex.Match(path, @".*\/").Value;
-            if(u_path!=null)
-                udon_path = Regex.Match(u_path, @".*\/").Value;
-            return FileHelper.ReadFileIntoString(path);
+                return;
+
+            sdk_information.local_sdk_path = Regex.Match(path, @".*\/").Value;
+            if (u_path != null)
+            {
+                sdk_information.udon_path = Regex.Match(u_path, @".*\/").Value;
+            }
+            string persistent = PersistentData.Get("vrc_sdk_version");
+            if (persistent != null)
+                sdk_information.installed_version = persistent;
+            else
+                sdk_information.installed_version = Regex.Replace(FileHelper.ReadFileIntoString(path), @"\n?\r", "");
         }
 
-        private static string GetNewestSDKVersion()
+        private void InitSDKVersionVariables()
         {
 #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
-            string version = VRC.Core.RemoteConfig.GetString("devSdkVersion");
-            if(version!=null && version!="")
-                return Regex.Match(version, @"[\d\.]+").Value;
+            LoadRemoteConfig(delegate ()
+            {
+                if (sdk_information.type == VRC_SDK_Type.SDK_2)
+                    sdk_information.available_version = UrlToVersion(remoteConfig.downloadUrls.sdk2);
+                else if(sdk_information.type == VRC_SDK_Type.SDK_3)
+                    sdk_information.available_version = UrlToVersion(remoteConfig.downloadUrls.sdk3);
+                if(sdk_information.type != VRC_SDK_Type.NONE)
+                    sdk_information.is_sdk_up_to_date = SDKIsUpToDate();
+            });
 #endif
-            return "0";
+        }
+
+        private class RemoteConfig
+        {
+            public SDKUrls downloadUrls;
+        }
+
+        private class SDKUrls
+        {
+            public string sdk2;
+            public string sdk3;
+        }
+
+        private void LoadRemoteConfig(Action callback)
+        {
+            WebHelper2.DownloadStringASync("https://api.vrchat.cloud/api/1/config", delegate (string s)
+            {
+                remoteConfig = Parser.Deserialize<RemoteConfig>(s);
+                callback();
+            });
+        }
+
+        private static Task<RemoteConfig> LoadRemoteConfig()
+        {
+            return Task.Run(() =>
+            {
+                var t = new TaskCompletionSource<RemoteConfig>();
+
+                WebHelper2.DownloadStringASync("https://api.vrchat.cloud/api/1/config", delegate (string s)
+                {
+                    RemoteConfig remoteConfig = Parser.Deserialize<RemoteConfig>(s);
+                    t.TrySetResult(remoteConfig);
+                });
+                return t.Task;
+            });
         }
 
         private bool SDKIsUpToDate()
         {
-            return Helper.compareVersions(installed_sdk_version, newest_sdk_version) != 1;
+            return Helper.compareVersions(sdk_information.installed_version, sdk_information.available_version) != 1;
         }
 
         public VRC_SDK_Type GetInstalledSDKType()
@@ -136,17 +174,17 @@ namespace Thry
 
         public static void OnCompile()
         {
-            if (!Get().sdk_is_installed && FileHelper.LoadValueFromFile("update_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true")
+            if (Get().sdk_information.type == VRC_SDK_Type.NONE && FileHelper.LoadValueFromFile("update_vrc_sdk", PATH.AFTER_COMPILE_DATA) == "true")
                 DownloadAndInstallVRCSDK((VRC_SDK_Type)int.Parse(FileHelper.LoadValueFromFile("update_vrc_sdk_type", PATH.AFTER_COMPILE_DATA)));
         }
 
         private static void DeleteVRCSDKFolder()
         {
-            if (Get().sdk_path != null && Directory.Exists(Get().sdk_path))
+            if (Get().sdk_information.local_sdk_path != null && Directory.Exists(Get().sdk_information.local_sdk_path))
             {
-                Directory.Delete(Get().sdk_path, true);
+                Directory.Delete(Get().sdk_information.local_sdk_path, true);
                 if(Get().GetInstalledSDKType()==VRC_SDK_Type.SDK_3)
-                    Directory.Delete(Get().udon_path, true);
+                    Directory.Delete(Get().sdk_information.udon_path, true);
                 RemoveDefineSymbols();
                 AssetDatabase.Refresh();
             }
@@ -160,17 +198,19 @@ namespace Thry
             RemoveVRCSDK();
         }
 
-        public static void DownloadAndInstallVRCSDK(VRC_SDK_Type type)
+        public async static void DownloadAndInstallVRCSDK(VRC_SDK_Type type)
         {
+            RemoteConfig remoteConfig = await LoadRemoteConfig();
             string url;
             if (type == VRC_SDK_Type.SDK_2)
-                url = SDK2_URL;
+                url = remoteConfig.downloadUrls.sdk2;
             else if (type == VRC_SDK_Type.SDK_3)
-                url = SDK3_URL;
+                url = remoteConfig.downloadUrls.sdk3;
             else
                 return;
             if (File.Exists(PATH.TEMP_VRC_SDK_PACKAGE))
                 File.Delete(PATH.TEMP_VRC_SDK_PACKAGE);
+            PersistentData.Set("vrc_sdk_version", UrlToVersion(url));
             WebHelper2.DownloadFileASync(url, PATH.TEMP_VRC_SDK_PACKAGE, VRCSDKUpdateCallback);
         }
 
@@ -209,6 +249,11 @@ namespace Thry
             bool vrcImported = false;
             foreach (string s in assets) if (s.Contains("VRCSDK2.dll")|| s.Contains("VRCSDK3.dll")) vrcImported = true;
             return vrcImported; 
+        }
+
+        private static string UrlToVersion(string url)
+        {
+            return Regex.Match(url, @"[\d\.]+\.[\d\.]+").Value;
         }
     }
 }

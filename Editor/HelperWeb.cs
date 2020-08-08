@@ -159,7 +159,7 @@ namespace Thry
             {
                 if (e.Cancelled || e.Error != null)
                 {
-                    Debug.LogError(e.Error);
+                    Debug.LogWarning(e.Error);
                     MainThreader.Call(callback, null);
                 }
                 else

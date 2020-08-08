@@ -18,7 +18,7 @@ namespace Thry
                     drawSmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
-                    if (DrawingData.currentTexProperty.reference_properties_exist)
+                    if (DrawingData.currentTexProperty.reference_properties_exist || DrawingData.currentTexProperty.reference_property_exists)
                         drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
                         drawBigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
@@ -35,6 +35,14 @@ namespace Thry
             Rect thumbnailPos = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, (hasFoldoutProperties ? "Click here for extra properties" : "") + (label.tooltip != "" ? " | " : "") + label.tooltip);
+            if(DrawingData.currentTexProperty.reference_property_exists)
+            {
+                ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
+                Rect r = position;
+                r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
+                r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
+                property.Draw(new CRect(r), new GUIContent());
+            }
             if (hasFoldoutProperties && DrawingData.currentTexProperty != null)
             {
                 //draw dropdown triangle
@@ -47,6 +55,7 @@ namespace Thry
                     //test click and draw scale/offset
                     if (DrawingData.currentTexProperty.showFoldoutProperties)
                     {
+                        EditorGUI.indentLevel += 2;
                         if (DrawingData.currentTexProperty.hasScaleOffset)
                             ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
 
@@ -55,12 +64,9 @@ namespace Thry
                             foreach (string r_property in options.reference_properties)
                             {
                                 ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
-                                EditorGUIUtility.labelWidth += EditorGUI.indentLevel * 15;
-                                EditorGUI.indentLevel *= 2;
                                 ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
-                                EditorGUI.indentLevel /= 2;
-                                EditorGUIUtility.labelWidth -= EditorGUI.indentLevel * 15;
                             }
+                        EditorGUI.indentLevel -= 2;
                     }
                     if (ThryEditor.input.MouseClick && position.Contains(Event.current.mousePosition))
                     {
@@ -111,6 +117,10 @@ namespace Thry
                 {
                     border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[r_property].materialProperty);
                 }
+            }
+            if (DrawingData.currentTexProperty.reference_property_exists)
+            {
+                border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property].materialProperty);
             }
 
 
@@ -188,25 +198,36 @@ namespace Thry
                 }
 
             //scale offset rect
+
             if (hasFoldoutProperties)
             {
+                EditorGUI.indentLevel += 2;
+
                 if (DrawingData.currentTexProperty.hasScaleOffset)
                 {
                     Rect scale_offset_rect = new Rect(position);
                     scale_offset_rect.y += 37;
-                    scale_offset_rect.width -= 2 + preview_rect.width + 10;
+                    scale_offset_rect.width -= 2 + preview_rect.width + 10 + 30;
+                    scale_offset_rect.x += 30;
                     editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
                 }
+                float oldLabelWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 128;
 
                 PropertyOptions options = DrawingData.currentTexProperty.options;
+                if (options.reference_property != null)
+                {
+                    ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+                    ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                }
                 if (options.reference_properties != null)
                     foreach (string r_property in options.reference_properties)
                     {
                         ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
-                        EditorGUI.indentLevel *= 2;
                         ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
-                        EditorGUI.indentLevel /= 2;
                     }
+                EditorGUIUtility.labelWidth = oldLabelWidth;
+                EditorGUI.indentLevel -= 2;
             }
 
             Rect label_rect = new Rect(position);
@@ -492,6 +513,11 @@ namespace Thry
         {
             Rect rect = new Rect(0, parent.y, parent.width, 18);
             EditorGUI.LabelField(rect, "<size=16>" + shaderName + "</size>", Styles.masterLabel);
+        }
+
+        public static float CurrentIndentWidth()
+        {
+            return EditorGUI.indentLevel * 15;
         }
     }
 }

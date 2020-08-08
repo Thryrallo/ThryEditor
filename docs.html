@@ -350,8 +350,11 @@
                 <tr>
                     <td>reference_property</td>
                     <td>string</td>
-                    <td>Specifies a property by it's name. If defined on a menu header, it will create a toggle linked with the referenced property. If defined the TextureArray Creator will fill this property with the texture array depth after creating an array from a gif or multiple images.</td>
-                    <td>[TextureArray]</td>
+                    <td>Specifies a property by it's name. </br>
+					If defined on a menu header, it will create a toggle linked with the referenced property. </br>
+					If defined on a TextureArray it will fill this float property with the texture array depth (frame count) after creating an array from a gif or multiple images.</br>
+					If defined on a texture property it will draw this property next to the texture property (for example for a color field)</td>
+                    <td>[TextureArray],Texture,MenuHeader</td>
                     <td>Light and Shadow--{reference_property:_EnableLighting}<br />[TextureArray]_Texture("Animated Texture --{reference_property:_FrameCount}", 2DArray) = { }</td>
                 </tr>
             </table>

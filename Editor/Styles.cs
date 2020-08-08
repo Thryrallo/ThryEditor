@@ -199,6 +199,9 @@ namespace Thry
             }
         }
 
+        public static Texture2D visibility_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.VISIVILITY_ICON);
+        public static Texture2D search_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SEARCH_ICON);
+
 
         private static Texture2D LoadTextureByFileName(string search_name)
         {

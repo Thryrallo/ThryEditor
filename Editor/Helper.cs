@@ -184,6 +184,19 @@ namespace Thry
         }
     }
 
+    public class PersistentData
+    {
+        public static string Get(string key)
+        {
+            return FileHelper.LoadValueFromFile(key, PATH.PERSISTENT_DATA);
+        }
+
+        public static void Set(string key, string value)
+        {
+            FileHelper.SaveValueToFile(key, value, PATH.PERSISTENT_DATA);
+        }
+    }
+
     public class FileHelper
     {
         public static string FindFile(string name)

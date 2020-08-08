@@ -25,8 +25,11 @@ public class ThryEditor : ShaderGUI
     private ShaderHeader shaderparts;
 
     // UI Instance Variables
-	private PresetHandler presetHandler;
     private int customRenderQueueFieldInput = -1;
+    private PresetHandler presetHandler;
+
+    private bool show_search_bar;
+    private string header_search_term = "";
 
     // shader specified values
     private string masterLabelText = null;
@@ -251,7 +254,7 @@ public class ThryEditor : ShaderGUI
                     current.editor.GetPropertyHeight(props[i]);
                     bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                     if (props[i].type == MaterialProperty.PropType.Texture)
-                        newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags != MaterialProperty.PropFlags.NoScaleOffset ,!DrawingData.lastPropertyUsedCustomDrawer);
+                        newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false ,!DrawingData.lastPropertyUsedCustomDrawer);
                     else
                         newPorperty = new ShaderProperty(props[i], displayName, offset, options, forceOneLine);
                     break;
@@ -321,9 +324,18 @@ public class ThryEditor : ShaderGUI
             UpdateRenderQueueInstance();
         }
 
-        current.materials[0].SetInt("thry_has_not_been_reset", 69);
+        AddResetProperty();
 
         firstOnGUICall = false;
+    }
+
+    private void AddResetProperty()
+    {
+        if(current.materials[0].HasProperty("shader_is_using_thry_editor") == false)
+        {
+            EditorChanger.AddThryProperty(current.materials[0].shader);
+        }
+        current.materials[0].SetFloat("shader_is_using_thry_editor", 69);
     }
 
     public override void OnClosed(Material  material)
@@ -382,7 +394,7 @@ public class ThryEditor : ShaderGUI
         //editor settings button + shader name + presets
         Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
         //draw editor settings button
-        if (GUILayout.Button(new GUIContent(" Thry Editor",Styles.settings_icon), EditorStyles.largeLabel ,new GUILayoutOption[] { GUILayout.MaxHeight(20) })) {
+        if (GUILayout.Button(new GUIContent(" Thry Editor",Styles.settings_icon), EditorStyles.largeLabel , GUILayout.MaxHeight(20) )) {
             Thry.Settings window = Thry.Settings.getInstance();
             window.Show();
             window.Focus();
@@ -392,15 +404,30 @@ public class ThryEditor : ShaderGUI
         //draw master label if exists
         if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
         //draw presets if exists
-
         presetHandler.drawPresets(current.properties, current.materials);
-		EditorGUILayout.EndHorizontal();
 
-		//shader properties
-		foreach (ShaderPart part in shaderparts.parts)
-		{
-            part.Draw();
-		}
+        EditorGUILayout.EndHorizontal();
+
+        if (GUILayout.Button(Styles.search_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
+            show_search_bar = !show_search_bar;
+
+        if (GUILayout.Button(Styles.visibility_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
+            show_search_bar = !show_search_bar;
+
+        if (show_search_bar)
+            header_search_term = EditorGUILayout.TextField(header_search_term);
+
+        //shader properties
+        if(header_search_term == "" || show_search_bar==false) {
+            foreach (ShaderPart part in shaderparts.parts)
+                part.Draw();
+        }
+        else
+        {
+            foreach (ShaderPart part in current.propertyDictionary.Values)
+                if(IsSearchedFor(part, header_search_term))
+                    part.Draw();
+        }
 
         //Render Queue selection
         if (config.showRenderQueue)
@@ -437,7 +464,7 @@ public class ThryEditor : ShaderGUI
         //test if material has been reset
         if (wasUsed && e.type == EventType.Repaint)
         {
-            if (!current.materials[0].HasProperty("thry_has_not_been_reset"))
+            if (current.materials[0].HasProperty("shader_is_using_thry_editor") && current.materials[0].GetFloat("shader_is_using_thry_editor") != 69)
             {
                 reloadNextDraw = true;
                 HandleReset();
@@ -450,6 +477,13 @@ public class ThryEditor : ShaderGUI
         if (input.HadMouseDownRepaint) input.HadMouseDown = false;
         input.HadMouseDownRepaint = false;
         current.firstCall = false;
+    }
+
+    private bool IsSearchedFor( ShaderPart part, string term)
+    {
+
+        string lowercaseTerm = header_search_term.ToLower();
+        return part.content.text.ToLower().Contains(lowercaseTerm);
     }
 
     private void HandleReset()

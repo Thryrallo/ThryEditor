@@ -118,16 +118,32 @@ namespace Thry
         private void addThryEditor(string path)
         {
             replaceEditorInShader(path, "ThryEditor");
+            AddThryProperty(path);
+        }
+
+        public static void AddThryProperty(Shader shader)
+        {
+            string path = AssetDatabase.GetAssetPath(shader);
+            AddThryProperty(path);
+        }
+
+        private static void AddThryProperty(string path)
+        {
             addProperty(path, "[HideInInspector] shader_is_using_thry_editor(\"\", Float)", "0");
         }
 
         private void removeThryEditor(string path)
         {
             revertEditor(path);
+            RemoveThryProperty(path);
+        }
+
+        private void RemoveThryProperty(string path)
+        {
             removeProperty(path, "[HideInInspector] shader_is_using_thry_editor(\"\", Float)", "0");
         }
 
-        private void addProperty(string path, string property, string value)
+        private static void addProperty(string path, string property, string value)
         {
             string shaderCode = FileHelper.ReadFileIntoString(path);
             string pattern = @"Properties.*\n?\s*{";

@@ -14,6 +14,16 @@ namespace Thry
     public class Parser
     {
 
+        public static string Serialize(object o)
+        {
+            return Parser.ObjectToString(o);
+        }
+
+        public static T Deserialize<T>(string s)
+        {
+            return Parser.ParseToObject<T>(s);
+        }
+
         public static object ParseJson(string input)
         {
             //input = input.Replace("\\n", "\n");

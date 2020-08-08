@@ -20,19 +20,29 @@ namespace Thry
 
         public static void OnCompile()
         {
-            if (!File.Exists(PATH_CONFIG_FILE)) Settings.firstTimePopup();
+            if (!File.Exists(PATH_CONFIG_FILE))
+            {
+                //Settings.firstTimePopup();
+            }
             else
             {
-                int versionComparision = Helper.compareVersions(VERSION, Get().verion);
-                if(versionComparision != 0)
+                string prevVersion = Get().verion;
+                string installedVersion = VERSION;
+                int versionComparision = Helper.compareVersions(installedVersion, prevVersion);
+                if (versionComparision != 0)
                 {
                     config.verion = VERSION;
                     config.save();
                 }
                 if (versionComparision == 1)
+                {
                     Settings.updatedPopup(versionComparision);
+                }
                 else if (versionComparision == -1)
-                    Debug.Log(">>> Thry Editor has been updated to version " + VERSION);
+                {
+                    config.OnUpgrade(prevVersion);
+                    Debug.Log(">>> Thry Editor has been updated to version " + installedVersion);
+                }
             }
         }
 

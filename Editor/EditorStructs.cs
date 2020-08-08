@@ -36,6 +36,7 @@ namespace Thry
         public System.Object property_data = null;
         public PropertyOptions options;
         public bool reference_properties_exist = false;
+        public bool reference_property_exists = false;
 
         public ShaderPart(MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
@@ -44,6 +45,7 @@ namespace Thry
             this.options = options;
             this.content = new GUIContent(displayName, options.tooltip);
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
+            this.reference_property_exists = options.reference_property != null;
         }
 
         public abstract void DrawInternal(GUIContent content, CRect rect = null);
@@ -245,7 +247,7 @@ namespace Thry
         {
             drawDefault = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
-            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist;
+            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist || reference_property_exists;
         }
 
         public override void PreDraw()
