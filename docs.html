@@ -357,6 +357,20 @@
                     <td>[TextureArray],Texture,MenuHeader</td>
                     <td>Light and Shadow--{reference_property:_EnableLighting}<br />[TextureArray]_Texture("Animated Texture --{reference_property:_FrameCount}", 2DArray) = { }</td>
                 </tr>
+                <tr>
+                    <td>is_hideable</td>
+                    <td>bool</td>
+                    <td>If set to true, property will be able to be hidden using the little eye icon in the top right of the inspector.</td>
+                    <td>MenuHeaders</td>
+                    <td>[HideInInspector] m_vertex("Vertex Options--{button_right:{text:Tutorial,action:{type:URL,data:https://www.youtube.com/watch?v=FO-bxI5znI0},hover:YouTube},is_hideable:true}", Float) = 0</td>
+                </tr>
+                <tr>
+                    <td>is_hidden_default</td>
+                    <td>bool</td>
+                    <td>If set to true and property is hideable, the property will be hidden by default.</td>
+                    <td>MenuHeaders</td>
+                    <td>[HideInInspector] m_vertex("Vertex Options--{button_right:{text:Tutorial,action:{type:URL,data:https://www.youtube.com/watch?v=FO-bxI5znI0},hover:YouTube},is_hideable:true,is_hidden_default:true}", Float) = 0</td>
+                </tr>
             </table>
 
             <h2>Data Structures</h2>

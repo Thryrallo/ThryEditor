@@ -24,6 +24,9 @@ namespace Thry
         private string[] presetOptions;
         string newPresetName = Locale.editor.Get("new_preset_name");
 
+        private MaterialProperty[] props;
+        private Material[] materials;
+
         public PresetHandler(MaterialProperty[] props)
         {
             testPresetsChanged(props);
@@ -95,8 +98,15 @@ namespace Thry
         //draws presets if exists
         public void drawPresets(MaterialProperty[] props, Material[] materials)
         {
+            this.props = props;
+            this.materials = materials;
             if (hasPresets && presetsLoaded)
             {
+                if(GUILayout.Button(Styles.presets_icon, EditorStyles.largeLabel,GUILayout.MaxWidth(20), GUILayout.MaxHeight(20)))
+                {
+                    Popup(GUILayoutUtility.GetLastRect(), this);
+                }
+                /*
                 int pressetPreset = EditorGUILayout.Popup(selectedPreset, presetOptions, GUILayout.MaxWidth(100));
                 if (pressetPreset != selectedPreset)
                 {
@@ -106,7 +116,7 @@ namespace Thry
                 }
                 if (pressetPreset == presetOptions.Length - 1) selectedPreset = pressetPreset;
                 else selectedPreset = 0;
-                if (pressetPreset == presetOptions.Length - 1) drawNewPreset(props, materials);
+                if (pressetPreset == presetOptions.Length - 1) drawNewPreset(props, materials);*/
             }
             else if (hasPresets && !presetsLoaded)
             {
@@ -114,14 +124,17 @@ namespace Thry
             }
         }
 
-        public void drawNewPreset(MaterialProperty[] props, Material[] materials)
+        public void drawNewPreset()
         {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Locale.editor.Get("add_preset"));
             newPresetName = GUILayout.TextField(newPresetName, GUILayout.MaxWidth(100));
 
             if (GUILayout.Button(Locale.editor.Get("add"), GUILayout.Width(40), GUILayout.Height(20)))
             {
                 addNewPreset(newPresetName, props, materials);
             }
+            GUILayout.EndHorizontal();
         }
 
         //loads presets from file
@@ -147,11 +160,8 @@ namespace Thry
                 }
             }
             reader.Close();
-            presetOptions = new string[presets.Count + 3];
-            presetOptions[0] = Locale.editor.Get("presets");
-            presetOptions[presets.Count + 1] = Locale.editor.Get("manage_presets");
-            presetOptions[presets.Count + 2] = Locale.editor.Get("new_preset");
-            int i = 1;
+            presetOptions = new string[presets.Count];
+            int i = 0;
             foreach (string k in presets.Keys) presetOptions[i++] = k;
             presetsLoaded = true;
         }
@@ -262,9 +272,7 @@ namespace Thry
         {
             string[] newPresetOptions = new string[presetOptions.Length + 1];
             for (int i = 0; i < presetOptions.Length; i++) newPresetOptions[i] = presetOptions[i];
-            newPresetOptions[newPresetOptions.Length - 1] = presetOptions[newPresetOptions.Length - 2];
-            newPresetOptions[newPresetOptions.Length - 2] = presetOptions[newPresetOptions.Length - 3];
-            newPresetOptions[newPresetOptions.Length - 3] = name;
+            newPresetOptions[newPresetOptions.Length - 1] = name;
             presetOptions = newPresetOptions;
         }
 
@@ -308,6 +316,61 @@ namespace Thry
             }
             ThryEditor.loadValuesFromMaterial();
             ThryEditor.repaint();
+        }
+
+        private static PresetPopup window;
+        public static void Popup(Rect activeation_rect, PresetHandler presetHandler)
+        {
+            Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+            pos.x = Mathf.Min(EditorWindow.focusedWindow.position.x + EditorWindow.focusedWindow.position.width - 250, pos.x);
+            pos.y = Mathf.Min(EditorWindow.focusedWindow.position.y + EditorWindow.focusedWindow.position.height - 200, pos.y);
+
+            if (window != null)
+                window.Close();
+            window = ScriptableObject.CreateInstance<PresetPopup>();
+            window.position = new Rect(pos.x, pos.y, 250, 200);
+            window.Init(presetHandler);
+            window.ShowPopup();
+        }
+
+        private class PresetPopup : EditorWindow
+        {
+            private Vector2 scrollPos;
+            private PresetHandler presetHandler;
+
+            public void Init(PresetHandler presetHandler)
+            {
+                this.presetHandler = presetHandler;
+            }
+
+            public new Vector2 minSize = new Vector2(250, 200);
+
+            void OnGUI()
+            {
+                GUILayout.Label(Locale.editor.Get("presets"), EditorStyles.boldLabel);
+
+                if (GUILayout.Button(Locale.editor.Get("manage_presets"))){
+                    PresetEditor.open();
+                }
+                presetHandler.drawNewPreset();
+
+                float listMaxHeight = this.position.height - 30;
+
+                scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.MaxHeight(listMaxHeight));
+                for (int i = 0; i < presetHandler.presetOptions.Length; i++)
+                {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button(Locale.editor.Get("apply_preset")))
+                    {
+                        presetHandler.applyPreset(presetHandler.presetOptions[i], presetHandler.props, presetHandler.materials);
+                    }
+                    EditorGUILayout.LabelField(presetHandler.presetOptions[i]);
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndScrollView();
+                if (GUI.Button(new Rect(0, this.position.height - 30, this.position.width, 30), "Close"))
+                    this.Close();
+            }
         }
     }
 }

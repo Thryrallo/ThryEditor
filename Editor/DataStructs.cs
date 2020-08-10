@@ -57,6 +57,7 @@ namespace Thry
         public const string INACTICE_LINK_ICON = "thry_link_icon_inactive";
         public const string VISIVILITY_ICON = "thry_visiblity_icon";
         public const string SEARCH_ICON = "thry_magnifying_glass_icon";
+        public const string PRESETS_ICON = "thry_presets_icon";
     }
 
     public struct EditorData
@@ -69,6 +70,7 @@ namespace Thry
         public Shader defaultShader;
         public ShaderPart currentProperty;
         public Dictionary<string, ShaderProperty> propertyDictionary;
+        public List<ShaderPart> shaderParts;
         public List<ShaderProperty> textureArrayProperties;
         public bool firstCall;
     }
@@ -105,6 +107,8 @@ namespace Thry
         public string reference_property;
         public bool force_texture_options = false;
         public bool hide_in_inspector = false;
+        public bool is_hideable = false;
+        public bool is_hidden_default = false;
         public string file_name;
     }
 

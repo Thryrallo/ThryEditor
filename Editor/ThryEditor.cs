@@ -153,6 +153,7 @@ public class ThryEditor : ShaderGUI
         LoadLocales();
 
         current.propertyDictionary = new Dictionary<string, ShaderProperty>();
+        current.shaderParts = new List<ShaderPart>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
 		Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if current header to parent new objects to
 		headerStack.Push(shaderparts); //add top object as top object to stack
@@ -226,6 +227,7 @@ public class ThryEditor : ShaderGUI
                     break;
             }
             ShaderProperty newPorperty = null;
+            ShaderPart newPart = null;
             switch (type)
             {
                 case ThryPropertyType.master_label:
@@ -239,11 +241,14 @@ public class ThryEditor : ShaderGUI
                     ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, options);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
+                    HeaderHider.InitHidden(newHeader);
+                    newPart = newHeader;
                     break;
                 case ThryPropertyType.group_start:
                     ShaderGroup new_group = new ShaderGroup(options);
                     headerStack.Peek().addPart(new_group);
                     headerStack.Push(new_group);
+                    newPart = new_group;
                     break;
                 case ThryPropertyType.group_end:
                     headerStack.Pop();
@@ -273,12 +278,15 @@ public class ThryEditor : ShaderGUI
             }
             if (newPorperty != null)
             {
+                newPart = newPorperty;
                 if (current.propertyDictionary.ContainsKey(props[i].name))
                     continue;
                 current.propertyDictionary.Add(props[i].name, newPorperty);
                 if (type != ThryPropertyType.none)
                     headerStack.Peek().addPart(newPorperty);
             }
+            if (newPart != null)
+                current.shaderParts.Add(newPart);
         }
 	}
     
@@ -391,33 +399,35 @@ public class ThryEditor : ShaderGUI
             Mediator.SetActiveShader(current.materials[0].shader, presetHandler: presetHandler);
 
 
-        //editor settings button + shader name + presets
+        //TOP Bar
         Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
         //draw editor settings button
-        if (GUILayout.Button(new GUIContent(" Thry Editor",Styles.settings_icon), EditorStyles.largeLabel , GUILayout.MaxHeight(20) )) {
+        if (GUILayout.Button(new GUIContent("",Styles.settings_icon), EditorStyles.largeLabel , GUILayout.MaxHeight(20), GUILayout.MaxWidth(20))) {
             Thry.Settings window = Thry.Settings.getInstance();
             window.Show();
             window.Focus();
         }
         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-
-        //draw master label if exists
-        if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
-        //draw presets if exists
-        presetHandler.drawPresets(current.properties, current.materials);
-
-        EditorGUILayout.EndHorizontal();
-
         if (GUILayout.Button(Styles.search_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
             show_search_bar = !show_search_bar;
 
-        if (GUILayout.Button(Styles.visibility_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
-            show_search_bar = !show_search_bar;
+        //draw master label if exists
+        if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
+
+        Rect visibilityButtonPosition = GUILayoutUtility.GetRect(new GUIContent(Styles.visibility_icon), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20));
+        if (GUI.Button(visibilityButtonPosition,Styles.visibility_icon, EditorStyles.largeLabel))
+            HeaderHider.DrawHeaderHiderMenu(visibilityButtonPosition, current.shaderParts);
+        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+        //draw presets if exists
+        presetHandler.drawPresets(current.properties, current.materials);
+        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+
+        EditorGUILayout.EndHorizontal();
 
         if (show_search_bar)
             header_search_term = EditorGUILayout.TextField(header_search_term);
 
-        //shader properties
+        //PROPERTIES
         if(header_search_term == "" || show_search_bar==false) {
             foreach (ShaderPart part in shaderparts.parts)
                 part.Draw();
@@ -446,6 +456,8 @@ public class ThryEditor : ShaderGUI
 
         //footer
         GuiHelper.drawFooters(footer);
+
+        EditorGUILayout.LabelField("@UI Powered by Thryrallo", Styles.made_by_style);
 
         Event e = Event.current;
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";

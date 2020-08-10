@@ -35,7 +35,7 @@ namespace Thry
             Rect thumbnailPos = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, (hasFoldoutProperties ? "Click here for extra properties" : "") + (label.tooltip != "" ? " | " : "") + label.tooltip);
-            if(DrawingData.currentTexProperty.reference_property_exists)
+            if (DrawingData.currentTexProperty.reference_property_exists)
             {
                 ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
                 Rect r = position;
@@ -519,5 +519,66 @@ namespace Thry
         {
             return EditorGUI.indentLevel * 15;
         }
+    }
+
+    public class HeaderHider{
+
+        private static Dictionary<string,bool> headerHiddenSaved;
+        private static void LoadHiddenHeaderNames()
+        {
+            string data = PersistentData.Get("HiddenHeaderNames");
+            if (data == null)
+                headerHiddenSaved = new Dictionary<string, bool>();
+            else
+                headerHiddenSaved = Parser.Deserialize<Dictionary<string, bool>>(data);
+        }
+
+        public static bool InitHidden(ShaderHeader header)
+        {
+            if (headerHiddenSaved == null)
+                LoadHiddenHeaderNames();
+            if (header.options.is_hideable == false)
+                return false;
+            bool is_hidden = header.options.is_hidden_default;
+            if (headerHiddenSaved.ContainsKey(header.materialProperty.name))
+                is_hidden =  headerHiddenSaved[header.materialProperty.name];
+            header.is_hidden = is_hidden;
+            return is_hidden;
+        }
+
+        public static void SetHidden(ShaderHeader header, bool set_hidden)
+        {
+            bool contains = headerHiddenSaved.ContainsKey(header.materialProperty.name);
+            if (!contains || (contains && headerHiddenSaved[header.materialProperty.name] != set_hidden))
+            {
+                headerHiddenSaved[header.materialProperty.name] = set_hidden;
+                header.is_hidden = set_hidden;
+                PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
+            }
+        }
+
+        public static void DrawHeaderHiderMenu(Rect position, List<ShaderPart> shaderParts)
+        {
+            position.y -= 5;
+            position.width = 150;
+            position.x = Mathf.Min(Screen.width - position.width, position.x);
+            position.height = 60;
+            float maxY = GUIUtility.ScreenToGUIPoint(new Vector2(0, EditorWindow.focusedWindow.position.y + Screen.height)).y - 2.5f * position.height;
+            position.y = Mathf.Min(position.y - position.height / 2, maxY);
+
+            var menu = new GenericMenu();
+            foreach (ShaderPart part in shaderParts)
+            {
+                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
+                {
+                    menu.AddItem(new GUIContent(part.content.text), !part.is_hidden, delegate ()
+                    {
+                        SetHidden((ShaderHeader)part, !part.is_hidden);
+                    });
+                }
+            }
+            menu.DropDown(position);
+        }
+
     }
 }

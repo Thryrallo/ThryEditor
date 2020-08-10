@@ -37,6 +37,7 @@ namespace Thry
         public PropertyOptions options;
         public bool reference_properties_exist = false;
         public bool reference_property_exists = false;
+        public bool is_hidden = false;
 
         public ShaderPart(MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
@@ -54,6 +55,8 @@ namespace Thry
 
         public void Draw(CRect rect = null, GUIContent content = null)
         {
+            if (options.is_hideable && is_hidden)
+                return;
             bool is_enabled = DrawingData.is_enabled;
             if (options.condition_enable != null && is_enabled)
             {
@@ -260,6 +263,38 @@ namespace Thry
             Rect pos = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
             GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, ThryEditor.currentlyDrawing.editor, hasFoldoutProperties);
             DrawingData.lastGuiObjectHeaderRect = pos;
+        }
+
+        public override void CopyFromMaterial(Material m)
+        {
+            MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
+            CopyReferencePropertiesFromMaterial(m);
+        }
+
+        public override void CopyToMaterial(Material m)
+        {
+            MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
+            CopyReferencePropertiesToMaterial(m);
+        }
+
+        private void CopyReferencePropertiesToMaterial(Material target)
+        {
+            if (options.reference_properties != null)
+                foreach (string r_property in options.reference_properties)
+                {
+                    ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                    MaterialHelper.CopyPropertyValueToMaterial(property.materialProperty, target);
+                }
+        }
+
+        private void CopyReferencePropertiesFromMaterial(Material source)
+        {
+            if (options.reference_properties != null)
+                foreach (string r_property in options.reference_properties)
+                {
+                    ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                    MaterialHelper.CopyPropertyValueFromMaterial(property.materialProperty, source);
+                }
         }
     }
 
