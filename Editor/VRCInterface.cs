@@ -45,7 +45,8 @@ namespace Thry
         {
             NONE = 0,
             SDK_2= 1,
-            SDK_3 = 2
+            SDK_3_Avatar = 2,
+            SDK_3_World = 3
         }
 
         private VRCInterface()
@@ -96,10 +97,12 @@ namespace Thry
             LoadRemoteConfig(delegate ()
             {
                 if (sdk_information.type == VRC_SDK_Type.SDK_2)
-                    sdk_information.available_version = UrlToVersion(remoteConfig.downloadUrls.sdk2);
-                else if(sdk_information.type == VRC_SDK_Type.SDK_3)
-                    sdk_information.available_version = UrlToVersion(remoteConfig.downloadUrls.sdk3);
-                if(sdk_information.type != VRC_SDK_Type.NONE)
+                    sdk_information.available_version = UrlToVersion(remoteConfig.sdk2);
+                else if(sdk_information.type == VRC_SDK_Type.SDK_3_Avatar)
+                    sdk_information.available_version = UrlToVersion(remoteConfig.sdk3_avatars);
+                else if (sdk_information.type == VRC_SDK_Type.SDK_3_World)
+                    sdk_information.available_version = UrlToVersion(remoteConfig.sdk3_worlds);
+                if (sdk_information.type != VRC_SDK_Type.NONE)
                     sdk_information.is_sdk_up_to_date = SDKIsUpToDate();
             });
 #endif
@@ -107,20 +110,21 @@ namespace Thry
 
         private class RemoteConfig
         {
-            public SDKUrls downloadUrls;
-        }
-
-        private class SDKUrls
-        {
             public string sdk2;
-            public string sdk3;
+            public string sdk3_worlds;
+            public string sdk3_avatars;
         }
 
         private void LoadRemoteConfig(Action callback)
         {
             WebHelper2.DownloadStringASync("https://api.vrchat.cloud/api/1/config", delegate (string s)
             {
-                remoteConfig = Parser.Deserialize<RemoteConfig>(s);
+                Dictionary<string, object> remoteC = (Dictionary<string, object>)Parser.ParseJson(s);
+                Dictionary<string, object> urls = (Dictionary<string, object>)remoteC["downloadUrls"];
+                remoteConfig = new RemoteConfig();
+                remoteConfig.sdk2 = (string)urls["sdk2"];
+                remoteConfig.sdk3_worlds = (string)urls["sdk3-worlds"];
+                remoteConfig.sdk3_avatars = (string)urls["sdk3-avatars"];
                 callback();
             });
         }
@@ -133,7 +137,12 @@ namespace Thry
 
                 WebHelper2.DownloadStringASync("https://api.vrchat.cloud/api/1/config", delegate (string s)
                 {
-                    RemoteConfig remoteConfig = Parser.Deserialize<RemoteConfig>(s);
+                    Dictionary<string,object> remoteC = (Dictionary<string, object>)Parser.ParseJson(s);
+                    Dictionary<string, object> urls = (Dictionary<string, object>)remoteC["downloadUrls"];
+                    RemoteConfig remoteConfig = new RemoteConfig();
+                    remoteConfig.sdk2 = (string)urls["sdk2"];
+                    remoteConfig.sdk3_worlds = (string)urls["sdk3-worlds"];
+                    remoteConfig.sdk3_avatars = (string)urls["sdk3-avatars"];
                     t.TrySetResult(remoteConfig);
                 });
                 return t.Task;
@@ -147,8 +156,10 @@ namespace Thry
 
         public VRC_SDK_Type GetInstalledSDKType()
         {
-#if VRC_SDK_VRCSDK3
-            return VRC_SDK_Type.SDK_3;
+#if VRC_SDK_VRCSDK3 && UDON
+            return VRC_SDK_Type.SDK_3_World;
+#elif VRC_SDK_VRCSDK3
+            return VRC_SDK_Type.SDK_3_Avatar;
 #endif
 #if VRC_SDK_VRCSDK2
             return VRC_SDK_Type.SDK_2;
@@ -183,7 +194,7 @@ namespace Thry
             if (Get().sdk_information.local_sdk_path != null && Directory.Exists(Get().sdk_information.local_sdk_path))
             {
                 Directory.Delete(Get().sdk_information.local_sdk_path, true);
-                if(Get().GetInstalledSDKType()==VRC_SDK_Type.SDK_3)
+                if(Get().GetInstalledSDKType()==VRC_SDK_Type.SDK_3_World)
                     Directory.Delete(Get().sdk_information.udon_path, true);
                 RemoveDefineSymbols();
                 AssetDatabase.Refresh();
@@ -203,9 +214,11 @@ namespace Thry
             RemoteConfig remoteConfig = await LoadRemoteConfig();
             string url;
             if (type == VRC_SDK_Type.SDK_2)
-                url = remoteConfig.downloadUrls.sdk2;
-            else if (type == VRC_SDK_Type.SDK_3)
-                url = remoteConfig.downloadUrls.sdk3;
+                url = remoteConfig.sdk2;
+            else if (type == VRC_SDK_Type.SDK_3_Avatar)
+                url = remoteConfig.sdk3_avatars;
+            else if (type == VRC_SDK_Type.SDK_3_World)
+                url = remoteConfig.sdk3_worlds;
             else
                 return;
             if (File.Exists(PATH.TEMP_VRC_SDK_PACKAGE))

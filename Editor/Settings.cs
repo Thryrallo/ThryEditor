@@ -231,10 +231,16 @@ namespace Thry
                 is_changing_vrc_sdk = true;
                 VRCInterface.DownloadAndInstallVRCSDK(VRCInterface.VRC_SDK_Type.SDK_2);
 
-            }if (GUILayout.Button(Locale.editor.Get("button_install_vrc_sdk")+"(v3)(Udon)"))
+            }
+            if (GUILayout.Button(Locale.editor.Get("button_install_vrc_sdk") + "(v3)(Avatars)"))
             {
                 is_changing_vrc_sdk = true;
-                VRCInterface.DownloadAndInstallVRCSDK(VRCInterface.VRC_SDK_Type.SDK_3);
+                VRCInterface.DownloadAndInstallVRCSDK(VRCInterface.VRC_SDK_Type.SDK_3_Avatar);
+            }
+            if (GUILayout.Button(Locale.editor.Get("button_install_vrc_sdk")+"(v3)(Udon)"))
+            {
+                is_changing_vrc_sdk = true;
+                VRCInterface.DownloadAndInstallVRCSDK(VRCInterface.VRC_SDK_Type.SDK_3_World);
             }
             GUILayout.EndHorizontal();
             EditorGUI.EndDisabledGroup();
