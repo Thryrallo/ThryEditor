@@ -556,6 +556,16 @@ namespace Thry
                 PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
             }
         }
+        public static void SetHidden(List<ShaderPart> parts, bool set_hidden)
+        {
+            foreach (ShaderPart part in parts)
+            {
+                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
+                {
+                    SetHidden((ShaderHeader)part, set_hidden);
+                }
+            }
+        }
 
         public static void DrawHeaderHiderMenu(Rect position, List<ShaderPart> shaderParts)
         {
@@ -567,6 +577,27 @@ namespace Thry
             position.y = Mathf.Min(position.y - position.height / 2, maxY);
 
             var menu = new GenericMenu();
+
+            bool allHidden = true;
+            bool allShown = true;
+            foreach (ShaderPart part in shaderParts)
+            {
+                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
+                {
+                    if (part.is_hidden)
+                        allShown = false;
+                    else
+                        allHidden = false;
+                }
+            }
+            menu.AddItem(new GUIContent("Everything"), allShown, delegate ()
+            {
+                SetHidden(shaderParts, false);
+            });
+            menu.AddItem(new GUIContent("Nothing"), allHidden, delegate ()
+            {
+                SetHidden(shaderParts, true);
+            });
             foreach (ShaderPart part in shaderParts)
             {
                 if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
