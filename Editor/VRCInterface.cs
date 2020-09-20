@@ -119,8 +119,8 @@ namespace Thry
         {
             WebHelper2.DownloadStringASync("https://api.vrchat.cloud/api/1/config", delegate (string s)
             {
-                Dictionary<string, object> remoteC = (Dictionary<string, object>)Parser.ParseJson(s);
-                Dictionary<string, object> urls = (Dictionary<string, object>)remoteC["downloadUrls"];
+                Dictionary<object, object> remoteC = (Dictionary<object, object>)Parser.ParseJson(s);
+                Dictionary<object, object> urls = (Dictionary<object, object>)remoteC["downloadUrls"];
                 remoteConfig = new RemoteConfig();
                 remoteConfig.sdk2 = (string)urls["sdk2"];
                 remoteConfig.sdk3_worlds = (string)urls["sdk3-worlds"];

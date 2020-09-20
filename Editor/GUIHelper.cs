@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -546,14 +547,15 @@ namespace Thry
             return is_hidden;
         }
 
-        public static void SetHidden(ShaderHeader header, bool set_hidden)
+        public static void SetHidden(ShaderHeader header, bool set_hidden, bool save=true)
         {
             bool contains = headerHiddenSaved.ContainsKey(header.materialProperty.name);
             if (!contains || (contains && headerHiddenSaved[header.materialProperty.name] != set_hidden))
             {
                 headerHiddenSaved[header.materialProperty.name] = set_hidden;
                 header.is_hidden = set_hidden;
-                PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
+                if(save)
+                    PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
             }
         }
         public static void SetHidden(List<ShaderPart> parts, bool set_hidden)
@@ -562,9 +564,10 @@ namespace Thry
             {
                 if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
                 {
-                    SetHidden((ShaderHeader)part, set_hidden);
+                    SetHidden((ShaderHeader)part, set_hidden, false);
                 }
             }
+            PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
         }
 
         public static void DrawHeaderHiderMenu(Rect position, List<ShaderPart> shaderParts)

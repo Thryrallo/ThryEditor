@@ -21,8 +21,40 @@ namespace Thry
 
         public static T Deserialize<T>(string s)
         {
-            return Parser.ParseToObject<T>(s);
+            return ParseToObject<T>(s);
         }
+
+        public static string ObjectToString(object obj)
+        {
+            if (obj == null) return "null";
+            if (Helper.IsPrimitive(obj.GetType())) return SerializePrimitive(obj);
+            if (obj is IList) return SerializeList(obj);
+            if (obj.GetType().IsGenericType && obj.GetType().GetGenericTypeDefinition() == typeof(Dictionary<,>)) return SerializeDictionary(obj);
+            if (obj.GetType().IsArray) return SerializeList(obj);
+            if (obj.GetType().IsEnum) return obj.ToString();
+            if (obj.GetType().IsClass) return SerializeClass(obj);
+            if (obj.GetType().IsValueType && !obj.GetType().IsEnum) return SerializeClass(obj);
+            return "";
+        }
+
+        public static T ParseToObject<T>(string s)
+        {
+            object parsed = ParseJson(s);
+            object ret = null;
+            try
+            {
+                ret = (T)ParsedToObject(parsed, typeof(T));
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.ToString());
+                Debug.LogError(s + " cannot be parsed to object of type " + typeof(T).ToString());
+                ret = Activator.CreateInstance(typeof(T));
+            }
+            return (T)ret;
+        }
+
+        //Parser methods
 
         public static object ParseJson(string input)
         {
@@ -41,13 +73,13 @@ namespace Thry
                 return ParsePrimitive(input);
         }
 
-        private static Dictionary<string, object> ParseObject(string input)
+        private static Dictionary<object, object> ParseObject(string input)
         {
             input = input.TrimStart(new char[] { '{' });
             int depth = 0;
             int variableStart = 0;
             bool isString = false;
-            Dictionary<string, object> variables = new Dictionary<string, object>();
+            Dictionary<object, object> variables = new Dictionary<object, object>();
             for (int i = 0; i < input.Length; i++)
             {
                 bool escaped = i != 0 && input[i - 1] == '\\';
@@ -60,7 +92,7 @@ namespace Thry
                         string[] parts = input.Substring(variableStart, i - variableStart).Split(new char[] { ':' }, 2);
                         if (parts.Length < 2)
                             break;
-                        string key = "" + ParsePrimitive(parts[0].Trim());
+                        string key = "" + ParseJsonPart(parts[0].Trim());
                         object value = ParseJsonPart(parts[1]);
                         variables.Add(key, value);
                         variableStart = i + 1;
@@ -119,22 +151,7 @@ namespace Thry
             return input;
         }
 
-        public static type ParseToObject<type>(string input)
-        {
-            object parsed = ParseJson(input);
-            object ret = null;
-            try
-            {
-                ret = (type)ParsedToObject(parsed, typeof(type));
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e.ToString());
-                Debug.LogError(input + " cannot be parsed to object of type " + typeof(type).ToString());
-                ret = Activator.CreateInstance(typeof(type));
-            }
-            return (type)ret;
-        }
+        //converter methods
 
         public static type ConvertParsedToObject<type>(object parsed)
         {
@@ -143,15 +160,15 @@ namespace Thry
 
         private static object ParsedToObject(object parsed,Type objtype)
         {
-            if (parsed == null) return null;
-            if (Helper.IsPrimitive(objtype)) return PrimitiveToObject(parsed,objtype);
-            if (parsed.GetType() == typeof(Dictionary<string, object>)) return DictionaryToObject(parsed, objtype);
+            /*if (parsed == null) return null;
+            if (Helper.IsPrimitive(objtype)) return ConvertToPrimitive(parsed,objtype);
+            if (parsed.GetType() == typeof(Dictionary<string, object>)) return ConvertToObject(parsed, objtype);
             if (parsed.GetType() == typeof(List<object>))
             {
                 if (objtype.IsArray)
-                    return ArrayToObject(parsed, objtype);
+                    return ConvertToArray(parsed, objtype);
                 else
-                    return ListToObject(parsed, objtype);
+                    return ConvertToList(parsed, objtype);
             }
             if (objtype.IsEnum && parsed.GetType() == typeof(string))
             {
@@ -159,32 +176,55 @@ namespace Thry
                     return Enum.Parse(objtype, (string)parsed);
                 Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Converter.ArrayToString(Enum.GetValues(objtype)));
                 return Enum.GetValues(objtype).GetValue(0);
-            }
-            return null; 
+            }*/
+
+            if (parsed == null) return null;
+            if (Helper.IsPrimitive(objtype)) return ConvertToPrimitive(parsed, objtype);
+            if (objtype.IsGenericType && objtype.GetInterfaces().Contains(typeof(IList))) return ConvertToList(parsed, objtype);
+            if (objtype.IsGenericType && objtype.GetGenericTypeDefinition() == typeof(Dictionary<,>)) return ConvertToDictionary(parsed,objtype);
+            if (objtype.IsArray) return ConvertToArray(parsed, objtype);
+            if (objtype.IsEnum) return ConvertToEnum(parsed, objtype);
+            if (objtype.IsClass) return ConvertToObject(parsed, objtype);
+            if (objtype.IsValueType && !objtype.IsEnum) return ConvertToObject(parsed, objtype);
+            return null;
         }
 
-        private static object DictionaryToObject(object parsed, Type objtype)
+        private static object ConvertToDictionary(object parsed, Type objtype)
+        {
+            var returnObject = (dynamic)Activator.CreateInstance(objtype);
+            Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
+            foreach (KeyValuePair<object, object> keyvalue in dict)
+            {
+                dynamic key = ParsedToObject(keyvalue.Key, objtype.GetGenericArguments()[0]);
+                dynamic value = ParsedToObject(keyvalue.Value, objtype.GetGenericArguments()[1]);
+                returnObject.Add(key , value );
+            }
+            return returnObject;
+        }
+
+        private static object ConvertToObject(object parsed, Type objtype)
         {
             object returnObject = Activator.CreateInstance(objtype);
-            Dictionary<string, object> dict = (Dictionary<string, object>)parsed;
+            if (parsed.GetType() != typeof(Dictionary<object, object>)) return null;
+            Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
             foreach (FieldInfo field in objtype.GetFields())
             {
                 if (dict.ContainsKey(field.Name))
                 {
-                    field.SetValue(returnObject, ParsedToObject(Helper.GetValueFromDictionary<string, object>(dict, field.Name), field.FieldType));
+                    field.SetValue(returnObject, ParsedToObject(dict[field.Name], field.FieldType));
                 }
             }
             foreach (PropertyInfo property in objtype.GetProperties())
             {
                 if (property.CanWrite && property.CanRead && property.GetIndexParameters().Length == 0 && dict.ContainsKey(property.Name))
                 {
-                    property.SetValue(returnObject, ParsedToObject(Helper.GetValueFromDictionary<string, object>(dict, property.Name), property.PropertyType), null);
+                    property.SetValue(returnObject, ParsedToObject(dict[property.Name], property.PropertyType), null);
                 }
             }
             return returnObject;
         }
 
-        private static object ListToObject(object parsed, Type objtype)
+        private static object ConvertToList(object parsed, Type objtype)
         {
             Type list_obj_type = objtype.GetGenericArguments()[0];
             List<object> list_strings = (List<object>)parsed;
@@ -194,7 +234,7 @@ namespace Thry
             return return_list;
         }
 
-        private static object ArrayToObject(object parsed, Type objtype)
+        private static object ConvertToArray(object parsed, Type objtype)
         {
             Type array_obj_type = objtype.GetElementType();
             List<object> list_strings = (List<object>)parsed;
@@ -210,7 +250,15 @@ namespace Thry
             return return_array;
         }
 
-        private static object PrimitiveToObject(object parsed, Type objtype)
+        private static object ConvertToEnum(object parsed, Type objtype)
+        {
+            if (Enum.IsDefined(objtype, (string)parsed))
+                return Enum.Parse(objtype, (string)parsed);
+            Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Converter.ArrayToString(Enum.GetValues(objtype)));
+            return Enum.GetValues(objtype).GetValue(0);
+        }
+
+        private static object ConvertToPrimitive(object parsed, Type objtype)
         {
             if (typeof(String) == objtype)
                 return parsed!=null?parsed.ToString():null;
@@ -219,19 +267,23 @@ namespace Thry
             return parsed;
         }
 
-        public static string ObjectToString(object obj)
+        //Serilizer
+
+        private static string SerializeDictionary(object obj)
         {
-            if (obj == null) return "null";
-            if (Helper.IsPrimitive(obj.GetType())) return PrimitiveToString(obj);
-            if (obj is IList) return ListToString(obj);
-            if (obj.GetType().IsArray) return ListToString(obj);
-            if (obj.GetType().IsEnum) return obj.ToString();
-            if (obj.GetType().IsClass) return ClassObjectToString(obj);
-            if (obj.GetType().IsValueType && !obj.GetType().IsEnum) return ClassObjectToString(obj);
-            return "";
+            string ret = "{";
+            foreach (var item in (dynamic)obj)
+            {
+                object key = item.Key;
+                object val = item.Value;
+                ret += Serialize(key) + ":" + Serialize(val)+",";
+            }
+            ret = ret.TrimEnd(new char[] { ',' });
+            ret += "}";
+            return ret;
         }
 
-        private static string ClassObjectToString(object obj)
+        private static string SerializeClass(object obj)
         {
             string ret = "{";
             foreach(FieldInfo field in obj.GetType().GetFields())
@@ -249,7 +301,7 @@ namespace Thry
             return ret;
         }
 
-        private static string ListToString(object obj)
+        private static string SerializeList(object obj)
         {
             string ret = "[";
             foreach (object o in obj as IEnumerable)
@@ -261,7 +313,7 @@ namespace Thry
             return ret;
         }
 
-        private static string PrimitiveToString(object obj)
+        private static string SerializePrimitive(object obj)
         {
             if (obj.GetType() == typeof(string))
                 return "\"" + obj + "\"";
