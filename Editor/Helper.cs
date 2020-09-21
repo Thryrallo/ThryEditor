@@ -391,8 +391,11 @@ namespace Thry
                 string gradient_data_string = FileHelper.LoadValueFromFile(texture.name, PATH.GRADIENT_INFO_FILE);
                 if (gradient_data_string != null)
                 {
-                    return Parser.ParseToObject<Gradient>(gradient_data_string);
+                    Debug.Log(texture.name + " Gradient loaded from file.");
+                    Gradient g = Parser.Deserialize<Gradient>(gradient_data_string);
+                    return g;
                 }
+                Debug.Log(texture.name + " Converted into Gradient.");
                 return Converter.TextureToGradient(GetReadableTexture(texture));
             }
             return new Gradient();

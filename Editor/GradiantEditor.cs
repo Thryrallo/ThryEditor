@@ -22,8 +22,6 @@ namespace Thry
             window.privious_preview_texture = prop.textureValue;
             window.prop = prop;
             window.data = data;
-            window.SetGradient(data.gradient);
-            window.gradient_has_been_edited = false;
             window.show_texture_options = show_texture_options;
             window.minSize = new Vector2(350, 350);
             window.Show();
@@ -139,6 +137,9 @@ namespace Thry
             minMaxPreviewHeight.SetValue(preset_libary_editor, new Vector2(14f, 14f), null);
 
             preset_libary_onGUI = gradient_preset_libary_editor_type.GetMethod("OnGUI");
+
+            SetGradient(data.gradient);
+            gradient_has_been_edited = false;
 
             inited = true;
         }

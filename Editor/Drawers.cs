@@ -158,7 +158,7 @@ namespace Thry
 
         private void UpdateRects(Rect position)
         {
-            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, Screen.width - EditorGUIUtility.labelWidth - position.x - EditorGUI.indentLevel * 15 - 10, position.height);
+            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - position.x, position.height);
             gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
         }
 

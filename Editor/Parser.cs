@@ -140,8 +140,11 @@ namespace Thry
                 return null;
             else
             {
+                string floatInput = input.Replace(",", ".");
+                if (System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator == ",")
+                    floatInput = input.Replace(".", ",");
                 float floatValue;
-                if (float.TryParse(input, out floatValue))
+                if (float.TryParse(floatInput,  out floatValue))
                 {
                     if ((int)floatValue == floatValue)
                         return (int)floatValue;
@@ -160,24 +163,6 @@ namespace Thry
 
         private static object ParsedToObject(object parsed,Type objtype)
         {
-            /*if (parsed == null) return null;
-            if (Helper.IsPrimitive(objtype)) return ConvertToPrimitive(parsed,objtype);
-            if (parsed.GetType() == typeof(Dictionary<string, object>)) return ConvertToObject(parsed, objtype);
-            if (parsed.GetType() == typeof(List<object>))
-            {
-                if (objtype.IsArray)
-                    return ConvertToArray(parsed, objtype);
-                else
-                    return ConvertToList(parsed, objtype);
-            }
-            if (objtype.IsEnum && parsed.GetType() == typeof(string))
-            {
-                if (Enum.IsDefined(objtype, (string)parsed))
-                    return Enum.Parse(objtype, (string)parsed);
-                Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Converter.ArrayToString(Enum.GetValues(objtype)));
-                return Enum.GetValues(objtype).GetValue(0);
-            }*/
-
             if (parsed == null) return null;
             if (Helper.IsPrimitive(objtype)) return ConvertToPrimitive(parsed, objtype);
             if (objtype.IsGenericType && objtype.GetInterfaces().Contains(typeof(IList))) return ConvertToList(parsed, objtype);
@@ -317,7 +302,7 @@ namespace Thry
         {
             if (obj.GetType() == typeof(string))
                 return "\"" + obj + "\"";
-            return obj.ToString();
+            return obj.ToString().Replace(",", "."); ;
         }
     }
 }
