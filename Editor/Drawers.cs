@@ -78,11 +78,12 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Init();
+            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth - position.x + 15, position.height);
 
-            editor.TexturePropertyMiniThumbnail(position, prop, "", "");
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
 
             EditorGUI.BeginChangeCheck();
-            curve = EditorGUI.CurveField(position, new GUIContent("       " + label.text, label.tooltip), curve);
+            curve = EditorGUI.CurveField(border_position,curve);
             if (EditorGUI.EndChangeCheck())
                 UpdateCurveTexture(prop);
 
