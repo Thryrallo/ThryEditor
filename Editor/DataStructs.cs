@@ -12,7 +12,7 @@ namespace Thry
 {
     public class PATH
     {
-        public const string TEXTURES_DIR = "Assets/textures/";
+        public const string TEXTURES_DIR = "Assets/textures";
         public const string RSP_NEEDED_PATH = "Assets/";
 
         public const string DELETING_DIR = "Thry/trash";

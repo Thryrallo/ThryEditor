@@ -313,7 +313,7 @@ namespace Thry
 
         public static bool writeBytesToFile(byte[] bytes, string path)
         {
-            if (!File.Exists(path)) if (!File.Exists(path)) CreateFileWithDirectories(path);
+            if (!File.Exists(path)) CreateFileWithDirectories(path);
             try
             {
                 using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
