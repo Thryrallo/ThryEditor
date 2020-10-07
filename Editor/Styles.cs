@@ -49,7 +49,7 @@ namespace Thry
         public static GUIStyle greenStyle { get; private set; } = CreateStyle(new Color(0, 0.5f, 0));
         public static GUIStyle yellowStyle { get; private set; } = CreateStyle(new Color(1, 0.79f, 0));
         public static GUIStyle redStyle { get; private set; } = CreateStyle(Color.red);
-        public static GUIStyle made_by_style { get; private set; } = CreateStyle(fontSize: 8);
+        public static GUIStyle made_by_style { get; private set; } = CreateStyle(fontSize: 10);
 
         private static GUIStyle CreateStyle(System.Nullable<Color> color = null, int fontSize = -1 , RectOffset padding = null, TextAnchor alignment = TextAnchor.MiddleLeft, GUIStyle baseStyle = null)
         {

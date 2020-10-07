@@ -156,7 +156,10 @@ namespace Thry
             GradientField();
 
             if (Event.current.type == EventType.MouseDown && border_position.Contains(Event.current.mousePosition))
-                GradientEditor.Open(data, prop, !ThryEditor.currentlyDrawing.currentProperty.options.force_texture_options);
+            {
+                PropertyOptions options = ThryEditor.currentlyDrawing.currentProperty.options;
+                GradientEditor.Open(data, prop, options.texture, options.force_texture_options, !options.force_texture_options);
+            }
         }
 
         private void UpdateRects(Rect position)

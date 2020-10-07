@@ -14,10 +14,10 @@ namespace Thry
     public class GradientEditor : EditorWindow
     {
 
-        public static void Open(GradientData data, MaterialProperty prop, bool show_texture_options=true)
+        public static void Open(GradientData data, MaterialProperty prop, TextureData predefinedTextureSettings, bool force_texture_options = false, bool show_texture_options=true)
         {
+            texture_settings_data = LoadTextureSettings(prop, predefinedTextureSettings, force_texture_options);
             data.gradient = TextureHelper.GetGradient(prop.textureValue);
-            texture_settings_data = null;
             GradientEditor window = (GradientEditor)EditorWindow.GetWindow(typeof(GradientEditor));
             window.privious_preview_texture = prop.textureValue;
             window.prop = prop;
@@ -45,16 +45,15 @@ namespace Thry
         private bool gradient_has_been_edited = false;
         private Texture privious_preview_texture;
 
-        public static TextureData GetTextureSettings(MaterialProperty prop)
+        private static TextureData LoadTextureSettings(MaterialProperty prop, TextureData predefinedTextureSettings, bool force_texture_options)
         {
-            TextureData defined_default = ThryEditor.currentlyDrawing.currentProperty.options.texture;
-            if (ThryEditor.currentlyDrawing.currentProperty.options.force_texture_options && defined_default!=null)
-                return defined_default;
+            if (force_texture_options && predefinedTextureSettings != null)
+                return predefinedTextureSettings;
             string json_texture_settings = FileHelper.LoadValueFromFile("gradient_texture_options_"+prop.name, PATH.PERSISTENT_DATA);
             if (json_texture_settings != null)
                 return Parser.ParseToObject<TextureData>(json_texture_settings);
-            else if (defined_default != null)
-                return defined_default;
+            else if (predefinedTextureSettings != null)
+                return predefinedTextureSettings;
             else
                 return new TextureData();
         }
@@ -63,10 +62,6 @@ namespace Thry
         {
             get
             {
-                if (texture_settings_data == null)
-                {
-                    texture_settings_data = GetTextureSettings(this.prop);
-                }
                 return texture_settings_data;
             }
         }
@@ -86,7 +81,7 @@ namespace Thry
             {
                 if (data.preview_texture.GetType() == typeof(Texture2D))
                 {
-                    string file_name = GradientFileName(data.gradient, prop.targets[0].name); ;
+                    string file_name = GradientFileName(data.gradient, prop.targets[0].name);
                     Texture saved = TextureHelper.SaveTextureAsPNG((Texture2D)data.preview_texture, PATH.TEXTURES_DIR+"/Gradients/" + file_name, textureSettings);
                     file_name = Regex.Replace(file_name, @"\.((png)|(jpg))$", "");
                     FileHelper.SaveValueToFile(file_name, Parser.ObjectToString(data.gradient), PATH.GRADIENT_INFO_FILE);
