@@ -311,6 +311,8 @@ public class ThryEditor : ShaderGUI
     {
         Config config = Config.Get();
 
+        currentlyDrawing = current;
+
         //get material targets
         UnityEngine.Object[] targets = current.editor.targets;
         current.materials = new Material[targets.Length];
@@ -379,12 +381,13 @@ public class ThryEditor : ShaderGUI
             current = new EditorData();
             current.editor = materialEditor;
             current.gui = this;
-            current.properties = props;
             current.textureArrayProperties = new List<ShaderProperty>();
             current.firstCall = true;
         }
+        current.properties = props;
 
-        //handle events
+        CheckInAnimationRecordMode();
+        m_RenderersForAnimationMode = MaterialEditor.PrepareMaterialPropertiesForAnimationMode(props, GUI.enabled);
         UpdateEvents();
 
         //first time call inits
@@ -619,4 +622,116 @@ public class ThryEditor : ShaderGUI
 		}
 		return ret;
 	}
+
+    //=============Animation Handling============
+
+    private Renderer m_RenderersForAnimationMode;
+    private Renderer rendererForAnimationMode
+    {
+        get
+        {
+            if (m_RenderersForAnimationMode == null)
+                return null;
+            return m_RenderersForAnimationMode;
+        }
+    }
+
+    private struct AnimatedCheckData
+    {
+        public MaterialProperty property;
+        public Rect totalPosition;
+        public Color color;
+        public AnimatedCheckData(MaterialProperty property, Rect totalPosition, Color color)
+        {
+            this.property = property;
+            this.totalPosition = totalPosition;
+            this.color = color;
+        }
+    }
+
+    private static Stack<AnimatedCheckData> s_AnimatedCheckStack = new Stack<AnimatedCheckData>();
+
+    public void BeginAnimatedCheck(MaterialProperty prop)
+    {
+        if (rendererForAnimationMode == null)
+            return;
+
+        s_AnimatedCheckStack.Push(new AnimatedCheckData(prop, Rect.zero, GUI.backgroundColor));
+
+        Color overrideColor;
+        if (OverridePropertyColor(prop, rendererForAnimationMode, out overrideColor))
+            GUI.backgroundColor = overrideColor;
+    }
+
+    public void EndAnimatedCheck()
+    {
+        if (rendererForAnimationMode == null)
+            return;
+
+        AnimatedCheckData data = s_AnimatedCheckStack.Pop();
+        if (Event.current.type == EventType.ContextClick && data.totalPosition.Contains(Event.current.mousePosition))
+        {
+            //DoPropertyContextMenu(data.property);
+        }
+
+        GUI.backgroundColor = data.color;
+    }
+
+    private static FieldInfo _field_s_InAnimationRecordMode;
+    public static bool AnimationIsRecording { get; private set; }
+
+    private static void CheckInAnimationRecordMode()
+    {
+        if (_field_s_InAnimationRecordMode == null)
+            _field_s_InAnimationRecordMode = (typeof(AnimationMode)).GetField("s_InAnimationRecordMode",BindingFlags.NonPublic | BindingFlags.Static);
+        AnimationIsRecording = (bool)_field_s_InAnimationRecordMode.GetValue(null);
+    }
+
+
+    const string kMaterialPrefix = "material.";
+    static public bool OverridePropertyColor(MaterialProperty materialProp, Renderer target, out Color color)
+    {
+        var propertyPaths = new List<string>();
+        string basePropertyPath = kMaterialPrefix + materialProp.name;
+
+        if (materialProp.type == MaterialProperty.PropType.Texture)
+        {
+            propertyPaths.Add(basePropertyPath + "_ST.x");
+            propertyPaths.Add(basePropertyPath + "_ST.y");
+            propertyPaths.Add(basePropertyPath + "_ST.z");
+            propertyPaths.Add(basePropertyPath + "_ST.w");
+        }
+        else if (materialProp.type == MaterialProperty.PropType.Color)
+        {
+            propertyPaths.Add(basePropertyPath + ".r");
+            propertyPaths.Add(basePropertyPath + ".g");
+            propertyPaths.Add(basePropertyPath + ".b");
+            propertyPaths.Add(basePropertyPath + ".a");
+        }
+        else if (materialProp.type == MaterialProperty.PropType.Vector)
+        {
+            propertyPaths.Add(basePropertyPath + ".x");
+            propertyPaths.Add(basePropertyPath + ".y");
+            propertyPaths.Add(basePropertyPath + ".z");
+            propertyPaths.Add(basePropertyPath + ".w");
+        }
+        else
+        {
+            propertyPaths.Add(basePropertyPath);
+        }
+
+            if (propertyPaths.Exists(path => AnimationMode.IsPropertyAnimated(target, path)))
+        {
+            color = AnimationMode.animatedPropertyColor;
+            if (AnimationIsRecording)
+                color = AnimationMode.recordedPropertyColor;
+            //else if (propertyPaths.Exists(path => IsPropertyCandidate(target, path)))
+            //    color = AnimationMode.candidatePropertyColor;
+
+            return true;
+        }
+
+        color = Color.white;
+        return false;
+    }
 }

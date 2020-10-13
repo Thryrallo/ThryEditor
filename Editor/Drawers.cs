@@ -236,6 +236,7 @@ namespace Thry
         {
             Vector3 vec = new Vector3(prop.vectorValue.x, prop.vectorValue.y, prop.vectorValue.z);
             EditorGUI.BeginChangeCheck();
+            
             vec = EditorGUI.Vector3Field(position, label, vec);
             if (EditorGUI.EndChangeCheck())
             {

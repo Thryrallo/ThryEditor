@@ -231,104 +231,10 @@ namespace Thry
 
         //--End--Gradient
 
-        public static Texture2DArray PathsToTexture2DArray(string[] paths)
-        {
-            if (paths[0].EndsWith(".gif"))
-            {
-                return Converter.GifToTextureArray(paths[0]);
-                
-            }
-            else
-            {
-                List<Texture2D> textures = new List<Texture2D>();
-                foreach (string p in paths)
-                {
-                    if (AssetDatabase.GetMainAssetTypeAtPath(p).IsSubclassOf(typeof(Texture)))
-                        textures.Add(TextureHelper.GetReadableTexture(AssetDatabase.LoadAssetAtPath<Texture>(p)));
-                }
-                if (textures.Count > 0)
-                {
-                    return Converter.Testure2DListToTexture2DArray(textures,paths[0]);
-                }
-            }
-            return null;
-        }
-
-        public static Texture2DArray GifToTextureArray(string path)
-        {
-            List<Texture2D> array = GetGifFrames(path);
-            if (array.Count == 0)
-            {
-                Debug.LogError("Gif is empty or System.Drawing is not working");
-                return null;
-            }
-            Texture2DArray arrayTexture = new Texture2DArray(array[0].width, array[0].height, array.Count, TextureFormat.RGBA32, true, false);
-            for (int i = 0; i < array.Count; i++)
-            {
-                arrayTexture.SetPixels(array[i].GetPixels(0), i, 0);
-            }
-            arrayTexture.Apply();
-
-            string newPath = path.Replace(".gif", ".asset");
-            AssetDatabase.CreateAsset(arrayTexture, newPath);
-            return arrayTexture;
-        }
-
-        public static List<Texture2D> GetGifFrames(string path)
-        {
-            List<Texture2D> gifFrames = new List<Texture2D>();
-#if SYSTEM_DRAWING
-            var gifImage = System.Drawing.Image.FromFile(path);
-            var dimension = new FrameDimension(gifImage.FrameDimensionsList[0]);
-
-            int frameCount = gifImage.GetFrameCount(dimension);
-            for (int i = 0; i < frameCount; i++)
-            {
-                EditorUtility.DisplayProgressBar("Creating Texture Array for " + path, "Converting frame #" + i, (float)i / frameCount);
-                gifImage.SelectActiveFrame(dimension, i);
-                var frame = new System.Drawing.Bitmap(gifImage.Width, gifImage.Height);
-                System.Drawing.Graphics.FromImage(frame).DrawImage(gifImage, System.Drawing.Point.Empty);
-                var frameTexture = new Texture2D(frame.Width, frame.Height);
-
-                for (int x = 0; x < frame.Width; x++)
-                {
-                    for (int y = 0; y < frame.Height; y++)
-                    {
-                        System.Drawing.Color sourceColor = frame.GetPixel(x, y);
-                        frameTexture.SetPixel(x, frame.Height - 1 - y, new Color32(sourceColor.R, sourceColor.G, sourceColor.B, sourceColor.A));
-                    }
-                }
-
-                frameTexture.Apply();
-                gifFrames.Add(frameTexture);
-            }
-            EditorUtility.ClearProgressBar();
-#endif
-            return gifFrames;
-        }
-
-        public static Texture2DArray Testure2DListToTexture2DArray(List<Texture2D> list, string path)
-        {
-            int[] size = new int[] { list[0].width, list[0].height };
-            Texture2DArray array = new Texture2DArray(size[0],size[1], list.Count, list[0].format, true);
-            int i = 0;
-            foreach(Texture2D texture in list)
-            {
-                Texture2D resized_texture = texture;
-                if (texture.width != size[0] || texture.height != size[1])
-                    resized_texture = TextureHelper.Resize(texture, size[0], size[1]);
-                array.SetPixels(resized_texture.GetPixels(), i++);
-            }
-            array.Apply();
-            path = path.Remove(path.LastIndexOf('/')) + "/"+ AssetDatabase.LoadAssetAtPath<Texture>(path).name+ "_Texture2DArray.asset";
-            AssetDatabase.CreateAsset(array, path);
-            return array;
-        }
-
         public static Texture2D CurveToTexture(AnimationCurve curve, TextureData texture_settings)
         {
             Texture2D texture = new Texture2D(texture_settings.width, texture_settings.height);
-            for(int i = 0; i < texture_settings.width; i++)
+            for (int i = 0; i < texture_settings.width; i++)
             {
                 Color color = new Color();
                 float value = curve.Evaluate((float)i / texture_settings.width);
@@ -343,12 +249,164 @@ namespace Thry
                     color.a = value;
                 if (texture_settings.channel != 'a')
                     color.a = 1;
-                    for (int y = 0; y < texture_settings.height; y++)
+                for (int y = 0; y < texture_settings.height; y++)
                     texture.SetPixel(i, y, color);
             }
             texture.Apply();
             texture_settings.ApplyModes(texture);
             return texture;
+        }
+
+        //==============Texture Array=================
+
+        public static Texture2DArray PathsToTexture2DArray(string[] paths)
+        {
+            if (paths[0].EndsWith(".gif"))
+            {
+                return Converter.GifToTextureArray(paths[0]);
+                
+            }
+            else if(paths != null && paths.Length>0)
+            {
+                List<Texture2D> textures = new List<Texture2D>();
+                foreach (string p in paths)
+                {
+                    if (AssetDatabase.GetMainAssetTypeAtPath(p).IsSubclassOf(typeof(Texture)))
+                        textures.Add(TextureHelper.GetReadableTexture(AssetDatabase.LoadAssetAtPath<Texture>(p)));
+                }
+                if (textures.Count > 0)
+                {
+                    Texture2DArray arrayTexture = Textre2DArrayToAsset(textures.ToArray());
+                    AssetDatabase.CreateAsset(arrayTexture, paths[0].RemoveFileExtension()+".asset");
+                    AssetDatabase.SaveAssets();
+                    return arrayTexture;
+                }
+            }
+            return null;
+        }
+
+        public static Texture2DArray GifToTextureArray(string path)
+        {
+            List<Texture2D> array = GetGifFrames(path);
+            if (array == null) return null;
+            if (array.Count == 0)
+            {
+                Debug.LogError("Gif is empty or System.Drawing is not working. Try right clicking and reimporting the \"Thry Editor\" Folder!");
+                return null;
+            }
+            Texture2DArray arrayTexture = Textre2DArrayToAsset(array.ToArray());
+            AssetDatabase.CreateAsset(arrayTexture, path.Replace(".gif", ".asset"));
+            AssetDatabase.SaveAssets();
+            return arrayTexture;
+        }
+
+        public static List<Texture2D> GetGifFrames(string path)
+        {
+            List<Texture2D> gifFrames = new List<Texture2D>();
+#if SYSTEM_DRAWING
+            var gifImage = System.Drawing.Image.FromFile(path);
+            var dimension = new FrameDimension(gifImage.FrameDimensionsList[0]);
+
+            int width = Mathf.ClosestPowerOfTwo(gifImage.Width-1);
+            int height = Mathf.ClosestPowerOfTwo(gifImage.Height-1);
+
+            bool hasAlpha = false;
+
+            int frameCount = gifImage.GetFrameCount(dimension);
+
+            float totalProgress = frameCount * width;
+            for (int i = 0; i < frameCount; i++)
+            {
+                gifImage.SelectActiveFrame(dimension, i);
+                var ogframe = new System.Drawing.Bitmap(gifImage.Width, gifImage.Height);
+                System.Drawing.Graphics.FromImage(ogframe).DrawImage(gifImage, System.Drawing.Point.Empty);
+                var frame = ResizeBitmap(ogframe,width,height);
+
+                Texture2D frameTexture = new Texture2D(frame.Width, frame.Height);
+
+                float doneProgress = i * width;
+                for (int x = 0; x < frame.Width; x++)
+                {
+                    if(x%20 == 0)
+                    if (EditorUtility.DisplayCancelableProgressBar("From GIF", "Frame "+i+": "+(int)((float)x/width*100)+"%", (doneProgress + x + 1) / totalProgress))
+                    {
+                        EditorUtility.ClearProgressBar();
+                        return null;
+                    }
+
+                    for (int y = 0; y < frame.Height; y++)
+                    {
+                        System.Drawing.Color sourceColor = frame.GetPixel(x, y);
+                        frameTexture.SetPixel(x, frame.Height - 1 - y, new UnityEngine.Color32(sourceColor.R, sourceColor.G, sourceColor.B, sourceColor.A));
+                        if (sourceColor.A < 255.0f)
+                        {
+                            hasAlpha = true;
+                        }
+                    }
+                }
+
+                frameTexture.Apply();
+                gifFrames.Add(frameTexture);
+            }
+            EditorUtility.ClearProgressBar();
+            //Debug.Log("has alpha? " + hasAlpha);
+            for(int i = 0; i < frameCount; i++)
+            {
+                EditorUtility.CompressTexture(gifFrames[i], hasAlpha?TextureFormat.DXT5 : TextureFormat.DXT1, UnityEditor.TextureCompressionQuality.Normal);
+                gifFrames[i].Apply(true,false);
+            }
+#endif
+            return gifFrames;
+        }
+
+#if SYSTEM_DRAWING
+        public static System.Drawing.Bitmap ResizeBitmap(System.Drawing.Image image, int width, int height)
+        {
+            var destRect = new System.Drawing.Rectangle(0, 0, width, height);
+            var destImage = new System.Drawing.Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = System.Drawing.Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(System.Drawing.Drawing2D.WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, System.Drawing.GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
+        }
+#endif
+
+        private static Texture2DArray Textre2DArrayToAsset(Texture2D[] array)
+        {
+            Texture2DArray texture2DArray = new Texture2DArray(array[0].width, array[0].height, array.Length, array[0].format, true);
+
+#if SYSTEM_DRAWING
+            for (int i = 0; i < array.Length; i++)
+            {
+                for (int m = 0; m < array[i].mipmapCount; m++)
+                {
+                    UnityEngine.Graphics.CopyTexture(array[i], 0, m, texture2DArray, i, m);
+                }
+            }
+#endif
+
+            texture2DArray.anisoLevel = array[0].anisoLevel;
+            texture2DArray.wrapModeU = array[0].wrapModeU;
+            texture2DArray.wrapModeV = array[0].wrapModeV;
+
+            texture2DArray.Apply(false, true);
+
+            return texture2DArray;
         }
     }
 }

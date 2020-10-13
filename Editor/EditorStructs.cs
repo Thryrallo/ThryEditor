@@ -49,11 +49,11 @@ namespace Thry
             this.reference_property_exists = options.reference_property != null;
         }
 
-        public abstract void DrawInternal(GUIContent content, CRect rect = null);
+        public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false);
         public abstract void CopyFromMaterial(Material m);
         public abstract void CopyToMaterial(Material m);
 
-        public void Draw(CRect rect = null, GUIContent content = null)
+        public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false)
         {
             if (options.is_hideable && is_hidden)
                 return;
@@ -65,7 +65,7 @@ namespace Thry
             }
             if (options.condition_show.Test())
             {
-                PerformDraw(content, rect);
+                PerformDraw(content, rect, useEditorIndent);
             }
             if (options.condition_enable != null && is_enabled)
             {
@@ -74,12 +74,12 @@ namespace Thry
             }
         }
 
-        private void PerformDraw(GUIContent content, CRect rect)
+        private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent)
         {
             if (content == null)
                 content = this.content;
             EditorGUI.BeginChangeCheck();
-            DrawInternal(content, rect);
+            DrawInternal(content, rect, useEditorIndent);
             if (EditorGUI.EndChangeCheck())
             {
                 if (options.on_value_actions != null)
@@ -134,7 +134,7 @@ namespace Thry
                 p.CopyToMaterial(m);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
         {
             foreach (ShaderPart part in parts)
             {
@@ -157,13 +157,13 @@ namespace Thry
             this.guiElement = new ThryEditorHeader(prop);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
         {
             ThryEditor.currentlyDrawing.currentProperty = this;
             EditorGUI.BeginChangeCheck();
             guiElement.Foldout(xOffset, content, ThryEditor.currentlyDrawing.gui);
             Rect headerRect = DrawingData.lastGuiObjectHeaderRect;
-            if (guiElement.getState())
+            if (guiElement.is_expanded)
             {
                 EditorGUILayout.Space();
                 foreach (ShaderPart part in parts)
@@ -195,10 +195,14 @@ namespace Thry
 
         public bool forceOneLine = false;
 
+        private int property_index = 0;
+
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
         {
             drawDefault = false;
             this.forceOneLine = forceOneLine;
+
+            property_index = System.Array.IndexOf(ThryEditor.currentlyDrawing.properties, materialProperty);
         }
 
         public override void CopyFromMaterial(Material m)
@@ -211,25 +215,32 @@ namespace Thry
             MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
         {
             PreDraw();
             ThryEditor.currentlyDrawing.currentProperty = this;
+            this.materialProperty = ThryEditor.currentlyDrawing.properties[property_index];
             if (rect != null)
                 DrawingData.lastGuiObjectHeaderRect = rect.r;
             else
                 DrawingData.lastGuiObjectHeaderRect = new Rect(-1, -1, -1, -1);
             int oldIndentLevel = EditorGUI.indentLevel;
-            EditorGUI.indentLevel = xOffset + 1;
+            if(!useEditorIndent)
+                EditorGUI.indentLevel = xOffset + 1;
 
             if (drawDefault)
                 DrawDefault();
-            else if (forceOneLine)
-                ThryEditor.currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
-            else if (rect != null)
-                ThryEditor.currentlyDrawing.editor.ShaderProperty(rect.r, this.materialProperty, content);
             else
-                ThryEditor.currentlyDrawing.editor.ShaderProperty(this.materialProperty, content);
+            {
+                ThryEditor.currentlyDrawing.gui.BeginAnimatedCheck(materialProperty);
+                if (forceOneLine)
+                    ThryEditor.currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
+                else if (rect != null)
+                    ThryEditor.currentlyDrawing.editor.ShaderProperty(rect.r, this.materialProperty, content);
+                else
+                    ThryEditor.currentlyDrawing.editor.ShaderProperty(this.materialProperty, content);
+                ThryEditor.currentlyDrawing.gui.EndAnimatedCheck();
+            }
 
             EditorGUI.indentLevel = oldIndentLevel;
             if (DrawingData.lastGuiObjectHeaderRect.x == -1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();

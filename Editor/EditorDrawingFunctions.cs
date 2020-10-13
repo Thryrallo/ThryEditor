@@ -15,32 +15,37 @@ namespace Thry
     public class ThryEditorHeader
     {
         private MaterialProperty property;
-        private bool currentState;
+
+        private bool expanded;
+
+        //private string DATA_KEY;
 
         public ThryEditorHeader(MaterialProperty prop)
         {
+            //DATA_KEY = "Header_" + prop.name + "_State";
+            //this.expanded = PersistentData.Get(DATA_KEY) == "expanded";
             this.property = prop;
-            this.currentState = fetchState();
+            this.expanded = prop.floatValue==1;
         }
 
-        public bool fetchState()
+        public bool is_expanded
         {
-            return property.floatValue == 1;
-        }
-
-        public bool getState()
-        {
-            return this.currentState;
+            get
+            {
+                return expanded;
+            }
         }
 
         public void Toggle()
         {
-
-            if (getState())
-                property.floatValue = 0;
-            else
-                property.floatValue = 1;
-            this.currentState = !this.currentState;
+            expanded = !expanded;
+            if (!ThryEditor.AnimationIsRecording)
+            {
+                if (expanded)
+                    property.floatValue = 1;
+                else
+                    property.floatValue = 0;
+            }
         }
 
         public void Foldout(int xOffset, GUIContent content, ThryEditor gui)
@@ -200,7 +205,7 @@ namespace Thry
             if (e.type == EventType.Repaint)
             {
                 var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-                EditorStyles.foldout.Draw(toggleRect, false, false, getState(), false);
+                EditorStyles.foldout.Draw(toggleRect, false, false, expanded, false);
             }
         }
 

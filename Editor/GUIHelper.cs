@@ -65,7 +65,7 @@ namespace Thry
                             foreach (string r_property in options.reference_properties)
                             {
                                 ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
-                                ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                                property.Draw(useEditorIndent: true);
                             }
                         EditorGUI.indentLevel -= 2;
                     }
