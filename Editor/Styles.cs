@@ -50,21 +50,27 @@ namespace Thry
         public static GUIStyle yellowStyle { get; private set; } = CreateStyle(new Color(1, 0.79f, 0));
         public static GUIStyle redStyle { get; private set; } = CreateStyle(Color.red);
         public static GUIStyle made_by_style { get; private set; } = CreateStyle(fontSize: 10);
+        public static GUIStyle notification_style { get; private set; } = CreateStyle(Color.red, fontSize: 12, worldWrap: true, baseStyle: GUI.skin.box);
 
-        private static GUIStyle CreateStyle(System.Nullable<Color> color = null, int fontSize = -1 , RectOffset padding = null, TextAnchor alignment = TextAnchor.MiddleLeft, GUIStyle baseStyle = null)
+        private static GUIStyle CreateStyle(System.Nullable<Color> color = null, int fontSize = -1 , RectOffset padding = null, TextAnchor alignment = TextAnchor.MiddleLeft,
+            Texture2D backgroundTexture = null, bool worldWrap = true, GUIStyle baseStyle = null)
         {
+            GUIStyle style = null;
             if (baseStyle == null)
-                baseStyle = new GUIStyle();
+                style = new GUIStyle();
             else
-                baseStyle = new GUIStyle(baseStyle);
+                style = new GUIStyle(baseStyle);
             if(color!=null)
-                baseStyle.normal.textColor = color.Value;
-            baseStyle.alignment = alignment;
+                style.normal.textColor = color.Value;
+            style.alignment = alignment;
             if(fontSize != -1)
-                baseStyle.fontSize = fontSize;
+                style.fontSize = fontSize;
             if (padding != null)
-                baseStyle.padding = padding;
-            return baseStyle;
+                style.padding = padding;
+            if(backgroundTexture!=null)
+                style.normal.background = backgroundTexture;
+            style.wordWrap = worldWrap;
+            return style;
         }
 
         public static Texture2D rounded_texture { get; private set; } = LoadTextureByNameAndEditorType(RESOURCE_NAME.WHITE_RECT, RESOURCE_NAME.DARK_RECT);
@@ -75,6 +81,7 @@ namespace Thry
         public static Texture2D visibility_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.VISIVILITY_ICON);
         public static Texture2D search_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SEARCH_ICON);
         public static Texture2D presets_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.PRESETS_ICON);
+        public static Texture2D t_arrow { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ARROW);
 
 
         private static Texture2D LoadTextureByNameAndEditorType(string normalName, string proName)

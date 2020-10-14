@@ -58,6 +58,7 @@ namespace Thry
         public const string VISIVILITY_ICON = "thry_visiblity_icon";
         public const string SEARCH_ICON = "thry_magnifying_glass_icon";
         public const string PRESETS_ICON = "thry_presets_icon";
+        public const string TEXTURE_ARROW = "thry_arrow";
     }
 
     public struct EditorData

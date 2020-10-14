@@ -30,6 +30,7 @@ public class ThryEditor : ShaderGUI
 
     private bool show_search_bar;
     private string header_search_term = "";
+    private bool show_eyeIcon_tutorial = false;
 
     // shader specified values
     private string masterLabelText = null;
@@ -311,6 +312,8 @@ public class ThryEditor : ShaderGUI
     {
         Config config = Config.Get();
 
+        show_eyeIcon_tutorial = !EditorPrefs.GetBool("thry_openeEyeIcon", false);
+
         currentlyDrawing = current;
 
         //get material targets
@@ -417,9 +420,15 @@ public class ThryEditor : ShaderGUI
         //draw master label if exists
         if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
 
+        //visibility button
         Rect visibilityButtonPosition = GUILayoutUtility.GetRect(new GUIContent(Styles.visibility_icon), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20));
-        if (GUI.Button(visibilityButtonPosition,Styles.visibility_icon, EditorStyles.largeLabel))
+        if (GUI.Button(visibilityButtonPosition, Styles.visibility_icon, EditorStyles.largeLabel))
+        {
             HeaderHider.DrawHeaderHiderMenu(visibilityButtonPosition, current.shaderParts);
+            if (show_eyeIcon_tutorial)
+                EditorPrefs.SetBool("thry_openeEyeIcon", true);
+            show_eyeIcon_tutorial = false;
+        }
         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
         //draw presets if exists
         presetHandler.drawPresets(current.properties, current.materials);
@@ -440,6 +449,12 @@ public class ThryEditor : ShaderGUI
             foreach (ShaderPart part in current.propertyDictionary.Values)
                 if(IsSearchedFor(part, header_search_term))
                     part.Draw();
+        }
+
+        //visibility button overlay
+        if (show_eyeIcon_tutorial)
+        {
+            GuiHelper.DrawNotificationBox(visibilityButtonPosition, 200, 50, "Click here to show or hide parts of the shader.");
         }
 
         //Render Queue selection

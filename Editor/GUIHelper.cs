@@ -516,6 +516,14 @@ namespace Thry
             EditorGUI.LabelField(rect, "<size=16>" + shaderName + "</size>", Styles.masterLabel);
         }
 
+        public static void DrawNotificationBox(Rect position, int width, int height, string text)
+        {
+            Rect box_position = new Rect(position.x- width + position.width, position.y + position.height + 50, width,height);
+            Rect arrow_position = new Rect(position.x - 25, position.y + position.height, 50, 50);
+            GUI.DrawTexture(arrow_position, Styles.t_arrow, ScaleMode.ScaleToFit, true, 0, Color.red, 0, 0);
+            GUI.Box(box_position, text, Styles.notification_style);
+        }
+
         public static float CurrentIndentWidth()
         {
             return EditorGUI.indentLevel * 15;
