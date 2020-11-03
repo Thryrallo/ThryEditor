@@ -43,8 +43,9 @@ public class ThryEditor : ShaderGUI
 
     public static InputEvent input = new InputEvent();
     // Contains Editor Data
-    private EditorData current;
+    public EditorData editorData;
     public static EditorData currentlyDrawing;
+    public static ThryEditor active;
 
     private DefineableAction[] on_swap_to_actions = null;
     private bool swapped_to_shader = false;
@@ -55,7 +56,7 @@ public class ThryEditor : ShaderGUI
     {
         //load display names from file if it exists
         MaterialProperty label_file_property = null;
-        foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LABEL_FILE) label_file_property = m;
+        foreach (MaterialProperty m in editorData.properties) if (m.name == PROPERTY_NAME_LABEL_FILE) label_file_property = m;
         Dictionary<string, string> labels = new Dictionary<string, string>();
         if (label_file_property != null)
         {
@@ -135,7 +136,7 @@ public class ThryEditor : ShaderGUI
     {
         MaterialProperty locales_property = null;
         locale = null;
-        foreach (MaterialProperty m in current.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
+        foreach (MaterialProperty m in editorData.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
         if (locales_property != null)
         {
             string displayName = locales_property.displayName;
@@ -149,14 +150,14 @@ public class ThryEditor : ShaderGUI
     private void CollectAllProperties()
 	{
         //load display names from file if it exists
-        MaterialProperty[] props = current.properties;
+        MaterialProperty[] props = editorData.properties;
         Dictionary<string, string> labels = LoadDisplayNamesFromFile();
         LoadLocales();
 
-        current.propertyDictionary = new Dictionary<string, ShaderProperty>();
-        current.shaderParts = new List<ShaderPart>();
+        editorData.propertyDictionary = new Dictionary<string, ShaderProperty>();
+        editorData.shaderParts = new List<ShaderPart>();
         shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
-		Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if current header to parent new objects to
+		Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
 		headerStack.Push(shaderparts); //add top object as top object to stack
 		headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
 		footer = new List<ButtonData>(); //init footer list
@@ -184,7 +185,7 @@ public class ThryEditor : ShaderGUI
             int offset = options.offset + headerCount;
 
             //Handle keywords
-            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { current.shader, props[i].name });
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { editorData.shader, props[i].name });
             //if has custom drawer
             if (propertyHandler != null)
             {
@@ -197,7 +198,7 @@ public class ThryEditor : ShaderGUI
                         object keyword = keyWordField.GetValue(propertyDrawer);
                         if (keyword != null)
                         {
-                            foreach(Material m in current.materials)
+                            foreach(Material m in editorData.materials)
                             {
                                 if (m.GetFloat(props[i].name) == 1)
                                     m.EnableKeyword((string)keyword);
@@ -239,7 +240,8 @@ public class ThryEditor : ShaderGUI
                     break;
                 case ThryPropertyType.header:
                 case ThryPropertyType.header_start:
-                    ShaderHeader newHeader = new ShaderHeader(props[i], current.editor, displayName, offset, options);
+                    if (options.is_hideable) editorData.show_HeaderHider = true;
+                    ShaderHeader newHeader = new ShaderHeader(props[i], editorData.editor, displayName, offset, options);
                     headerStack.Peek().addPart(newHeader);
                     headerStack.Push(newHeader);
                     HeaderHider.InitHidden(newHeader);
@@ -257,7 +259,7 @@ public class ThryEditor : ShaderGUI
                 case ThryPropertyType.none:
                 case ThryPropertyType.property:
                     DrawingData.lastPropertyUsedCustomDrawer = false;
-                    current.editor.GetPropertyHeight(props[i]);
+                    editorData.editor.GetPropertyHeight(props[i]);
                     bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                     if (props[i].type == MaterialProperty.PropType.Texture)
                         newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false ,!DrawingData.lastPropertyUsedCustomDrawer);
@@ -280,20 +282,20 @@ public class ThryEditor : ShaderGUI
             if (newPorperty != null)
             {
                 newPart = newPorperty;
-                if (current.propertyDictionary.ContainsKey(props[i].name))
+                if (editorData.propertyDictionary.ContainsKey(props[i].name))
                     continue;
-                current.propertyDictionary.Add(props[i].name, newPorperty);
+                editorData.propertyDictionary.Add(props[i].name, newPorperty);
                 if (type != ThryPropertyType.none)
                     headerStack.Peek().addPart(newPorperty);
             }
             if (newPart != null)
-                current.shaderParts.Add(newPart);
+                editorData.shaderParts.Add(newPart);
         }
 	}
     
     private MaterialProperty FindProperty(string name)
     {
-        return System.Array.Find(current.properties,
+        return System.Array.Find(editorData.properties,
                        element => element.name == name);
     }
 
@@ -301,9 +303,9 @@ public class ThryEditor : ShaderGUI
 
     public void UpdateRenderQueueInstance()
     {
-        if (current.materials != null) foreach (Material m in current.materials)
+        if (editorData.materials != null) foreach (Material m in editorData.materials)
             if (m.shader.renderQueue != m.renderQueue)
-                Thry.MaterialHelper.UpdateRenderQueue(m, current.defaultShader);
+                Thry.MaterialHelper.UpdateRenderQueue(m, editorData.defaultShader);
     }
 
     //-------------Draw Functions----------------
@@ -314,18 +316,19 @@ public class ThryEditor : ShaderGUI
 
         show_eyeIcon_tutorial = !EditorPrefs.GetBool("thry_openeEyeIcon", false);
 
-        currentlyDrawing = current;
+        currentlyDrawing = editorData;
+        active = this;
 
         //get material targets
-        UnityEngine.Object[] targets = current.editor.targets;
-        current.materials = new Material[targets.Length];
-        for (int i = 0; i < targets.Length; i++) current.materials[i] = targets[i] as Material;
+        UnityEngine.Object[] targets = editorData.editor.targets;
+        editorData.materials = new Material[targets.Length];
+        for (int i = 0; i < targets.Length; i++) editorData.materials[i] = targets[i] as Material;
 
-        presetHandler = new PresetHandler(current.properties);
+        presetHandler = new PresetHandler(editorData.properties);
 
-        current.shader = current.materials[0].shader;
-        string defaultShaderName = current.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-        current.defaultShader = Shader.Find(defaultShaderName);
+        editorData.shader = editorData.materials[0].shader;
+        string defaultShaderName = editorData.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
+        editorData.defaultShader = Shader.Find(defaultShaderName);
 
         //collect shader properties
         CollectAllProperties();
@@ -333,7 +336,7 @@ public class ThryEditor : ShaderGUI
         //update render queue if render queue selection is deactivated
         if (!config.renderQueueShaders && !config.showRenderQueue)
         {
-            current.materials[0].renderQueue = current.defaultShader.renderQueue;
+            editorData.materials[0].renderQueue = editorData.defaultShader.renderQueue;
             UpdateRenderQueueInstance();
         }
 
@@ -344,11 +347,11 @@ public class ThryEditor : ShaderGUI
 
     private void AddResetProperty()
     {
-        if(current.materials[0].HasProperty("shader_is_using_thry_editor") == false)
+        if(editorData.materials[0].HasProperty("shader_is_using_thry_editor") == false)
         {
-            EditorChanger.AddThryProperty(current.materials[0].shader);
+            EditorChanger.AddThryProperty(editorData.materials[0].shader);
         }
-        current.materials[0].SetFloat("shader_is_using_thry_editor", 69);
+        editorData.materials[0].SetFloat("shader_is_using_thry_editor", 69);
     }
 
     public override void OnClosed(Material  material)
@@ -381,13 +384,13 @@ public class ThryEditor : ShaderGUI
 	{
         if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout))
         {
-            current = new EditorData();
-            current.editor = materialEditor;
-            current.gui = this;
-            current.textureArrayProperties = new List<ShaderProperty>();
-            current.firstCall = true;
+            editorData = new EditorData();
+            editorData.editor = materialEditor;
+            editorData.gui = this;
+            editorData.textureArrayProperties = new List<ShaderProperty>();
+            editorData.firstCall = true;
         }
-        current.properties = props;
+        editorData.properties = props;
 
         CheckInAnimationRecordMode();
         m_RenderersForAnimationMode = MaterialEditor.PrepareMaterialPropertiesForAnimationMode(props, GUI.enabled);
@@ -395,14 +398,15 @@ public class ThryEditor : ShaderGUI
 
         //first time call inits
         if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
-        current.shader = current.materials[0].shader;
+        editorData.shader = editorData.materials[0].shader;
 
-        currentlyDrawing = current;
+        currentlyDrawing = editorData;
+        active = this;
 
         //sync shader and get preset handler
         Config config = Config.Get();
-        if(current.materials!=null)
-            Mediator.SetActiveShader(current.materials[0].shader, presetHandler: presetHandler);
+        if(editorData.materials!=null)
+            Mediator.SetActiveShader(editorData.materials[0].shader, presetHandler: presetHandler);
 
 
         //TOP Bar
@@ -420,18 +424,8 @@ public class ThryEditor : ShaderGUI
         //draw master label if exists
         if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
 
-        //visibility button
-        Rect visibilityButtonPosition = GUILayoutUtility.GetRect(new GUIContent(Styles.visibility_icon), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20));
-        if (GUI.Button(visibilityButtonPosition, Styles.visibility_icon, EditorStyles.largeLabel))
-        {
-            HeaderHider.DrawHeaderHiderMenu(visibilityButtonPosition, current.shaderParts);
-            if (show_eyeIcon_tutorial)
-                EditorPrefs.SetBool("thry_openeEyeIcon", true);
-            show_eyeIcon_tutorial = false;
-        }
-        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
         //draw presets if exists
-        presetHandler.drawPresets(current.properties, current.materials);
+        presetHandler.drawPresets(editorData.properties, editorData.materials);
         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
 
         EditorGUILayout.EndHorizontal();
@@ -439,22 +433,35 @@ public class ThryEditor : ShaderGUI
         if (show_search_bar)
             header_search_term = EditorGUILayout.TextField(header_search_term);
 
+        //Visibility menu
+        if (editorData.show_HeaderHider)
+        {
+            EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
+            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(editorData.are_allHeadersHidden)))
+                HeaderHider.SetHidden(editorData.shaderParts, true);
+            if (GUILayout.Button("Advanced", Styles.style_toolbar_toggle(editorData.are_allHeadersShown)))
+                HeaderHider.SetHidden(editorData.shaderParts, false);
+            Rect right = GUILayoutUtility.GetRect(10, 20);
+            if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(!editorData.are_allHeadersHidden && !editorData.are_allHeadersShown)))
+                HeaderHider.DrawHeaderHiderMenu(right, editorData.shaderParts);
+
+            Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
+            GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel);
+
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
+        }
+
         //PROPERTIES
-        if(header_search_term == "" || show_search_bar==false) {
+        if (header_search_term == "" || show_search_bar==false) {
             foreach (ShaderPart part in shaderparts.parts)
                 part.Draw();
         }
         else
         {
-            foreach (ShaderPart part in current.propertyDictionary.Values)
+            foreach (ShaderPart part in editorData.propertyDictionary.Values)
                 if(IsSearchedFor(part, header_search_term))
                     part.Draw();
-        }
-
-        //visibility button overlay
-        if (show_eyeIcon_tutorial)
-        {
-            GuiHelper.DrawNotificationBox(visibilityButtonPosition, 200, 50, "Click here to show or hide parts of the shader.");
         }
 
         //Render Queue selection
@@ -462,9 +469,9 @@ public class ThryEditor : ShaderGUI
         {
             if (config.renderQueueShaders)
             {
-                customRenderQueueFieldInput = GuiHelper.drawRenderQueueSelector(current.defaultShader, customRenderQueueFieldInput);
-                EditorGUILayout.LabelField("Default: " + current.defaultShader.name);
-                EditorGUILayout.LabelField("Shader: " + current.shader.name);
+                customRenderQueueFieldInput = GuiHelper.drawRenderQueueSelector(editorData.defaultShader, customRenderQueueFieldInput);
+                EditorGUILayout.LabelField("Default: " + editorData.defaultShader.name);
+                EditorGUILayout.LabelField("Shader: " + editorData.shader.name);
             }
             else
             {
@@ -475,7 +482,9 @@ public class ThryEditor : ShaderGUI
         //footer
         GuiHelper.drawFooters(footer);
 
-        EditorGUILayout.LabelField("@UI Powered by Thryrallo", Styles.made_by_style);
+        if(GUILayout.Button("@UI Made by Thryrallo", Styles.made_by_style))
+            Application.OpenURL("https://www.twitter.com/thryrallo");
+        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
 
         Event e = Event.current;
         bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
@@ -494,7 +503,7 @@ public class ThryEditor : ShaderGUI
         //test if material has been reset
         if (wasUsed && e.type == EventType.Repaint)
         {
-            if (current.materials[0].HasProperty("shader_is_using_thry_editor") && current.materials[0].GetFloat("shader_is_using_thry_editor") != 69)
+            if (editorData.materials[0].HasProperty("shader_is_using_thry_editor") && editorData.materials[0].GetFloat("shader_is_using_thry_editor") != 69)
             {
                 reloadNextDraw = true;
                 HandleReset();
@@ -506,7 +515,7 @@ public class ThryEditor : ShaderGUI
         if (config.showRenderQueue && config.renderQueueShaders) UpdateRenderQueueInstance();
         if (input.HadMouseDownRepaint) input.HadMouseDown = false;
         input.HadMouseDownRepaint = false;
-        current.firstCall = false;
+        editorData.firstCall = false;
     }
 
     private bool IsSearchedFor( ShaderPart part, string term)
@@ -518,7 +527,7 @@ public class ThryEditor : ShaderGUI
 
     private void HandleReset()
     {
-        MaterialLinker.UnlinkAll(current.materials[0]);
+        MaterialLinker.UnlinkAll(editorData.materials[0]);
     }
 
     public static void reload()
@@ -748,5 +757,11 @@ public class ThryEditor : ShaderGUI
 
         color = Color.white;
         return false;
+    }
+
+    [MenuItem("Thry/Twitter")]
+    static void Init()
+    {
+        Application.OpenURL("https://www.twitter.com/thryrallo");
     }
 }

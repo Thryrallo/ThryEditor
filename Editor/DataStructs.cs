@@ -74,6 +74,9 @@ namespace Thry
         public List<ShaderPart> shaderParts;
         public List<ShaderProperty> textureArrayProperties;
         public bool firstCall;
+        public bool show_HeaderHider;
+        public bool are_allHeadersShown;
+        public bool are_allHeadersHidden;
     }
 
     public class DrawingData
