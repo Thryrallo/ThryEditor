@@ -54,7 +54,7 @@ namespace Thry
         public static GUIStyle notification_style { get; private set; } = CreateStyle(Color.red, fontSize: 12, worldWrap: true, baseStyle: GUI.skin.box);
 
         public static GUIStyle style_toolbar { get; private set; } = CreateStyle(baseStyle: Styles.dropDownHeader);
-        public static GUIStyle style_toolbar_toggle_active { get; private set; } = CreateStyle(backgroundTexture: MultipleTextureWithColor(Styles.dropDownHeader.onActive.background, new Color(1,1,1,1)), contentOffset: new Vector2(0, -2) ,alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
+        public static GUIStyle style_toolbar_toggle_active { get; private set; } = CreateStyle(backgroundTexture: MultiplyTextureWithColor(Styles.dropDownHeader.onActive.background, new Color(1,1,1,1)), contentOffset: new Vector2(0, -2) ,alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = CreateStyle(contentOffset: new Vector2(0, -2), alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle(bool active)
         {
@@ -134,7 +134,7 @@ namespace Thry
             return tex;
         }
 
-        private static Texture2D MultipleTextureWithColor(Texture2D ogtex, Color color)
+        private static Texture2D MultiplyTextureWithColor(Texture2D ogtex, Color color)
         {
             Texture2D tex = TextureHelper.GetReadableTexture(ogtex);
             for(int x = 0; x < tex.width; x++)

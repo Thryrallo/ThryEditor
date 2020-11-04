@@ -534,8 +534,8 @@ namespace Thry
 
         public enum HeaderHidingType
         {
-            show_all=1,
-            hide_all=2,
+            simple = 1,
+            show_all = 2,
             custom=3
         }
 
@@ -550,7 +550,7 @@ namespace Thry
                 headerHiddenSaved = Parser.Deserialize<Dictionary<string, bool>>(data);
             data = PersistentData.Get("HeaderHiderState");
             if (data == null)
-                state = HeaderHidingType.hide_all;
+                state = HeaderHidingType.simple;
             else
                 state = (HeaderHidingType)Enum.Parse(typeof(HeaderHidingType),data);
         }
@@ -561,7 +561,7 @@ namespace Thry
                 LoadHiddenHeaderNames();
             if (header.options.is_hideable == false)
                 return false;
-            bool is_hidden = header.options.is_hidden_default;
+            bool is_hidden = false;
             if (headerHiddenSaved.ContainsKey(header.materialProperty.name))
                 is_hidden =  headerHiddenSaved[header.materialProperty.name];
             else
@@ -613,14 +613,14 @@ namespace Thry
 
         public static bool IsHeaderHidden(ShaderPart header)
         {
-            return header.options.is_hideable && ((header.is_hidden && state == HeaderHidingType.custom) || (state == HeaderHidingType.hide_all));
+            return header.options.is_hideable && ((header.is_hidden && state == HeaderHidingType.custom) || (state == HeaderHidingType.simple && !header.options.is_visible_simple));
         }
 
         public static void HeaderHiderGUI(EditorData editorData)
         {
             EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
-            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(state == HeaderHidingType.hide_all)))
-                SetType(HeaderHidingType.hide_all);
+            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(state == HeaderHidingType.simple)))
+                SetType(HeaderHidingType.simple);
             if (GUILayout.Button("Advanced", Styles.style_toolbar_toggle(state == HeaderHidingType.show_all)))
                 SetType(HeaderHidingType.show_all);
             Rect right = GUILayoutUtility.GetRect(10, 20);
