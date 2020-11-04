@@ -532,7 +532,15 @@ namespace Thry
 
     public class HeaderHider{
 
+        public enum HeaderHidingType
+        {
+            show_all=1,
+            hide_all=2,
+            custom=3
+        }
+
         private static Dictionary<string,bool> headerHiddenSaved;
+        public static HeaderHidingType state { get; private set; }
         private static void LoadHiddenHeaderNames()
         {
             string data = PersistentData.Get("HiddenHeaderNames");
@@ -540,6 +548,11 @@ namespace Thry
                 headerHiddenSaved = new Dictionary<string, bool>();
             else
                 headerHiddenSaved = Parser.Deserialize<Dictionary<string, bool>>(data);
+            data = PersistentData.Get("HeaderHiderState");
+            if (data == null)
+                state = HeaderHidingType.hide_all;
+            else
+                state = (HeaderHidingType)Enum.Parse(typeof(HeaderHidingType),data);
         }
 
         public static bool InitHidden(ShaderHeader header)
@@ -554,8 +567,6 @@ namespace Thry
             else
                 headerHiddenSaved[header.materialProperty.name] = is_hidden;
             header.is_hidden = is_hidden;
-            ThryEditor.active.editorData.are_allHeadersHidden = ThryEditor.active.editorData.are_allHeadersHidden && is_hidden;
-            ThryEditor.active.editorData.are_allHeadersShown = ThryEditor.active.editorData.are_allHeadersShown && !is_hidden;
             return is_hidden;
         }
 
@@ -586,16 +597,43 @@ namespace Thry
 
         private static void UpdateValues()
         {
-            ThryEditor.active.editorData.are_allHeadersHidden = true;
-            ThryEditor.active.editorData.are_allHeadersShown = true;
             foreach (ShaderPart part in ThryEditor.currentlyDrawing.shaderParts)
             {
                 if (part.options.is_hideable == false)
                     continue;
                 bool is_hidden = part.is_hidden;
-                ThryEditor.active.editorData.are_allHeadersHidden = ThryEditor.active.editorData.are_allHeadersHidden && is_hidden;
-                ThryEditor.active.editorData.are_allHeadersShown = ThryEditor.active.editorData.are_allHeadersShown && !is_hidden;
             }
+        }
+
+        private static void SetType(HeaderHidingType newstate)
+        {
+            state = newstate;
+            PersistentData.Set("HeaderHiderState", state.ToString());
+        }
+
+        public static bool IsHeaderHidden(ShaderPart header)
+        {
+            return header.options.is_hideable && ((header.is_hidden && state == HeaderHidingType.custom) || (state == HeaderHidingType.hide_all));
+        }
+
+        public static void HeaderHiderGUI(EditorData editorData)
+        {
+            EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
+            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(state == HeaderHidingType.hide_all)))
+                SetType(HeaderHidingType.hide_all);
+            if (GUILayout.Button("Advanced", Styles.style_toolbar_toggle(state == HeaderHidingType.show_all)))
+                SetType(HeaderHidingType.show_all);
+            Rect right = GUILayoutUtility.GetRect(10, 20);
+            Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
+            if (GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel))
+                DrawHeaderHiderMenu(arrow, editorData.shaderParts);
+            if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(state == HeaderHidingType.custom)))
+                SetType(HeaderHidingType.custom);
+
+            GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel);
+
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space();
         }
 
         public static void DrawHeaderHiderMenu(Rect position, List<ShaderPart> shaderParts)

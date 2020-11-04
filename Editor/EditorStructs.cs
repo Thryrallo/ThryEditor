@@ -55,7 +55,7 @@ namespace Thry
 
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false)
         {
-            if (options.is_hideable && is_hidden)
+            if (HeaderHider.IsHeaderHidden(this))
                 return;
             bool is_enabled = DrawingData.is_enabled;
             if (options.condition_enable != null && is_enabled)

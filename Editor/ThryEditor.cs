@@ -436,20 +436,7 @@ public class ThryEditor : ShaderGUI
         //Visibility menu
         if (editorData.show_HeaderHider)
         {
-            EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
-            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(editorData.are_allHeadersHidden)))
-                HeaderHider.SetHidden(editorData.shaderParts, true);
-            if (GUILayout.Button("Advanced", Styles.style_toolbar_toggle(editorData.are_allHeadersShown)))
-                HeaderHider.SetHidden(editorData.shaderParts, false);
-            Rect right = GUILayoutUtility.GetRect(10, 20);
-            if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(!editorData.are_allHeadersHidden && !editorData.are_allHeadersShown)))
-                HeaderHider.DrawHeaderHiderMenu(right, editorData.shaderParts);
-
-            Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
-            GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel);
-
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.Space();
+            HeaderHider.HeaderHiderGUI(editorData);
         }
 
         //PROPERTIES
