@@ -54,7 +54,7 @@ namespace Thry
         public static GUIStyle notification_style { get; private set; } = CreateStyle(Color.red, fontSize: 12, worldWrap: true, baseStyle: GUI.skin.box);
 
         public static GUIStyle style_toolbar { get; private set; } = CreateStyle(baseStyle: Styles.dropDownHeader);
-        public static GUIStyle style_toolbar_toggle_active { get; private set; } = CreateStyle(backgroundTexture: MultiplyTextureWithColor(Styles.dropDownHeader.onActive.background, new Color(1,1,1,1)), contentOffset: new Vector2(0, -2) ,alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
+        public static GUIStyle style_toolbar_toggle_active { get; private set; } = CreateStyle(backgroundTexture: MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(0.5f,0.5f,0.5f,1)), color: Color.white, contentOffset: new Vector2(0, -2) ,alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = CreateStyle(contentOffset: new Vector2(0, -2), alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle(bool active)
         {
@@ -71,8 +71,17 @@ namespace Thry
                 style = new GUIStyle();
             else
                 style = new GUIStyle(baseStyle);
-            if(color!=null)
+            if (color != null)
+            {
                 style.normal.textColor = color.Value;
+                style.active.textColor = color.Value;
+                style.hover.textColor = color.Value;
+                style.focused.textColor = color.Value;
+                style.onActive.textColor = color.Value;
+                style.onFocused.textColor = color.Value;
+                style.onActive.textColor = color.Value;
+                style.onNormal.textColor = color.Value;
+            }
             style.alignment = alignment;
             if(fontSize != -1)
                 style.fontSize = fontSize;
