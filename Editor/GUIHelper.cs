@@ -48,17 +48,12 @@ namespace Thry
             {
                 //draw dropdown triangle
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
-                //if (Event.current.type == EventType.Repaint)
-                //    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
+                if (Event.current.type == EventType.Repaint)
+                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
 
                 if (DrawingData.is_enabled)
                 {
                     //test click and draw scale/offset
-                    if (ShaderEditor.input.MouseLeftClick && position.Contains(Event.current.mousePosition))
-                    {
-                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
-                        GUIUtility.ExitGUI();
-                    }
                     if (DrawingData.currentTexProperty.showFoldoutProperties)
                     {
                         EditorGUI.indentLevel += 2;
@@ -73,6 +68,11 @@ namespace Thry
                                 property.Draw(useEditorIndent: true);
                             }
                         EditorGUI.indentLevel -= 2;
+                    }
+                    if (ShaderEditor.input.MouseLeftClick && position.Contains(Event.current.mousePosition))
+                    {
+                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
+                        
                     }
                 }
             }
