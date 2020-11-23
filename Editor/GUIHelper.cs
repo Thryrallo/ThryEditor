@@ -38,7 +38,7 @@ namespace Thry
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, (hasFoldoutProperties ? "Click here for extra properties" : "") + (label.tooltip != "" ? " | " : "") + label.tooltip);
             if (DrawingData.currentTexProperty.reference_property_exists)
             {
-                ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
+                ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
                 Rect r = position;
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
@@ -48,31 +48,31 @@ namespace Thry
             {
                 //draw dropdown triangle
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
-                if (Event.current.type == EventType.Repaint)
-                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
+                //if (Event.current.type == EventType.Repaint)
+                //    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
 
                 if (DrawingData.is_enabled)
                 {
                     //test click and draw scale/offset
+                    if (ShaderEditor.input.MouseLeftClick && position.Contains(Event.current.mousePosition))
+                    {
+                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
+                        GUIUtility.ExitGUI();
+                    }
                     if (DrawingData.currentTexProperty.showFoldoutProperties)
                     {
                         EditorGUI.indentLevel += 2;
                         if (DrawingData.currentTexProperty.hasScaleOffset)
-                            ThryEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
+                            ShaderEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
 
                         PropertyOptions options = DrawingData.currentTexProperty.options;
                         if (options.reference_properties != null)
                             foreach (string r_property in options.reference_properties)
                             {
-                                ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
+                                ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[r_property];
                                 property.Draw(useEditorIndent: true);
                             }
                         EditorGUI.indentLevel -= 2;
-                    }
-                    if (ThryEditor.input.MouseClick && position.Contains(Event.current.mousePosition))
-                    {
-                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
-                        editor.Repaint();
                     }
                 }
             }
@@ -116,12 +116,12 @@ namespace Thry
                 border.height += 8;
                 foreach (string r_property in DrawingData.currentTexProperty.options.reference_properties)
                 {
-                    border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[r_property].materialProperty);
+                    border.height += editor.GetPropertyHeight(ShaderEditor.currentlyDrawing.propertyDictionary[r_property].materialProperty);
                 }
             }
             if (DrawingData.currentTexProperty.reference_property_exists)
             {
-                border.height += editor.GetPropertyHeight(ThryEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property].materialProperty);
+                border.height += editor.GetPropertyHeight(ShaderEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property].materialProperty);
             }
 
 
@@ -169,7 +169,7 @@ namespace Thry
             if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty == prop)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
-                ThryEditor.repaint();
+                ShaderEditor.repaint();
             }
             if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
             {
@@ -188,10 +188,10 @@ namespace Thry
             }
 
             if (!skip_drag_and_drop_handling)
-                if ((ThryEditor.input.is_drag_drop_event) && preview_rect.Contains(ThryEditor.input.mouse_position) && DragAndDrop.objectReferences[0] is Texture)
+                if ((ShaderEditor.input.is_drag_drop_event) && preview_rect.Contains(ShaderEditor.input.mouse_position) && DragAndDrop.objectReferences[0] is Texture)
                 {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-                    if (ThryEditor.input.is_drop_event)
+                    if (ShaderEditor.input.is_drop_event)
                     {
                         DragAndDrop.AcceptDrag();
                         prop.textureValue = (Texture)DragAndDrop.objectReferences[0];
@@ -218,14 +218,14 @@ namespace Thry
                 PropertyOptions options = DrawingData.currentTexProperty.options;
                 if (options.reference_property != null)
                 {
-                    ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[options.reference_property];
-                    ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                    ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[options.reference_property];
+                    ShaderEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
                 }
                 if (options.reference_properties != null)
                     foreach (string r_property in options.reference_properties)
                     {
-                        ShaderProperty property = ThryEditor.currentlyDrawing.propertyDictionary[r_property];
-                        ThryEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                        ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[r_property];
+                        ShaderEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
                     }
                 EditorGUIUtility.labelWidth = oldLabelWidth;
                 EditorGUI.indentLevel -= 2;
@@ -399,7 +399,7 @@ namespace Thry
         public static int drawRenderQueueSelector(Shader defaultShader, int customQueueFieldInput)
         {
             EditorGUILayout.BeginHorizontal();
-            if (customQueueFieldInput == -1) customQueueFieldInput = ThryEditor.currentlyDrawing.materials[0].renderQueue;
+            if (customQueueFieldInput == -1) customQueueFieldInput = ShaderEditor.currentlyDrawing.materials[0].renderQueue;
             int[] queueOptionsQueues = new int[] { defaultShader.renderQueue, 2000, 2450, 3000, customQueueFieldInput };
             string[] queueOptions = new string[] { "From Shader", "Geometry", "Alpha Test", "Transparency" };
             int queueSelection = 4;
@@ -421,9 +421,9 @@ namespace Thry
             int newCustomQueueFieldInput = EditorGUILayout.DelayedIntField(customQueueFieldInput, GUILayout.MaxWidth(65));
             bool isInput = customQueueFieldInput != newCustomQueueFieldInput || queueSelection != newQueueSelection;
             customQueueFieldInput = newCustomQueueFieldInput;
-            foreach (Material m in ThryEditor.currentlyDrawing.materials)
+            foreach (Material m in ShaderEditor.currentlyDrawing.materials)
                 if (customQueueFieldInput != m.renderQueue && isInput) m.renderQueue = customQueueFieldInput;
-            if (customQueueFieldInput != ThryEditor.currentlyDrawing.materials[0].renderQueue && !isInput) customQueueFieldInput = ThryEditor.currentlyDrawing.materials[0].renderQueue;
+            if (customQueueFieldInput != ShaderEditor.currentlyDrawing.materials[0].renderQueue && !isInput) customQueueFieldInput = ShaderEditor.currentlyDrawing.materials[0].renderQueue;
             EditorGUILayout.EndHorizontal();
             return customQueueFieldInput;
         }
@@ -449,8 +449,8 @@ namespace Thry
             selected = EditorGUILayout.Popup(label.text, selected, locales);
             if (EditorGUI.EndChangeCheck())
             {
-                ThryEditor.currentlyDrawing.propertyDictionary[ThryEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
-                ThryEditor.reload();
+                ShaderEditor.currentlyDrawing.propertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
+                ShaderEditor.reload();
             }
         }
 
@@ -597,7 +597,7 @@ namespace Thry
 
         private static void UpdateValues()
         {
-            foreach (ShaderPart part in ThryEditor.currentlyDrawing.shaderParts)
+            foreach (ShaderPart part in ShaderEditor.currentlyDrawing.shaderParts)
             {
                 if (part.options.is_hideable == false)
                     continue;
