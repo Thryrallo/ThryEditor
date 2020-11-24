@@ -48,6 +48,7 @@ namespace Thry
             {
                 //draw dropdown triangle
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
+                if (GUI.Button(thumbnailPos, "", Styles.none));
                 if (Event.current.type == EventType.Repaint)
                     EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
 

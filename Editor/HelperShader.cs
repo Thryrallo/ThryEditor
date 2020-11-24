@@ -309,7 +309,7 @@ namespace Thry
                 int length = thry_editor_shaders.Count;
                 for (int i = 0; i < length; i++)
                 {
-                    if (thry_editor_shaders[i].path == path)
+                    if (thry_editor_shaders[i] != null && thry_editor_shaders[i].path == path)
                     {
                         RemoveAt(i--);
                         length--;

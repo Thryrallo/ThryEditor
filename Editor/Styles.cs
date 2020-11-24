@@ -53,6 +53,8 @@ namespace Thry
         public static GUIStyle made_by_style { get; private set; } = CreateStyle(fontSize: 10);
         public static GUIStyle notification_style { get; private set; } = CreateStyle(Color.red, fontSize: 12, worldWrap: true, baseStyle: GUI.skin.box);
 
+        public static GUIStyle none { get; private set; } = CreateStyle();
+
         public static GUIStyle style_toolbar { get; private set; } = CreateStyle(baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle_active { get; private set; } = CreateStyle(backgroundTexture: MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1,1,1,1)), color: Color.white, contentOffset: new Vector2(0, -2) ,alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = CreateStyle(contentOffset: new Vector2(0, -2), alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
