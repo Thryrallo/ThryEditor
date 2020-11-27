@@ -168,7 +168,7 @@ namespace Thry
             Rect select_rect = new Rect(preview_rect);
             select_rect.height = 12;
             select_rect.y += preview_rect.height - 12;
-            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty == prop)
+            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty.name == prop.name)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
                 ShaderEditor.repaint();
