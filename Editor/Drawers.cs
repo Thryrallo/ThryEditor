@@ -148,18 +148,20 @@ namespace Thry
                 Init(prop);
 
             EditorGUI.BeginChangeCheck();
-            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 
             UpdateRects(position);
-            GradientField();
-
-            if (Event.current.type == EventType.MouseDown && border_position.Contains(Event.current.mousePosition))
+            if (ShaderEditor.input.MouseClick && border_position.Contains(Event.current.mousePosition))
             {
+                ShaderEditor.input.Use();
                 PropertyOptions options = ShaderEditor.currentlyDrawing.currentProperty.options;
                 GradientEditor.Open(data, prop, options.texture, options.force_texture_options, !options.force_texture_options);
             }
+
+            GuiHelper.drawSmallTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
+
+            GradientField();
         }
 
         private void UpdateRects(Rect position)

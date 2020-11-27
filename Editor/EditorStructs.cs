@@ -14,7 +14,7 @@ namespace Thry
         }
     }
 
-    public struct InputEvent
+    public class InputEvent
     {
         public bool HadMouseDownRepaint;
         public bool HadMouseDown;
@@ -27,6 +27,14 @@ namespace Thry
         public bool is_drop_event;
 
         public Vector2 mouse_position;
+
+        public void Use()
+        {
+            HadMouseDownRepaint = false;
+            HadMouseDown = false;
+            MouseClick = false;
+            MouseLeftClick = false;
+        }
     }
 
     public abstract class ShaderPart
