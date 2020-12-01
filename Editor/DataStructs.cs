@@ -33,13 +33,13 @@ namespace Thry
 
     public class URL
     {
-        public const string MODULE_COLLECTION = "https://ShaderEditor.thryrallo.de/files/modules.json";
-        public const string SETTINGS_MESSAGE_URL = "http://ShaderEditor.thryrallo.de/message.json";
+        public const string MODULE_COLLECTION = "https://thryeditor.thryrallo.de/files/modules.json";
+        public const string SETTINGS_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
 
-        public const string DATA_SHARE_SEND = "http://ShaderEditor.thryrallo.de/send_analytics.php";
-        public const string DATA_SHARE_GET_MY_DATA = "https://ShaderEditor.thryrallo.de/get_my_data.php";
-        public const string COUNT_PROJECT = "http://ShaderEditor.thryrallo.de/count_project.php";
-        public const string COUNT_USER = "http://ShaderEditor.thryrallo.de/count_user.php";
+        public const string DATA_SHARE_SEND = "http://thryeditor.thryrallo.de/send_analytics.php";
+        public const string DATA_SHARE_GET_MY_DATA = "https://thryeditor.thryrallo.de/get_my_data.php";
+        public const string COUNT_PROJECT = "http://thryeditor.thryrallo.de/count_project.php";
+        public const string COUNT_USER = "http://thryeditor.thryrallo.de/count_user.php";
     }
 
     public class DEFINE_SYMBOLS
