@@ -156,6 +156,22 @@ namespace Thry
 
         //converter methods
 
+        public static string GlobalizationFloat(string s)
+        {
+            s = s.Replace(",", ".");
+            if (System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencyDecimalSeparator == ",")
+                s = s.Replace(".", ",");
+            return s;
+        }
+
+        public static float ParseFloat(string s, float defaultF = 0)
+        {
+            s = GlobalizationFloat(s);
+            float f = defaultF;
+            float.TryParse(s, out f);
+            return f;
+        }
+
         public static type ConvertParsedToObject<type>(object parsed)
         {
             return (type)ParsedToObject(parsed, typeof(type));

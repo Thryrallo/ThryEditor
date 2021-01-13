@@ -321,15 +321,142 @@ namespace Thry
 
     public class HelpboxDrawer : MaterialPropertyDrawer
     {
+        readonly MessageType type;
+
+        public HelpboxDrawer()
+        {
+            type = MessageType.Info;
+        }
+
+        public HelpboxDrawer(float f)
+        {
+            type = (MessageType)(int)f;
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            EditorGUILayout.HelpBox(label.text, MessageType.Info);
+            EditorGUILayout.HelpBox(label.text, type);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
             DrawingData.lastPropertyUsedCustomDrawer = true;
             return 0;
+        }
+    }
+
+    public class ThryHeaderDecorator : MaterialPropertyDrawer
+    {
+        readonly string text;
+
+        public ThryHeaderDecorator(string text)
+        {
+            this.text = text;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            return 16f;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            position = EditorGUI.IndentedRect(position);
+            GUI.Label(position, text, EditorStyles.boldLabel);
+        }
+    }
+
+    public class ThryHeader2Drawer : MaterialPropertyDrawer
+    {
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            return 16f;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            position = EditorGUI.IndentedRect(position);
+            GUI.Label(position, label, EditorStyles.boldLabel);
+        }
+    }
+
+    //Original Code from https://github.com/DarthShader/Kaj-Unity-Shaders
+    /**MIT License
+
+    Copyright (c) 2020 DarthShader
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.**/
+    public class ThryShaderOptimizerLockButtonDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty shaderOptimizer, string label, MaterialEditor materialEditor)
+        {
+            // Theoretically this shouldn't ever happen since locked in materials have different shaders.
+            // But in a case where the material property says its locked in but the material really isn't, this
+            // will display and allow users to fix the property/lock in
+            if (shaderOptimizer.hasMixedValue)
+            {
+                EditorGUI.BeginChangeCheck();
+                GUILayout.Button("Lock in Optimized Shaders (" + materialEditor.targets.Length + " materials)");
+                if (EditorGUI.EndChangeCheck())
+                    foreach (Material m in materialEditor.targets)
+                    {
+                        m.SetFloat(shaderOptimizer.name, 1);
+                        MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
+                        if (!ShaderOptimizer.Lock(m, props)) // Error locking shader, revert property
+                            m.SetFloat(shaderOptimizer.name, 0);
+                    }
+            }
+            else
+            {
+                EditorGUI.BeginChangeCheck();
+                if (shaderOptimizer.floatValue == 0)
+                {
+                    if (materialEditor.targets.Length == 1)
+                        GUILayout.Button("Lock In Optimized Shader");
+                    else GUILayout.Button("Lock in Optimized Shaders (" + materialEditor.targets.Length + " materials)");
+                }
+                else GUILayout.Button("Unlock Shader");
+                if (EditorGUI.EndChangeCheck())
+                {
+                    shaderOptimizer.floatValue = shaderOptimizer.floatValue == 1 ? 0 : 1;
+                    if (shaderOptimizer.floatValue == 1)
+                    {
+                        foreach (Material m in materialEditor.targets)
+                        {
+                            MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
+                            if (!ShaderOptimizer.Lock(m, props))
+                                m.SetFloat(shaderOptimizer.name, 0);
+                        }
+                    }
+                    else
+                    {
+                        foreach (Material m in materialEditor.targets)
+                            if (!ShaderOptimizer.Unlock(m))
+                                m.SetFloat(shaderOptimizer.name, 1);
+                    }
+                }
+            }
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            return -2;
         }
     }
 }

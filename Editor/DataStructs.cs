@@ -102,6 +102,7 @@ namespace Thry
         public string tooltip = "";
         public DefineableAction altClick;
         public DefineableCondition condition_show = new DefineableCondition();
+        public string condition_showS;
         public DefineableCondition condition_enable = null;
         public PropertyValueAction[] on_value_actions;
         public DefineableAction[] actions;
@@ -251,8 +252,13 @@ namespace Thry
                     ShaderProperty prop = ShaderEditor.currentlyDrawing.propertyDictionary[obj];
                     if (prop == null) return false;
                     if (comparator == "##") return prop.materialProperty.floatValue == 1;
-                    if (comparator == "==") return "" + prop.materialProperty.floatValue == parts[1];
-                    if (comparator == "!=") return ""+prop.materialProperty.floatValue != parts[1];
+                    float f = Parser.ParseFloat(parts[1]);
+                    if (comparator == "==") return prop.materialProperty.floatValue == f;
+                    if (comparator == "!=") return prop.materialProperty.floatValue != f;
+                    if (comparator == "<") return prop.materialProperty.floatValue < f;
+                    if (comparator == ">") return prop.materialProperty.floatValue > f;
+                    if (comparator == ">=") return prop.materialProperty.floatValue >= f;
+                    if (comparator == "<=") return prop.materialProperty.floatValue <= f;
                     break;
                 case DefineableConditionType.EDITOR_VERSION:
                     int c_ev = Helper.compareVersions(Config.Get().verion, value);
@@ -264,7 +270,7 @@ namespace Thry
                     if (comparator == "<=") return c_ev == 1 || c_ev == 0;
                     break;
                 case DefineableConditionType.VRC_SDK_VERSION:
-                    if (VRCInterface.Get().sdk_information.type != VRCInterface.VRC_SDK_Type.NONE)
+                    if (VRCInterface.Get().sdk_information.type == VRCInterface.VRC_SDK_Type.NONE)
                         return false;
                     int c_vrc = Helper.compareVersions(VRCInterface.Get().sdk_information.installed_version, value);
                     if (comparator == "==") return c_vrc == 0;
@@ -323,13 +329,102 @@ namespace Thry
                 case DefineableConditionType.VRC_SDK_VERSION:
                     return "VRC_SDK_VERSION" + data;
                 case DefineableConditionType.AND:
-                    if (condition1 != null && condition2 != null) return condition1.ToString() + "&&" + condition2.ToString();
+                    if (condition1 != null && condition2 != null) return "("+condition1.ToString() + "&&" + condition2.ToString()+")";
                     break;
                 case DefineableConditionType.OR:
-                    if (condition1 != null && condition2 != null) return condition1.ToString()+"||"+condition2.ToString();
+                    if (condition1 != null && condition2 != null) return "("+condition1.ToString()+"||"+condition2.ToString()+")";
                     break;
             }
             return "";
+        }
+
+        public static DefineableCondition Parse(string s)
+        {
+            s = Strip(s);
+
+            int depth = 0;
+            for (int i = 0; i < s.Length - 1; i++)
+            {
+                char c = s[i];
+                char cc = s[i + 1];
+                if (c == '(')
+                    depth++;
+                else if (c == ')')
+                    depth--;
+
+                if (depth == 0)
+                {
+                    if (c == '&' && cc == '&')
+                    {
+                        DefineableCondition con = new DefineableCondition();
+                        con.type = DefineableConditionType.AND;
+                        con.condition1 = Parse(s.Substring(0, i));
+                        con.condition2 = Parse(s.Substring(i + 2, s.Length - i - 2));
+                        return con;
+                    }
+                    if (c == '|' && cc == '|')
+                    {
+                        DefineableCondition con = new DefineableCondition();
+                        con.type = DefineableConditionType.OR;
+                        con.condition1 = Parse(s.Substring(0, i));
+                        con.condition2 = Parse(s.Substring(i + 2, s.Length - i - 2));
+                        return con;
+                    }
+                }
+            }
+            for (int i = 0; i < s.Length - 1; i++)
+            {
+                char c = s[i];
+                char cc = s[i + 1];
+                if (c == '(')
+                    depth++;
+                else if (c == ')')
+                    depth--;
+
+                if (depth == 0)
+                {
+                    if (c == '>' || c=='<' || c=='=' || c == '!')
+                    {
+                        DefineableCondition con = new DefineableCondition();
+                        con.data = s;
+                        con.type = DefineableConditionType.PROPERTY_BOOL;
+                        if (s.StartsWith("VRCSDK"))
+                        {
+                            con.type = DefineableConditionType.VRC_SDK_VERSION;
+                            con.data = s.Replace("VRCSDK", "");
+                        }else if (s.StartsWith("ThryEditor"))
+                        {
+                            con.type = DefineableConditionType.VRC_SDK_VERSION;
+                            con.data = s.Replace("ThryEditor", "");
+                        }
+                        return con;
+                    }
+                }
+            }
+            return new DefineableCondition();
+        }
+
+        private static string Strip(string s)
+        {
+            s = s.Trim();
+            if (s.StartsWith("(") == false)
+                return s;
+            bool stripKlammer = true;
+            int depth = 0;
+            int i = 0;
+            foreach (char c in s)
+            {
+                if (c == '(')
+                    depth++;
+                else if (c == ')')
+                    depth--;
+                if (depth == 0 && i != 0 && i != s.Length - 1)
+                    stripKlammer = false;
+                i++;
+            }
+            if (stripKlammer)
+                return Strip(s.Substring(1, s.Length - 2));
+            return s;
         }
     }
 

@@ -84,7 +84,6 @@ namespace Thry
             if (options.condition_show.Test())
             {
                 PerformDraw(content, rect, useEditorIndent);
-                HandleKajAnimatable();
             }
             if (options.condition_enable != null && is_enabled)
             {
@@ -93,7 +92,7 @@ namespace Thry
             }
         }
 
-        private void HandleKajAnimatable()
+        public void HandleKajAnimatable()
         {
             Rect lastRect = GUILayoutUtility.GetLastRect();
             if (Event.current.isMouse && Event.current.button == 1 && lastRect.Contains(Event.current.mousePosition)){
@@ -278,6 +277,8 @@ namespace Thry
 
             EditorGUI.indentLevel = oldIndentLevel;
             if (DrawingData.lastGuiObjectHeaderRect.x == -1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
+            if(this is TextureProperty == false)
+                HandleKajAnimatable();
         }
 
         public virtual void PreDraw() { }
