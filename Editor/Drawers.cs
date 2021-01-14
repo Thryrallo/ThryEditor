@@ -1,8 +1,11 @@
 ﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -513,7 +516,104 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
             return -2;
+        }
+    }
+
+    // Enum with normal editor width, rather than MaterialEditor Default GUI widths
+    // Would be nice if Decorators could access Drawers too so this wouldn't be necessary for something to trivial
+    // Adapted from Unity interal MaterialEnumDrawer https://github.com/Unity-Technologies/UnityCsReference/
+    public class ThryWideEnumDrawer : MaterialPropertyDrawer
+    {
+        private readonly GUIContent[] names;
+        private readonly float[] values;
+
+        // internal Unity AssemblyHelper can't be accessed
+        private Type[] TypesFromAssembly(Assembly a)
+        {
+            if (a == null)
+                return new Type[0];
+            try
+            {
+                return a.GetTypes();
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                return new Type[0];
+            }
+        }
+        public ThryWideEnumDrawer(string enumName,int j)
+        {
+            var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(
+                x => TypesFromAssembly(x)).ToArray();
+            try
+            {
+                var enumType = types.FirstOrDefault(
+                    x => x.IsEnum && (x.Name == enumName || x.FullName == enumName)
+                );
+                var enumNames = Enum.GetNames(enumType);
+                names = new GUIContent[enumNames.Length];
+                for (int i = 0; i < enumNames.Length; ++i)
+                    names[i] = new GUIContent(enumNames[i]);
+
+                var enumVals = Enum.GetValues(enumType);
+                values = new float[enumVals.Length];
+                for (int i = 0; i < enumVals.Length; ++i)
+                    values[i] = (int)enumVals.GetValue(i);
+            }
+            catch (Exception)
+            {
+                Debug.LogWarningFormat("Failed to create  WideEnum, enum {0} not found", enumName);
+                throw;
+            }
+
+        }
+
+        public ThryWideEnumDrawer(string n1, float v1) : this(new[] { n1 }, new[] { v1 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2) : this(new[] { n1, n2 }, new[] { v1, v2 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2, string n3, float v3) : this(new[] { n1, n2, n3 }, new[] { v1, v2, v3 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2, string n3, float v3, string n4, float v4) : this(new[] { n1, n2, n3, n4 }, new[] { v1, v2, v3, v4 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2, string n3, float v3, string n4, float v4, string n5, float v5) : this(new[] { n1, n2, n3, n4, n5 }, new[] { v1, v2, v3, v4, v5 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2, string n3, float v3, string n4, float v4, string n5, float v5, string n6, float v6) : this(new[] { n1, n2, n3, n4, n5, n6 }, new[] { v1, v2, v3, v4, v5, v6 }) { }
+        public ThryWideEnumDrawer(string n1, float v1, string n2, float v2, string n3, float v3, string n4, float v4, string n5, float v5, string n6, float v6, string n7, float v7) : this(new[] { n1, n2, n3, n4, n5, n6, n7 }, new[] { v1, v2, v3, v4, v5, v6, v7 }) { }
+        public ThryWideEnumDrawer(string[] enumNames, float[] vals)
+        {
+            names = new GUIContent[enumNames.Length];
+            for (int i = 0; i < enumNames.Length; ++i)
+                names[i] = new GUIContent(enumNames[i]);
+
+            values = new float[vals.Length];
+            for (int i = 0; i < vals.Length; ++i)
+                values[i] = vals[i];
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            EditorGUI.BeginChangeCheck();
+            var value = prop.floatValue;
+            int selectedIndex = -1;
+            for (int i = 0; i < values.Length; i++)
+                if (values[i] == value)
+                {
+                    selectedIndex = i;
+                    break;
+                }
+
+            float labelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 0f;
+            var selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck())
+                prop.floatValue = values[selIndex];
+            EditorGUIUtility.labelWidth = labelWidth;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
         }
     }
 }
