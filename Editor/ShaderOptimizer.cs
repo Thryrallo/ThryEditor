@@ -1168,11 +1168,7 @@ namespace Thry
 
         public static void SetLockForAllChildren(GameObject parent, int lockState)
         {
-            foreach (MeshRenderer meshRenderer in parent.GetComponentsInChildren<MeshRenderer>(true))
-            {
-                SetLockedForAllMaterials(meshRenderer.sharedMaterials, lockState);
-            }
-            foreach (SkinnedMeshRenderer meshRenderer in parent.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            foreach (Renderer meshRenderer in parent.GetComponentsInChildren<Renderer>(true))
             {
                 SetLockedForAllMaterials(meshRenderer.sharedMaterials, lockState);
             }
