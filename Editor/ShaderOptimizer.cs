@@ -1135,7 +1135,7 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Unlock All", true)]
         static bool UnlockAllMaterialsValidator()
         {
-            return SelectedObjectsAreMaterials();
+            return SelectedObjectsAreLockableMaterials();
         }
 
         [MenuItem("Assets/Thry/Materials/Lock All", false, 303)]
@@ -1148,14 +1148,20 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Lock All", true)]
         static bool LockAllMaterialsValidator()
         {
-            return SelectedObjectsAreMaterials();
+            return SelectedObjectsAreLockableMaterials();
         }
 
-        static bool SelectedObjectsAreMaterials()
+        static bool SelectedObjectsAreLockableMaterials()
         {
             if (Selection.assetGUIDs != null && Selection.assetGUIDs.Length > 0)
             {
-                return Selection.assetGUIDs.All(g => AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) == typeof(Material));
+                return Selection.assetGUIDs.All(g =>
+                {
+                    if (AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) != typeof(Material))
+                        return false;
+                    Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
+                    return (m.HasProperty("_ShaderOptimizerEnabled") || m.HasProperty("_ShaderOptimizer"));
+                });
             }
             return false;
         }
@@ -1176,6 +1182,8 @@ namespace Thry
         {
             foreach (Material m in materials)
             {
+                if (m.HasProperty("_ShaderOptimizerEnabled") == false && m.HasProperty("_ShaderOptimizer") == false)
+                    continue;
                 if (lockState == 1)
                     ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
                 else
