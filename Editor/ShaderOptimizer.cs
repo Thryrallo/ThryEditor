@@ -30,6 +30,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
+using System.Linq;
 
 // v9
 
@@ -1104,6 +1105,84 @@ namespace Thry
             //AssetDatabase.Refresh();
 
             return true;
+        }
+
+        [MenuItem("GameObject/Thry/Materials/Unlock All", false,0)]
+        static void UnlockAllChildren()
+        {
+            foreach(GameObject parent in Selection.objects)
+            {
+                SetLockForAllChildren(parent, 0);
+            }
+        }
+
+        [MenuItem("GameObject/Thry/Materials/Lock All", false,0)]
+        static void LockAllChildren()
+        {
+            foreach (GameObject parent in Selection.objects)
+            {
+                SetLockForAllChildren(parent, 1);
+            }
+        }
+
+        [MenuItem("Assets/Thry/Materials/Unlock All", false, 303)]
+        static void UnlockAllMaterials()
+        {
+            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
+            SetLockedForAllMaterials(mats, 0);
+        }
+
+        [MenuItem("Assets/Thry/Materials/Unlock All", true)]
+        static bool UnlockAllMaterialsValidator()
+        {
+            return SelectedObjectsAreMaterials();
+        }
+
+        [MenuItem("Assets/Thry/Materials/Lock All", false, 303)]
+        static void LockAllMaterials()
+        {
+            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
+            SetLockedForAllMaterials(mats, 1);
+        }
+
+        [MenuItem("Assets/Thry/Materials/Lock All", true)]
+        static bool LockAllMaterialsValidator()
+        {
+            return SelectedObjectsAreMaterials();
+        }
+
+        static bool SelectedObjectsAreMaterials()
+        {
+            if (Selection.assetGUIDs != null && Selection.assetGUIDs.Length > 0)
+            {
+                return Selection.assetGUIDs.All(g => AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) == typeof(Material));
+            }
+            return false;
+        }
+
+        public static void SetLockForAllChildren(GameObject parent, int lockState)
+        {
+            foreach (MeshRenderer meshRenderer in parent.GetComponentsInChildren<MeshRenderer>())
+            {
+                SetLockedForAllMaterials(meshRenderer.sharedMaterials, lockState);
+            }
+            foreach (SkinnedMeshRenderer meshRenderer in parent.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                SetLockedForAllMaterials(meshRenderer.sharedMaterials, lockState);
+            }
+        }
+
+        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState)
+        {
+            foreach (Material m in materials)
+            {
+                if (lockState == 1)
+                    ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
+                else
+                    ShaderOptimizer.Unlock(m);
+                m.SetFloat("_ShaderOptimizerEnabled", lockState);
+                m.SetFloat("_ShaderOptimizer", lockState);
+            }
         }
     }
 }

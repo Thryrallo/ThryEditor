@@ -921,6 +921,23 @@ namespace Thry
 
         //==============Texture Array=================
 
+        [MenuItem("Assets/Thry/Flipboos/Images 2 TextureArray",false, 303)]
+        static void SelectionImagesToTextureArray()
+        {
+            string[] paths = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).ToArray();
+            PathsToTexture2DArray(paths);
+        }
+
+        [MenuItem("Assets/Thry/Flipboos/Images 2 TextureArray", true)]
+        static bool SelectionImagesToTextureArrayValidator()
+        {
+            if (Selection.assetGUIDs != null && Selection.assetGUIDs.Length > 0)
+            {
+                return Selection.assetGUIDs.All(g => Regex.IsMatch(AssetDatabase.GUIDToAssetPath(g), @".*\.(png)|(jpg)"));
+            }
+            return false;
+        }
+
         public static Texture2DArray PathsToTexture2DArray(string[] paths)
         {
             if (paths[0].EndsWith(".gif"))
@@ -945,6 +962,22 @@ namespace Thry
                 }
             }
             return null;
+        }
+
+        [MenuItem("Assets/Thry/Flipboos/Gif 2 TextureArray",false, 303)]
+        static void SelectionGifToTextureArray()
+        {
+            GifToTextureArray(AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]));
+        }
+
+        [MenuItem("Assets/Thry/Flipboos/Gif 2 TextureArray", true)]
+        static bool SelectionGifToTextureArrayValidator()
+        {
+            if (Selection.assetGUIDs != null && Selection.assetGUIDs.Length > 0)
+            {
+                return AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]).EndsWith(".gif");
+            }
+            return false;
         }
 
         public static Texture2DArray GifToTextureArray(string path)

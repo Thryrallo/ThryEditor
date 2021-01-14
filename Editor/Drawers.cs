@@ -498,6 +498,17 @@ namespace Thry
                     }
                 }
             }
+            if (ShaderEditor.input.MouseClick)
+            {
+                if (GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+                {
+                    foreach (Material m in materialEditor.targets)
+                    {
+                        ShaderOptimizer.Unlock(m);
+                        m.SetFloat(shaderOptimizer.name, 0);
+                    }
+                }
+            }
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
