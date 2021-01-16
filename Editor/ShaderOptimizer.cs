@@ -1168,9 +1168,9 @@ namespace Thry
 
         public static void SetLockForAllChildren(GameObject parent, int lockState)
         {
-            foreach (Renderer meshRenderer in parent.GetComponentsInChildren<Renderer>(true))
+            foreach (Renderer renderer in parent.GetComponentsInChildren<Renderer>(true))
             {
-                SetLockedForAllMaterials(meshRenderer.sharedMaterials, lockState);
+                SetLockedForAllMaterials(renderer.sharedMaterials, lockState);
             }
         }
 
@@ -1178,6 +1178,8 @@ namespace Thry
         {
             foreach (Material m in materials)
             {
+                if (m == null)
+                    continue;
                 if (m.HasProperty("_ShaderOptimizerEnabled") == false && m.HasProperty("_ShaderOptimizer") == false)
                     continue;
                 if (lockState == 1)

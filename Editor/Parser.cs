@@ -47,8 +47,8 @@ namespace Thry
             }
             catch (Exception e)
             {
-                Debug.Log(e.ToString());
-                Debug.LogError(s + " cannot be parsed to object of type " + typeof(T).ToString());
+                Debug.LogWarning(e.ToString());
+                Debug.LogWarning(s + " cannot be parsed to object of type " + typeof(T).ToString());
                 ret = Activator.CreateInstance(typeof(T));
             }
             return (T)ret;
@@ -237,6 +237,8 @@ namespace Thry
 
         private static object ConvertToArray(object parsed, Type objtype)
         {
+            if (parsed == null || (parsed is string && (string)parsed == ""))
+                return null;
             Type array_obj_type = objtype.GetElementType();
             List<object> list_strings = (List<object>)parsed;
             IList return_list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(array_obj_type));
