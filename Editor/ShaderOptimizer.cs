@@ -205,8 +205,24 @@ namespace Thry
 
         public static readonly string[] IllegalPropertyRenames = new string[]
         {
-            "_MainTex",
-            "_Color"
+            "_Color",
+            "_EmissionColor",
+            "_BumpScale",
+            "_Cutoff",
+            "_DetailNormalMapScale",
+            "_DstBlend",
+            "_GlossMapScale",
+            "_Glossiness",
+            "_GlossyReflections",
+            "_Metallic",
+            "_Mode",
+            "_OcclusionStrength",
+            "_Parallax",
+            "_SmoothnessTextureChannel",
+            "_SpecularHighlights",
+            "_SrcBlend",
+            "_UVSec",
+            "_ZWrite"
         };
 
         public enum PropertyType
