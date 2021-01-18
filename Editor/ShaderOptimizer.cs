@@ -283,7 +283,7 @@ namespace Thry
 
             Dictionary<string, bool> uncommentKeywords = new Dictionary<string, bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
-            List<MaterialProperty> animatedProps = new List<MaterialProperty>();
+            List<MaterialProperty> animatedPropsToRename = new List<MaterialProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -366,7 +366,7 @@ namespace Thry
                         // be sure we're not renaming stuff like _MainTex that should always be named the same
                         if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
                         {
-                            animatedProps.Add(prop);
+                            animatedPropsToRename.Add(prop);
                         }
                     }
 
@@ -464,7 +464,7 @@ namespace Thry
                 // replace property names when prop is animated
                 for (int i = 0; i < psf.lines.Length; i++)
                 {
-                    foreach (var animProp in animatedProps)
+                    foreach (var animProp in animatedPropsToRename)
                     {
                         // don't have to match if that prop does not even exist in that line
                         if (psf.lines[i].Contains(animProp.name))
@@ -644,7 +644,7 @@ namespace Thry
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
 
-            foreach (var animProp in animatedProps)
+            foreach (var animProp in animatedPropsToRename)
             {
                 var newName = animProp.name + "_" + animPropertySuffix;
                 switch (animProp.type)
