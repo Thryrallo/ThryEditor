@@ -647,7 +647,6 @@ namespace Thry
             foreach (var animProp in animatedProps)
             {
                 var newName = animProp.name + "_" + animPropertySuffix;
-                Debug.Log($"Setting {animProp.type} value for {animProp.name}-> {newName} to {animProp.floatValue}");
                 switch (animProp.type)
                 {
                     case MaterialProperty.PropType.Color:
