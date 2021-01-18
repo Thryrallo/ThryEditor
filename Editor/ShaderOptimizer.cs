@@ -366,7 +366,10 @@ namespace Thry
                         // be sure we're not renaming stuff like _MainTex that should always be named the same
                         if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
                         {
-                            animatedPropsToRename.Add(prop);
+                            if (prop.type != MaterialProperty.PropType.Texture)
+                            {
+                                animatedPropsToRename.Add(prop);
+                            }
                         }
                     }
 
@@ -661,11 +664,8 @@ namespace Thry
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.floatValue);
                         break;
-                    case MaterialProperty.PropType.Texture: // we shouldn't rename textures, but just in case
-                        material.SetTexture(newName, animProp.textureValue);
-                        break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
                 }
             }
 
