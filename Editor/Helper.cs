@@ -943,26 +943,42 @@ namespace Thry
 
         public static Texture2DArray PathsToTexture2DArray(string[] paths)
         {
+            if (paths.Length == 0)
+                return null;
             if (paths[0].EndsWith(".gif"))
             {
                 return Converter.GifToTextureArray(paths[0]);
-
             }
-            else if (paths != null && paths.Length > 0)
+            else
             {
-                List<Texture2D> textures = new List<Texture2D>();
-                foreach (string p in paths)
+#if SYSTEM_DRAWING
+                Texture2D[] wew = paths.Where(p=> AssetDatabase.GetMainAssetTypeAtPath(p).IsAssignableFrom(typeof(Texture2D))).Select(p => AssetDatabase.LoadAssetAtPath<Texture2D>(p)).ToArray();
+                Array.Sort(wew, (UnityEngine.Object one, UnityEngine.Object two) => one.name.CompareTo(two.name));
+                Selection.objects = wew;
+                Texture2DArray texture2DArray = new Texture2DArray(wew[0].width, wew[0].height, wew.Length, wew[0].format, true);
+
+                string assetPath = AssetDatabase.GetAssetPath(wew[0]);
+                assetPath = assetPath.Remove(assetPath.LastIndexOf('/')) + "/Texture2DArray.asset";
+
+                for (int i = 0; i < wew.Length; i++)
                 {
-                    if (AssetDatabase.GetMainAssetTypeAtPath(p).IsSubclassOf(typeof(Texture)))
-                        textures.Add(TextureHelper.GetReadableTexture(AssetDatabase.LoadAssetAtPath<Texture>(p)));
+                    for (int m = 0; m < wew[i].mipmapCount; m++)
+                    {
+                        Graphics.CopyTexture(wew[i], 0, m, texture2DArray, i, m);
+                    }
                 }
-                if (textures.Count > 0)
-                {
-                    Texture2DArray arrayTexture = Textre2DArrayToAsset(textures.ToArray());
-                    AssetDatabase.CreateAsset(arrayTexture, Path.GetDirectoryName(paths[0])+"/"+Path.GetFileNameWithoutExtension(paths[0])+ ".asset");
-                    AssetDatabase.SaveAssets();
-                    return arrayTexture;
-                }
+
+                texture2DArray.anisoLevel = wew[0].anisoLevel;
+                texture2DArray.wrapModeU = wew[0].wrapModeU;
+                texture2DArray.wrapModeV = wew[0].wrapModeV;
+                texture2DArray.Apply(false, true);
+
+                AssetDatabase.CreateAsset(texture2DArray, assetPath);
+                AssetDatabase.SaveAssets();
+
+                Selection.activeObject = texture2DArray;
+                return texture2DArray;
+#endif
             }
             return null;
         }
