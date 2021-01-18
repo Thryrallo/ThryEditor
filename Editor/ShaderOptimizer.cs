@@ -203,6 +203,12 @@ namespace Thry
             "fixed4"
         };
 
+        public static readonly string[] IllegalPropertyRenames = new string[]
+        {
+            "_MainTex",
+            "_Color"
+        };
+
         public enum PropertyType
         {
             Vector,
@@ -255,6 +261,9 @@ namespace Thry
             string newShaderName = "Hidden/" + shader.name + "/" + material.name + "-" + smallguid;
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
 
+            // suffix for animated properties when renaming is enabled
+            string animPropertySuffix = new string(material.name.Trim().ToLower().Where(char.IsLetter).ToArray());
+
             // Get collection of all properties to replace
             // Simultaneously build a string of #defines for each CGPROGRAM
             StringBuilder definesSB = new StringBuilder();
@@ -274,6 +283,7 @@ namespace Thry
 
             Dictionary<string, bool> uncommentKeywords = new Dictionary<string, bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
+            List<MaterialProperty> animatedProps = new List<MaterialProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -348,8 +358,20 @@ namespace Thry
                 // Check for the convention 'Animated' Property to be true otherwise assume all properties are constant
                 // nlogn trash
                 MaterialProperty animatedProp = Array.Find(props, x => x.name == prop.name + AnimatedPropertySuffix);
-                if (animatedProp != null && animatedProp.floatValue == 1)
+                if (animatedProp != null && animatedProp.floatValue > 0)
+                {
+                    // check if we're renaming the property as well
+                    if (animatedProp.floatValue == 2)
+                    {
+                        // be sure we're not renaming stuff like _MainTex that should always be named the same
+                        if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
+                        {
+                            animatedProps.Add(prop);
+                        }
+                    }
+
                     continue;
+                }
 
                 PropertyData propData;
                 switch(prop.type)
@@ -438,6 +460,25 @@ namespace Thry
             // Will still be a massive n2 operation from each line * each property
             foreach (ParsedShaderFile psf in shaderFiles)
             {
+
+                // replace property names when prop is animated
+                for (int i = 0; i < psf.lines.Length; i++)
+                {
+                    foreach (var animProp in animatedProps)
+                    {
+                        // don't have to match if that prop does not even exist in that line
+                        if (psf.lines[i].Contains(animProp.name))
+                        {
+                            string pattern = @"[^a-zA-Z]+" + animProp.name + @"[^a-zA-Z]+";
+                            if (Regex.IsMatch(psf.lines[i], pattern))
+                            {
+                                psf.lines[i] = psf.lines[i].Replace(animProp.name, animProp.name + "_" + animPropertySuffix);
+                            }
+                        }
+                    }
+                }
+
+
                 // Shader file specific stuff
                 if (psf.filePath.EndsWith(".shader"))
                 {
@@ -602,6 +643,32 @@ namespace Thry
             material.shader = newShader;
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
+
+            foreach (var animProp in animatedProps)
+            {
+                var newName = animProp.name + "_" + animPropertySuffix;
+                Debug.Log($"Setting {animProp.type} value for {animProp.name}-> {newName} to {animProp.floatValue}");
+                switch (animProp.type)
+                {
+                    case MaterialProperty.PropType.Color:
+                        material.SetColor(newName, animProp.colorValue);
+                        break;
+                    case MaterialProperty.PropType.Vector:
+                        material.SetVector(newName, animProp.vectorValue);
+                        break;
+                    case MaterialProperty.PropType.Float:
+                        material.SetFloat(newName, animProp.floatValue);
+                        break;
+                    case MaterialProperty.PropType.Range:
+                        material.SetFloat(newName, animProp.floatValue);
+                        break;
+                    case MaterialProperty.PropType.Texture: // we shouldn't rename textures, but just in case
+                        material.SetTexture(newName, animProp.textureValue);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
 
             return true;
         }
