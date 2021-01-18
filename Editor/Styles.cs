@@ -118,6 +118,7 @@ namespace Thry
         public static Texture2D presets_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.PRESETS_ICON);
         public static Texture2D t_arrow { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ARROW);
         public static Texture2D texture_animated { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED);
+        public static Texture2D texture_animated_renamed { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED), Color.red);
 
 
         private static Texture2D LoadTextureByNameAndEditorType(string normalName, string proName)
@@ -155,6 +156,23 @@ namespace Thry
                 {
                     Color oColor = tex.GetPixel(x, y);
                     tex.SetPixel(x, y, oColor * color);
+                }
+            }
+            tex.Apply();
+            return tex;
+        }
+
+        private static Texture2D OverrideTextureWithColor(Texture2D ogtex, Color color)
+        {
+            Texture2D tex = TextureHelper.GetReadableTexture(ogtex);
+            for (int x = 0; x < tex.width; x++)
+            {
+                for (int y = 0; y < tex.height; y++)
+                {
+                    Color oColor = tex.GetPixel(x, y);
+                    if (oColor.a == 0f)
+                        continue;
+                    tex.SetPixel(x, y, color);
                 }
             }
             tex.Apply();

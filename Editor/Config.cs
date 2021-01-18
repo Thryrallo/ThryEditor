@@ -64,6 +64,7 @@ namespace Thry
         //actual config class
         public TextureDisplayType default_texture_type = TextureDisplayType.small;
         public bool showRenderQueue = true;
+        public bool renameAnimatedProps = false;
 
         public string locale = "English";
 
