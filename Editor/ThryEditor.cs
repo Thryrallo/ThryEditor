@@ -92,6 +92,11 @@ namespace Thry
                         options.condition_show = DefineableCondition.Parse(options.condition_showS);
                         //Debug.Log(options.condition_show.ToString());
                     }
+                    if(options.on_value != null)
+                    {
+                        options.on_value_actions = PropertyValueAction.ParseToArray(options.on_value);
+                        //Debug.Log(Parser.Serialize(options.on_value_actions));
+                    }
                     return options;
                 }
             }

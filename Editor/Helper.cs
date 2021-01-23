@@ -579,7 +579,7 @@ namespace Thry
             else if (p.type == MaterialProperty.PropType.Float || p.type == MaterialProperty.PropType.Range)
             {
                 float f_value;
-                if (float.TryParse(value, out f_value))
+                if (float.TryParse(Parser.GlobalizationFloat(value), out f_value))
                 {
                     p.floatValue = f_value;
                     string[] drawer = ShaderHelper.GetDrawer(p);

@@ -105,6 +105,7 @@ namespace Thry
         public string condition_showS;
         public DefineableCondition condition_enable = null;
         public PropertyValueAction[] on_value_actions;
+        public string on_value;
         public DefineableAction[] actions;
         public ButtonData button_right;
         public TextureData texture;
@@ -187,6 +188,40 @@ namespace Thry
             }
             return false;
         }
+
+        // value,property1=value1,property2=value2
+        public static PropertyValueAction Parse(string s)
+        {
+            s = s.Trim();
+            string[] parts = s.Split(',');
+            if (parts.Length > 0)
+            {
+                PropertyValueAction propaction = new PropertyValueAction();
+                propaction.value = parts[0];
+                List<DefineableAction> actions = new List<DefineableAction>();
+                for (int i = 1; i < parts.Length; i++)
+                {
+                    actions.Add(DefineableAction.Parse(parts[i]));
+                }
+                propaction.actions = actions.ToArray();
+                return propaction;
+            }
+            return null;
+        }
+
+        public static PropertyValueAction[] ParseToArray(string s)
+        {
+            //s = v,p1=v1,p2=v2;v3
+            List<PropertyValueAction> propactions = new List<PropertyValueAction>();
+            string[] parts = s.Split(';');
+            foreach (string p in parts)
+            {
+                PropertyValueAction propertyValueAction = PropertyValueAction.Parse(p);
+                if (propertyValueAction != null)
+                    propactions.Add(propertyValueAction);
+            }
+            return propactions.ToArray();
+        }
     }
 
     public class DefineableAction
@@ -203,7 +238,7 @@ namespace Thry
                 case DefineableActionType.SET_PROPERTY:
                     string[] set = Regex.Split(data, @"=");
                     if (set.Length > 1)
-                        MaterialHelper.SetMaterialValue(set[0], set[1]);
+                        MaterialHelper.SetMaterialValue(set[0].Trim(), set[1].Trim());
                     break;
                 case DefineableActionType.SET_SHADER:
                     Shader shader = Shader.Find(data);
@@ -214,6 +249,26 @@ namespace Thry
                     }
                     break;
             }
+        }
+
+        public static DefineableAction Parse(string s)
+        {
+            s = s.Trim();
+            DefineableAction action = new DefineableAction();
+            if (s.StartsWith("https") || s.StartsWith("www"))
+            {
+                action.type = DefineableActionType.URL;
+                action.data = s;
+            }else if (s.StartsWith("shader="))
+            {
+                action.type = DefineableActionType.SET_SHADER;
+                action.data = s.Replace("shader=","");
+            }else if (s.Contains("="))
+            {
+                action.type = DefineableActionType.SET_PROPERTY;
+                action.data = s;
+            }
+            return action;
         }
     }
 
