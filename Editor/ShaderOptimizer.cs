@@ -382,7 +382,8 @@ namespace Thry
                         // be sure we're not renaming stuff like _MainTex that should always be named the same
                         if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
                         {
-                            if (prop.type != MaterialProperty.PropType.Texture)
+                            if (prop.type != MaterialProperty.PropType.Texture &&
+                                !prop.name.EndsWith("UV") && !prop.name.EndsWith("Pan")) // this property might be animated, but we're not allowed to rename it. this will break things.
                             {
                                 animatedPropsToRename.Add(prop);
                             }
@@ -488,10 +489,15 @@ namespace Thry
                         // don't have to match if that prop does not even exist in that line
                         if (psf.lines[i].Contains(animProp.name))
                         {
-                            string pattern = @"[^a-zA-Z]+" + animProp.name + @"[^a-zA-Z]+";
-                            if (Regex.IsMatch(psf.lines[i], pattern))
+                            // this is a terrible hack. but it makes sure we're not removing whatever comes after our property name. no idea how to do this better.
+                            // there should be only 1 character after our property name which is either a whitespace, a semicolon or a bracket.
+                            // this will ensure we're not removing it.
+                            // let's say it like this. It just works.
+                            string pattern = animProp.name + @"([^a-zA-Z\d])";
+                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern);
+                            foreach (Match match in matches)
                             {
-                                psf.lines[i] = psf.lines[i].Replace(animProp.name, animProp.name + "_" + animPropertySuffix);
+                                psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
                             }
                         }
                     }
