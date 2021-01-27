@@ -1270,11 +1270,16 @@ namespace Thry
                 {
                     if (m == null)
                         continue;
-                    if (m.HasProperty("_ShaderOptimizerEnabled") == false && m.HasProperty("_ShaderOptimizer") == false)
-                        continue;
-                    if (lockState == 1)
-                        ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
+                    bool isLocked = false;
+                    if (m.HasProperty("_ShaderOptimizerEnabled"))
+                        isLocked = m.GetFloat("_ShaderOptimizerEnabled") == 1;
+                    else if (m.HasProperty("_ShaderOptimizer"))
+                        isLocked = m.GetFloat("_ShaderOptimizer") == 1;
                     else
+                        continue;
+                    if (lockState == 1 && isLocked == false)
+                        ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
+                    else if(lockState == 0 && isLocked)
                         ShaderOptimizer.Unlock(m);
                     m.SetFloat("_ShaderOptimizerEnabled", lockState);
                     m.SetFloat("_ShaderOptimizer", lockState);
