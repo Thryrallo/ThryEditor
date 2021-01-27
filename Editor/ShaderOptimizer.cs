@@ -1266,16 +1266,24 @@ namespace Thry
         {
             foreach (Material m in materials)
             {
-                if (m == null)
-                    continue;
-                if (m.HasProperty("_ShaderOptimizerEnabled") == false && m.HasProperty("_ShaderOptimizer") == false)
-                    continue;
-                if (lockState == 1)
-                    ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
-                else
-                    ShaderOptimizer.Unlock(m);
-                m.SetFloat("_ShaderOptimizerEnabled", lockState);
-                m.SetFloat("_ShaderOptimizer", lockState);
+                try
+                {
+                    if (m == null)
+                        continue;
+                    if (m.HasProperty("_ShaderOptimizerEnabled") == false && m.HasProperty("_ShaderOptimizer") == false)
+                        continue;
+                    if (lockState == 1)
+                        ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }));
+                    else
+                        ShaderOptimizer.Unlock(m);
+                    m.SetFloat("_ShaderOptimizerEnabled", lockState);
+                    m.SetFloat("_ShaderOptimizer", lockState);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Could not un-/lock material " + m.name);
+                    Debug.LogError(e);
+                }
             }
         }
     }
