@@ -62,7 +62,8 @@ namespace Thry
                         if (DrawingData.currentTexProperty.hasScaleOffset)
                         {
                             ShaderEditor.currentlyDrawing.editor.TextureScaleOffsetProperty(prop);
-                            DrawingData.currentTexProperty.HandleKajAnimatable();
+                            if(DrawingData.currentTexProperty.is_animatable)
+                                DrawingData.currentTexProperty.HandleKajAnimatable();
                         }
 
                         PropertyOptions options = DrawingData.currentTexProperty.options;
@@ -216,7 +217,8 @@ namespace Thry
                     scale_offset_rect.width -= 2 + preview_rect.width + 10 + 30;
                     scale_offset_rect.x += 30;
                     editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
-                    DrawingData.currentTexProperty.HandleKajAnimatable();
+                    if (DrawingData.currentTexProperty.is_animatable)
+                        DrawingData.currentTexProperty.HandleKajAnimatable();
                 }
                 float oldLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 128;
@@ -232,7 +234,8 @@ namespace Thry
                     {
                         ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[r_property];
                         ShaderEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
-                        property.HandleKajAnimatable();
+                        if (DrawingData.currentTexProperty.is_animatable)
+                            property.HandleKajAnimatable();
                     }
                 EditorGUIUtility.labelWidth = oldLabelWidth;
                 EditorGUI.indentLevel -= 2;
@@ -716,11 +719,14 @@ namespace Thry
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate ()
             {
-                property.CopyFromMaterial(Mediator.copy_material);
-                List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
-                if (linked_materials != null)
-                    foreach (Material m in linked_materials)
-                        property.CopyToMaterial(m);
+                if (Mediator.copy_material != null)
+                {
+                    property.CopyFromMaterial(Mediator.copy_material);
+                    List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
+                    if (linked_materials != null)
+                        foreach (Material m in linked_materials)
+                            property.CopyToMaterial(m);
+                }
             });
             menu.DropDown(position);
         }

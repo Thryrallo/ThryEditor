@@ -458,6 +458,7 @@ namespace Thry
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.
             // But in a case where the material property says its locked in but the material really isn't, this
             // will display and allow users to fix the property/lock in
+            ShaderEditor.currentlyDrawing.isLockedMaterial = shaderOptimizer.floatValue == 1;
             if (shaderOptimizer.hasMixedValue)
             {
                 EditorGUI.BeginChangeCheck();

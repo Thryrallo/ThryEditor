@@ -9,6 +9,7 @@ using UnityEngine;
 using Thry;
 using System;
 using System.Reflection;
+using System.Linq;
 
 namespace Thry
 {
@@ -337,6 +338,10 @@ namespace Thry
             editorData.shader = editorData.materials[0].shader;
             string defaultShaderName = editorData.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
             editorData.defaultShader = Shader.Find(defaultShaderName);
+            
+            editorData.animPropertySuffix = new string(editorData.materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
+
+            currentlyDrawing = editorData;
 
             //collect shader properties
             CollectAllProperties();
@@ -442,9 +447,10 @@ namespace Thry
 
             bool isMaterialLocked = editorData.use_ShaderOptimizer && editorData.propertyDictionary["_ShaderOptimizerEnabled"].materialProperty.floatValue == 1;
             if (editorData.use_ShaderOptimizer)
+            {
                 editorData.propertyDictionary["_ShaderOptimizerEnabled"].Draw();
+            }
 
-            EditorGUI.BeginDisabledGroup(isMaterialLocked);
             //PROPERTIES
             if (header_search_term == "" || show_search_bar == false)
             {
@@ -457,7 +463,6 @@ namespace Thry
                     if (IsSearchedFor(part, header_search_term))
                         part.Draw();
             }
-            EditorGUI.EndDisabledGroup();
 
             //Render Queue selection
             if (config.showRenderQueue)

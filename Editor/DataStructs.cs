@@ -77,6 +77,8 @@ namespace Thry
         public bool firstCall;
         public bool show_HeaderHider;
         public bool use_ShaderOptimizer;
+        public bool isLockedMaterial;
+        public string animPropertySuffix;
     }
 
     public class DrawingData
