@@ -81,7 +81,7 @@ namespace Thry
 
         private PropertyOptions ExtractExtraOptionsFromDisplayName(ref string displayName)
         {
-            if (displayName.Contains("--"))
+            if (displayName.Contains(EXTRA_OPTIONS_PREFIX))
             {
                 string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
                 displayName = parts[0];

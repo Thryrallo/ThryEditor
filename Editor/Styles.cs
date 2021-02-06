@@ -60,8 +60,13 @@ namespace Thry
         public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = CreateStyle(contentOffset: new Vector2(0, -2), alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
         public static GUIStyle style_toolbar_toggle(bool active)
         {
+            //hack fix. for some people bg texture seems to dissapear, i cant figure out why, so ill just check here and set it if it's gone
             if (active)
+            {
+                if (style_toolbar_toggle_active.normal.background == null)
+                    MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1, 1, 1, 1));
                 return style_toolbar_toggle_active;
+            }
             return style_toolbar_toggle_unactive;
         }
 

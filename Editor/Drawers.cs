@@ -280,38 +280,50 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
+            ShaderProperty shaderProperty = (ShaderProperty)ShaderEditor.currentlyDrawing.currentProperty;
             GuiHelper.drawConfigTextureProperty(position, prop, label, editor, true, true);
 
             string n = "";
             if (prop.textureValue != null) n = prop.textureValue.name;
-            if ((ShaderEditor.input.is_drag_drop_event) && DrawingData.lastGuiObjectRect.Contains(ShaderEditor.input.mouse_position))
+            if ((ShaderEditor.input.is_drag_drop_event) && position.Contains(ShaderEditor.input.mouse_position))
             {
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
                 if (ShaderEditor.input.is_drop_event)
                 {
                     DragAndDrop.AcceptDrag();
-                    HanldeDropEvent(prop);
+                    HanldeDropEvent(prop, shaderProperty);
                 }
             }
             if (ShaderEditor.currentlyDrawing.firstCall)
-                ShaderEditor.currentlyDrawing.textureArrayProperties.Add((ShaderProperty)ShaderEditor.currentlyDrawing.currentProperty);
+                ShaderEditor.currentlyDrawing.textureArrayProperties.Add(shaderProperty);
         }
 
-        public void HanldeDropEvent(MaterialProperty prop)
+        public void HanldeDropEvent(MaterialProperty prop, ShaderProperty shaderProperty)
         {
             string[] paths = DragAndDrop.paths;
             if (AssetDatabase.GetMainAssetTypeAtPath(paths[0]) != typeof(Texture2DArray))
             {
                 Texture2DArray tex = Converter.PathsToTexture2DArray(paths);
                 MaterialHelper.UpdateTargetsValue(prop, tex);
-                if (ShaderEditor.currentlyDrawing.currentProperty.options.reference_property != null)
+                if (shaderProperty.options.reference_property != null)
                 {
                     ShaderProperty p;
-                    ShaderEditor.currentlyDrawing.propertyDictionary.TryGetValue(ShaderEditor.currentlyDrawing.currentProperty.options.reference_property, out p);
-                    if (p != null)
+                    if(ShaderEditor.currentlyDrawing.propertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
                         MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
                 }
                 prop.textureValue = tex;
+            }
+            else
+            {
+                Texture2DArray tex = AssetDatabase.LoadAssetAtPath<Texture2DArray>(paths[0]);
+                prop.textureValue = tex;
+                if (shaderProperty.options.reference_property != null)
+                {
+                    Debug.Log("has refernece depth: "+ tex.depth);
+                    ShaderProperty p;
+                    if(ShaderEditor.currentlyDrawing.propertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
+                        MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
+                }
             }
         }
 
