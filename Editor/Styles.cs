@@ -64,7 +64,8 @@ namespace Thry
             if (active)
             {
                 if (style_toolbar_toggle_active.normal.background == null)
-                    MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1, 1, 1, 1));
+                    Debug.Log("Texture be bye bye. what why why ??");
+                //style_toolbar_toggle_active = CreateStyle(backgroundTexture: MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1, 1, 1, 1)), color: Color.white, contentOffset: new Vector2(0, -2), alignment: TextAnchor.MiddleCenter, baseStyle: Styles.dropDownHeader);
                 return style_toolbar_toggle_active;
             }
             return style_toolbar_toggle_unactive;
