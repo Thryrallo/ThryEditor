@@ -480,7 +480,6 @@ namespace Thry
             // Will still be a massive n2 operation from each line * each property
             foreach (ParsedShaderFile psf in shaderFiles)
             {
-
                 // replace property names when prop is animated
                 for (int i = 0; i < psf.lines.Length; i++)
                 {
@@ -493,8 +492,9 @@ namespace Thry
                             // there should be only 1 character after our property name which is either a whitespace, a semicolon or a bracket.
                             // this will ensure we're not removing it.
                             // let's say it like this. It just works.
-                            string pattern = animProp.name + @"([^a-zA-Z\d])";
-                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern);
+                            string pattern = animProp.name + @"([^a-zA-Z\d]|$)";
+                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern, RegexOptions.Multiline);
+                            Debug.Log(psf.lines[i] + "," + pattern + "," + matches.Count);
                             foreach (Match match in matches)
                             {
                                 psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
@@ -502,7 +502,6 @@ namespace Thry
                         }
                     }
                 }
-
 
                 // Shader file specific stuff
                 if (psf.filePath.EndsWith(".shader"))
