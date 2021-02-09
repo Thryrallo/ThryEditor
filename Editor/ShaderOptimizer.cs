@@ -494,7 +494,6 @@ namespace Thry
                             // let's say it like this. It just works.
                             string pattern = animProp.name + @"([^a-zA-Z\d]|$)";
                             MatchCollection matches = Regex.Matches(psf.lines[i], pattern, RegexOptions.Multiline);
-                            Debug.Log(psf.lines[i] + "," + pattern + "," + matches.Count);
                             foreach (Match match in matches)
                             {
                                 psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
