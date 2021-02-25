@@ -275,7 +275,8 @@ namespace Thry
             string materialFolder = Path.GetDirectoryName(materialFilePath);
             string smallguid = Guid.NewGuid().ToString().Split('-')[0];
             string newShaderName = "Hidden/" + shader.name + "/" + material.name + "-" + smallguid;
-            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
+            //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
+            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + smallguid + "/";
 
             // suffix for animated properties when renaming is enabled
             string animPropertySuffix = new string(material.name.Trim().ToLower().Where(char.IsLetter).ToArray());
@@ -473,6 +474,8 @@ namespace Thry
             if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros))
                 return false;
 
+            int longestCommonDirectoryPathLength = GetLongestCommonDirectoryLength(shaderFiles.Select(s => s.filePath).ToArray());
+
             int commentKeywords = 0;
 
             List<GrabPassReplacement> grabPassVariables = new List<GrabPassReplacement>();
@@ -626,17 +629,19 @@ namespace Thry
                     sb.AppendLine(line);
                 string output = sb.ToString();
 
+                //cull shader file path
+                string filePath = psf.filePath.Substring(longestCommonDirectoryPathLength,psf.filePath.Length- longestCommonDirectoryPathLength);
                 // Write output to file
-                (new FileInfo(newShaderDirectory + psf.filePath)).Directory.Create();
+                (new FileInfo(newShaderDirectory + filePath)).Directory.Create();
                 try
                 {
-                    StreamWriter sw = new StreamWriter(newShaderDirectory + psf.filePath);
+                    StreamWriter sw = new StreamWriter(newShaderDirectory + filePath);
                     sw.Write(output);
                     sw.Close();
                 }
                 catch (IOException e)
                 {
-                    Debug.LogError("[Kaj Shader Optimizer] Processed shader file " + newShaderDirectory + psf.filePath + " could not be written.  " + e.ToString());
+                    Debug.LogError("[Kaj Shader Optimizer] Processed shader file " + newShaderDirectory + filePath + " could not be written.  " + e.ToString());
                     return false;
                 }
             }
@@ -645,7 +650,7 @@ namespace Thry
             // Write original shader to override tag
             material.SetOverrideTag("OriginalShader", shader.name);
             // Write the new shader folder name in an override tag so it will be deleted 
-            material.SetOverrideTag("OptimizedShaderFolder", material.name + "-" + smallguid);
+            material.SetOverrideTag("OptimizedShaderFolder", smallguid);
 
             // Remove ALL keywords
             foreach (string keyword in material.shaderKeywords)
@@ -690,6 +695,30 @@ namespace Thry
             }
 
             return true;
+        }
+
+        /** <summary>Find longest common directoy</summary> */
+        public static int GetLongestCommonDirectoryLength(string[] s)
+        {
+            int k = s[0].Length;
+            for (int i = 1; i < s.Length; i++)
+            {
+                k = Math.Min(k, s[i].Length);
+                for (int j = 0; j < k; j++)
+                    if ( AreCharsInPathEqual(s[i][j] , s[0][j]) == false)
+                    {
+                        k = j;
+                        break;
+                    }
+            }
+            string p = s[0].Substring(0, k);
+            if (Directory.Exists(p)) return p.Length;
+            else return Path.GetDirectoryName(p).Length;
+        }
+
+        private static bool AreCharsInPathEqual(char c1, char c2)
+        {
+            return (c1 == c2) || ((c1 == '/' || c1 == '\\') && (c2 == '/' || c2 == '\\'));
         }
 
         // Preprocess each file for macros and includes
@@ -1156,7 +1185,8 @@ namespace Thry
             if (originalShaderName == "")
             {
                 Debug.LogError("[Kaj Shader Optimizer] Original shader not saved to material, could not unlock shader");
-                return false;
+                return material.shader.name.StartsWith("Hidden/") == false;
+
             }
             Shader orignalShader = Shader.Find(originalShaderName);
             if (orignalShader == null)
