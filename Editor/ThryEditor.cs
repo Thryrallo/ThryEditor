@@ -10,6 +10,7 @@ using Thry;
 using System;
 using System.Reflection;
 using System.Linq;
+using System.Threading;
 
 namespace Thry
 {
@@ -113,36 +114,45 @@ namespace Thry
         {
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
-            if (name.StartsWith("footer_") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.footer;
-            if (name.StartsWith("m_end") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.header_end;
-            if (name.StartsWith("m_start") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.header_start;
-            if (name.StartsWith("m_") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.header;
-            if (name.StartsWith("g_start") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.group_start;
-            if (name.StartsWith("g_end") && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.group_end;
-            if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
-                return ThryPropertyType.space;
+
             if (name == PROPERTY_NAME_MASTER_LABEL)
                 return ThryPropertyType.master_label;
             if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS)
                 return ThryPropertyType.on_swap_to;
-            if (name.Replace(" ", "") == "Instancing" && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.instancing;
-            if (name.Replace(" ", "") == "DSGI" && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.dsgi;
-            if (name.Replace(" ", "") == "LightmapFlags" && flags == MaterialProperty.PropFlags.HideInInspector)
-                return ThryPropertyType.lightmap_flags;
-            if (name.Replace(" ", "") == PROPERTY_NAME_LOCALE)
-                return ThryPropertyType.locale;
             if (name == "_ShaderOptimizerEnabled")
                 return ThryPropertyType.shader_optimizer;
-            if (flags != MaterialProperty.PropFlags.HideInInspector && !options.hide_in_inspector)
-                return ThryPropertyType.property;
+
+            if (flags == MaterialProperty.PropFlags.HideInInspector)
+            {
+                if (name.StartsWith("m_"))
+                    return ThryPropertyType.header;
+                if(name.StartsWith("m_start"))
+                    return ThryPropertyType.header_start;
+                if (name.StartsWith("m_end"))
+                    return ThryPropertyType.header_end;
+                if (name.StartsWith("g_start"))
+                    return ThryPropertyType.group_start;
+                if (name.StartsWith("g_end"))
+                    return ThryPropertyType.group_end;
+                if (name.StartsWith("footer_"))
+                    return ThryPropertyType.footer;
+                string noWhiteSpaces = name.Replace(" ", "");
+                if (noWhiteSpaces == "Instancing")
+                    return ThryPropertyType.instancing;
+                if (noWhiteSpaces == "DSGI")
+                    return ThryPropertyType.dsgi;
+                if (noWhiteSpaces == "LightmapFlags")
+                    return ThryPropertyType.lightmap_flags;
+                if (noWhiteSpaces == PROPERTY_NAME_LOCALE)
+                    return ThryPropertyType.locale;
+                if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
+                    return ThryPropertyType.space;
+            }
+            else
+            {
+                if (!options.hide_in_inspector)
+                    return ThryPropertyType.property;
+            }
             return ThryPropertyType.none;
         }
 
@@ -179,53 +189,24 @@ namespace Thry
             footer = new List<ButtonData>(); //init footer list
             int headerCount = 0;
 
-            Type materialPropertyDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialPropertyHandler");
-            MethodInfo getPropertyHandlerMethod = materialPropertyDrawerType.GetMethod("GetShaderPropertyHandler", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
-            PropertyInfo drawerProperty = materialPropertyDrawerType.GetProperty("propertyDrawer");
-
-            Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
-            FieldInfo keyWordField = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
-
             for (int i = 0; i < props.Length; i++)
             {
                 string displayName = props[i].displayName;
+
+                //Load from label file
+                if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
+
+                //Check for locale
                 if (locale != null)
                     foreach (string key in locale.GetAllKeys())
                         if (displayName.Contains("locale::" + key))
                             displayName = displayName.Replace("locale::" + key, locale.Get(key));
-                displayName = Regex.Replace(displayName, @"''", "\"");
+                displayName = displayName.Replace("''", "\"");
 
-                if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
+                //extract json data from display name
                 PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
                 int offset = options.offset + headerCount;
-
-                //Handle keywords
-                object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { editorData.shader, props[i].name });
-                //if has custom drawer
-                if (propertyHandler != null)
-                {
-                    object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
-                    //if custom drawer exists
-                    if (propertyDrawer != null)
-                    {
-                        if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
-                        {
-                            object keyword = keyWordField.GetValue(propertyDrawer);
-                            if (keyword != null)
-                            {
-                                foreach (Material m in editorData.materials)
-                                {
-                                    if (m.GetFloat(props[i].name) == 1)
-                                        m.EnableKeyword((string)keyword);
-                                    else
-                                        m.DisableKeyword((string)keyword);
-                                }
-                            }
-                        }
-                    }
-                }
-
 
                 ThryPropertyType type = GetPropertyType(props[i], options);
                 switch (type)
@@ -319,9 +300,56 @@ namespace Thry
                            element => element.name == name);
         }
 
+
+        // Not in use cause getPropertyHandlerMethod is really expensive
+        private void HandleKeyworDrawers()
+        {
+            foreach(MaterialProperty p in editorData.properties)
+            {
+                HandleKeyworDrawers(p);
+            }
+        }
+
+        // Not in use cause getPropertyHandlerMethod is really expensive
+        private void HandleKeyworDrawers(MaterialProperty p)
+        {
+            Type materialPropertyDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialPropertyHandler");
+            MethodInfo getPropertyHandlerMethod = materialPropertyDrawerType.GetMethod("GetShaderPropertyHandler", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            PropertyInfo drawerProperty = materialPropertyDrawerType.GetProperty("propertyDrawer");
+
+            Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
+            FieldInfo keyWordField = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
+            //Handle keywords
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { editorData.shader, p.name });
+            //if has custom drawer
+            if (propertyHandler != null)
+            {
+                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
+                //if custom drawer exists
+                if (propertyDrawer != null)
+                {
+                    // if is keyword drawer make sure all materials have the keyworkd enabled / disabled depending on their value
+                    if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
+                    {
+                        object keyword = keyWordField.GetValue(propertyDrawer);
+                        if (keyword != null)
+                        {
+                            foreach (Material m in editorData.materials)
+                            {
+                                if (m.GetFloat(p.name) == 1)
+                                    m.EnableKeyword((string)keyword);
+                                else
+                                    m.DisableKeyword((string)keyword);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         //-------------Draw Functions----------------
 
-        public void OnOpen()
+        public void InitlizeThryUI()
         {
             Config config = Config.Get();
 
@@ -404,7 +432,7 @@ namespace Thry
             UpdateEvents();
 
             //first time call inits
-            if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) OnOpen();
+            if (firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout)) InitlizeThryUI();
             editorData.shader = editorData.materials[0].shader;
 
             currentlyDrawing = editorData;
@@ -414,7 +442,6 @@ namespace Thry
             Config config = Config.Get();
             if (editorData.materials != null)
                 Mediator.SetActiveShader(editorData.materials[0].shader);
-
 
             //TOP Bar
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
