@@ -301,6 +301,7 @@ namespace Thry
             Dictionary<string, bool> uncommentKeywords = new Dictionary<string, bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
             List<MaterialProperty> animatedPropsToRename = new List<MaterialProperty>();
+            List<MaterialProperty> animatedPropsToDuplicate = new List<MaterialProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -380,13 +381,18 @@ namespace Thry
                     // check if we're renaming the property as well
                     if (animatedProp.floatValue == 2)
                     {
-                        // be sure we're not renaming stuff like _MainTex that should always be named the same
-                        if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
-                        {
-                            if (prop.type != MaterialProperty.PropType.Texture &&
+                        if (prop.type != MaterialProperty.PropType.Texture &&
                                 !prop.name.EndsWith("UV") && !prop.name.EndsWith("Pan")) // this property might be animated, but we're not allowed to rename it. this will break things.
+                        {
+                            // be sure we're not renaming stuff like _MainTex that should always be named the same
+                            if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
                             {
                                 animatedPropsToRename.Add(prop);
+                            }
+                            else
+                            {
+                                //stuff like main tex should be duplicated instead of rename to allow for fallback
+                                animatedPropsToDuplicate.Add(prop);
                             }
                         }
                     }
@@ -501,6 +507,25 @@ namespace Thry
                             {
                                 psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
                             }
+                        }
+                    }
+                    foreach (var animProp in animatedPropsToDuplicate)
+                    {
+                        if (psf.lines[i].Contains(animProp.name))
+                        {
+                            //if Line is property definition duplicate it
+                            bool isDefinition = Regex.Match(psf.lines[i], animProp.name+@"\s*\(""[^""]+""\s*,\s*\w+\)\s*=\s").Success;
+                            string og = null;
+                            if (isDefinition)
+                                og = psf.lines[i];
+                            string pattern = animProp.name + @"([^a-zA-Z\d]|$)";
+                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern, RegexOptions.Multiline);
+                            foreach (Match match in matches)
+                            {
+                                psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
+                            }
+                            if (isDefinition)
+                                psf.lines[i] = og + "\r\n" + psf.lines[i];
                         }
                     }
                 }

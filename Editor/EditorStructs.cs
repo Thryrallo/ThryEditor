@@ -64,17 +64,30 @@ namespace Thry
 
             if (prop == null)
                 return;
-            this.kaj_isAnimatedProperty = ShaderEditor.FindProperty(ShaderEditor.currentlyDrawing.properties, Regex.Replace(prop.name, "_"+ShaderEditor.currentlyDrawing.animPropertySuffix+@"$","") + "Animated");
-            this.is_animatable = kaj_isAnimatedProperty != null;
+            bool propHasDuplicate = ShaderEditor.active.GetMaterialProperty(prop.name + "_"+ ShaderEditor.currentlyDrawing.animPropertySuffix) != null;
+            if (propHasDuplicate)
+            {
+                this.kaj_isAnimatedProperty = null;
+            }
+            else
+            {
+                this.kaj_isAnimatedProperty = ShaderEditor.active.GetMaterialProperty(prop.name + "Animated");
+                if (prop.name.Contains(ShaderEditor.currentlyDrawing.animPropertySuffix)) {
+                    string ogNameAnimated = prop.name.Substring(0, prop.name.Length - ShaderEditor.currentlyDrawing.animPropertySuffix.Length - 1) + "Animated";
+                    MaterialProperty p = ShaderEditor.active.GetMaterialProperty(ogNameAnimated);
+                    if (p != null) this.kaj_isAnimatedProperty = p;
+                }
+            }
+            this.is_animatable = this.kaj_isAnimatedProperty != null;
             this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
             this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;
         }
 
-        public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false);
+        public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m);
         public abstract void CopyToMaterial(Material m);
 
-        public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false)
+        public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (HeaderHider.IsHeaderHidden(this))
                 return;
@@ -86,7 +99,7 @@ namespace Thry
             }
             if (options.condition_show.Test())
             {
-                PerformDraw(content, rect, useEditorIndent);
+                PerformDraw(content, rect, useEditorIndent, isInHeader);
             }
             if (addDisableGroup)
             {
@@ -127,12 +140,12 @@ namespace Thry
             }
         }
 
-        private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent)
+        private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent, bool isInHeader = false)
         {
             if (content == null)
                 content = this.content;
             EditorGUI.BeginChangeCheck();
-            DrawInternal(content, rect, useEditorIndent);
+            DrawInternal(content, rect, useEditorIndent, isInHeader);
             if (EditorGUI.EndChangeCheck())
             {
                 if (options.on_value_actions != null)
@@ -187,7 +200,7 @@ namespace Thry
                 p.CopyToMaterial(m);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             foreach (ShaderPart part in parts)
             {
@@ -210,7 +223,7 @@ namespace Thry
             this.guiElement = new ShaderEditorHeader(prop);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ShaderEditor.currentlyDrawing.currentProperty = this;
             EditorGUI.BeginChangeCheck();
@@ -274,13 +287,13 @@ namespace Thry
                 MaterialHelper.CopyPropertyValueToMaterial(kaj_isAnimatedProperty, m);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false)
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             PreDraw();
             ShaderEditor.currentlyDrawing.currentProperty = this;
             this.materialProperty = ShaderEditor.currentlyDrawing.properties[property_index];
             if (ShaderEditor.currentlyDrawing.isLockedMaterial)
-                EditorGUI.BeginDisabledGroup(ShaderEditor.currentlyDrawing.isLockedMaterial && !(is_animatable && (is_animated || is_renaming)));
+                EditorGUI.BeginDisabledGroup(!(is_animatable && (is_animated || is_renaming)));
             if (rect != null)
                 DrawingData.lastGuiObjectHeaderRect = rect.r;
             else
@@ -305,7 +318,7 @@ namespace Thry
 
             EditorGUI.indentLevel = oldIndentLevel;
             if (DrawingData.lastGuiObjectHeaderRect.x == -1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
-            if (this is TextureProperty == false && is_animatable)
+            if (this is TextureProperty == false && is_animatable && isInHeader == false)
                 HandleKajAnimatable();
             if (ShaderEditor.currentlyDrawing.isLockedMaterial)
                 EditorGUI.EndDisabledGroup();

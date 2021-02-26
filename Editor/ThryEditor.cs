@@ -359,9 +359,7 @@ namespace Thry
             active = this;
 
             //get material targets
-            UnityEngine.Object[] targets = editorData.editor.targets;
-            editorData.materials = new Material[targets.Length];
-            for (int i = 0; i < targets.Length; i++) editorData.materials[i] = targets[i] as Material;
+            editorData.materials = editorData.editor.targets.Select(o => o as Material).ToArray();
 
             editorData.shader = editorData.materials[0].shader;
             string defaultShaderName = editorData.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
@@ -377,6 +375,20 @@ namespace Thry
             AddResetProperty();
 
             firstOnGUICall = false;
+        }
+
+        private Dictionary<string, MaterialProperty> materialPropertyDictionary;
+        public MaterialProperty GetMaterialProperty(string name)
+        {
+            if(materialPropertyDictionary == null)
+            {
+                materialPropertyDictionary = new Dictionary<string, MaterialProperty>();
+                foreach (MaterialProperty p in editorData.properties) 
+                    if(materialPropertyDictionary.ContainsKey(p.name) == false) materialPropertyDictionary.Add(p.name, p);
+            }
+            if (materialPropertyDictionary.ContainsKey(name))
+                return materialPropertyDictionary[name];
+            return null;
         }
 
         private void AddResetProperty()
@@ -531,6 +543,7 @@ namespace Thry
             if (input.HadMouseDownRepaint) input.HadMouseDown = false;
             input.HadMouseDownRepaint = false;
             editorData.firstCall = false;
+            materialPropertyDictionary = null;
         }
 
         private bool IsSearchedFor(ShaderPart part, string term)
@@ -647,19 +660,6 @@ namespace Thry
                 }
             }
             return edtior_directory_path;
-        }
-
-        //----------Static Helper Functions
-
-        //finds a property in props by name, if it doesnt exist return null
-        public static MaterialProperty FindProperty(MaterialProperty[] props, string name)
-        {
-            MaterialProperty ret = null;
-            foreach (MaterialProperty p in props)
-            {
-                if (p.name == name) { ret = p; }
-            }
-            return ret;
         }
 
         //=============Animation Handling============

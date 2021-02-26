@@ -611,7 +611,7 @@ namespace Thry
 
                 int xOffset = prop.xOffset;
                 prop.xOffset = 0;
-                prop.Draw(new CRect(togglePropertyRect), new GUIContent());
+                prop.Draw(new CRect(togglePropertyRect), new GUIContent(), isInHeader: true);
                 prop.xOffset = xOffset;
                 EditorGUIUtility.fieldWidth = fieldWidth;
             }
