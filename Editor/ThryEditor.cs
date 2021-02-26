@@ -124,12 +124,12 @@ namespace Thry
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
-                if (name.StartsWith("m_"))
-                    return ThryPropertyType.header;
                 if(name.StartsWith("m_start"))
                     return ThryPropertyType.header_start;
                 if (name.StartsWith("m_end"))
                     return ThryPropertyType.header_end;
+                if (name.StartsWith("m_"))
+                    return ThryPropertyType.header;
                 if (name.StartsWith("g_start"))
                     return ThryPropertyType.group_start;
                 if (name.StartsWith("g_end"))
@@ -426,6 +426,11 @@ namespace Thry
             input.is_drag_drop_event = input.is_drop_event || e.type == EventType.DragUpdated;
         }
 
+        void OnShaderChanged()
+        {
+            reloadNextDraw = true;
+        }
+
         //-------------Main Function--------------
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
@@ -491,16 +496,27 @@ namespace Thry
             }
 
             //PROPERTIES
-            if (header_search_term == "" || show_search_bar == false)
+            try
             {
-                foreach (ShaderPart part in shaderparts.parts)
-                    part.Draw();
-            }
-            else
-            {
-                foreach (ShaderPart part in editorData.propertyDictionary.Values)
-                    if (IsSearchedFor(part, header_search_term))
+                if (header_search_term == "" || show_search_bar == false)
+                {
+                    foreach (ShaderPart part in shaderparts.parts)
                         part.Draw();
+                }
+                else
+                {
+                    foreach (ShaderPart part in editorData.propertyDictionary.Values)
+                        if (IsSearchedFor(part, header_search_term))
+                            part.Draw();
+                }
+            }catch(Exception ex)
+            {
+                // argument exceptions happens a lot when locking or unlocking, so to not throw unimportant errors those are just logged as warnings
+                if (ex is ArgumentException)
+                    Debug.LogWarning(ex);
+                else
+                    Debug.LogError(ex);
+                reloadNextDraw = true;
             }
 
             //Render Queue selection
