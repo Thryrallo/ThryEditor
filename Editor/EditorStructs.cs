@@ -64,7 +64,7 @@ namespace Thry
 
             if (prop == null)
                 return;
-            bool propHasDuplicate = ShaderEditor.active.GetMaterialProperty(prop.name + "_"+ ShaderEditor.currentlyDrawing.animPropertySuffix) != null;
+            bool propHasDuplicate = ShaderEditor.active.GetMaterialProperty(prop.name + "_" + ShaderEditor.currentlyDrawing.animPropertySuffix) != null;
             if (propHasDuplicate)
             {
                 this.kaj_isAnimatedProperty = null;
@@ -72,7 +72,8 @@ namespace Thry
             else
             {
                 this.kaj_isAnimatedProperty = ShaderEditor.active.GetMaterialProperty(prop.name + "Animated");
-                if (prop.name.Contains(ShaderEditor.currentlyDrawing.animPropertySuffix)) {
+                if (prop.name.Contains(ShaderEditor.currentlyDrawing.animPropertySuffix))
+                {
                     string ogNameAnimated = prop.name.Substring(0, prop.name.Length - ShaderEditor.currentlyDrawing.animPropertySuffix.Length - 1) + "Animated";
                     MaterialProperty p = ShaderEditor.active.GetMaterialProperty(ogNameAnimated);
                     if (p != null) this.kaj_isAnimatedProperty = p;
@@ -274,7 +275,7 @@ namespace Thry
         public override void CopyFromMaterial(Material m)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
-            if(is_animatable)
+            if (is_animatable)
                 MaterialHelper.CopyPropertyValueFromMaterial(kaj_isAnimatedProperty, m);
             this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
             this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;

@@ -26,7 +26,7 @@ namespace Thry
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
 
         // Stores the different shader properties
-        private ShaderHeader shaderparts;
+        private ShaderHeader mainHeader;
 
         // UI Instance Variables
         private int customRenderQueueFieldInput = -1;
@@ -94,7 +94,7 @@ namespace Thry
                         options.condition_show = DefineableCondition.Parse(options.condition_showS);
                         //Debug.Log(options.condition_show.ToString());
                     }
-                    if(options.on_value != null)
+                    if (options.on_value != null)
                     {
                         options.on_value_actions = PropertyValueAction.ParseToArray(options.on_value);
                         //Debug.Log(Parser.Serialize(options.on_value_actions));
@@ -124,7 +124,7 @@ namespace Thry
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
-                if(name.StartsWith("m_start"))
+                if (name.StartsWith("m_start"))
                     return ThryPropertyType.header_start;
                 if (name.StartsWith("m_end"))
                     return ThryPropertyType.header_end;
@@ -182,10 +182,10 @@ namespace Thry
 
             editorData.propertyDictionary = new Dictionary<string, ShaderProperty>();
             editorData.shaderParts = new List<ShaderPart>();
-            shaderparts = new ShaderHeader(); //init top object that all Shader Objects are childs of
+            mainHeader = new ShaderHeader(); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
-            headerStack.Push(shaderparts); //add top object as top object to stack
-            headerStack.Push(shaderparts); //add top object a second time, because it get's popped with first actual header item
+            headerStack.Push(mainHeader); //add top object as top object to stack
+            headerStack.Push(mainHeader); //add top object a second time, because it get's popped with first actual header item
             footer = new List<ButtonData>(); //init footer list
             int headerCount = 0;
 
@@ -286,11 +286,14 @@ namespace Thry
                     if (editorData.propertyDictionary.ContainsKey(props[i].name))
                         continue;
                     editorData.propertyDictionary.Add(props[i].name, newPorperty);
+                    //Debug.Log(newPorperty.materialProperty.name + ":" + headerStack.Count);
                     if (type != ThryPropertyType.none && type != ThryPropertyType.shader_optimizer)
                         headerStack.Peek().addPart(newPorperty);
                 }
                 if (newPart != null)
+                {
                     editorData.shaderParts.Add(newPart);
+                }
             }
         }
 
@@ -304,7 +307,7 @@ namespace Thry
         // Not in use cause getPropertyHandlerMethod is really expensive
         private void HandleKeyworDrawers()
         {
-            foreach(MaterialProperty p in editorData.properties)
+            foreach (MaterialProperty p in editorData.properties)
             {
                 HandleKeyworDrawers(p);
             }
@@ -364,7 +367,7 @@ namespace Thry
             editorData.shader = editorData.materials[0].shader;
             string defaultShaderName = editorData.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
             editorData.defaultShader = Shader.Find(defaultShaderName);
-            
+
             editorData.animPropertySuffix = new string(editorData.materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
 
             currentlyDrawing = editorData;
@@ -380,11 +383,11 @@ namespace Thry
         private Dictionary<string, MaterialProperty> materialPropertyDictionary;
         public MaterialProperty GetMaterialProperty(string name)
         {
-            if(materialPropertyDictionary == null)
+            if (materialPropertyDictionary == null)
             {
                 materialPropertyDictionary = new Dictionary<string, MaterialProperty>();
-                foreach (MaterialProperty p in editorData.properties) 
-                    if(materialPropertyDictionary.ContainsKey(p.name) == false) materialPropertyDictionary.Add(p.name, p);
+                foreach (MaterialProperty p in editorData.properties)
+                    if (materialPropertyDictionary.ContainsKey(p.name) == false) materialPropertyDictionary.Add(p.name, p);
             }
             if (materialPropertyDictionary.ContainsKey(name))
                 return materialPropertyDictionary[name];
@@ -477,7 +480,7 @@ namespace Thry
             if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
-            GUILayout.Label("@UI by Thryrallo", Styles.made_by_style,GUILayout.Height(25), GUILayout.MaxWidth(100));
+            GUILayout.Label("@UI by Thryrallo", Styles.made_by_style, GUILayout.Height(25), GUILayout.MaxWidth(100));
             EditorGUILayout.EndHorizontal();
 
             if (show_search_bar)
@@ -500,8 +503,10 @@ namespace Thry
             {
                 if (header_search_term == "" || show_search_bar == false)
                 {
-                    foreach (ShaderPart part in shaderparts.parts)
+                    foreach (ShaderPart part in mainHeader.parts)
+                    {
                         part.Draw();
+                    }
                 }
                 else
                 {
@@ -509,10 +514,12 @@ namespace Thry
                         if (IsSearchedFor(part, header_search_term))
                             part.Draw();
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 // argument exceptions happens a lot when locking or unlocking, so to not throw unimportant errors those are just logged as warnings
-                if (ex is ArgumentException)
+                // UnityEngine.ExitGUIException are stupid in 2019, so imma just ignore them
+                if (ex is ArgumentException || ex is UnityEngine.ExitGUIException)
                     Debug.LogWarning(ex);
                 else
                     Debug.LogError(ex);
@@ -521,7 +528,7 @@ namespace Thry
 
             //Render Queue selection
             if (config.showRenderQueue)
-                    materialEditor.RenderQueueField();
+                materialEditor.RenderQueueField();
 
             //footer
             GuiHelper.drawFooters(footer);
