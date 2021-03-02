@@ -1323,13 +1323,13 @@ namespace Thry
         [MenuItem("GameObject/Thry/Materials/Unlock All", false,0)]
         static void UnlockAllChildren()
         {
-            SetLockForAllChildren(Selection.gameObjects, 0);
+            SetLockForAllChildren(Selection.gameObjects, 0, true);
         }
 
         [MenuItem("GameObject/Thry/Materials/Lock All", false,0)]
         static void LockAllChildren()
         {
-            SetLockForAllChildren(Selection.gameObjects, 1);
+            SetLockForAllChildren(Selection.gameObjects, 1, true);
         }
 
         //---Asset Unlocking
@@ -1338,7 +1338,7 @@ namespace Thry
         static void UnlockAllMaterials()
         {
             IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            SetLockedForAllMaterials(mats, 0);
+            SetLockedForAllMaterials(mats, 0, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Unlock All", true)]
@@ -1353,7 +1353,7 @@ namespace Thry
         static void LockAllMaterials()
         {
             IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            SetLockedForAllMaterials(mats, 1);
+            SetLockedForAllMaterials(mats, 1, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Lock All", true)]
@@ -1370,7 +1370,7 @@ namespace Thry
             IEnumerable<string> folderPaths = Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p));
             List<Material> materials = new List<Material>();
             foreach (string f in folderPaths) FindMaterialsRecursive(f, materials);
-            SetLockedForAllMaterials(materials, 1);
+            SetLockedForAllMaterials(materials, 1, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Lock Folder", true)]
@@ -1387,7 +1387,7 @@ namespace Thry
             IEnumerable<string> folderPaths = Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p));
             List<Material> materials = new List<Material>();
             foreach (string f in folderPaths) FindMaterialsRecursive(f, materials);
-            SetLockedForAllMaterials(materials, 0);
+            SetLockedForAllMaterials(materials, 0, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Unlock Folder", true)]
@@ -1427,13 +1427,13 @@ namespace Thry
             return false;
         }
 
-        public static void SetLockForAllChildren(GameObject[] objects, int lockState)
+        public static void SetLockForAllChildren(GameObject[] objects, int lockState, bool isCancleable = false)
         {
             Material[] materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials)).ToArray();
-            SetLockedForAllMaterials(materials, lockState);
+            SetLockedForAllMaterials(materials, lockState, isCancleable);
         }
 
-        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState)
+        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool isCancleable = false)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
             AssetDatabase.StartAssetEditing();
@@ -1441,7 +1441,17 @@ namespace Thry
             float length = materials.Count();
             foreach (Material m in materials)
             {
-                EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
+                if (isCancleable)
+                {
+                    if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length))
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
+                }
                 try
                 {
                     if (m == null)
