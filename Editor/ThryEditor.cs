@@ -531,7 +531,13 @@ namespace Thry
                 materialEditor.RenderQueueField();
 
             //footer
-            GuiHelper.drawFooters(footer);
+            try
+            {
+                GuiHelper.drawFooters(footer);
+            }catch(Exception ex)
+            {
+                Debug.LogWarning(ex);
+            }
 
             if (GUILayout.Button("@UI Made by Thryrallo", Styles.made_by_style))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
