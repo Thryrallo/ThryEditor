@@ -1421,7 +1421,8 @@ namespace Thry
                     if (AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) != typeof(Material))
                         return false;
                     Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
-                    return (m.HasProperty("_ShaderOptimizerEnabled") || m.HasProperty("_ShaderOptimizer"));
+                    string pName;
+                    return IsShaderUsingThryOptimizer(m.shader, out pName);
                 });
             }
             return false;
@@ -1433,36 +1434,33 @@ namespace Thry
             SetLockedForAllMaterials(materials, lockState, isCancleable);
         }
 
-        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool isCancleable = false)
+        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
+
             AssetDatabase.StartAssetEditing();
             float i = 0;
             float length = materials.Count();
             foreach (Material m in materials)
             {
-                if (isCancleable)
+                //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
+                if (showProgressbar)
                 {
                     if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length))
                     {
                         break;
                     }
                 }
-                else
-                {
-                    EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
-                }
                 try
                 {
-                    if (m == null)
-                        continue;
-                    bool isLocked = false;
-                    if (m.HasProperty("_ShaderOptimizerEnabled"))
-                        isLocked = m.GetFloat("_ShaderOptimizerEnabled") == 1;
-                    else if (m.HasProperty("_ShaderOptimizer"))
-                        isLocked = m.GetFloat("_ShaderOptimizer") == 1;
-                    else
-                        continue;
+                    if (m == null) continue;
+
+                    string optimizerPropertyName;
+                    //checking for drawer, since other materials / shaders could have same porperty name
+                    if (IsShaderUsingThryOptimizer(m.shader, out optimizerPropertyName) == false) continue;
+
+                    bool isLocked = m.GetFloat(optimizerPropertyName) == 1;
+
                     if (lockState == 1 && isLocked == false)
                     {
                         ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }), applyShaderLater: true);
@@ -1472,8 +1470,7 @@ namespace Thry
                         //if unlock success set floats. not done for locking cause the sucess is checked later when applying the shaders
                         if (ShaderOptimizer.Unlock(m))
                         {
-                            m.SetFloat("_ShaderOptimizerEnabled", lockState);
-                            m.SetFloat("_ShaderOptimizer", lockState);
+                            m.SetFloat(optimizerPropertyName, lockState);
                         }
                     }
                 }
@@ -1494,14 +1491,46 @@ namespace Thry
                 //Apply new shaders
                 foreach (Material m in materials)
                 {
-                    bool success = ShaderOptimizer.LockApplyShader(m);
-                    if (success)
+                    if (m == null) continue;
+                    string propertyName;
+                    if (IsShaderUsingThryOptimizer(m.shader, out propertyName))
                     {
-                        m.SetFloat("_ShaderOptimizerEnabled", lockState);
-                        m.SetFloat("_ShaderOptimizer", lockState);
+                        bool success = ShaderOptimizer.LockApplyShader(m);
+                        if (success)
+                        {
+                            m.SetFloat(propertyName, lockState);
+                        }
                     }
                 }
             }
+        }
+
+        private static Dictionary<Shader, string> shaderUsingThryOptimizerDictionary = new Dictionary<Shader, string>();
+        private static bool IsShaderUsingThryOptimizer(Shader shader, out string propertyName)
+        {
+            if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
+            {
+                propertyName = shaderUsingThryOptimizerDictionary[shader];
+                return propertyName != null;
+            }
+
+            //check shader code for drawer that's not commented out
+            string code = FileHelper.ReadFileIntoString(AssetDatabase.GetAssetPath(shader));
+            Match m = Regex.Match(code, @"\n[^(\/)]*\[ThryShaderOptimizerLockButton\].*\n");
+            if (m.Success)
+            {
+                //get property name
+                m = Regex.Match(m.Value, @"(?<=\[ThryShaderOptimizerLockButton\])\s*(\w|\d)+");
+                if (m.Success)
+                {
+                    propertyName = m.Value.Trim();
+                    shaderUsingThryOptimizerDictionary[shader] = propertyName;
+                    return true;
+                }
+            }
+            propertyName = null;
+            shaderUsingThryOptimizerDictionary[shader] = propertyName;
+            return false;
         }
     }
 }
