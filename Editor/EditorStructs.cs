@@ -112,7 +112,7 @@ namespace Thry
         public void HandleKajAnimatable()
         {
             Rect lastRect = GUILayoutUtility.GetLastRect();
-            if (Event.current.isMouse && Event.current.button == 1 && lastRect.Contains(Event.current.mousePosition))
+            if (ShaderEditor.currentlyDrawing.isLockedMaterial == false && Event.current.isMouse && Event.current.button == 1 && lastRect.Contains(Event.current.mousePosition))
             {
                 if (Event.current.control && Config.Get().renameAnimatedProps)
                 {
