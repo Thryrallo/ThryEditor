@@ -31,6 +31,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
 using System.Linq;
+using VRC.SDKBase.Editor.BuildPipeline;
 
 // v9
 
@@ -1427,6 +1428,21 @@ namespace Thry
             }
             return false;
         }
+
+        //----VRChat Callback to force Locking on upload
+
+        #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
+        public class LockMaterialsOnUpload : IVRCSDKPreprocessAvatarCallback
+        {
+            public int callbackOrder => 100;
+
+            public bool OnPreprocessAvatar(GameObject avatarGameObject)
+            {
+                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1);
+                return true;
+            }
+        }
+        #endif
 
         public static void SetLockForAllChildren(GameObject[] objects, int lockState, bool isCancleable = false)
         {

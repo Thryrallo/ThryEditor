@@ -1274,7 +1274,7 @@ namespace Thry
             dictionary = new Dictionary<string, ShaderEditorShader>();
             foreach (ShaderEditorShader s in shaders)
             {
-                if (s.name != null && !dictionary.ContainsKey(s.name))
+                if (s != null && s.name != null && dictionary.ContainsKey(s.name) == false)
                     dictionary.Add(s.name, s);
             }
         }
