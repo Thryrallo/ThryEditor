@@ -340,7 +340,7 @@ namespace Thry
         {
             drawDefault = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
-            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist || reference_property_exists;
+            this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist;
         }
 
         public override void PreDraw()
