@@ -127,6 +127,7 @@ namespace Thry
             }
             if (DrawingData.currentTexProperty.reference_property_exists)
             {
+                border.height += 8;
                 border.height += editor.GetPropertyHeight(ShaderEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property].materialProperty);
             }
 
@@ -206,7 +207,7 @@ namespace Thry
 
             //scale offset rect
 
-            if (hasFoldoutProperties)
+            if (hasFoldoutProperties || DrawingData.currentTexProperty.options.reference_property != null)
             {
                 EditorGUI.indentLevel += 2;
 
