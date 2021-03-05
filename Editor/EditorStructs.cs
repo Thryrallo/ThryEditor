@@ -388,6 +388,47 @@ namespace Thry
         }
     }
 
+    public class ShaderHeaderProperty : ShaderPart
+    {
+        public ShaderHeaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
+        {
+        }
+
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        {
+            if (rect == null)
+            {
+                if (options.texture != null && options.texture.name != null)
+                {
+                    //is texutre draw
+                    content = new GUIContent(options.texture.GetTextureFromName(), content.tooltip);
+                    int height = options.texture.height;
+                    int width = (int)((float)options.texture.loaded_texture.width / options.texture.loaded_texture.height * height);
+                    Rect control = EditorGUILayout.GetControlRect(false, height-18);
+                    Rect r = new Rect((control.width-width)/2,control.y,width, height);
+                    EditorGUI.DrawTextureTransparent(r, options.texture.loaded_texture);
+                }
+            }
+            else
+            {
+                //is text draw
+                Rect headerrect = new Rect(0, rect.r.y, rect.r.width, 18);
+                EditorGUI.LabelField(headerrect, "<size=16>" + this.content.text + "</size>", Styles.masterLabel);
+                DrawingData.lastGuiObjectHeaderRect = headerrect;
+            }
+        }
+
+        public override void CopyFromMaterial(Material m)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override void CopyToMaterial(Material m)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+
     public class InstancingProperty : ShaderProperty
     {
         public InstancingProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset, options, forceOneLine)

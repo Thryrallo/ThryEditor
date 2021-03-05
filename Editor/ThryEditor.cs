@@ -36,7 +36,7 @@ namespace Thry
         private bool show_eyeIcon_tutorial = false;
 
         // shader specified values
-        private string masterLabelText = null;
+        private ShaderHeaderProperty shaderHeader = null;
         private List<ButtonData> footer;
 
         // sates
@@ -230,7 +230,7 @@ namespace Thry
                 switch (type)
                 {
                     case ThryPropertyType.master_label:
-                        masterLabelText = displayName;
+                        shaderHeader = new ShaderHeaderProperty(props[i], displayName, 0, options, false);
                         break;
                     case ThryPropertyType.footer:
                         footer.Add(Parser.ParseToObject<ButtonData>(displayName));
@@ -464,6 +464,8 @@ namespace Thry
                 Mediator.SetActiveShader(editorData.materials[0].shader);
 
             //TOP Bar
+            //if header is texture, draw it first so other ui elements can be positions below
+            if (shaderHeader != null && shaderHeader.options.texture != null) shaderHeader.Draw();
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
             if (GUILayout.Button(new GUIContent("", Styles.settings_icon), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20)))
@@ -476,8 +478,8 @@ namespace Thry
             if (GUILayout.Button(Styles.search_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
                 show_search_bar = !show_search_bar;
 
-            //draw master label if exists
-            if (masterLabelText != null) GuiHelper.DrawMasterLabel(masterLabelText, mainHeaderRect);
+            //draw master label text after ui elements, so it can be positioned between
+            if (shaderHeader != null) shaderHeader.Draw(new CRect(mainHeaderRect));
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
             GUILayout.Label("@UI by Thryrallo", Styles.made_by_style, GUILayout.Height(25), GUILayout.MaxWidth(100));
