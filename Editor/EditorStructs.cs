@@ -406,7 +406,7 @@ namespace Thry
                     int width = (int)((float)options.texture.loaded_texture.width / options.texture.loaded_texture.height * height);
                     Rect control = EditorGUILayout.GetControlRect(false, height-18);
                     Rect r = new Rect((control.width-width)/2,control.y,width, height);
-                    EditorGUI.DrawTextureTransparent(r, options.texture.loaded_texture);
+                    GUI.DrawTexture(r, options.texture.loaded_texture);
                 }
             }
             else
