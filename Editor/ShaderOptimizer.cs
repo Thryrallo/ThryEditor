@@ -31,8 +31,9 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
 using System.Linq;
+#if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
 using VRC.SDKBase.Editor.BuildPipeline;
-
+#endif
 // v9
 
 namespace Thry
