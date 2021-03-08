@@ -242,6 +242,11 @@ namespace Thry
                     if (set.Length > 1)
                         MaterialHelper.SetMaterialValue(set[0].Trim(), set[1].Trim());
                     break;
+                case DefineableActionType.SET_TAG:
+                    string[] keyValue = Regex.Split(data, @"=");
+                    foreach (Material m in ShaderEditor.currentlyDrawing.materials)
+                        m.SetOverrideTag(keyValue[0].Trim(), keyValue[1].Trim());
+                    break;
                 case DefineableActionType.SET_SHADER:
                     Shader shader = Shader.Find(data);
                     if (shader != null)
@@ -261,11 +266,18 @@ namespace Thry
             {
                 action.type = DefineableActionType.URL;
                 action.data = s;
-            }else if (s.StartsWith("shader="))
+            }
+            else if (s.StartsWith("tag::"))
+            {
+                action.type = DefineableActionType.SET_TAG;
+                action.data = s.Replace("tag::", "");
+            }
+            else if (s.StartsWith("shader="))
             {
                 action.type = DefineableActionType.SET_SHADER;
-                action.data = s.Replace("shader=","");
-            }else if (s.Contains("="))
+                action.data = s.Replace("shader=", "");
+            }
+            else if (s.Contains("="))
             {
                 action.type = DefineableActionType.SET_PROPERTY;
                 action.data = s;
@@ -279,7 +291,8 @@ namespace Thry
         NONE,
         URL,
         SET_PROPERTY,
-        SET_SHADER
+        SET_SHADER,
+        SET_TAG
     }
 
     public class DefineableCondition
