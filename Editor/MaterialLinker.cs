@@ -240,10 +240,12 @@ namespace Thry
 
             public void HanldeDropEvent()
             {
-                string[] paths = DragAndDrop.paths;
-                if (AssetDatabase.GetMainAssetTypeAtPath(paths[0]) == typeof(Material))
+                foreach (string path in DragAndDrop.paths)
                 {
-                    linked_materials.Add(AssetDatabase.LoadAssetAtPath<Material>(paths[0]));
+                    if (AssetDatabase.GetMainAssetTypeAtPath(path) == typeof(Material))
+                    {
+                        linked_materials.Add(AssetDatabase.LoadAssetAtPath<Material>(path));
+                    }
                 }
             }
 

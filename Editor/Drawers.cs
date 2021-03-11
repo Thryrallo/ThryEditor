@@ -56,7 +56,7 @@ namespace Thry
 
     public class ThryToggleUIDrawer : MaterialPropertyDrawer
     {
-
+        public string keyword;
         private bool isFirstGUICall = true;
         public ThryToggleUIDrawer()
         {
@@ -99,6 +99,8 @@ namespace Thry
                 CheckKeyword(prop);
                 isFirstGUICall = false;
             }
+            //why is this not inFirstGUICall ? cause it seems drawers are kept between different openings of the shader editor, so this needs to be set again every time the shader editor is reopened for that material
+            (ShaderEditor.currentlyDrawing.propertyDictionary[prop.name] as ShaderProperty).keyword = keyword;
 
             EditorGUI.BeginChangeCheck();
 
@@ -128,7 +130,6 @@ namespace Thry
 
     public class ThryToggleDrawer : ThryToggleUIDrawer
     {
-        protected readonly string keyword;
         public ThryToggleDrawer()
         {
         }

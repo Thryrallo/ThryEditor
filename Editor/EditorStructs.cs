@@ -264,6 +264,8 @@ namespace Thry
 
         private int property_index = 0;
 
+        public string keyword;
+
         public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
         {
             drawDefault = false;
@@ -275,6 +277,7 @@ namespace Thry
         public override void CopyFromMaterial(Material m)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
+            if (keyword != null) SetKeyword(ShaderEditor.currentlyDrawing.materials, m.GetFloat(materialProperty.name)==1);
             if (is_animatable)
                 MaterialHelper.CopyPropertyValueFromMaterial(kaj_isAnimatedProperty, m);
             this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
@@ -284,8 +287,21 @@ namespace Thry
         public override void CopyToMaterial(Material m)
         {
             MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
+            if (keyword != null) SetKeyword(m, materialProperty.floatValue == 1);
             if (is_animatable)
                 MaterialHelper.CopyPropertyValueToMaterial(kaj_isAnimatedProperty, m);
+        }
+
+        private void SetKeyword(Material[] materials, bool enabled)
+        {
+            if (enabled) foreach (Material m in materials) m.EnableKeyword(keyword);
+            else foreach (Material m in materials) m.DisableKeyword(keyword);
+        }
+
+        private void SetKeyword(Material m, bool enabled)
+        {
+            if (enabled) m.EnableKeyword(keyword);
+            else m.DisableKeyword(keyword);
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
