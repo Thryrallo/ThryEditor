@@ -1460,6 +1460,10 @@ namespace Thry
             float length = materials.Count();
             foreach (Material m in materials)
             {
+                if (m == null) continue;
+                //check if material is build in material, cause built in materials and shaders suck ass. You can't even access there name here without crashing unity
+                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) || string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))) continue;
+
                 //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
                 if (showProgressbar)
                 {
@@ -1470,8 +1474,6 @@ namespace Thry
                 }
                 try
                 {
-                    if (m == null) continue;
-
                     string optimizerPropertyName;
                     //checking for drawer, since other materials / shaders could have same porperty name
                     if (IsShaderUsingThryOptimizer(m.shader, out optimizerPropertyName) == false) continue;
@@ -1509,6 +1511,9 @@ namespace Thry
                 foreach (Material m in materials)
                 {
                     if (m == null) continue;
+                    //check if material is build in material, cause built in materials and shaders suck ass. You can't even access there name here without crashing unity
+                    if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) || string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))) continue;
+
                     string propertyName;
                     if (IsShaderUsingThryOptimizer(m.shader, out propertyName))
                     {
