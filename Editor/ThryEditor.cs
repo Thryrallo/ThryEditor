@@ -501,31 +501,18 @@ namespace Thry
             }
 
             //PROPERTIES
-            try
+            if (header_search_term == "" || show_search_bar == false)
             {
-                if (header_search_term == "" || show_search_bar == false)
+                foreach (ShaderPart part in mainHeader.parts)
                 {
-                    foreach (ShaderPart part in mainHeader.parts)
-                    {
-                        part.Draw();
-                    }
-                }
-                else
-                {
-                    foreach (ShaderPart part in editorData.propertyDictionary.Values)
-                        if (IsSearchedFor(part, header_search_term))
-                            part.Draw();
+                    part.Draw();
                 }
             }
-            catch (Exception ex)
+            else
             {
-                // argument exceptions happens a lot when locking or unlocking, so to not throw unimportant errors those are just logged as warnings
-                // UnityEngine.ExitGUIException are stupid in 2019, so imma just ignore them
-                if (ex is ArgumentException || ex is UnityEngine.ExitGUIException)
-                    Debug.LogWarning(ex);
-                else
-                    Debug.LogError(ex);
-                reloadNextDraw = true;
+                foreach (ShaderPart part in editorData.propertyDictionary.Values)
+                    if (IsSearchedFor(part, header_search_term))
+                        part.Draw();
             }
 
             //Render Queue selection

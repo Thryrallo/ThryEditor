@@ -1234,8 +1234,11 @@ namespace Thry
 
         private static void RemoveAt(int i)
         {
-            dictionary.Remove(shaders[i].name);
-            shaders.RemoveAt(i--);
+            if (dictionary.ContainsKey(shaders[i].name))
+            {
+                dictionary.Remove(shaders[i].name);
+                shaders.RemoveAt(i--);
+            }
         }
 
         public static string[] GetShaderEditorShaderNames()

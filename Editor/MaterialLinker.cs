@@ -29,7 +29,8 @@ namespace Thry
                                 materials.Add(m);
                         }
                         foreach (Material m in materials)
-                            linked_materials.Add(GetKey(m, material_cloud[0]), materials);
+                            if(linked_materials.ContainsKey(GetKey(m, material_cloud[0])) == false)
+                                linked_materials.Add(GetKey(m, material_cloud[0]), materials);
                     }
             }
         }
