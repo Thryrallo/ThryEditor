@@ -507,7 +507,7 @@ namespace Thry
             //Render Queue selection
             if (Config.Singleton.showRenderQueue) materialEditor.RenderQueueField();
 
-            //GUIFooters();
+            GUIFooters();
 
             HandleEvents();
 
