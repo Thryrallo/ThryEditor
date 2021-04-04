@@ -14,7 +14,6 @@ using System.Linq;
 using System.Threading;
 using Boo.Lang.Runtime;
 using Debug = UnityEngine.Debug;
-using Pumkin.Benchmark;
 
 namespace Thry
 {
