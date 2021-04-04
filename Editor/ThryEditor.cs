@@ -6,14 +6,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
-using Thry;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
-using System.Threading;
-using Boo.Lang.Runtime;
-using Debug = UnityEngine.Debug;
 
 namespace Thry
 {
