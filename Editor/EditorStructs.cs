@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Pumkin.Benchmark;
 using UnityEditor;
 using UnityEngine;
 
@@ -98,6 +100,7 @@ namespace Thry
                 DrawingData.is_enabled = options.condition_enable.Test();
                 EditorGUI.BeginDisabledGroup(!DrawingData.is_enabled);
             }
+
             if (options.condition_show.Test())
             {
                 PerformDraw(content, rect, useEditorIndent, isInHeader);

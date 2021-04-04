@@ -73,6 +73,7 @@ namespace Thry
         public ShaderPart currentProperty;
         public Dictionary<string, ShaderProperty> propertyDictionary;
         public List<ShaderPart> shaderParts;
+        public List<ShaderPart> searchedShaderParts;
         public List<ShaderProperty> textureArrayProperties;
         public bool firstCall;
         public bool show_HeaderHider;
@@ -179,8 +180,8 @@ namespace Thry
 
         public bool Execute(MaterialProperty p)
         {
-            if((p.floatValue.ToString()==value) 
-                || ( p.colorValue.ToString() == value) 
+            if((p.floatValue.ToString()==value)
+                || ( p.colorValue.ToString() == value)
                 || ( p.vectorValue.ToString() == value )
                 || (p.textureValue != null && p.textureValue.ToString() == value))
             {
@@ -301,16 +302,22 @@ namespace Thry
         public string data = "";
         public DefineableCondition condition1;
         public DefineableCondition condition2;
+
+        bool? cachedTest = null;
+
         public bool Test()
         {
+            if(cachedTest != null)
+                return (bool) cachedTest;
+
             switch (type)
             {
                 case DefineableConditionType.NONE:
-                    return true;
+                    return (bool)(cachedTest = true);
                 case DefineableConditionType.TRUE:
-                    return true;
+                    return (bool)(cachedTest = true);
                 case DefineableConditionType.FALSE:
-                    return false;
+                    return (bool)(cachedTest = false);
             }
             string comparator = GetComparetor();
             string[] parts = Regex.Split(data, comparator);
@@ -320,56 +327,57 @@ namespace Thry
             {
                 case DefineableConditionType.PROPERTY_BOOL:
                     ShaderProperty prop = ShaderEditor.currentlyDrawing.propertyDictionary[obj];
-                    if (prop == null) return false;
-                    if (comparator == "##") return prop.materialProperty.floatValue == 1;
+                    if (prop == null) return (bool)(cachedTest = false);
+
+                    if (comparator == "##") return (bool)(cachedTest = prop.materialProperty.floatValue == 1);
                     float f = Parser.ParseFloat(parts[1]);
-                    if (comparator == "==") return prop.materialProperty.floatValue == f;
-                    if (comparator == "!=") return prop.materialProperty.floatValue != f;
-                    if (comparator == "<") return prop.materialProperty.floatValue < f;
-                    if (comparator == ">") return prop.materialProperty.floatValue > f;
-                    if (comparator == ">=") return prop.materialProperty.floatValue >= f;
-                    if (comparator == "<=") return prop.materialProperty.floatValue <= f;
+                    if (comparator == "==") return (bool)(cachedTest = prop.materialProperty.floatValue == f);
+                    if (comparator == "!=") return (bool)(cachedTest = prop.materialProperty.floatValue != f);
+                    if (comparator == "<") return (bool)(cachedTest = prop.materialProperty.floatValue < f);
+                    if (comparator == ">") return (bool)(cachedTest = prop.materialProperty.floatValue > f);
+                    if (comparator == ">=") return (bool)(cachedTest = prop.materialProperty.floatValue >= f);
+                    if (comparator == "<=") return (bool)(cachedTest = prop.materialProperty.floatValue <= f);
                     break;
                 case DefineableConditionType.EDITOR_VERSION:
                     int c_ev = Helper.compareVersions(Config.Get().verion, value);
-                    if (comparator == "==") return c_ev == 0;
-                    if (comparator == "!=") return c_ev != 0;
-                    if (comparator == "<") return c_ev == 1;
-                    if (comparator == ">") return c_ev == -1;
-                    if (comparator == ">=") return c_ev == -1 || c_ev == 0;
-                    if (comparator == "<=") return c_ev == 1 || c_ev == 0;
+                    if (comparator == "==") return (bool)(cachedTest = c_ev == 0);
+                    if (comparator == "!=") return (bool)(cachedTest = c_ev != 0);
+                    if (comparator == "<") return (bool)(cachedTest = c_ev == 1);
+                    if (comparator == ">") return (bool)(cachedTest = c_ev == -1);
+                    if (comparator == ">=") return (bool)(cachedTest = c_ev == -1 || c_ev == 0);
+                    if (comparator == "<=") return (bool)(cachedTest = c_ev == 1 || c_ev == 0);
                     break;
                 case DefineableConditionType.VRC_SDK_VERSION:
                     if (VRCInterface.Get().sdk_information.type == VRCInterface.VRC_SDK_Type.NONE)
-                        return false;
+                        return (bool)(cachedTest = false);
                     int c_vrc = Helper.compareVersions(VRCInterface.Get().sdk_information.installed_version, value);
-                    if (comparator == "==") return c_vrc == 0;
-                    if (comparator == "!=") return c_vrc != 0;
-                    if (comparator == "<") return c_vrc == 1;
-                    if (comparator == ">") return c_vrc == -1;
-                    if (comparator == ">=") return c_vrc == -1 || c_vrc == 0;
-                    if (comparator == "<=") return c_vrc == 1 || c_vrc == 0;
+                    if (comparator == "==") return (bool)(cachedTest = c_vrc == 0);
+                    if (comparator == "!=") return (bool)(cachedTest = c_vrc != 0);
+                    if (comparator == "<") return (bool)(cachedTest = c_vrc == 1);
+                    if (comparator == ">") return (bool)(cachedTest = c_vrc == -1);
+                    if (comparator == ">=") return (bool)(cachedTest = c_vrc == -1 || c_vrc == 0);
+                    if (comparator == "<=") return (bool)(cachedTest = c_vrc == 1 || c_vrc == 0);
                     break;
                 case DefineableConditionType.TEXTURE_SET:
                     ShaderProperty shaderProperty = ShaderEditor.currentlyDrawing.propertyDictionary[data];
-                    if (shaderProperty == null) return false;
-                    return shaderProperty.materialProperty.textureValue != null;
+                    if (shaderProperty == null) return (bool)(cachedTest = false);
+                    return (bool)(cachedTest = shaderProperty.materialProperty.textureValue != null);
                 case DefineableConditionType.DROPDOWN:
                     ShaderProperty dropdownProperty = ShaderEditor.currentlyDrawing.propertyDictionary[obj];
-                    if (dropdownProperty == null) return false;
-                    if (comparator == "##") return dropdownProperty.materialProperty.floatValue == 1;
-                    if (comparator == "==") return "" + dropdownProperty.materialProperty.floatValue == parts[1];
-                    if (comparator == "!=") return "" + dropdownProperty.materialProperty.floatValue != parts[1];
+                    if (dropdownProperty == null) return (bool)(cachedTest = false);
+                    if (comparator == "##") return (bool)(cachedTest = dropdownProperty.materialProperty.floatValue == 1);
+                    if (comparator == "==") return (bool)(cachedTest = "" + dropdownProperty.materialProperty.floatValue == parts[1]);
+                    if (comparator == "!=") return (bool)(cachedTest = "" + dropdownProperty.materialProperty.floatValue != parts[1]);
                     break;
                 case DefineableConditionType.AND:
-                    if(condition1!=null&&condition2!=null) return condition1.Test() && condition2.Test();
+                    if(condition1!=null&&condition2!=null) return (bool)(cachedTest = condition1.Test() && condition2.Test());
                     break;
                 case DefineableConditionType.OR:
-                    if (condition1 != null && condition2 != null) return condition1.Test() || condition2.Test();
+                    if (condition1 != null && condition2 != null) return (bool)(cachedTest = condition1.Test() || condition2.Test());
                     break;
             }
-            
-            return true;
+
+            return (bool)(cachedTest = true);
         }
         private string GetComparetor()
         {

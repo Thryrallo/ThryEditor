@@ -245,7 +245,7 @@ namespace Thry
                 if(keyvalue.Length>1)
                     dictionary[keyvalue[0]] = keyvalue[1];
             }
-            textFileData[path] = dictionary; 
+            textFileData[path] = dictionary;
         }
 
         public static bool SaveValueToFile(string key, string value, string path)

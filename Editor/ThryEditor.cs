@@ -8,9 +8,13 @@ using UnityEditor;
 using UnityEngine;
 using Thry;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
 using System.Threading;
+using Boo.Lang.Runtime;
+using Debug = UnityEngine.Debug;
+using Pumkin.Benchmark;
 
 namespace Thry
 {
@@ -50,6 +54,9 @@ namespace Thry
         public static EditorData currentlyDrawing;
         public static ShaderEditor active;
 
+        ShaderProperty ShaderOptimizerProperty { get; set; }
+
+
         private DefineableAction[] on_swap_to_actions = null;
         private bool swapped_to_shader = false;
 
@@ -59,7 +66,13 @@ namespace Thry
         {
             //load display names from file if it exists
             MaterialProperty label_file_property = null;
-            foreach (MaterialProperty m in editorData.properties) if (m.name == PROPERTY_NAME_LABEL_FILE) label_file_property = m;
+            foreach (MaterialProperty m in editorData.properties)
+                if(m.name == PROPERTY_NAME_LABEL_FILE)
+                {
+                    label_file_property = m;
+                    break;
+                }
+
             Dictionary<string, string> labels = new Dictionary<string, string>();
             if (label_file_property != null)
             {
@@ -162,7 +175,13 @@ namespace Thry
         {
             MaterialProperty locales_property = null;
             locale = null;
-            foreach (MaterialProperty m in editorData.properties) if (m.name == PROPERTY_NAME_LOCALE) locales_property = m;
+            foreach (MaterialProperty m in editorData.properties)
+                if(m.name == PROPERTY_NAME_LOCALE)
+                {
+                    locales_property = m;
+                    break;
+                }
+
             if (locales_property != null)
             {
                 string displayName = locales_property.displayName;
@@ -199,8 +218,12 @@ namespace Thry
                 //Check for locale
                 if (locale != null)
                     foreach (string key in locale.GetAllKeys())
-                        if (displayName.Contains("locale::" + key))
+                        if(displayName.Contains("locale::" + key))
+                        {
                             displayName = displayName.Replace("locale::" + key, locale.Get(key));
+                            break;
+                        }
+
                 displayName = displayName.Replace("''", "\"");
 
                 //extract json data from display name
@@ -375,6 +398,8 @@ namespace Thry
             //collect shader properties
             CollectAllProperties();
 
+            ShaderOptimizerProperty = editorData.propertyDictionary?["_ShaderOptimizerEnabled"];
+
             AddResetProperty();
 
             firstOnGUICall = false;
@@ -447,8 +472,10 @@ namespace Thry
             }
             editorData.properties = props;
 
+
             CheckInAnimationRecordMode();
             m_RenderersForAnimationMode = MaterialEditor.PrepareMaterialPropertiesForAnimationMode(props, GUI.enabled);
+
             UpdateEvents();
 
             //first time call inits
@@ -479,14 +506,21 @@ namespace Thry
                 show_search_bar = !show_search_bar;
 
             //draw master label text after ui elements, so it can be positioned between
-            if (shaderHeader != null) shaderHeader.Draw(new CRect(mainHeaderRect));
+            shaderHeader?.Draw(new CRect(mainHeaderRect));
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
             GUILayout.Label("@UI by Thryrallo", Styles.made_by_style, GUILayout.Height(25), GUILayout.MaxWidth(100));
             EditorGUILayout.EndHorizontal();
 
-            if (show_search_bar)
+            if(show_search_bar)
+            {
+                EditorGUI.BeginChangeCheck();
                 header_search_term = EditorGUILayout.TextField(header_search_term);
+                if(EditorGUI.EndChangeCheck())  //Cache the search
+                {
+                    editorData.searchedShaderParts = GetFilterSearchedParts(header_search_term);
+                }
+            }
 
             //Visibility menu
             if (editorData.show_HeaderHider)
@@ -494,26 +528,17 @@ namespace Thry
                 HeaderHider.HeaderHiderGUI(editorData);
             }
 
-            bool isMaterialLocked = editorData.use_ShaderOptimizer && editorData.propertyDictionary["_ShaderOptimizerEnabled"].materialProperty.floatValue == 1;
+            //bool isMaterialLocked = editorData.use_ShaderOptimizer && editorData.propertyDictionary["_ShaderOptimizerEnabled"].materialProperty.floatValue == 1;
             if (editorData.use_ShaderOptimizer)
-            {
-                editorData.propertyDictionary["_ShaderOptimizerEnabled"].Draw();
-            }
+                ShaderOptimizerProperty?.Draw();
 
             //PROPERTIES
-            if (header_search_term == "" || show_search_bar == false)
-            {
-                foreach (ShaderPart part in mainHeader.parts)
-                {
+            if (show_search_bar && !string.IsNullOrWhiteSpace(header_search_term) && editorData.searchedShaderParts != null)
+                foreach (ShaderProperty part in editorData.searchedShaderParts)
                     part.Draw();
-                }
-            }
             else
-            {
-                foreach (ShaderPart part in editorData.propertyDictionary.Values)
-                    if (IsSearchedFor(part, header_search_term))
-                        part.Draw();
-            }
+                foreach(ShaderPart part in mainHeader.parts)
+                    part.Draw();
 
             //Render Queue selection
             if (config.showRenderQueue)
@@ -564,9 +589,25 @@ namespace Thry
             materialPropertyDictionary = null;
         }
 
+        List<ShaderPart> GetFilterSearchedParts(string searchTerm)
+        {
+            List<ShaderPart> parts = new List<ShaderPart>();
+            if(string.IsNullOrWhiteSpace(header_search_term))
+                editorData.searchedShaderParts?.Clear();
+            else
+            {
+                //Get shader parts
+                string lowerTerm = header_search_term.ToLower();
+                parts = editorData.propertyDictionary.Values
+                        .Select(p => (ShaderPart)p)
+                        .Where(p => p.content.text.ToLower().Contains(lowerTerm))
+                        .ToList();
+            }
+            return parts;
+        }
+
         private bool IsSearchedFor(ShaderPart part, string term)
         {
-
             string lowercaseTerm = header_search_term.ToLower();
             return part.content.text.ToLower().Contains(lowercaseTerm);
         }
@@ -734,14 +775,16 @@ namespace Thry
             GUI.backgroundColor = data.color;
         }
 
-        private static FieldInfo _field_s_InAnimationRecordMode;
+        //private static FieldInfo _field_s_InAnimationRecordMode;
+
         public static bool AnimationIsRecording { get; private set; }
 
         private static void CheckInAnimationRecordMode()
         {
-            if (_field_s_InAnimationRecordMode == null)
-                _field_s_InAnimationRecordMode = (typeof(AnimationMode)).GetField("s_InAnimationRecordMode", BindingFlags.NonPublic | BindingFlags.Static);
-            AnimationIsRecording = (bool)_field_s_InAnimationRecordMode.GetValue(null);
+            AnimationIsRecording = AnimationMode.InAnimationMode();
+            //if (_field_s_InAnimationRecordMode == null)
+                //_field_s_InAnimationRecordMode = (typeof(AnimationMode)).GetField("s_InAnimationRecordMode", BindingFlags.NonPublic | BindingFlags.Static);
+            //AnimationIsRecording = (bool)_field_s_InAnimationRecordMode.GetValue(null);
         }
 
 
