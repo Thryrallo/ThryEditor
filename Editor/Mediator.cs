@@ -19,5 +19,7 @@ namespace Thry
                 return m_copy;
             }
         }
+
+        public static ShaderPart transfer_group;
     }
 }

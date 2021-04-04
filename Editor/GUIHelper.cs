@@ -688,12 +688,13 @@ namespace Thry
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
                 Mediator.copy_material = new Material(material);
+                Mediator.transfer_group = property;
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate ()
             {
-                if (Mediator.copy_material != null)
+                if (Mediator.copy_material != null || Mediator.transfer_group != null)
                 {
-                    property.CopyFromMaterial(Mediator.copy_material);
+                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group);
                     List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
                     if (linked_materials != null)
                         foreach (Material m in linked_materials)

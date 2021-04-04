@@ -194,7 +194,7 @@ namespace Thry
 
             editorData.propertyDictionary = new Dictionary<string, ShaderProperty>();
             editorData.shaderParts = new List<ShaderPart>();
-            mainHeader = new ShaderHeader(); //init top object that all Shader Objects are childs of
+            mainHeader = new ShaderHeader(this); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
             headerStack.Push(mainHeader); //add top object as top object to stack
             headerStack.Push(mainHeader); //add top object a second time, because it get's popped with first actual header item
@@ -253,7 +253,7 @@ namespace Thry
                 switch (type)
                 {
                     case ThryPropertyType.master_label:
-                        shaderHeader = new ShaderHeaderProperty(props[i], displayName, 0, options, false);
+                        shaderHeader = new ShaderHeaderProperty(this, props[i], displayName, 0, options, false);
                         break;
                     case ThryPropertyType.footer:
                         footers.Add(new FooterButton(Parser.ParseToObject<ButtonData>(displayName)));
@@ -261,14 +261,14 @@ namespace Thry
                     case ThryPropertyType.header:
                     case ThryPropertyType.header_start:
                         if (options.is_hideable) editorData.show_HeaderHider = true;
-                        ShaderHeader newHeader = new ShaderHeader(props[i], editorData.editor, displayName, offset, options);
+                        ShaderHeader newHeader = new ShaderHeader(this, props[i], editorData.editor, displayName, offset, options);
                         headerStack.Peek().addPart(newHeader);
                         headerStack.Push(newHeader);
                         HeaderHider.InitHidden(newHeader);
                         newPart = newHeader;
                         break;
                     case ThryPropertyType.group_start:
-                        ShaderGroup new_group = new ShaderGroup(options);
+                        ShaderGroup new_group = new ShaderGroup(this, options);
                         headerStack.Peek().addPart(new_group);
                         headerStack.Push(new_group);
                         newPart = new_group;
@@ -282,25 +282,25 @@ namespace Thry
                         editorData.editor.GetPropertyHeight(props[i]);
                         bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            newPorperty = new TextureProperty(props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
+                            newPorperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
                         else
-                            newPorperty = new ShaderProperty(props[i], displayName, offset, options, forceOneLine);
+                            newPorperty = new ShaderProperty(this, props[i], displayName, offset, options, forceOneLine);
                         break;
                     case ThryPropertyType.lightmap_flags:
-                        newPorperty = new GIProperty(props[i], displayName, offset, options, false);
+                        newPorperty = new GIProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.dsgi:
-                        newPorperty = new DSGIProperty(props[i], displayName, offset, options, false);
+                        newPorperty = new DSGIProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.instancing:
-                        newPorperty = new InstancingProperty(props[i], displayName, offset, options, false);
+                        newPorperty = new InstancingProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.locale:
-                        newPorperty = new LocaleProperty(props[i], displayName, offset, options, false);
+                        newPorperty = new LocaleProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.shader_optimizer:
                         editorData.use_ShaderOptimizer = true;
-                        newPorperty = new ShaderProperty(props[i], displayName, offset, options, false);
+                        newPorperty = new ShaderProperty(this, props[i], displayName, offset, options, false);
                         break;
                 }
                 if (newPorperty != null)

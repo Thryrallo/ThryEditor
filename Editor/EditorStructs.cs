@@ -40,6 +40,8 @@ namespace Thry
 
     public abstract class ShaderPart
     {
+        public ShaderEditor shaderEditor;
+
         public int xOffset = 0;
         public GUIContent content;
         public MaterialProperty materialProperty;
@@ -55,8 +57,9 @@ namespace Thry
 
         public bool has_searchedFor = true; //used for property search
 
-        public ShaderPart(MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
+        public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
+            this.shaderEditor = shaderEditor;
             this.materialProperty = prop;
             this.xOffset = xOffset;
             this.options = options;
@@ -89,6 +92,8 @@ namespace Thry
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m);
         public abstract void CopyToMaterial(Material m);
+
+        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g);
 
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
@@ -169,17 +174,17 @@ namespace Thry
     {
         public List<ShaderPart> parts = new List<ShaderPart>();
 
-        public ShaderGroup() : base(null, 0, "", new PropertyOptions())
+        public ShaderGroup(ShaderEditor shaderEditor) : base(shaderEditor, null, 0, "", new PropertyOptions())
         {
 
         }
 
-        public ShaderGroup(PropertyOptions options) : base(null, 0, "", new PropertyOptions())
+        public ShaderGroup(ShaderEditor shaderEditor, PropertyOptions options) : base(shaderEditor, null, 0, "", new PropertyOptions())
         {
             this.options = options;
         }
 
-        public ShaderGroup(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(prop, xOffset, displayName, options)
+        public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, xOffset, displayName, options)
         {
 
         }
@@ -212,18 +217,30 @@ namespace Thry
                 part.Draw();
             }
         }
+
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        {
+            if (p is ShaderGroup == false) return;
+            ShaderGroup group = p as ShaderGroup;
+            if (options.reference_property != null && group.options.reference_property != null)
+                ShaderEditor.currentlyDrawing.propertyDictionary[options.reference_property].TransferFromMaterialAndGroup(m, group.shaderEditor.editorData.propertyDictionary[group.options.reference_property]);
+            for(int i=0;i<group.parts.Count && i < parts.Count; i++)
+            {
+                parts[i].TransferFromMaterialAndGroup(m, group.parts[i]);
+            }
+        }
     }
 
     public class ShaderHeader : ShaderGroup
     {
         public ShaderEditorHeader guiElement;
 
-        public ShaderHeader() : base()
+        public ShaderHeader(ShaderEditor shaderEditor) : base(shaderEditor)
         {
 
         }
 
-        public ShaderHeader(MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(prop, materialEditor, displayName, xOffset, options)
+        public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, materialEditor, displayName, xOffset, options)
         {
             this.guiElement = new ShaderEditorHeader(prop);
         }
@@ -270,7 +287,7 @@ namespace Thry
 
         public string keyword;
 
-        public ShaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
+        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, options)
         {
             drawDefault = false;
             this.forceOneLine = forceOneLine;
@@ -348,6 +365,17 @@ namespace Thry
         public virtual void PreDraw() { }
 
         public virtual void DrawDefault() { }
+
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        {
+            if (materialProperty.type != p.materialProperty.type) return;
+            MaterialHelper.CopyMaterialValueFromProperty(materialProperty, p.materialProperty);
+            if (keyword != null) SetKeyword(ShaderEditor.currentlyDrawing.materials, m.GetFloat(p.materialProperty.name) == 1);
+            if (is_animatable  && p.is_animatable)
+                MaterialHelper.CopyMaterialValueFromProperty(kaj_isAnimatedProperty, p.kaj_isAnimatedProperty);
+            this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
+            this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;
+        }
     }
 
     public class TextureProperty : ShaderProperty
@@ -356,7 +384,7 @@ namespace Thry
         public bool hasFoldoutProperties = false;
         public bool hasScaleOffset = false;
 
-        public TextureProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI) : base(materialProperty, displayName, xOffset, options, false)
+        public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI) : base(shaderEditor, materialProperty, displayName, xOffset, options, false)
         {
             drawDefault = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
@@ -410,7 +438,7 @@ namespace Thry
 
     public class ShaderHeaderProperty : ShaderPart
     {
-        public ShaderHeaderProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, xOffset, displayName, options)
+        public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, options)
         {
         }
 
@@ -447,11 +475,16 @@ namespace Thry
         {
             throw new System.NotImplementedException();
         }
+
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 
     public class InstancingProperty : ShaderProperty
     {
-        public InstancingProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset, options, forceOneLine)
+        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
         {
             drawDefault = true;
         }
@@ -463,7 +496,7 @@ namespace Thry
     }
     public class GIProperty : ShaderProperty
     {
-        public GIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset, options, forceOneLine)
+        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
         {
             drawDefault = true;
         }
@@ -475,7 +508,7 @@ namespace Thry
     }
     public class DSGIProperty : ShaderProperty
     {
-        public DSGIProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset, options, forceOneLine)
+        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
         {
             drawDefault = true;
         }
@@ -487,7 +520,7 @@ namespace Thry
     }
     public class LocaleProperty : ShaderProperty
     {
-        public LocaleProperty(MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(materialProperty, displayName, xOffset, options, forceOneLine)
+        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
         {
             drawDefault = true;
         }

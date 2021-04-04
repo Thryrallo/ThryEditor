@@ -630,6 +630,30 @@ namespace Thry
             }
         }
 
+        public static void CopyMaterialValueFromProperty(MaterialProperty target, MaterialProperty source)
+        {
+            switch (target.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    target.floatValue = source.floatValue;
+                    string[] drawer = ShaderHelper.GetDrawer(target);
+                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
+                        ToggleKeyword(target, drawer[1], source.floatValue == 1);
+                    break;
+                case MaterialProperty.PropType.Color:
+                    target.colorValue = source.colorValue;
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    target.vectorValue = source.vectorValue;
+                    break;
+                case MaterialProperty.PropType.Texture:
+                    target.textureValue = source.textureValue;
+                    target.textureScaleAndOffset = source.textureScaleAndOffset;
+                    break;
+            }
+        }
+
         public static void CopyPropertyValueToMaterial(MaterialProperty source, Material target)
         {
             switch (source.type)
