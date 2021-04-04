@@ -266,8 +266,8 @@ namespace Thry
             if (CheckForEditorRemove(assets))
             {
                 Debug.Log("ShaderEditor is being deleted.");
-                Config.Get().verion = "0";
-                Config.Get().save();
+                Config.Singleton.verion = "0";
+                Config.Singleton.save();
                 ModuleHandler.OnEditorRemove();
             }
         }

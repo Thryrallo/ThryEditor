@@ -13,7 +13,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.8.7";
+        private const string VERSION = "2.9.0";
 
         // static
         private static Config config;
@@ -26,7 +26,7 @@ namespace Thry
             }
             else
             {
-                string prevVersion = Get().verion;
+                string prevVersion = Singleton.verion;
                 string installedVersion = VERSION;
                 int versionComparision = Helper.compareVersions(installedVersion, prevVersion);
                 if (versionComparision != 0)
@@ -55,10 +55,13 @@ namespace Thry
             return new Config();
         }
 
-        public static Config Get()
+        public static Config Singleton
         {
-            if (config == null) config = LoadConfig();
-            return config;
+            get
+            {
+                if (config == null) config = LoadConfig();
+                return config;
+            }
         }
 
         //actual config class

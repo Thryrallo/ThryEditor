@@ -157,18 +157,21 @@ namespace Thry
             importer.SaveAndReimport();
         }
 
-        public Texture loaded_texture;
-        public Texture GetTextureFromName()
+        private Texture p_loaded_texture;
+        public Texture loaded_texture
         {
-            if (loaded_texture == null)
+            get
             {
-                string path = FileHelper.FindFile(name, "texture");
-                if (path != null)
-                    loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
-                else
-                    loaded_texture = new Texture2D(1,1);
+                if (p_loaded_texture == null)
+                {
+                    string path = FileHelper.FindFile(name, "texture");
+                    if (path != null)
+                        p_loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                    else
+                        p_loaded_texture = new Texture2D(1, 1);
+                }
+                return p_loaded_texture;
             }
-            return loaded_texture;
         }
     }
 
@@ -331,7 +334,7 @@ namespace Thry
                     if (comparator == "<=") return prop.materialProperty.floatValue <= f;
                     break;
                 case DefineableConditionType.EDITOR_VERSION:
-                    int c_ev = Helper.compareVersions(Config.Get().verion, value);
+                    int c_ev = Helper.compareVersions(Config.Singleton.verion, value);
                     if (comparator == "==") return c_ev == 0;
                     if (comparator == "!=") return c_ev != 0;
                     if (comparator == "<") return c_ev == 1;

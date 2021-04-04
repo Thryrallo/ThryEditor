@@ -36,6 +36,11 @@ namespace Thry
             return dictionary[key][selected_locale_index];
         }
 
+        public bool Constains(string key)
+        {
+            return dictionary.ContainsKey(key) && string.IsNullOrEmpty(dictionary[key][selected_locale_index]) == false;
+        }
+
         public string[] available_locales
         {
             get

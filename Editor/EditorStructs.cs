@@ -53,6 +53,8 @@ namespace Thry
         public bool is_renaming = false;
         public MaterialProperty kaj_isAnimatedProperty;
 
+        public bool has_searchedFor = true; //used for property search
+
         public ShaderPart(MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
             this.materialProperty = prop;
@@ -90,6 +92,8 @@ namespace Thry
 
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
+            if (ShaderEditor.active.show_search_bar && !has_searchedFor)
+                return;
             if (HeaderHider.IsHeaderHidden(this))
                 return;
             bool addDisableGroup = options.condition_enable != null && DrawingData.is_enabled;
@@ -114,7 +118,7 @@ namespace Thry
             Rect lastRect = GUILayoutUtility.GetLastRect();
             if (ShaderEditor.currentlyDrawing.isLockedMaterial == false && Event.current.isMouse && Event.current.button == 1 && lastRect.Contains(Event.current.mousePosition))
             {
-                if (Event.current.control && Config.Get().renameAnimatedProps)
+                if (Event.current.control && Config.Singleton.renameAnimatedProps)
                 {
                     if (!is_animated)
                     {
@@ -323,14 +327,14 @@ namespace Thry
                 DrawDefault();
             else
             {
-                ShaderEditor.currentlyDrawing.gui.BeginAnimatedCheck(materialProperty);
+                //ShaderEditor.currentlyDrawing.gui.BeginAnimatedCheck(materialProperty);
                 if (forceOneLine)
                     ShaderEditor.currentlyDrawing.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
                 else if (rect != null)
                     ShaderEditor.currentlyDrawing.editor.ShaderProperty(rect.r, this.materialProperty, content);
                 else
                     ShaderEditor.currentlyDrawing.editor.ShaderProperty(this.materialProperty, content);
-                ShaderEditor.currentlyDrawing.gui.EndAnimatedCheck();
+                //ShaderEditor.currentlyDrawing.gui.EndAnimatedCheck();
             }
 
             EditorGUI.indentLevel = oldIndentLevel;
@@ -417,7 +421,7 @@ namespace Thry
                 if (options.texture != null && options.texture.name != null)
                 {
                     //is texutre draw
-                    content = new GUIContent(options.texture.GetTextureFromName(), content.tooltip);
+                    content = new GUIContent(options.texture.loaded_texture, content.tooltip);
                     int height = options.texture.height;
                     int width = (int)((float)options.texture.loaded_texture.width / options.texture.loaded_texture.height * height);
                     Rect control = EditorGUILayout.GetControlRect(false, height-18);
