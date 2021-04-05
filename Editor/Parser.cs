@@ -87,7 +87,7 @@ namespace Thry
                     isString = !isString;
                 if (!isString)
                 {
-                    if (i == input.Length - 1 || (depth == 0 && input[i] == ',' && !escaped))
+                    if (i == input.Length - 1 || (depth == 0 && input[i] == ',' && !escaped) || (!escaped && depth == 0 && input[i] == '}'))
                     {
                         string[] parts = input.Substring(variableStart, i - variableStart).Split(new char[] { ':' }, 2);
                         if (parts.Length < 2)

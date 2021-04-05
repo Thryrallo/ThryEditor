@@ -630,6 +630,15 @@ namespace Thry
             }
         }
 
+        public static void CopyMaterialTagFromMaterial(Material[] targets, Material source, string tag, string defaultValue)
+        {
+            string val = source.GetTag(tag, false, defaultValue);
+            foreach(Material m in targets)
+            {
+                m.SetOverrideTag(tag, val);
+            }
+        }
+
         public static void CopyMaterialValueFromProperty(MaterialProperty target, MaterialProperty source)
         {
             switch (target.type)

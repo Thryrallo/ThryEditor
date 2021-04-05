@@ -53,7 +53,6 @@ namespace Thry
         public bool is_animated = false;
         public bool is_animatable = false;
         public bool is_renaming = false;
-        public MaterialProperty kaj_isAnimatedProperty;
 
         public bool has_searchedFor = true; //used for property search
 
@@ -70,23 +69,29 @@ namespace Thry
             if (prop == null)
                 return;
             bool propHasDuplicate = ShaderEditor.active.GetMaterialProperty(prop.name + "_" + ShaderEditor.currentlyDrawing.animPropertySuffix) != null;
+            string tag = null;
+            //If prop is og, but is duplicated (locked) dont have it animateable
             if (propHasDuplicate)
             {
-                this.kaj_isAnimatedProperty = null;
+                this.is_animatable = false;
             }
             else
             {
-                this.kaj_isAnimatedProperty = ShaderEditor.active.GetMaterialProperty(prop.name + "Animated");
+                //if prop is a duplicated or renamed get og property to check for animted status
                 if (prop.name.Contains(ShaderEditor.currentlyDrawing.animPropertySuffix))
                 {
-                    string ogNameAnimated = prop.name.Substring(0, prop.name.Length - ShaderEditor.currentlyDrawing.animPropertySuffix.Length - 1) + "Animated";
-                    MaterialProperty p = ShaderEditor.active.GetMaterialProperty(ogNameAnimated);
-                    if (p != null) this.kaj_isAnimatedProperty = p;
+                    string ogName = prop.name.Substring(0, prop.name.Length - ShaderEditor.currentlyDrawing.animPropertySuffix.Length - 1);
+                    tag = ShaderOptimizer.GetAnimatedTag(materialProperty.targets[0] as Material, ogName);
                 }
+                else
+                {
+                    tag = ShaderOptimizer.GetAnimatedTag(materialProperty);
+                }
+                this.is_animatable = true;
             }
-            this.is_animatable = this.kaj_isAnimatedProperty != null;
-            this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
-            this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;
+            
+            this.is_animated = is_animatable && tag != "";
+            this.is_renaming = is_animatable && tag == "2";
         }
 
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
@@ -139,8 +144,7 @@ namespace Thry
                 {
                     is_animated = !is_animated;
                 }
-
-                kaj_isAnimatedProperty.floatValue = is_animated ? (is_renaming ? 2 : 1) : 0;
+                ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
                 GUIUtility.ExitGUI();
             }
             if (is_animated)
@@ -300,9 +304,11 @@ namespace Thry
             MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
             if (keyword != null) SetKeyword(ShaderEditor.currentlyDrawing.materials, m.GetFloat(materialProperty.name)==1);
             if (is_animatable)
-                MaterialHelper.CopyPropertyValueFromMaterial(kaj_isAnimatedProperty, m);
-            this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
-            this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;
+            {
+                ShaderOptimizer.CopyAnimatedTagFromMaterial(m, materialProperty);
+            }
+            this.is_animated = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) != "";
+            this.is_renaming = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) == "2";
         }
 
         public override void CopyToMaterial(Material m)
@@ -310,7 +316,7 @@ namespace Thry
             MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
             if (keyword != null) SetKeyword(m, materialProperty.floatValue == 1);
             if (is_animatable)
-                MaterialHelper.CopyPropertyValueToMaterial(kaj_isAnimatedProperty, m);
+                ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, materialProperty);
         }
 
         private void SetKeyword(Material[] materials, bool enabled)
@@ -371,10 +377,10 @@ namespace Thry
             if (materialProperty.type != p.materialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(materialProperty, p.materialProperty);
             if (keyword != null) SetKeyword(ShaderEditor.currentlyDrawing.materials, m.GetFloat(p.materialProperty.name) == 1);
-            if (is_animatable  && p.is_animatable)
-                MaterialHelper.CopyMaterialValueFromProperty(kaj_isAnimatedProperty, p.kaj_isAnimatedProperty);
-            this.is_animated = is_animatable && kaj_isAnimatedProperty.floatValue > 0;
-            this.is_renaming = is_animatable && kaj_isAnimatedProperty.floatValue == 2;
+            if (is_animatable && p.is_animatable)
+                ShaderOptimizer.CopyAnimatedTagFromProperty(p.materialProperty, materialProperty);
+            this.is_animated = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) != "";
+            this.is_renaming = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) == "2";
         }
     }
 

@@ -437,7 +437,7 @@ namespace Thry
         public override void AssignNewShaderToMaterial(Material material, Shader oldShader, Shader newShader)
         {
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
-            firstOnGUICall = true;
+            reloadNextDraw = true;
             swapped_to_shader = true;
         }
 
@@ -452,11 +452,6 @@ namespace Thry
             input.mouse_position = e.mousePosition;
             input.is_drop_event = e.type == EventType.DragPerform;
             input.is_drag_drop_event = input.is_drop_event || e.type == EventType.DragUpdated;
-        }
-
-        void OnShaderChanged()
-        {
-            reloadNextDraw = true;
         }
 
         void InitEditorData(MaterialEditor materialEditor)

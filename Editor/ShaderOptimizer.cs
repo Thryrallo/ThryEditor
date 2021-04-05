@@ -75,6 +75,7 @@ namespace Thry
         // Material property suffix that controls whether the property of the same name gets baked into the optimized shader
         // e.g. if _Color exists and _ColorAnimated = 1, _Color will not be baked in
         public static readonly string AnimatedPropertySuffix = "Animated";
+        public static readonly string AnimatedTagSuffix = "Animated";
 
         // Currently, Material.SetShaderPassEnabled doesn't work on "ShadowCaster" lightmodes,
         // and doesn't let "ForwardAdd" lights get turned into vertex lights if "ForwardAdd" is simply disabled
@@ -268,6 +269,51 @@ namespace Thry
             public string newName;
         }
 
+        public static void CopyAnimatedTagToMaterials(Material[] targets, MaterialProperty source)
+        {
+            string val = (source.targets[0] as Material).GetTag(source.name + AnimatedTagSuffix, false, "");
+            foreach (Material m in targets)
+            {
+                m.SetOverrideTag(source.name+ AnimatedTagSuffix, val);
+            }
+        }
+
+        public static void CopyAnimatedTagFromMaterial(Material source, MaterialProperty target)
+        {
+            string val = source.GetTag(target.name + AnimatedTagSuffix, false, "");
+            foreach (Material m in target.targets)
+            {
+                m.SetOverrideTag(target.name + AnimatedTagSuffix, val);
+            }
+        }
+
+        public static void CopyAnimatedTagFromProperty(MaterialProperty source, MaterialProperty target)
+        {
+            string val = (source.targets[0] as Material).GetTag(source.name + AnimatedTagSuffix, false, "");
+            foreach (Material m in target.targets)
+            {
+                m.SetOverrideTag(target.name + AnimatedTagSuffix, val);
+            }
+        }
+
+        public static void SetAnimatedTag(MaterialProperty prop, string value)
+        {
+            foreach (Material m in prop.targets)
+            {
+                m.SetOverrideTag(prop.name + AnimatedTagSuffix, value);
+            }
+        }
+
+        public static string GetAnimatedTag(MaterialProperty prop)
+        {
+            return (prop.targets[0] as Material).GetTag(prop.name + AnimatedTagSuffix, false, "");
+        }
+
+        public static string GetAnimatedTag(Material m, string prop)
+        {
+            return m.GetTag(prop + AnimatedTagSuffix, false, "");
+        }
+
         public static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
@@ -308,9 +354,9 @@ namespace Thry
             {
                 if (prop == null) continue;
 
-                if(Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
+                if (Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
                 {
-                    string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_","");
+                    string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_", "");
                     uncommentKeywords.Add(key, false);
                 }
                 if (Regex.IsMatch(prop.name, @".*_commentIfZero_(\d|\w)+") && prop.floatValue == 0)
@@ -373,15 +419,11 @@ namespace Thry
                         UseTessellationMeta = (prop.floatValue == 1);
                 }
 
-
-
-                // Check for the convention 'Animated' Property to be true otherwise assume all properties are constant
-                // nlogn trash
-                MaterialProperty animatedProp = Array.Find(props, x => x.name == prop.name + AnimatedPropertySuffix);
-                if (animatedProp != null && animatedProp.floatValue > 0)
+                string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "0");
+                if(animateTag != "")
                 {
                     // check if we're renaming the property as well
-                    if (animatedProp.floatValue == 2)
+                    if (animateTag == "2")
                     {
                         if (prop.type != MaterialProperty.PropType.Texture &&
                                 !prop.name.EndsWith("UV") && !prop.name.EndsWith("Pan")) // this property might be animated, but we're not allowed to rename it. this will break things.
@@ -436,8 +478,8 @@ namespace Thry
                         constantProps.Add(propData);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        animatedProp = Array.Find(props, x => x.name == prop.name + "_ST" + AnimatedPropertySuffix);
-                        if (!(animatedProp != null && animatedProp.floatValue == 1))
+                        animateTag = material.GetTag(prop.name + "_ST" + AnimatedTagSuffix, false, "0");
+                        if (!(animateTag != "" && animateTag == "1"))
                         {
                             PropertyData ST = new PropertyData();
                             ST.type = PropertyType.Vector;
@@ -447,8 +489,8 @@ namespace Thry
                             ST.value = new Vector4(scale.x, scale.y, offset.x, offset.y);
                             constantProps.Add(ST);
                         }
-                        animatedProp = Array.Find(props, x => x.name == prop.name + "_TexelSize" + AnimatedPropertySuffix);
-                        if (!(animatedProp != null && animatedProp.floatValue == 1))
+                        animateTag = material.GetTag(prop.name + "_TexelSize" + AnimatedTagSuffix, false, "0");
+                        if (!(animateTag != null && animateTag == "1"))
                         {
                             PropertyData TexelSize = new PropertyData();
                             TexelSize.type = PropertyType.Vector;
@@ -745,6 +787,7 @@ namespace Thry
                 return false;
             }
             material.shader = newShader;
+            ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
 
@@ -1126,8 +1169,8 @@ namespace Thry
                     if (maxTessFactorProperty != null)
                     {
                         float maxTessellation = maxTessFactorProperty.floatValue;
-                        MaterialProperty maxTessFactorAnimatedProperty = Array.Find(props, x => x.name == TessellationMaxFactorPropertyName + AnimatedPropertySuffix);
-                        if (maxTessFactorAnimatedProperty != null && maxTessFactorAnimatedProperty.floatValue == 1)
+                        string animateTag = material.GetTag(TessellationMaxFactorPropertyName + AnimatedTagSuffix, false, "0");
+                        if (animateTag != "" && animateTag == "1")
                             maxTessellation = 64.0f;
                         lines[i] = "[maxtessfactor(" + maxTessellation.ToString(".0######") + ")]";
                     }
@@ -1297,6 +1340,7 @@ namespace Thry
             string renderType = material.GetTag("RenderType", false, "");
             int renderQueue = material.renderQueue;
             material.shader = orignalShader;
+            ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
 
