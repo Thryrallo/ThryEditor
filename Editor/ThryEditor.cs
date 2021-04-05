@@ -469,12 +469,8 @@ namespace Thry
             editorData.firstCall = true;
         }
 
-
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
-            //System.Diagnostics.Stopwatch sw3 = new System.Diagnostics.Stopwatch();
-            //sw3.Start();
-
             //Init
             bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout);
             if (reloadUI) 
@@ -510,10 +506,6 @@ namespace Thry
             GUIFooters();
 
             HandleEvents();
-
-            EditorGUILayout.GetControlRect(GUILayout.Height(500));
-
-            //Debug.Log(sw3.ElapsedTicks);
         }
 
         private void GUITopBar()
