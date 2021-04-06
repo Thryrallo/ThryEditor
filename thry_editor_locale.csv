@@ -72,4 +72,4 @@ new_preset_name,Preset Name,Voreinstellungs Name,プリセット名,Nombre del p
 new_preset_name2,Preset Name,Voreinstellungs Name,プリセット名,Nombre del preset,,,01010000 01110010 01100101 01110011 01100101 01110100 00100000 01001110 01100001 01101101 01100101,预设名称
 preset_saved,Preset saved,Voreinstellung gespeichert,プリセットが保存されました,Preset guardado,,,01010000 01110010 01100101 01110011 01100101 01110100 00100000 01110011 01100001 01110110 01100101 01100100,保存预设
 ,,,,,,,,
-auto_lock_dialog,"{0} materials have not been locked and will now be locked automatically. Locking in can dramatically improve runtime performance.\n\nDuring this time unity will remain unresponsive, please be patient.",,,,,,,
+auto_lock_dialog,"{0} material(s) have not been locked and will now be locked automatically. Locking in can dramatically improve runtime performance.\n\nDuring this time unity will remain unresponsive, please be patient.",,,,,,,
