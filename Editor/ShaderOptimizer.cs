@@ -1510,7 +1510,7 @@ namespace Thry
 
             if(showDialog && length > 0)
             {
-                EditorUtility.DisplayDialog("Locking Materials", "There are "+length+" unlocked materials on your avatar.\nUnlocked materials can significantly impact performance for you and others.\n\nThese materials will be locked automatically.", "OK");
+                EditorUtility.DisplayDialog("Locking Materials", length+ " materials have not been locked and will now be locked automatically. During this time unity will remain unresponsive, please be patient.", "OK");
             }
             foreach (Material m in materialsToChangeLock)
             {
