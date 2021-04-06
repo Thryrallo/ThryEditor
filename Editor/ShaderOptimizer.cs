@@ -1482,20 +1482,20 @@ namespace Thry
 
             public bool OnPreprocessAvatar(GameObject avatarGameObject)
             {
-                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1, showProgressbar: true, showDialog: true);
+                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1, showProgressbar: true, showDialog: true, allowCancel: false);
                 //returning true all the time, because build process cant be stopped it seems
                 return true;
             }
         }
         #endif
 
-        public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false)
+        public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
             Material[] materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials)).ToArray();
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
 
-        public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false)
+        public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
 
@@ -1510,14 +1510,17 @@ namespace Thry
 
             if(showDialog && length > 0)
             {
-                EditorUtility.DisplayDialog("Locking Materials", "You have " + length + " materials on your avatar that are not locked. We are about to do that for you now, unity will not respond during that process.", "OK");
+                EditorUtility.DisplayDialog("Locking Materials", "There are "+length+" unlocked materials on your avatar.\nUnlocked materials can significantly impact performance for you and others.\n\nThese materials will be locked automatically.", "OK");
             }
             foreach (Material m in materialsToChangeLock)
             {
                 //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
                 if (showProgressbar)
                 {
-                    if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length)) break;
+                    if(allowCancel)
+                        if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length)) break;
+                    else
+                        EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
                 }
                 try
                 {
