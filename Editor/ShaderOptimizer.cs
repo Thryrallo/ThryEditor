@@ -1510,7 +1510,7 @@ namespace Thry
 
             if(showDialog && length > 0)
             {
-                if(EditorUtility.DisplayDialog("Locking Materials", Locale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "OK", "More information.") == false)
+                if(EditorUtility.DisplayDialog("Locking Materials", Locale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
                 {
                     Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo");
                 }
