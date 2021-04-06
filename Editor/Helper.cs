@@ -19,7 +19,18 @@ using UnityEngine.Networking;
 
 namespace Thry
 {
-
+    static class StringExtensions
+    {
+        public static string ReplaceVariables(this string s, params object[] values)
+        {
+            int i = 0;
+            foreach(object o in values)
+            {
+                s = s.Replace("{" + (i++) + "}", o.ToString());
+            }
+            return s;
+        }
+    }
     public class Helper
     {
 

@@ -1510,7 +1510,10 @@ namespace Thry
 
             if(showDialog && length > 0)
             {
-                EditorUtility.DisplayDialog("Locking Materials", length+ " materials have not been locked and will now be locked automatically. During this time unity will remain unresponsive, please be patient.", "OK");
+                if(EditorUtility.DisplayDialog("Locking Materials", Locale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "OK", "More information.") == false)
+                {
+                    Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo");
+                }
             }
             foreach (Material m in materialsToChangeLock)
             {

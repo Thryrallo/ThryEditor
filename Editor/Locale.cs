@@ -105,6 +105,7 @@ namespace Thry
                         value[i] = line[i + 1];
                     else
                         value[i] = value[0];
+                    value[i] = value[i].Replace("\\n", "\n");
                 }
                 dictionary.Add(key, value);
             }
