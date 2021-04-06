@@ -1467,8 +1467,7 @@ namespace Thry
                     if (AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) != typeof(Material))
                         return false;
                     Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
-                    string pName;
-                    return IsShaderUsingThryOptimizer(m.shader, out pName);
+                    return IsShaderUsingThryOptimizer(m.shader);
                 });
             }
             return false;
@@ -1483,57 +1482,55 @@ namespace Thry
 
             public bool OnPreprocessAvatar(GameObject avatarGameObject)
             {
-                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1);
+                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1, showProgressbar: true, showDialog: true);
+                //returning true all the time, because build process cant be stopped it seems
                 return true;
             }
         }
         #endif
 
-        public static void SetLockForAllChildren(GameObject[] objects, int lockState, bool isCancleable = false)
+        public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false)
         {
             Material[] materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials)).ToArray();
-            SetLockedForAllMaterials(materials, lockState, isCancleable);
+            return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
 
-        public static void SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false)
+        public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
 
             AssetDatabase.StartAssetEditing();
-            float i = 0;
-            float length = materials.Count();
-            foreach (Material m in materials)
-            {
-                if (m == null) continue;
-                //check if material is build in material, cause built in materials and shaders suck ass. You can't even access there name here without crashing unity
-                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) || string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))) continue;
 
+            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null &&
+                string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
+                && IsShaderUsingThryOptimizer(m.shader) && m.GetFloat(GetOptimizerPropertyName(m.shader)) != lockState).Distinct();
+
+            float i = 0;
+            float length = materialsToChangeLock.Count();
+
+            if(showDialog && length > 0)
+            {
+                EditorUtility.DisplayDialog("Locking Materials", "You have " + length + " materials on your avatar that are not locked. We are about to do that for you now, unity will not respond during that process.", "OK");
+            }
+            foreach (Material m in materialsToChangeLock)
+            {
                 //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
                 if (showProgressbar)
                 {
-                    if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length))
-                    {
-                        break;
-                    }
+                    if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length)) break;
                 }
                 try
                 {
-                    string optimizerPropertyName;
-                    //checking for drawer, since other materials / shaders could have same porperty name
-                    if (IsShaderUsingThryOptimizer(m.shader, out optimizerPropertyName) == false) continue;
-
-                    bool isLocked = m.GetFloat(optimizerPropertyName) == 1;
-
-                    if (lockState == 1 && isLocked == false)
+                    if (lockState == 1)
                     {
                         ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }), applyShaderLater: true);
                     }
-                    else if (lockState == 0 && isLocked)
+                    else if (lockState == 0)
                     {
                         //if unlock success set floats. not done for locking cause the sucess is checked later when applying the shaders
                         if (ShaderOptimizer.Unlock(m))
                         {
-                            m.SetFloat(optimizerPropertyName, lockState);
+                            m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
                         }
                     }
                 }
@@ -1552,28 +1549,35 @@ namespace Thry
             if (lockState == 1)
             {
                 //Apply new shaders
-                foreach (Material m in materials)
+                foreach (Material m in materialsToChangeLock)
                 {
-                    if (m == null) continue;
-                    //check if material is build in material, cause built in materials and shaders suck ass. You can't even access there name here without crashing unity
-                    if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) || string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))) continue;
-
-                    string propertyName;
-                    if (IsShaderUsingThryOptimizer(m.shader, out propertyName))
+                    bool success = ShaderOptimizer.LockApplyShader(m);
+                    if (success)
                     {
-                        bool success = ShaderOptimizer.LockApplyShader(m);
-                        if (success)
-                        {
-                            m.SetFloat(propertyName, lockState);
-                        }
+                        m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
                     }
                 }
+            }
+            return true;
+        }
+
+        private static string GetOptimizerPropertyName(Shader shader)
+        {
+            if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
+            {
+                return shaderUsingThryOptimizerDictionary[shader];
+            }
+            else
+            {
+                IsShaderUsingThryOptimizer(shader);
+                return shaderUsingThryOptimizerDictionary[shader];
             }
         }
 
         private static Dictionary<Shader, string> shaderUsingThryOptimizerDictionary = new Dictionary<Shader, string>();
-        private static bool IsShaderUsingThryOptimizer(Shader shader, out string propertyName)
+        private static bool IsShaderUsingThryOptimizer(Shader shader)
         {
+            string propertyName;
             if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
             {
                 propertyName = shaderUsingThryOptimizerDictionary[shader];
