@@ -421,6 +421,25 @@ namespace Thry
             CopyReferencePropertiesToMaterial(m);
         }
 
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        {
+            if (materialProperty.type != p.materialProperty.type) return;
+            MaterialHelper.CopyMaterialValueFromProperty(materialProperty, p.materialProperty);
+            TransferReferencePropertiesToMaterial(m, p);
+        }
+        private void TransferReferencePropertiesToMaterial(Material target, ShaderPart p)
+        {
+            if (p.options.reference_properties == null || this.options.reference_properties == null) return;
+            for (int i = 0; i < p.options.reference_properties.Length && i < options.reference_properties.Length; i++)
+            {
+                if (ShaderEditor.currentlyDrawing.propertyDictionary.ContainsKey(this.options.reference_properties[i]) == false) continue;
+
+                ShaderProperty targetP = ShaderEditor.currentlyDrawing.propertyDictionary[this.options.reference_properties[i]];
+                ShaderProperty sourceP = p.shaderEditor.editorData.propertyDictionary[p.options.reference_properties[i]];
+                MaterialHelper.CopyMaterialValueFromProperty(targetP.materialProperty, sourceP.materialProperty);
+            }
+        }
+
         private void CopyReferencePropertiesToMaterial(Material target)
         {
             if (options.reference_properties != null)
