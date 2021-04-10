@@ -1567,7 +1567,7 @@ namespace Thry
             return true;
         }
 
-        private static string GetOptimizerPropertyName(Shader shader)
+        public static string GetOptimizerPropertyName(Shader shader)
         {
             if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
             {
@@ -1581,7 +1581,7 @@ namespace Thry
         }
 
         private static Dictionary<Shader, string> shaderUsingThryOptimizerDictionary = new Dictionary<Shader, string>();
-        private static bool IsShaderUsingThryOptimizer(Shader shader)
+        public static bool IsShaderUsingThryOptimizer(Shader shader)
         {
             string propertyName;
             if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))

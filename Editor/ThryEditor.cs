@@ -398,7 +398,10 @@ namespace Thry
             //collect shader properties
             CollectAllProperties();
 
-            ShaderOptimizerProperty = editorData.propertyDictionary?["_ShaderOptimizerEnabled"];
+            if (ShaderOptimizer.IsShaderUsingThryOptimizer(editorData.shader))
+            {
+                ShaderOptimizerProperty = editorData.propertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(editorData.shader)];
+            }
 
             AddResetProperty();
 
