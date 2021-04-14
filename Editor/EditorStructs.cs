@@ -145,7 +145,7 @@ namespace Thry
                     is_animated = !is_animated;
                 }
                 ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
-                GUIUtility.ExitGUI();
+                EditorUtility.SetDirty(materialProperty.targets[0]);
             }
             if (is_animated)
             {

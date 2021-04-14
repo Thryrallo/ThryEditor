@@ -34,6 +34,10 @@ using System.Linq;
 #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
 using VRC.SDKBase.Editor.BuildPipeline;
 #endif
+#if VRC_SDK_VRCSDK3
+using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
+using VRC.SDK3.Avatars.Components;
+#endif
 // v9
 
 namespace Thry
@@ -419,8 +423,8 @@ namespace Thry
                         UseTessellationMeta = (prop.floatValue == 1);
                 }
 
-                string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "0");
-                if(animateTag != "0")
+                string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, null);
+                if(animateTag != null)
                 {
                     // check if we're renaming the property as well
                     if (animateTag == "2")
@@ -1364,6 +1368,48 @@ namespace Thry
             return true;
         }
 
+        #region Upgrade
+
+        public static void UpgradeAnimatedPropertiesToTagsOnAllMaterials()
+        {
+            Debug.Log("[Thry][Optimizer] Update animated properties of all materials to tags.");
+            IEnumerable<Material> materials = Resources.FindObjectsOfTypeAll<Material>();
+            UpgradeAnimatedPropertiesToTags(materials);
+        }
+
+        public static void UpgradeAnimatedPropertiesToTags(IEnumerable<Material> iMaterials)
+        {
+            IEnumerable<Material> materialsToChange = iMaterials.Where(m => m != null &&
+                string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
+                && IsShaderUsingThryOptimizer(m.shader)).Distinct().OrderBy(m => m.shader.name);
+
+            MaterialProperty[] props = new MaterialProperty[] { };
+            string shaderName = null;
+            foreach (Material m in materialsToChange)
+            {
+                if(m.shader.name != shaderName)
+                {
+                    props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
+                }
+                foreach (MaterialProperty prop in props)
+                {
+                    try
+                    {
+                        float value = m.GetFloat(prop.name + AnimatedPropertySuffix);
+                        if (value != 0)
+                        {
+                            m.SetOverrideTag(prop.name + AnimatedTagSuffix, "" + value);
+                        }
+                    }catch(Exception e)
+                    {
+
+                    }
+                }
+            }
+        }
+
+        #endregion
+
         //---GameObject + Children Locking
 
         [MenuItem("GameObject/Thry/Materials/Unlock All", false,0)]
@@ -1475,23 +1521,38 @@ namespace Thry
 
         //----VRChat Callback to force Locking on upload
 
-        #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
         public class LockMaterialsOnUpload : IVRCSDKPreprocessAvatarCallback
         {
             public int callbackOrder => 100;
 
             public bool OnPreprocessAvatar(GameObject avatarGameObject)
             {
-                SetLockForAllChildren(new GameObject[] { avatarGameObject }, 1, showProgressbar: true, showDialog: true, allowCancel: false);
+                List<Material> materials = avatarGameObject.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).ToList();
+#if VRC_SDK_VRCSDK3
+                VRCAvatarDescriptor descriptor = avatarGameObject.GetComponent<VRCAvatarDescriptor>();
+                if(descriptor != null)
+                {
+                    IEnumerable<AnimationClip> clips = descriptor.baseAnimationLayers.Select(l => l.animatorController).Where(a => a != null).SelectMany(a => a.animationClips).Distinct();
+                    foreach (AnimationClip clip in clips)
+                    {
+                        IEnumerable<Material> clipMaterials = AnimationUtility.GetObjectReferenceCurveBindings(clip).Where(b => b.isPPtrCurve && b.type == typeof(SkinnedMeshRenderer) && b.propertyName.StartsWith("m_Materials"))
+                            .SelectMany(b => AnimationUtility.GetObjectReferenceCurve(clip, b)).Select(r => r.value as Material);
+                        materials.AddRange(clipMaterials);
+                    }
+                }
+                
+#endif
+                SetLockedForAllMaterials(materials, 1, showProgressbar: true, showDialog: PersistentData.Get<bool>("ShowLockInDialog", true), allowCancel: false);
                 //returning true all the time, because build process cant be stopped it seems
                 return true;
             }
         }
-        #endif
+#endif
 
         public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
-            Material[] materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials)).ToArray();
+            IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
 
@@ -1514,16 +1575,21 @@ namespace Thry
                 {
                     Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo");
                 }
+                PersistentData.Set("ShowLockInDialog", false);
             }
             foreach (Material m in materialsToChangeLock)
             {
                 //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
                 if (showProgressbar)
                 {
-                    if(allowCancel)
+                    if (allowCancel)
+                    {
                         if (EditorUtility.DisplayCancelableProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length)) break;
+                    }
                     else
+                    {
                         EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
+                    }
                 }
                 try
                 {

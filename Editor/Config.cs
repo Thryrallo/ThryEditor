@@ -1,8 +1,11 @@
 ﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -13,7 +16,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.10.8";
+        private const string VERSION = "2.11.0";
 
         // static
         private static Config config;
@@ -80,13 +83,86 @@ namespace Thry
             FileHelper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
         }
 
-        private void OnUpgrade(string oldVersion)
+        private void OnUpgrade(string oldVersionString)
         {
-            if (Helper.compareVersions(oldVersion, "1.4.0") < 1)
+            Version newVersion = new Version(VERSION);
+            Version oldVersion = new Version(oldVersionString);
+
+            //Upgrade locking valuesd from Animated property to tags
+            if (newVersion >= "2.10.0" && oldVersion > "2.0" && oldVersion < "2.10.0")
             {
-                //renderQueueShaders = false;
-                save();
+                ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
             }
+        }
+    }
+
+    public class Version
+    {
+        private string value;
+
+        public Version(string s)
+        {
+            this.value = s;
+        }
+
+        public static bool operator ==(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) == 0;
+        }
+
+        public static bool operator !=(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) != 0;
+        }
+
+        public static bool operator >(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) == -1;
+        }
+
+        public static bool operator <(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) == 1;
+        }
+
+        public static bool operator >=(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) < 1;
+        }
+
+        public static bool operator <=(Version x, Version y)
+        {
+            return Helper.compareVersions(x.value, y.value) > -1;
+        }
+
+        public static bool operator ==(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) == 0;
+        }
+
+        public static bool operator !=(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) != 0;
+        }
+
+        public static bool operator >(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) == -1;
+        }
+
+        public static bool operator <(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) == 1;
+        }
+
+        public static bool operator >=(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) < 1;
+        }
+
+        public static bool operator <=(Version x, string y)
+        {
+            return Helper.compareVersions(x.value, y) > -1;
         }
     }
 }
