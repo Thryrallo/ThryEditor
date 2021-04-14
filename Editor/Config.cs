@@ -89,7 +89,7 @@ namespace Thry
             Version oldVersion = new Version(oldVersionString);
 
             //Upgrade locking valuesd from Animated property to tags
-            if (newVersion >= "2.10.0" && oldVersion > "2.0" && oldVersion < "2.10.0")
+            if (newVersion >= "2.11.0" && oldVersion > "2.0" && oldVersion < "2.11.0")
             {
                 ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
             }
