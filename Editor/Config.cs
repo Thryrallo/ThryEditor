@@ -16,7 +16,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.11.2";
+        private const string VERSION = "2.11.3";
 
         // static
         private static Config config;

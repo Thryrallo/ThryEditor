@@ -424,8 +424,8 @@ namespace Thry
                         UseTessellationMeta = (prop.floatValue == 1);
                 }
 
-                string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, null);
-                if(animateTag != null)
+                string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "");
+                if(animateTag != "")
                 {
                     // check if we're renaming the property as well
                     if (animateTag == "2")
