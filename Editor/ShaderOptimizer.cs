@@ -37,6 +37,7 @@ using VRC.SDKBase.Editor.BuildPipeline;
 #if VRC_SDK_VRCSDK3 && !UDON
 using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 using VRC.SDK3.Avatars.Components;
+using System.Reflection;
 #endif
 // v9
 
@@ -1370,11 +1371,12 @@ namespace Thry
 
         #region Upgrade
 
+        [MenuItem("Thry/Editor Tools/Upgraded Animated Properties")]
         public static void UpgradeAnimatedPropertiesToTagsOnAllMaterials()
         {
-            Debug.Log("[Thry][Optimizer] Update animated properties of all materials to tags.");
             IEnumerable<Material> materials = Resources.FindObjectsOfTypeAll<Material>();
             UpgradeAnimatedPropertiesToTags(materials);
+            Debug.Log("[Thry][Optimizer] Update animated properties of all materials to tags.");
         }
 
         public static void UpgradeAnimatedPropertiesToTags(IEnumerable<Material> iMaterials)
@@ -1389,7 +1391,7 @@ namespace Thry
             {
                 if(m.shader.name != shaderName)
                 {
-                    props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
+                    props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }).Where(p => p.name.EndsWith(AnimatedPropertySuffix) == false).ToArray();
                 }
                 foreach (MaterialProperty prop in props)
                 {
@@ -1406,6 +1408,16 @@ namespace Thry
                     }
                 }
             }
+            ClearConsole();
+        }
+
+        static void ClearConsole()
+        {
+            var logEntries = System.Type.GetType("UnityEditor.LogEntries, UnityEditor.dll");
+
+            var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+
+            clearMethod.Invoke(null, null);
         }
 
         #endregion
