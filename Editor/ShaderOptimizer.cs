@@ -34,7 +34,7 @@ using System.Linq;
 #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
 using VRC.SDKBase.Editor.BuildPipeline;
 #endif
-#if VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK3 && !UDON
 using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 using VRC.SDK3.Avatars.Components;
 #endif
@@ -1529,7 +1529,7 @@ namespace Thry
             public bool OnPreprocessAvatar(GameObject avatarGameObject)
             {
                 List<Material> materials = avatarGameObject.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).ToList();
-#if VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK3  && !UDON
                 VRCAvatarDescriptor descriptor = avatarGameObject.GetComponent<VRCAvatarDescriptor>();
                 if(descriptor != null)
                 {
