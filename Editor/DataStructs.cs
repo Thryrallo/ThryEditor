@@ -86,6 +86,7 @@ namespace Thry
         public static TextureProperty currentTexProperty;
         public static Rect lastGuiObjectRect;
         public static Rect lastGuiObjectHeaderRect;
+        public static Rect tooltipCheckRect;
         public static bool lastPropertyUsedCustomDrawer;
         public static bool is_enabled = true;
     }

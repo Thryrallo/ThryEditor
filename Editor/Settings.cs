@@ -179,6 +179,7 @@ namespace Thry
                 Dropdown("default_texture_type");
                 Toggle("showRenderQueue");
                 Toggle("renameAnimatedProps");
+                Toggle("showManualReloadButton");
                 GUIGradients();
                 EditorGUI.indentLevel -= 2;
             }

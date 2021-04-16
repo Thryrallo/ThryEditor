@@ -486,6 +486,8 @@ namespace Thry
             currentlyDrawing = editorData;
             active = this;
 
+            GUIManualReloadButton();
+
             GUITopBar();
             GUISearchBar();
             GUIComplexity();
@@ -506,6 +508,17 @@ namespace Thry
             GUIFooters();
 
             HandleEvents();
+        }
+
+        private void GUIManualReloadButton()
+        {
+            if (Config.Singleton.showManualReloadButton)
+            {
+                if(GUILayout.Button("Manual Reload"))
+                {
+                    this.Reload();
+                }
+            }
         }
 
         private void GUITopBar()

@@ -163,7 +163,11 @@ namespace Thry
                 content = this.content;
             EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
-            if(this is TextureProperty == false) tooltip.ConditionalDraw(DrawingData.lastGuiObjectRect);
+
+            DrawingData.tooltipCheckRect = DrawingData.lastGuiObjectRect;
+            DrawingData.tooltipCheckRect.width = EditorGUIUtility.labelWidth;
+            if (this is TextureProperty == false) tooltip.ConditionalDraw(DrawingData.tooltipCheckRect);
+
             if (EditorGUI.EndChangeCheck())
             {
                 if (options.on_value_actions != null)
