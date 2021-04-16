@@ -358,7 +358,7 @@ namespace Thry
                 {
                     field.SetValue(config, !value);
                     config.save();
-                    ShaderEditor.repaint();
+                    ShaderEditor.Repaint();
                 }
             }
         }
@@ -390,7 +390,7 @@ namespace Thry
                 {
                     field.SetValue(config, value);
                     config.save();
-                    ShaderEditor.repaint();
+                    ShaderEditor.Repaint();
                 }
             }
         }
@@ -409,7 +409,7 @@ namespace Thry
                 Config.Singleton.locale = Locale.editor.available_locales[Locale.editor.selected_locale_index];
                 Config.Singleton.save();
                 ShaderEditor.reload();
-                ShaderEditor.repaint();
+                ShaderEditor.Repaint();
             }
         }
 

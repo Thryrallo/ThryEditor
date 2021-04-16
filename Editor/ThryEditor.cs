@@ -155,7 +155,7 @@ namespace Thry
                 if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
                     return ThryPropertyType.space;
             }
-            else
+            else if(flags.HasFlag(MaterialProperty.PropFlags.HideInInspector))
             {
                 if (!options.hide_in_inspector)
                     return ThryPropertyType.property;
@@ -501,6 +501,8 @@ namespace Thry
             //Render Queue selection
             if (Config.Singleton.showRenderQueue) materialEditor.RenderQueueField();
 
+            BetterTooltips.DrawActive();
+
             GUIFooters();
 
             HandleEvents();
@@ -695,18 +697,19 @@ namespace Thry
             }
         }
 
-        public static void repaint()
+        public void ForceRedraw()
         {
-            if (currentlyDrawing.editor != null)
+            if (editorData.materials.Length > 0)
             {
-                try
-                {
-                    currentlyDrawing.editor.Repaint();
-                }
-                catch (System.Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
+                EditorUtility.SetDirty(editorData.materials[0]);
+            }
+        }
+
+        public static void Repaint()
+        {
+            if (ShaderEditor.active != null)
+            {
+                active.ForceRedraw();
             }
         }
 

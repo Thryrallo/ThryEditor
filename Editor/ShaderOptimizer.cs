@@ -425,7 +425,7 @@ namespace Thry
                 }
 
                 string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "");
-                if(animateTag != "")
+                if(string.IsNullOrEmpty(animateTag) == false)
                 {
                     // check if we're renaming the property as well
                     if (animateTag == "2")

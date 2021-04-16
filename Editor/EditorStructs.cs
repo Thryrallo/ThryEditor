@@ -54,6 +54,8 @@ namespace Thry
         public bool is_animatable = false;
         public bool is_renaming = false;
 
+        public BetterTooltips.Tooltip tooltip;
+
         public bool has_searchedFor = true; //used for property search
 
         public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
@@ -62,7 +64,8 @@ namespace Thry
             this.materialProperty = prop;
             this.xOffset = xOffset;
             this.options = options;
-            this.content = new GUIContent(displayName, options.tooltip);
+            this.content = new GUIContent(displayName);
+            this.tooltip = new BetterTooltips.Tooltip(options.tooltip);
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
             this.reference_property_exists = options.reference_property != null;
 
@@ -145,7 +148,7 @@ namespace Thry
                     is_animated = !is_animated;
                 }
                 ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
-                EditorUtility.SetDirty(materialProperty.targets[0]);
+                ShaderEditor.Repaint();
             }
             if (is_animated)
             {
@@ -160,6 +163,7 @@ namespace Thry
                 content = this.content;
             EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
+            if(this is TextureProperty == false) tooltip.ConditionalDraw(DrawingData.lastGuiObjectRect);
             if (EditorGUI.EndChangeCheck())
             {
                 if (options.on_value_actions != null)
@@ -170,7 +174,7 @@ namespace Thry
                     }
                 }
             }
-            Helper.testAltClick(DrawingData.lastGuiObjectHeaderRect, this);
+            Helper.testAltClick(DrawingData.lastGuiObjectRect, this);
         }
     }
 
@@ -267,6 +271,7 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
                 HandleLinkedMaterials();
             DrawingData.lastGuiObjectHeaderRect = headerRect;
+            DrawingData.lastGuiObjectRect = headerRect;
         }
 
         private void HandleLinkedMaterials()
@@ -338,10 +343,6 @@ namespace Thry
             this.materialProperty = ShaderEditor.currentlyDrawing.properties[property_index];
             if (ShaderEditor.currentlyDrawing.isLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(is_animatable && (is_animated || is_renaming)));
-            if (rect != null)
-                DrawingData.lastGuiObjectHeaderRect = rect.r;
-            else
-                DrawingData.lastGuiObjectHeaderRect = new Rect(-1, -1, -1, -1);
             int oldIndentLevel = EditorGUI.indentLevel;
             if (!useEditorIndent)
                 EditorGUI.indentLevel = xOffset + 1;
@@ -361,7 +362,8 @@ namespace Thry
             }
 
             EditorGUI.indentLevel = oldIndentLevel;
-            if (DrawingData.lastGuiObjectHeaderRect.x == -1) DrawingData.lastGuiObjectHeaderRect = GUILayoutUtility.GetLastRect();
+            if (rect == null) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
+            else DrawingData.lastGuiObjectRect = rect.r;
             if (this is TextureProperty == false && is_animatable && isInHeader == false)
                 HandleKajAnimatable();
             if (ShaderEditor.currentlyDrawing.isLockedMaterial)
@@ -406,7 +408,7 @@ namespace Thry
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
             GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, ShaderEditor.currentlyDrawing.editor, hasFoldoutProperties);
-            DrawingData.lastGuiObjectHeaderRect = pos;
+            DrawingData.lastGuiObjectRect = pos;
         }
 
         public override void CopyFromMaterial(Material m)
@@ -487,7 +489,7 @@ namespace Thry
                 //is text draw
                 Rect headerrect = new Rect(0, rect.r.y, rect.r.width, 18);
                 EditorGUI.LabelField(headerrect, "<size=16>" + this.content.text + "</size>", Styles.masterLabel);
-                DrawingData.lastGuiObjectHeaderRect = headerrect;
+                DrawingData.lastGuiObjectRect = headerrect;
             }
         }
 

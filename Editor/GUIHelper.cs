@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -35,7 +36,8 @@ namespace Thry
         {
             Rect thumbnailPos = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
-            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, (hasFoldoutProperties ? "Click here for extra properties" : "") + (label.tooltip != "" ? " | " : "") + label.tooltip);
+            editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
+            DrawingData.currentTexProperty.tooltip.ConditionalDraw(thumbnailPos);
             if (DrawingData.currentTexProperty.reference_property_exists)
             {
                 ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
@@ -82,8 +84,7 @@ namespace Thry
                     }
                 }
             }
-
-            DrawingData.lastGuiObjectHeaderRect = position;
+            
             Rect object_rect = new Rect(position);
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
             DrawingData.lastGuiObjectRect = object_rect;
@@ -98,10 +99,10 @@ namespace Thry
             editor.TextureProperty(position, prop, label.text, label.tooltip, scaleOffset);
             EditorGUIUtility.labelWidth = defaultLabelWidth;
             EditorGUIUtility.fieldWidth = defaultFieldWidth;
-            DrawingData.lastGuiObjectHeaderRect = position;
             Rect object_rect = new Rect(position);
             object_rect.height += rect.height;
             DrawingData.lastGuiObjectRect = object_rect;
+            DrawingData.currentTexProperty.tooltip.ConditionalDraw(object_rect);
         }
 
         static int texturePickerWindow = -1;
@@ -145,6 +146,7 @@ namespace Thry
             quad.x = border.x + border.width - quad.width - 1;
             quad.y += 2;
 
+            DrawingData.currentTexProperty.tooltip.ConditionalDraw(border);
 
             Rect preview_rect_border = new Rect(position);
             preview_rect_border.height = rect.height + position.height - 6;
@@ -176,7 +178,7 @@ namespace Thry
             if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty.name == prop.name)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
-                ShaderEditor.repaint();
+                ShaderEditor.Repaint();
             }
             if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
             {
@@ -228,13 +230,13 @@ namespace Thry
                 if (options.reference_property != null)
                 {
                     ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[options.reference_property];
-                    ShaderEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                    property.Draw(useEditorIndent: true);
                 }
                 if (options.reference_properties != null)
                     foreach (string r_property in options.reference_properties)
                     {
                         ShaderProperty property = ShaderEditor.currentlyDrawing.propertyDictionary[r_property];
-                        ShaderEditor.currentlyDrawing.editor.ShaderProperty(property.materialProperty, property.content);
+                        property.Draw(useEditorIndent: true);
                         if (DrawingData.currentTexProperty.is_animatable)
                             property.HandleKajAnimatable();
                     }
@@ -248,8 +250,7 @@ namespace Thry
             GUI.Label(label_rect, label);
 
             GUILayoutUtility.GetRect(0, 5);
-
-            DrawingData.lastGuiObjectHeaderRect = position;
+            
             DrawingData.lastGuiObjectRect = border;
         }
 
@@ -443,6 +444,77 @@ namespace Thry
         public static float CurrentIndentWidth()
         {
             return EditorGUI.indentLevel * 15;
+        }
+    }
+
+    public class BetterTooltips
+    {
+        private static Tooltip activeTooltip;
+
+        public class Tooltip
+        {
+            private GUIContent content;
+            private bool empty;
+
+            public bool isSelected { get; private set; } = false;
+
+            private Rect containerRect;
+            private Rect contentRect;
+
+            public Tooltip(string text)
+            {
+                content = new GUIContent(text);
+                empty = string.IsNullOrWhiteSpace(text);
+            }
+
+            public Tooltip(string text, Texture texture)
+            {
+                content = new GUIContent(text, texture);
+                empty = string.IsNullOrWhiteSpace(text) && texture == null;
+            }
+
+            public void ConditionalDraw(Rect hoverOverRect)
+            {
+                if (empty) return;
+                bool isSelected = hoverOverRect.Contains(Event.current.mousePosition);
+                if (isSelected )
+                {
+                    CalculatePositions();
+                    activeTooltip = this;
+                    this.isSelected = true;
+                }
+            }
+
+            private void CalculatePositions()
+            {
+                Vector2 containerPosition = Event.current.mousePosition + new Vector2(15, 0);
+                Vector2 contentSize = EditorStyles.label.CalcSize(content);
+
+                contentRect = new Rect(containerPosition + new Vector2(5, 5), contentSize);
+                containerRect = new Rect(containerPosition, contentSize + new Vector2(10, 10));
+            }
+
+            public void Draw()
+            {
+                EditorGUI.DrawRect(containerRect, Styles.backgroundColor);
+                EditorGUI.LabelField(contentRect, content);
+                isSelected = false;
+            }
+        }
+
+        public static void DrawActive()
+        {
+            if(activeTooltip != null)
+            {
+                if (activeTooltip.isSelected)
+                {
+                    activeTooltip.Draw();
+                }
+                else
+                {
+                    activeTooltip = null;
+                }
+            }
         }
     }
 
