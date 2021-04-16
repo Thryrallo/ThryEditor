@@ -256,6 +256,7 @@ namespace Thry
                     {
                         foreach (Material m in ShaderEditor.currentlyDrawing.materials)
                             m.shader = shader;
+                        ShaderEditor.ReloadActive();
                     }
                     break;
             }

@@ -155,7 +155,7 @@ namespace Thry
                 if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
                     return ThryPropertyType.space;
             }
-            else if(flags.HasFlag(MaterialProperty.PropFlags.HideInInspector))
+            else if(flags.HasFlag(MaterialProperty.PropFlags.HideInInspector) == false)
             {
                 if (!options.hide_in_inspector)
                     return ThryPropertyType.property;
@@ -710,6 +710,21 @@ namespace Thry
             if (ShaderEditor.active != null)
             {
                 active.ForceRedraw();
+            }
+        }
+
+        public void Reload()
+        {
+            this.firstOnGUICall = true;
+            this.swapped_to_shader = true;
+            this.ForceRedraw();
+        }
+
+        public static void ReloadActive()
+        {
+            if (ShaderEditor.active != null)
+            {
+                active.Reload();
             }
         }
 
