@@ -470,7 +470,7 @@ namespace Thry
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
             //Init
-            bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout);
+            bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != editorData.shader;
             if (reloadUI) 
             {
                 InitEditorData(materialEditor);
