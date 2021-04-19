@@ -354,13 +354,12 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            Vector3 vec = new Vector3(prop.vectorValue.x, prop.vectorValue.y, prop.vectorValue.z);
             EditorGUI.BeginChangeCheck();
-            
-            vec = EditorGUI.Vector3Field(position, label, vec);
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            Vector4 vec = EditorGUI.Vector3Field(position, label, prop.vectorValue);
             if (EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = new Vector4(vec.x, vec.y, vec.z, prop.vectorValue.w);
+                prop.vectorValue = vec;
             }
         }
 
@@ -375,12 +374,12 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            Vector2 vec = new Vector2(prop.vectorValue.x, prop.vectorValue.y);
             EditorGUI.BeginChangeCheck();
-            vec = EditorGUI.Vector2Field(position, label, vec);
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            Vector4 vec = EditorGUI.Vector2Field(position, label, prop.vectorValue);
             if (EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = new Vector4(vec.x, vec.y, prop.vectorValue.z, prop.vectorValue.w);
+                prop.vectorValue = vec;
             }
         }
 

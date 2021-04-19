@@ -45,6 +45,7 @@ namespace Thry
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 property.Draw(new CRect(r), new GUIContent());
+                property.tooltip.ConditionalDraw(r);
             }
             if (hasFoldoutProperties && DrawingData.currentTexProperty != null)
             {
@@ -264,9 +265,6 @@ namespace Thry
 
             EditorGUI.LabelField(settingsRect, content);
 
-            float capAtX = vec.x;
-            float capAtY = vec.y;
-
             if (settingsRect.width > 160)
             {
                 Rect numberRect = settingsRect;
@@ -275,12 +273,14 @@ namespace Thry
                 numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
 
                 EditorGUI.BeginChangeCheck();
+                EditorGUI.showMixedValue = prop.hasMixedValue;
                 vec.x = EditorGUI.FloatField(numberRect, vec.x, EditorStyles.textField);
                 changed |= EditorGUI.EndChangeCheck();
 
                 numberRect.x = settingsRect.xMax - numberRect.width;
 
                 EditorGUI.BeginChangeCheck();
+                EditorGUI.showMixedValue = prop.hasMixedValue;
                 vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
@@ -289,8 +289,8 @@ namespace Thry
                 sliderRect.xMax -= (kNumberWidth + -8);
             }
 
-            vec.x = Mathf.Clamp(vec.x, vec.z, capAtY);
-            vec.y = Mathf.Clamp(vec.y, capAtX, vec.w);
+            vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
+            vec.y = Mathf.Clamp(vec.y, vec.x, vec.w);
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
@@ -461,6 +461,8 @@ namespace Thry
             private Rect containerRect;
             private Rect contentRect;
 
+            readonly static Vector2 PADDING = new Vector2(10, 10);
+
             public Tooltip(string text)
             {
                 content = new GUIContent(text);
@@ -479,19 +481,21 @@ namespace Thry
                 bool isSelected = hoverOverRect.Contains(Event.current.mousePosition);
                 if (isSelected )
                 {
-                    CalculatePositions();
+                    CalculatePositions(hoverOverRect);
                     activeTooltip = this;
                     this.isSelected = true;
                 }
             }
 
-            private void CalculatePositions()
+            private void CalculatePositions(Rect hoverOverRect)
             {
-                Vector2 containerPosition = Event.current.mousePosition + new Vector2(15, 0);
                 Vector2 contentSize = EditorStyles.label.CalcSize(content);
+                Vector2 containerPosition = new Vector2(hoverOverRect.x, hoverOverRect.y - contentSize.y - PADDING.y - 3);
 
-                contentRect = new Rect(containerPosition + new Vector2(5, 5), contentSize);
-                containerRect = new Rect(containerPosition, contentSize + new Vector2(10, 10));
+                containerPosition.x = Mathf.Min(EditorGUIUtility.currentViewWidth - contentSize.x - PADDING.x, containerPosition.x);
+
+                contentRect = new Rect(containerPosition + new Vector2(PADDING.x/2, PADDING.y/2), contentSize);
+                containerRect = new Rect(containerPosition, contentSize + new Vector2(PADDING.x, PADDING.y));
             }
 
             public void Draw()

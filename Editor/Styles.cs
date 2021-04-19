@@ -21,6 +21,7 @@ namespace Thry
         };
 
         public static Color backgroundColor { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.8f, 0.8f, 0.8f);
+        public static Color backgroundColorTransparent { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f, 0.3f) : new Color(0.8f, 0.8f, 0.8f, 0.3f);
         public static Color forgroundColor { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.8f, 0.8f, 0.8f) : Color.black;
 
         public static GUIStyle dropDownHeaderLabel { get; private set; } = new GUIStyle(EditorStyles.boldLabel) { alignment= TextAnchor.MiddleCenter };
