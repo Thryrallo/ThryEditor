@@ -490,8 +490,9 @@ namespace Thry
             private void CalculatePositions(Rect hoverOverRect)
             {
                 Vector2 contentSize = EditorStyles.label.CalcSize(content);
-                Vector2 containerPosition = new Vector2(hoverOverRect.x, hoverOverRect.y - contentSize.y - PADDING.y - 3);
+                Vector2 containerPosition = new Vector2(Event.current.mousePosition.x - contentSize.x / 2 - PADDING.x / 2, hoverOverRect.y - contentSize.y - PADDING.y - 3);
 
+                containerPosition.x = Mathf.Max(0, containerPosition.x);
                 containerPosition.x = Mathf.Min(EditorGUIUtility.currentViewWidth - contentSize.x - PADDING.x, containerPosition.x);
 
                 contentRect = new Rect(containerPosition + new Vector2(PADDING.x/2, PADDING.y/2), contentSize);
