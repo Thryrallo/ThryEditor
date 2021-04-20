@@ -575,7 +575,7 @@ namespace Thry
         /// <param name="value"></param>
         public static void SetMaterialValue(string key, string value)
         {
-            Material[] materials = ShaderEditor.currentlyDrawing.materials;
+            Material[] materials = ShaderEditor.active.materials;
             MaterialProperty p = ShaderEditor.active.GetMaterialProperty(key);
             if (p != null)
             {

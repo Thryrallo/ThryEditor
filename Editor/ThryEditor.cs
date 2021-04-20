@@ -46,10 +46,26 @@ namespace Thry
 
         public static InputEvent input = new InputEvent();
         // Contains Editor Data
-        public EditorData editorData;
-        public static EditorData currentlyDrawing;
         public static ShaderEditor active;
 
+        //EditorData
+        public MaterialEditor editor;
+        public MaterialProperty[] properties;
+        public ShaderEditor gui;
+        public Material[] materials;
+        public Shader shader;
+        public Shader defaultShader;
+        public ShaderPart currentProperty;
+        public Dictionary<string, ShaderProperty> propertyDictionary;
+        public List<ShaderPart> shaderParts;
+        public List<ShaderProperty> textureArrayProperties;
+        public bool firstCall;
+        public bool show_HeaderHider;
+        public bool use_ShaderOptimizer;
+        public bool isLockedMaterial;
+        public string animPropertySuffix;
+
+        //other
         ShaderProperty ShaderOptimizerProperty { get; set; }
 
         private DefineableAction[] on_swap_to_actions = null;
@@ -61,7 +77,7 @@ namespace Thry
         {
             //load display names from file if it exists
             MaterialProperty label_file_property = null;
-            foreach (MaterialProperty m in editorData.properties)
+            foreach (MaterialProperty m in properties)
                 if (m.name == PROPERTY_NAME_LABEL_FILE)
                 {
                     label_file_property = m;
@@ -114,13 +130,16 @@ namespace Thry
 
         private enum ThryPropertyType
         {
-            none, property, master_label, footer, header, header_end, header_start, group_start, group_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_optimizer
+            none, property, master_label, footer, header, headerWithEnd, legacy_header, legacy_header_end, legacy_header_start, group_start, group_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_optimizer
         }
 
         private ThryPropertyType GetPropertyType(MaterialProperty p, PropertyOptions options)
         {
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
+
+            if (DrawingData.lastPropertyDrawerType == DrawerType.Header)
+                return (DrawingData.lastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
 
             if (name == PROPERTY_NAME_MASTER_LABEL)
                 return ThryPropertyType.master_label;
@@ -132,11 +151,11 @@ namespace Thry
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
                 if (name.StartsWith("m_start"))
-                    return ThryPropertyType.header_start;
+                    return ThryPropertyType.legacy_header_start;
                 if (name.StartsWith("m_end"))
-                    return ThryPropertyType.header_end;
+                    return ThryPropertyType.legacy_header_end;
                 if (name.StartsWith("m_"))
-                    return ThryPropertyType.header;
+                    return ThryPropertyType.legacy_header;
                 if (name.StartsWith("g_start"))
                     return ThryPropertyType.group_start;
                 if (name.StartsWith("g_end"))
@@ -169,7 +188,7 @@ namespace Thry
         {
             MaterialProperty locales_property = null;
             locale = null;
-            foreach (MaterialProperty m in editorData.properties) 
+            foreach (MaterialProperty m in properties) 
                 if (m.name == PROPERTY_NAME_LOCALE)
                 {
                     locales_property = m;
@@ -188,12 +207,12 @@ namespace Thry
         private void CollectAllProperties()
         {
             //load display names from file if it exists
-            MaterialProperty[] props = editorData.properties;
+            MaterialProperty[] props = properties;
             Dictionary<string, string> labels = LoadDisplayNamesFromFile();
             LoadLocales();
 
-            editorData.propertyDictionary = new Dictionary<string, ShaderProperty>();
-            editorData.shaderParts = new List<ShaderPart>();
+            propertyDictionary = new Dictionary<string, ShaderProperty>();
+            shaderParts = new List<ShaderPart>();
             mainHeader = new ShaderHeader(this); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
             headerStack.Push(mainHeader); //add top object as top object to stack
@@ -203,6 +222,9 @@ namespace Thry
 
             for (int i = 0; i < props.Length; i++)
             {
+                DrawingData.ResetLastDrawerData();
+                editor.GetPropertyHeight(props[i]);
+
                 string displayName = props[i].displayName;
 
                 //Load from label file
@@ -235,12 +257,17 @@ namespace Thry
                 switch (type)
                 {
                     case ThryPropertyType.header:
+                        Debug.Log("New header"+ props[i].name);
                         headerStack.Pop();
                         break;
-                    case ThryPropertyType.header_start:
+                    case ThryPropertyType.legacy_header:
+                        headerStack.Pop();
+                        break;
+                    case ThryPropertyType.headerWithEnd:
+                    case ThryPropertyType.legacy_header_start:
                         offset = options.offset + ++headerCount;
                         break;
-                    case ThryPropertyType.header_end:
+                    case ThryPropertyType.legacy_header_end:
                         headerStack.Pop();
                         headerCount--;
                         break;
@@ -259,9 +286,11 @@ namespace Thry
                         footers.Add(new FooterButton(Parser.ParseToObject<ButtonData>(displayName)));
                         break;
                     case ThryPropertyType.header:
-                    case ThryPropertyType.header_start:
-                        if (options.is_hideable) editorData.show_HeaderHider = true;
-                        ShaderHeader newHeader = new ShaderHeader(this, props[i], editorData.editor, displayName, offset, options);
+                    case ThryPropertyType.headerWithEnd:
+                    case ThryPropertyType.legacy_header:
+                    case ThryPropertyType.legacy_header_start:
+                        if (options.is_hideable) show_HeaderHider = true;
+                        ShaderHeader newHeader = new ShaderHeader(this, props[i], editor, displayName, offset, options);
                         headerStack.Peek().addPart(newHeader);
                         headerStack.Push(newHeader);
                         HeaderHider.InitHidden(newHeader);
@@ -278,8 +307,7 @@ namespace Thry
                         break;
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
-                        DrawingData.lastPropertyUsedCustomDrawer = false;
-                        editorData.editor.GetPropertyHeight(props[i]);
+
                         bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                         if (props[i].type == MaterialProperty.PropType.Texture)
                             newPorperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
@@ -299,30 +327,36 @@ namespace Thry
                         newPorperty = new LocaleProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.shader_optimizer:
-                        editorData.use_ShaderOptimizer = true;
+                        use_ShaderOptimizer = true;
                         newPorperty = new ShaderProperty(this, props[i], displayName, offset, options, false);
                         break;
                 }
                 if (newPorperty != null)
                 {
                     newPart = newPorperty;
-                    if (editorData.propertyDictionary.ContainsKey(props[i].name))
+                    if (propertyDictionary.ContainsKey(props[i].name))
                         continue;
-                    editorData.propertyDictionary.Add(props[i].name, newPorperty);
+                    propertyDictionary.Add(props[i].name, newPorperty);
                     //Debug.Log(newPorperty.materialProperty.name + ":" + headerStack.Count);
                     if (type != ThryPropertyType.none && type != ThryPropertyType.shader_optimizer)
                         headerStack.Peek().addPart(newPorperty);
                 }
+                //if new header is at end property
+                if (headerStack.Peek() is ShaderHeader && (headerStack.Peek() as ShaderHeader).GetEndProperty() == props[i].name)
+                {
+                    headerStack.Pop();
+                    headerCount--;
+                }
                 if (newPart != null)
                 {
-                    editorData.shaderParts.Add(newPart);
+                    shaderParts.Add(newPart);
                 }
             }
         }
 
         private MaterialProperty FindProperty(string name)
         {
-            return System.Array.Find(editorData.properties,
+            return System.Array.Find(properties,
                            element => element.name == name);
         }
 
@@ -330,7 +364,7 @@ namespace Thry
         // Not in use cause getPropertyHandlerMethod is really expensive
         private void HandleKeyworDrawers()
         {
-            foreach (MaterialProperty p in editorData.properties)
+            foreach (MaterialProperty p in properties)
             {
                 HandleKeyworDrawers(p);
             }
@@ -346,7 +380,7 @@ namespace Thry
             Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
             FieldInfo keyWordField = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
             //Handle keywords
-            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { editorData.shader, p.name });
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { shader, p.name });
             //if has custom drawer
             if (propertyHandler != null)
             {
@@ -360,7 +394,7 @@ namespace Thry
                         object keyword = keyWordField.GetValue(propertyDrawer);
                         if (keyword != null)
                         {
-                            foreach (Material m in editorData.materials)
+                            foreach (Material m in materials)
                             {
                                 if (m.GetFloat(p.name) == 1)
                                     m.EnableKeyword((string)keyword);
@@ -380,27 +414,23 @@ namespace Thry
             Config config = Config.Singleton;
 
             show_eyeIcon_tutorial = !EditorPrefs.GetBool("thry_openeEyeIcon", false);
-
-            currentlyDrawing = editorData;
             active = this;
 
             //get material targets
-            editorData.materials = editorData.editor.targets.Select(o => o as Material).ToArray();
+            materials = editor.targets.Select(o => o as Material).ToArray();
 
-            editorData.shader = editorData.materials[0].shader;
-            string defaultShaderName = editorData.materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-            editorData.defaultShader = Shader.Find(defaultShaderName);
+            shader = materials[0].shader;
+            string defaultShaderName = materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
+            defaultShader = Shader.Find(defaultShaderName);
 
-            editorData.animPropertySuffix = new string(editorData.materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
-
-            currentlyDrawing = editorData;
+            animPropertySuffix = new string(materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
 
             //collect shader properties
             CollectAllProperties();
 
-            if (ShaderOptimizer.IsShaderUsingThryOptimizer(editorData.shader))
+            if (ShaderOptimizer.IsShaderUsingThryOptimizer(shader))
             {
-                ShaderOptimizerProperty = editorData.propertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(editorData.shader)];
+                ShaderOptimizerProperty = propertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(shader)];
             }
 
             AddResetProperty();
@@ -414,7 +444,7 @@ namespace Thry
             if (materialPropertyDictionary == null)
             {
                 materialPropertyDictionary = new Dictionary<string, MaterialProperty>();
-                foreach (MaterialProperty p in editorData.properties)
+                foreach (MaterialProperty p in properties)
                     if (materialPropertyDictionary.ContainsKey(p.name) == false) materialPropertyDictionary.Add(p.name, p);
             }
             if (materialPropertyDictionary.ContainsKey(name))
@@ -424,11 +454,11 @@ namespace Thry
 
         private void AddResetProperty()
         {
-            if (editorData.materials[0].HasProperty("shader_is_using_thry_editor") == false)
+            if (materials[0].HasProperty("shader_is_using_thry_editor") == false)
             {
-                EditorChanger.AddThryProperty(editorData.materials[0].shader);
+                EditorChanger.AddThryProperty(materials[0].shader);
             }
-            editorData.materials[0].SetFloat("shader_is_using_thry_editor", 69);
+            materials[0].SetFloat("shader_is_using_thry_editor", 69);
         }
 
         public override void OnClosed(Material material)
@@ -459,31 +489,28 @@ namespace Thry
 
         void InitEditorData(MaterialEditor materialEditor)
         {
-
-            editorData = new EditorData();
-            editorData.editor = materialEditor;
-            editorData.gui = this;
-            editorData.textureArrayProperties = new List<ShaderProperty>();
-            editorData.firstCall = true;
+            editor = materialEditor;
+            gui = this;
+            textureArrayProperties = new List<ShaderProperty>();
+            firstCall = true;
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
             //Init
-            bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != editorData.shader;
+            bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != shader;
             if (reloadUI) 
             {
                 InitEditorData(materialEditor);
-                editorData.properties = props;
+                properties = props;
                 InitlizeThryUI();
             }
 
             //Update Data
-            editorData.properties = props;
-            editorData.shader = editorData.materials[0].shader;
+            properties = props;
+            shader = materials[0].shader;
             UpdateEvents();
 
-            currentlyDrawing = editorData;
             active = this;
 
             GUIManualReloadButton();
@@ -561,9 +588,9 @@ namespace Thry
         private void GUIComplexity()
         {
             //Visibility menu
-            if (editorData.show_HeaderHider)
+            if (show_HeaderHider)
             {
-                HeaderHider.HeaderHiderGUI(editorData);
+                HeaderHider.HeaderHiderGUI(active);
             }
         }
 
@@ -605,7 +632,7 @@ namespace Thry
             //test if material has been reset
             if (wasUsed && e.type == EventType.Repaint)
             {
-                if (editorData.materials[0].HasProperty("shader_is_using_thry_editor") && editorData.materials[0].GetFloat("shader_is_using_thry_editor") != 69)
+                if (materials[0].HasProperty("shader_is_using_thry_editor") && materials[0].GetFloat("shader_is_using_thry_editor") != 69)
                 {
                     reloadNextDraw = true;
                     HandleReset();
@@ -616,7 +643,7 @@ namespace Thry
             if (e.type == EventType.Used) wasUsed = true;
             if (input.HadMouseDownRepaint) input.HadMouseDown = false;
             input.HadMouseDownRepaint = false;
-            editorData.firstCall = false;
+            firstCall = false;
             materialPropertyDictionary = null;
         }
 
@@ -637,7 +664,7 @@ namespace Thry
 
         private void HandleReset()
         {
-            MaterialLinker.UnlinkAll(editorData.materials[0]);
+            MaterialLinker.UnlinkAll(materials[0]);
         }
 
         public static void reload()
@@ -647,12 +674,12 @@ namespace Thry
 
         public static void loadValuesFromMaterial()
         {
-            if (currentlyDrawing.editor != null)
+            if (active.editor != null)
             {
                 try
                 {
-                    Material m = ((Material)currentlyDrawing.editor.target);
-                    foreach (MaterialProperty property in currentlyDrawing.properties)
+                    Material m = ((Material)active.editor.target);
+                    foreach (MaterialProperty property in active.properties)
                     {
                         switch (property.type)
                         {
@@ -682,11 +709,11 @@ namespace Thry
 
         public static void propertiesChanged()
         {
-            if (currentlyDrawing.editor != null)
+            if (active.editor != null)
             {
                 try
                 {
-                    currentlyDrawing.editor.PropertiesChanged();
+                    active.editor.PropertiesChanged();
                 }
                 catch (System.Exception e)
                 {
@@ -697,11 +724,11 @@ namespace Thry
 
         public static void addUndo(string label)
         {
-            if (currentlyDrawing.editor != null)
+            if (active.editor != null)
             {
                 try
                 {
-                    currentlyDrawing.editor.RegisterPropertyChangeUndo(label);
+                    active.editor.RegisterPropertyChangeUndo(label);
                 }
                 catch (System.Exception e)
                 {
@@ -712,9 +739,9 @@ namespace Thry
 
         public void ForceRedraw()
         {
-            if (editorData.materials.Length > 0)
+            if (materials.Length > 0)
             {
-                EditorUtility.SetDirty(editorData.materials[0]);
+                EditorUtility.SetDirty(materials[0]);
             }
         }
 
