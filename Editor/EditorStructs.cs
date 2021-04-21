@@ -109,6 +109,11 @@ namespace Thry
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
         }
 
+        public void SetTooltip(string tooltip)
+        {
+            this.tooltip.SetText(tooltip);
+        }
+
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m);
         public abstract void CopyToMaterial(Material m);

@@ -574,6 +574,27 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor) { }
     }
 
+    public class TooltipDecorator : MaterialPropertyDrawer
+    {
+        readonly string tooltip;
+
+        public TooltipDecorator(string tooltip)
+        {
+            this.tooltip = tooltip;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            if (DrawingData.lastInitiatedPart != null)
+            {
+                DrawingData.lastInitiatedPart.SetTooltip(tooltip);
+            }
+            return 0;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor) { }
+    }
+
     public enum ColorMask
     {
         None,

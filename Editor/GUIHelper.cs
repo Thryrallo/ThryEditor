@@ -475,6 +475,12 @@ namespace Thry
                 empty = string.IsNullOrWhiteSpace(text) && texture == null;
             }
 
+            public void SetText(string text)
+            {
+                content.text = text;
+                empty &= string.IsNullOrWhiteSpace(text);
+            }
+
             public void ConditionalDraw(Rect hoverOverRect)
             {
                 if (empty) return;
