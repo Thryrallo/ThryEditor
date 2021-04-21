@@ -97,6 +97,18 @@ namespace Thry
             this.is_renaming = is_animatable && tag == "2";
         }
 
+        public void SetReferenceProperty(string s)
+        {
+            options.reference_property = s;
+            this.reference_property_exists = options.reference_property != null;
+        }
+
+        public void SetReferenceProperties(string[] properties)
+        {
+            options.reference_properties = properties;
+            this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
+        }
+
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m);
         public abstract void CopyToMaterial(Material m);

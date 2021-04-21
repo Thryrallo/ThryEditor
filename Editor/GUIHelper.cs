@@ -602,35 +602,31 @@ namespace Thry
 
         public int xOffset = 0;
 
-        public ThryHeaderDrawer(string end, string keyword, float isHideable) : this(end, keyword)
-        {
-            this.isHideable = isHideable == 1;
-        }
+        private ButtonData button;
 
-        public ThryHeaderDrawer(string end, string keyword) : this(end)
-        {
-            this.keyword = keyword;
-        }
-
-        public ThryHeaderDrawer(string end, float isHideable) : this(end)
-        {
-            this.isHideable = isHideable == 1;
-        }
-
-        public ThryHeaderDrawer(string end)
+        public ThryHeaderDrawer(string end, string keyword, string buttonText, string buttonHover, string buttonAction, float isHideable)
         {
             this.end = end;
-        }
+            this.keyword = keyword;
 
-        public ThryHeaderDrawer(float isHideable)
-        {
+            button = new ButtonData();
+            button.text = buttonText;
+            button.hover = buttonHover;
+            button.action = DefineableAction.ParseDrawerParameter(buttonAction);
+
             this.isHideable = isHideable == 1;
         }
+        
+        public ThryHeaderDrawer(string end, string keyword, string buttonText, string buttonHover, string buttonAction) : this(end, keyword, buttonText, buttonHover, buttonAction, 0          ) { }
+        public ThryHeaderDrawer(string end, string keyword, float isHideable) :                                           this(end, keyword, null,       null,        null,         isHideable ) { }
+        public ThryHeaderDrawer(string end, string keyword) :                                                             this(end, keyword, null,       null,        null,         0          ) { }
 
-        public ThryHeaderDrawer()
-        {
+        public ThryHeaderDrawer(float isHideable) :                                                                       this(null,null,    null,       null,        null,         isHideable ) { }
+        public ThryHeaderDrawer(float isHideable, string end) :                                                           this(end, null,    null,       null,        null,         isHideable ) { }
+        public ThryHeaderDrawer(float isHideable, string buttonText, string buttonHover, string buttonAction) :           this(null,null,    buttonText, buttonHover, buttonAction, 0          ) { }
+        public ThryHeaderDrawer(float isHideable, string end, string buttonText, string buttonHover, string buttonAction):this(end, null,    buttonText, buttonHover, buttonAction, isHideable ) { }
 
-        }
+        public ThryHeaderDrawer(){}
 
         public string GetEndProperty()
         {
@@ -739,10 +735,11 @@ namespace Thry
         /// <param name="style"></param>
         private void DrawButton(Rect rect, PropertyOptions options, Event e)
         {
-            if (options.button_right != null && options.button_right.condition_show.Test())
+            ButtonData button = this.button != null ? this.button : options.button_right;
+            if (button != null && button.condition_show.Test())
             {
                 Rect buttonRect = new Rect(rect);
-                GUIContent buttoncontent = new GUIContent(options.button_right.text, options.button_right.hover);
+                GUIContent buttoncontent = new GUIContent(button.text, button.hover);
                 float width = Styles.dropDownHeaderButton.CalcSize(buttoncontent).x;
                 width = width < rect.width / 3 ? rect.width / 3 : width;
                 buttonRect.x += buttonRect.width - width - 50;
@@ -751,8 +748,8 @@ namespace Thry
                 if (GUI.Button(buttonRect, buttoncontent, Styles.dropDownHeaderButton))
                 {
                     e.Use();
-                    if (options.button_right.action != null)
-                        options.button_right.action.Perform();
+                    if (button.action != null)
+                        button.action.Perform();
                 }
                 EditorGUIUtility.AddCursorRect(buttonRect, MouseCursor.Link);
             }

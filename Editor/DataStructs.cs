@@ -73,6 +73,8 @@ namespace Thry
         public static MaterialPropertyDrawer lastPropertyDrawer;
         public static bool is_enabled = true;
 
+        public static ShaderPart lastInitiatedPart;
+
         public static void ResetLastDrawerData()
         {
             lastPropertyUsedCustomDrawer = false;
@@ -280,6 +282,18 @@ namespace Thry
             {
                 action.type = DefineableActionType.SET_PROPERTY;
                 action.data = s;
+            }
+            return action;
+        }
+
+        public static DefineableAction ParseDrawerParameter(string s)
+        {
+            s = s.Trim();
+            DefineableAction action = new DefineableAction();
+            if (s.StartsWith("youtube#"))
+            {
+                action.type = DefineableActionType.URL;
+                action.data = "https://www.youtube.com/watch?v="+s.Substring(8);
             }
             return action;
         }

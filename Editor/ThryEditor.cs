@@ -115,12 +115,10 @@ namespace Thry
                     if (options.condition_showS != null)
                     {
                         options.condition_show = DefineableCondition.Parse(options.condition_showS);
-                        //Debug.Log(options.condition_show.ToString());
                     }
                     if (options.on_value != null)
                     {
                         options.on_value_actions = PropertyValueAction.ParseToArray(options.on_value);
-                        //Debug.Log(Parser.Serialize(options.on_value_actions));
                     }
                     return options;
                 }
@@ -257,7 +255,6 @@ namespace Thry
                 switch (type)
                 {
                     case ThryPropertyType.header:
-                        Debug.Log("New header"+ props[i].name);
                         headerStack.Pop();
                         break;
                     case ThryPropertyType.legacy_header:
@@ -350,6 +347,10 @@ namespace Thry
                 if (newPart != null)
                 {
                     shaderParts.Add(newPart);
+
+                    DrawingData.lastInitiatedPart = newPart;
+                    editor.GetPropertyHeight(props[i]);
+                    DrawingData.lastInitiatedPart = null;
                 }
             }
         }

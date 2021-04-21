@@ -392,6 +392,18 @@ namespace Thry
 
     public class TextureArrayDrawer : MaterialPropertyDrawer
     {
+        private string framesProperty;
+
+        public TextureArrayDrawer()
+        {
+
+        }
+
+        public TextureArrayDrawer(string framesProperty)
+        {
+            this.framesProperty = framesProperty;
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             ShaderProperty shaderProperty = (ShaderProperty)ShaderEditor.active.currentProperty;
@@ -415,28 +427,33 @@ namespace Thry
         public void HanldeDropEvent(MaterialProperty prop, ShaderProperty shaderProperty)
         {
             string[] paths = DragAndDrop.paths;
+            Texture2DArray tex;
             if (AssetDatabase.GetMainAssetTypeAtPath(paths[0]) != typeof(Texture2DArray))
             {
-                Texture2DArray tex = Converter.PathsToTexture2DArray(paths);
+                tex = Converter.PathsToTexture2DArray(paths);
                 MaterialHelper.UpdateTargetsValue(prop, tex);
-                if (shaderProperty.options.reference_property != null)
-                {
-                    ShaderProperty p;
-                    if(ShaderEditor.active.propertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
-                        MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
-                }
-                prop.textureValue = tex;
             }
             else
             {
-                Texture2DArray tex = AssetDatabase.LoadAssetAtPath<Texture2DArray>(paths[0]);
-                prop.textureValue = tex;
-                if (shaderProperty.options.reference_property != null)
-                {
-                    ShaderProperty p;
-                    if(ShaderEditor.active.propertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
-                        MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
-                }
+                tex = AssetDatabase.LoadAssetAtPath<Texture2DArray>(paths[0]);
+            }
+            prop.textureValue = tex;
+            UpdateFramesProperty(prop, shaderProperty, tex);
+        }
+
+        private void UpdateFramesProperty(MaterialProperty prop, ShaderProperty shaderProperty, Texture2DArray tex)
+        {
+            if (framesProperty != null)
+            {
+                ShaderProperty p;
+                if (ShaderEditor.active.propertyDictionary.TryGetValue(framesProperty, out p))
+                    MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
+            }
+            else if (shaderProperty.options.reference_property != null)
+            {
+                ShaderProperty p;
+                if (ShaderEditor.active.propertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
+                    MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
             }
         }
 
@@ -506,6 +523,55 @@ namespace Thry
             position = EditorGUI.IndentedRect(position);
             GUI.Label(position, label, EditorStyles.boldLabel);
         }
+    }
+
+    public class ReferencePropertyDecorator : MaterialPropertyDrawer
+    {
+        readonly string property;
+
+        public ReferencePropertyDecorator(string property)
+        {
+            this.property = property;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            if(DrawingData.lastInitiatedPart != null)
+            {
+                DrawingData.lastInitiatedPart.SetReferenceProperty(property);
+            }
+            return 0;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor){}
+    }
+
+    public class ReferencePropertiesDecorator : MaterialPropertyDrawer
+    {
+        readonly string[] properties;
+
+        public ReferencePropertiesDecorator(bool mainInit, params string[] properties)
+        {
+            this.properties = properties;
+        }
+
+        public ReferencePropertiesDecorator(string property0, string property1, string property2, string property3, string property4, string property5) : this(true, property0, property1, property2, property3, property4, property5){}
+        public ReferencePropertiesDecorator(string property0, string property1, string property2, string property3, string property4) : this(true, property0, property1, property2, property3, property4){}
+        public ReferencePropertiesDecorator(string property0, string property1, string property2, string property3) : this(true, property0, property1, property2, property3){}
+        public ReferencePropertiesDecorator(string property0, string property1, string property2) : this(true, property0, property1, property2){}
+        public ReferencePropertiesDecorator(string property0, string property1) : this(true, property0, property1){}
+        public ReferencePropertiesDecorator(string property0) : this(true, property0){}
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            if (DrawingData.lastInitiatedPart != null)
+            {
+                DrawingData.lastInitiatedPart.SetReferenceProperties(properties);
+            }
+            return 0;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor) { }
     }
 
     public enum ColorMask
