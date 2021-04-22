@@ -573,7 +573,67 @@ namespace Thry
 
         public override void DrawDefault()
         {
-            ShaderEditor.active.editor.LightmapEmissionFlagsProperty(xOffset, true);
+            LightmapEmissionFlagsProperty(xOffset, false);
+        }
+
+        public static readonly GUIContent lightmapEmissiveLabel = EditorGUIUtility.TrTextContent("Global Illumination", "Controls if the emission is baked or realtime.\n\nBaked only has effect in scenes where baked global illumination is enabled.\n\nRealtime uses realtime global illumination if enabled in the scene. Otherwise the emission won't light up other objects.");
+        public static GUIContent[] lightmapEmissiveStrings = { EditorGUIUtility.TrTextContent("Realtime"), EditorGUIUtility.TrTextContent("Baked"), EditorGUIUtility.TrTextContent("None") };
+        public static int[] lightmapEmissiveValues = { (int)MaterialGlobalIlluminationFlags.RealtimeEmissive, (int)MaterialGlobalIlluminationFlags.BakedEmissive, (int)MaterialGlobalIlluminationFlags.None };
+
+        public static void FixupEmissiveFlag(Material mat)
+        {
+            if (mat == null)
+                throw new System.ArgumentNullException("mat");
+
+            mat.globalIlluminationFlags = FixupEmissiveFlag(mat.GetColor("_EmissionColor"), mat.globalIlluminationFlags);
+        }
+
+        public static MaterialGlobalIlluminationFlags FixupEmissiveFlag(Color col, MaterialGlobalIlluminationFlags flags)
+        {
+            if ((flags & MaterialGlobalIlluminationFlags.BakedEmissive) != 0 && col.maxColorComponent == 0.0f) // flag black baked
+                flags |= MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            else if (flags != MaterialGlobalIlluminationFlags.EmissiveIsBlack) // clear baked flag on everything else, unless it's explicity disabled
+                flags &= MaterialGlobalIlluminationFlags.AnyEmissive;
+            return flags;
+        }
+
+        public void LightmapEmissionFlagsProperty(int indent, bool enabled)
+        {
+            LightmapEmissionFlagsProperty(indent, enabled, false);
+        }
+
+        public void LightmapEmissionFlagsProperty(int indent, bool enabled, bool ignoreEmissionColor)
+        {
+            // Calculate isMixed
+            MaterialGlobalIlluminationFlags any_em = MaterialGlobalIlluminationFlags.AnyEmissive;
+            MaterialGlobalIlluminationFlags giFlags = ShaderEditor.active.materials[0].globalIlluminationFlags & any_em;
+            bool isMixed = false;
+            for (int i = 1; i < ShaderEditor.active.materials.Length; i++)
+            {
+                if((ShaderEditor.active.materials[i].globalIlluminationFlags & any_em) != giFlags)
+                {
+                    isMixed = true;
+                    break;
+                }
+            }
+
+            EditorGUI.BeginChangeCheck();
+
+            // Show popup
+            EditorGUI.showMixedValue = isMixed;
+            giFlags = (MaterialGlobalIlluminationFlags)EditorGUILayout.IntPopup(lightmapEmissiveLabel, (int)giFlags, lightmapEmissiveStrings, lightmapEmissiveValues);
+            EditorGUI.showMixedValue = false;
+
+            // Apply flags. But only the part that this tool modifies (RealtimeEmissive, BakedEmissive, None)
+            bool applyFlags = EditorGUI.EndChangeCheck();
+            foreach (Material mat in ShaderEditor.active.materials)
+            {
+                mat.globalIlluminationFlags = applyFlags ? giFlags : mat.globalIlluminationFlags;
+                if (!ignoreEmissionColor)
+                {
+                    FixupEmissiveFlag(mat);
+                }
+            }
         }
     }
     public class DSGIProperty : ShaderProperty
