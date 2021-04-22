@@ -272,7 +272,7 @@ namespace Thry
                         on_swap_to_actions = options.actions;
                         break;
                 }
-                ShaderProperty newPorperty = null;
+                ShaderProperty NewProperty = null;
                 ShaderPart newPart = null;
                 switch (type)
                 {
@@ -307,36 +307,36 @@ namespace Thry
 
                         bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            newPorperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
+                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
                         else
-                            newPorperty = new ShaderProperty(this, props[i], displayName, offset, options, forceOneLine);
+                            NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, forceOneLine);
                         break;
                     case ThryPropertyType.lightmap_flags:
-                        newPorperty = new GIProperty(this, props[i], displayName, offset, options, false);
+                        NewProperty = new GIProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.dsgi:
-                        newPorperty = new DSGIProperty(this, props[i], displayName, offset, options, false);
+                        NewProperty = new DSGIProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.instancing:
-                        newPorperty = new InstancingProperty(this, props[i], displayName, offset, options, false);
+                        NewProperty = new InstancingProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.locale:
-                        newPorperty = new LocaleProperty(this, props[i], displayName, offset, options, false);
+                        NewProperty = new LocaleProperty(this, props[i], displayName, offset, options, false);
                         break;
                     case ThryPropertyType.shader_optimizer:
                         use_ShaderOptimizer = true;
-                        newPorperty = new ShaderProperty(this, props[i], displayName, offset, options, false);
+                        NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, false);
                         break;
                 }
-                if (newPorperty != null)
+                if (NewProperty != null)
                 {
-                    newPart = newPorperty;
+                    newPart = NewProperty;
                     if (propertyDictionary.ContainsKey(props[i].name))
                         continue;
-                    propertyDictionary.Add(props[i].name, newPorperty);
-                    //Debug.Log(newPorperty.materialProperty.name + ":" + headerStack.Count);
+                    propertyDictionary.Add(props[i].name, NewProperty);
+                    //Debug.Log(NewProperty.materialProperty.name + ":" + headerStack.Count);
                     if (type != ThryPropertyType.none && type != ThryPropertyType.shader_optimizer)
-                        headerStack.Peek().addPart(newPorperty);
+                        headerStack.Peek().addPart(NewProperty);
                 }
                 //if new header is at end property
                 if (headerStack.Peek() is ShaderHeader && (headerStack.Peek() as ShaderHeader).GetEndProperty() == props[i].name)
