@@ -432,6 +432,7 @@ namespace Thry
             if (ShaderOptimizer.IsShaderUsingThryOptimizer(shader))
             {
                 ShaderOptimizerProperty = propertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(shader)];
+                if(ShaderOptimizerProperty != null) ShaderOptimizerProperty.exempt_from_locked_disabling = true;
             }
 
             AddResetProperty();

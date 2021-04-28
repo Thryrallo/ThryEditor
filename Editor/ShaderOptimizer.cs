@@ -326,7 +326,7 @@ namespace Thry
             string shaderFilePath = AssetDatabase.GetAssetPath(shader);
             string materialFilePath = AssetDatabase.GetAssetPath(material);
             string materialFolder = Path.GetDirectoryName(materialFilePath);
-            string smallguid = Guid.NewGuid().ToString().Split('-')[0];
+            string smallguid = material.name;
             string newShaderName = "Hidden/" + shader.name + "/" + material.name + "-" + smallguid;
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + smallguid + "/";
@@ -1385,30 +1385,38 @@ namespace Thry
                 string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
                 && IsShaderUsingThryOptimizer(m.shader)).Distinct().OrderBy(m => m.shader.name);
 
-            MaterialProperty[] props = new MaterialProperty[] { };
-            string shaderName = null;
+            int i = 0;
             foreach (Material m in materialsToChange)
             {
-                if(m.shader.name != shaderName)
+                if(EditorUtility.DisplayCancelableProgressBar("Upgrading Materials", "Upgrading animated tags of " + m.name, (float)i / materialsToChange.Count()))
                 {
-                    props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }).Where(p => p.name.EndsWith(AnimatedPropertySuffix) == false).ToArray();
+                    break;
                 }
-                foreach (MaterialProperty prop in props)
-                {
-                    try
-                    {
-                        float value = m.GetFloat(prop.name + AnimatedPropertySuffix);
-                        if (value != 0)
-                        {
-                            m.SetOverrideTag(prop.name + AnimatedTagSuffix, "" + value);
-                        }
-                    }catch(Exception e)
-                    {
 
+                string path = AssetDatabase.GetAssetPath(m);
+                StreamReader reader = new StreamReader(path);
+                string line;
+                while((line = reader.ReadLine()) != null)
+                {
+                    if (line.Contains(AnimatedPropertySuffix) && line.Length > 6)
+                    {
+                        string[] parts = line.Substring(6, line.Length - 6).Split(':');
+                        float f;
+                        if (float.TryParse(parts[1], out f))
+                        {
+                            if( f != 0)
+                            {
+                                string name = parts[0].Substring(0, parts[0].Length - AnimatedPropertySuffix.Length);
+                                m.SetOverrideTag(name + AnimatedTagSuffix, "" + f);
+                            }
+                        }
                     }
                 }
+                reader.Close();
+                i++;
             }
-            ClearConsole();
+
+            EditorUtility.ClearProgressBar();
         }
 
         static void ClearConsole()

@@ -53,6 +53,7 @@ namespace Thry
         public bool is_animated = false;
         public bool is_animatable = false;
         public bool is_renaming = false;
+        public bool exempt_from_locked_disabling = false;
 
         public BetterTooltips.Tooltip tooltip;
 
@@ -385,7 +386,7 @@ namespace Thry
             ShaderEditor.active.currentProperty = this;
             this.materialProperty = ShaderEditor.active.properties[property_index];
             if (ShaderEditor.active.isLockedMaterial)
-                EditorGUI.BeginDisabledGroup(!(is_animatable && (is_animated || is_renaming)));
+                EditorGUI.BeginDisabledGroup(!(is_animatable && (is_animated || is_renaming)) && !exempt_from_locked_disabling);
             int oldIndentLevel = EditorGUI.indentLevel;
             if (!useEditorIndent)
                 EditorGUI.indentLevel = xOffset + 1;
