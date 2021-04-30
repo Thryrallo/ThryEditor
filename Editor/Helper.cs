@@ -1293,6 +1293,7 @@ namespace Thry
 
         private static void RemoveAt(int i)
         {
+            Init();
             if (dictionary.ContainsKey(shaders[i].name))
             {
                 dictionary.Remove(shaders[i].name);
