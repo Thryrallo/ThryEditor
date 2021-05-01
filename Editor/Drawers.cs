@@ -359,7 +359,7 @@ namespace Thry
             Vector4 vec = EditorGUI.Vector3Field(position, label, prop.vectorValue);
             if (EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = vec;
+                prop.vectorValue = new Vector4(vec.x, vec.y, vec.z, prop.vectorValue.w);
             }
         }
 
@@ -379,7 +379,7 @@ namespace Thry
             Vector4 vec = EditorGUI.Vector2Field(position, label, prop.vectorValue);
             if (EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = vec;
+                prop.vectorValue = new Vector4(vec.x, vec.y, prop.vectorValue.z, prop.vectorValue.w);
             }
         }
 
