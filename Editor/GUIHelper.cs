@@ -666,8 +666,11 @@ namespace Thry
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            this.property = prop;
-            this.expanded = prop.floatValue == 1;
+            if (!AnimationMode.InAnimationMode() || this.property == null)
+            {
+                this.property = prop;
+                this.expanded = prop.floatValue == 1;
+            }
 
             PropertyOptions options = ShaderEditor.active.currentProperty.options;
             Event e = Event.current;
