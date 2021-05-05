@@ -658,15 +658,12 @@ namespace Thry
         public void Toggle()
         {
             expanded = !expanded;
-            if (!AnimationMode.InAnimationMode())
-            {
-                property.floatValue = expanded ? 1 : 0;
-            }
+            foreach (Material m in ShaderEditor.active.materials) m.SetFloat(property.name, expanded ? 1 : 0);
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            if (!AnimationMode.InAnimationMode() || this.property == null)
+            if (this.property == null)
             {
                 this.property = prop;
                 this.expanded = prop.floatValue == 1;

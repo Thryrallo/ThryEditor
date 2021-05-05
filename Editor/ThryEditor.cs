@@ -667,6 +667,7 @@ namespace Thry
         private void HandleReset()
         {
             MaterialLinker.UnlinkAll(materials[0]);
+            ShaderOptimizer.DeleteTags(materials);
         }
 
         public static void reload()

@@ -1369,6 +1369,28 @@ namespace Thry
             return true;
         }
 
+        public static void DeleteTags(Material[] materials)
+        {
+            foreach(Material m in materials)
+            {
+                var it = new SerializedObject(m).GetIterator();
+                while (it.Next(true))
+                {
+                    if (it.name == "stringTagMap")
+                    {
+                        for (int i = 0; i < it.arraySize; i++)
+                        {
+                            string tagName = it.GetArrayElementAtIndex(i).displayName;
+                            if (tagName.EndsWith(AnimatedTagSuffix))
+                            {
+                                m.SetOverrideTag(tagName, "");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         #region Upgrade
 
         [MenuItem("Thry/Editor Tools/Upgraded Animated Properties")]
