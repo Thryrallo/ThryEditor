@@ -16,7 +16,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.13.8";
+        private const string VERSION = "2.13.9";
 
         // static
         private static Config config;
@@ -164,6 +164,18 @@ namespace Thry
         public static bool operator <=(Version x, string y)
         {
             return Helper.compareVersions(x.value, y) > -1;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (o is Version) return this == (o as Version);
+            if (o is string) return this == (o as string);
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

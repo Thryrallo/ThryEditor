@@ -52,7 +52,7 @@ namespace Thry
                 //draw dropdown triangle
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
-                if (GUI.Button(thumbnailPos, "", Styles.none));
+                if (GUI.Button(thumbnailPos, "", Styles.none)) { }
                 if (Event.current.type == EventType.Repaint)
                     EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
 

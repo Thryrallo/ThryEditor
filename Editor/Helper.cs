@@ -1037,9 +1037,10 @@ namespace Thry
 
                 Selection.activeObject = texture2DArray;
                 return texture2DArray;
+#else
+                return null;
 #endif
             }
-            return null;
         }
 
         [MenuItem("Assets/Thry/Flipbooks/Gif 2 TextureArray",false, 303)]
@@ -1565,7 +1566,6 @@ namespace Thry
         {
             string[] guids = AssetDatabase.FindAssets("version");
             string path = null;
-            string u_path = null;
             foreach (string guid in guids)
             {
                 string p = AssetDatabase.GUIDToAssetPath(guid);
@@ -1587,22 +1587,22 @@ namespace Thry
             return VRC_SDK_Type.SDK_3_World;
 #elif VRC_SDK_VRCSDK3
             return VRC_SDK_Type.SDK_3_Avatar;
-#endif
-#if VRC_SDK_VRCSDK2
+#elif VRC_SDK_VRCSDK2
             return VRC_SDK_Type.SDK_2;
-#endif
+#else
             return VRC_SDK_Type.NONE;
+#endif
         }
 
         private static bool IsVRCSDKInstalled()
         {
 #if VRC_SDK_VRCSDK3
             return true;
-#endif
-#if VRC_SDK_VRCSDK2
+#elif VRC_SDK_VRCSDK2
             return true;
-#endif
+#else
             return false;
+#endif
         }
     }
 }

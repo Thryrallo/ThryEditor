@@ -144,7 +144,7 @@ namespace Thry
             SetKeywordInternal(prop, on, "_ON");
         }
 
-        protected virtual void CheckKeyword(MaterialProperty prop)
+        protected override void CheckKeyword(MaterialProperty prop)
         {
             foreach (Material m in prop.targets)
             {

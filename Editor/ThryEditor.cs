@@ -29,7 +29,6 @@ namespace Thry
         private ShaderHeader mainHeader;
 
         // UI Instance Variables
-        private int customRenderQueueFieldInput = -1;
 
         public bool show_search_bar;
         private string header_search_term = "";
