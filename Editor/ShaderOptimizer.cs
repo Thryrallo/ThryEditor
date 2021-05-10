@@ -108,8 +108,8 @@ namespace Thry
         // the lightmode name as a suffix (e.g. group_toggle_GeometryShadowCaster)
         // Geometry and Tessellation shaders are REMOVED by default, but if the main gorups
         // are enabled certain pass types are assumed to be ENABLED
-        public static readonly string GeometryShaderEnabledPropertyName = "group_toggle_Geometry";
-        public static readonly string TessellationEnabledPropertyName = "group_toggle_Tessellation";
+        public static readonly string GeometryShaderEnabledPropertyName = "GeometryShader_Enabled";
+        public static readonly string TessellationEnabledPropertyName = "Tessellation_Enabled";
         private static bool UseGeometry = false;
         private static bool UseGeometryForwardBase = true;
         private static bool UseGeometryForwardAdd = true;
