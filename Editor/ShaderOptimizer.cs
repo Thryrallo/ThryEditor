@@ -319,7 +319,7 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "");
         }
 
-        public static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
+        private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
             Shader shader = material.shader;
@@ -1323,21 +1323,50 @@ namespace Thry
             }
         }
 
-        public static bool Unlock (Material material)
+        public enum UnlockSuccess { hasNoSavedShader, wasNotLocked, couldNotFindOriginalShader, couldNotDeleteLockedShader,
+            success}
+        private static void Unlock(Material material, MaterialProperty shaderOptimizer = null)
+        {
+            //if unlock success set floats. not done for locking cause the sucess is checked later when applying the shaders
+            UnlockSuccess success = ShaderOptimizer.UnlockConcrete(material);
+            if (success == UnlockSuccess.success || success == UnlockSuccess.wasNotLocked
+                || success == UnlockSuccess.couldNotDeleteLockedShader)
+            {
+                if (shaderOptimizer != null) shaderOptimizer.floatValue = 0;
+                else material.SetFloat(GetOptimizerPropertyName(material.shader), 0);
+            }
+        }
+        private static UnlockSuccess UnlockConcrete (Material material)
         {
             // Revert to original shader
             string originalShaderName = material.GetTag("OriginalShader", false, "");
             if (originalShaderName == "")
             {
-                Debug.LogError("[Kaj Shader Optimizer] Original shader not saved to material, could not unlock shader");
-                return material.shader.name.StartsWith("Hidden/") == false;
+                if (material.shader.name.StartsWith("Hidden/"))
+                {
+                    Debug.LogError("[Kaj Shader Optimizer] Original shader not saved to material, could not unlock shader");
+                    return UnlockSuccess.hasNoSavedShader;
+                }
+                else
+                {
+                    Debug.LogWarning("[Kaj Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
+                    return UnlockSuccess.wasNotLocked;
+                }
 
             }
             Shader orignalShader = Shader.Find(originalShaderName);
             if (orignalShader == null)
             {
-                Debug.LogError("[Kaj Shader Optimizer] Original shader " + originalShaderName + " could not be found");
-                return false;
+                if (material.shader.name.StartsWith("Hidden/"))
+                {
+                    Debug.LogError("[Kaj Shader Optimizer] Original shader " + originalShaderName + " could not be found");
+                    return UnlockSuccess.couldNotFindOriginalShader;
+                }
+                else
+                {
+                    Debug.LogWarning("[Kaj Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
+                    return UnlockSuccess.wasNotLocked;
+                }
             }
 
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
@@ -1354,7 +1383,7 @@ namespace Thry
             if (shaderDirectory == "")
             {
                 Debug.LogError("[Kaj Shader Optimizer] Optimized shader folder could not be found, not deleting anything");
-                return false;
+                return UnlockSuccess.couldNotDeleteLockedShader;
             }
             string materialFilePath = AssetDatabase.GetAssetPath(material);
             string materialFolder = Path.GetDirectoryName(materialFilePath);
@@ -1366,7 +1395,7 @@ namespace Thry
             FileUtil.DeleteFileOrDirectory(newShaderDirectory + ".meta");
             //AssetDatabase.Refresh();
 
-            return true;
+            return UnlockSuccess.success;
         }
 
         public static void DeleteTags(Material[] materials)
@@ -1598,10 +1627,9 @@ namespace Thry
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
 
-        public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
+        public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
-
             AssetDatabase.StartAssetEditing();
 
             IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null &&
@@ -1611,7 +1639,7 @@ namespace Thry
             float i = 0;
             float length = materialsToChangeLock.Count();
 
-            if(showDialog && length > 0)
+            if (showDialog && length > 0)
             {
                 if(EditorUtility.DisplayDialog("Locking Materials", Locale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
                 {
@@ -1641,11 +1669,7 @@ namespace Thry
                     }
                     else if (lockState == 0)
                     {
-                        //if unlock success set floats. not done for locking cause the sucess is checked later when applying the shaders
-                        if (ShaderOptimizer.Unlock(m))
-                        {
-                            m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
-                        }
+                        ShaderOptimizer.Unlock(m, shaderOptimizer);
                     }
                 }
                 catch (Exception e)
@@ -1668,7 +1692,8 @@ namespace Thry
                     bool success = ShaderOptimizer.LockApplyShader(m);
                     if (success)
                     {
-                        m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
+                        if (shaderOptimizer != null) shaderOptimizer.floatValue = lockState;
+                        else m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
                     }
                 }
             }

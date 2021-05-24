@@ -667,6 +667,13 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty shaderOptimizer, string label, MaterialEditor materialEditor)
         {
+            //this will make sure the button is unlocked if you manually swap to an unlocked shader
+            if(shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 1 &&
+                (shaderOptimizer.targets[0] as Material).shader.name.StartsWith("Hidden/") == false)
+            {
+                shaderOptimizer.floatValue = 0;
+            }
+
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.
             // But in a case where the material property says its locked in but the material really isn't, this
             // will display and allow users to fix the property/lock in
@@ -676,13 +683,12 @@ namespace Thry
                 EditorGUI.BeginChangeCheck();
                 GUILayout.Button("Lock in Optimized Shaders (" + materialEditor.targets.Length + " materials)");
                 if (EditorGUI.EndChangeCheck())
-                    foreach (Material m in materialEditor.targets)
-                    {
-                        m.SetFloat(shaderOptimizer.name, 1);
-                        MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
-                        if (!ShaderOptimizer.Lock(m, props)) // Error locking shader, revert property
-                            m.SetFloat(shaderOptimizer.name, 0);
-                    }
+                {
+                    Material[] materials = new Material[shaderOptimizer.targets.Length];
+                    for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
+                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, true, shaderOptimizer);
+
+                }
             }
             else
             {
@@ -696,33 +702,9 @@ namespace Thry
                 else GUILayout.Button("Unlock Shader");
                 if (EditorGUI.EndChangeCheck())
                 {
-                    shaderOptimizer.floatValue = shaderOptimizer.floatValue == 1 ? 0 : 1;
-                    if (shaderOptimizer.floatValue == 1)
-                    {
-                        foreach (Material m in materialEditor.targets)
-                        {
-                            MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m });
-                            if (!ShaderOptimizer.Lock(m, props))
-                                m.SetFloat(shaderOptimizer.name, 0);
-                        }
-                    }
-                    else
-                    {
-                        foreach (Material m in materialEditor.targets)
-                            if (!ShaderOptimizer.Unlock(m))
-                                m.SetFloat(shaderOptimizer.name, 1);
-                    }
-                }
-            }
-            if (ShaderEditor.input.MouseClick)
-            {
-                if (GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
-                {
-                    foreach (Material m in materialEditor.targets)
-                    {
-                        ShaderOptimizer.Unlock(m);
-                        m.SetFloat(shaderOptimizer.name, 0);
-                    }
+                    Material[] materials = new Material[shaderOptimizer.targets.Length];
+                    for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
+                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, true, shaderOptimizer);
                 }
             }
         }
