@@ -47,9 +47,12 @@ namespace Thry
             return GetCurrentUnixTimestampMillis() - (long)EditorApplication.timeSinceStartup * 1000;
         }
 
-        public static bool ClassExists(string classname)
+        public static bool ClassWithNamespaceExists(string classname)
         {
-            return System.Type.GetType(classname) != null;
+            return (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                    from type in assembly.GetTypes()
+                    where type.FullName == classname
+                    select type).Count() > 0;
         }
 
         public static bool NameSpaceExists(string namespace_name)

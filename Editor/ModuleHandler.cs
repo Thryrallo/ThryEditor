@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -81,7 +82,7 @@ namespace Thry
                 bool module_installed = LoadModuleLocationData(new_module);
                 if (module_installed)
                     InitInstalledModule(new_module);
-                else if (Helper.ClassExists(new_module.available_module.classname))
+                else if (Helper.ClassWithNamespaceExists(new_module.available_module.classname))
                     CheckForUnregisteredInstall(new_module);
                 if (new_module.available_module.requirement != null)
                     new_module.available_requirement_fullfilled = new_module.available_module.requirement.Test();
@@ -95,8 +96,10 @@ namespace Thry
         private static bool LoadModuleLocationData(Module m)
         {
             string data = FileHelper.LoadValueFromFile(m.id,PATH.MODULES_LOCATION__DATA);
-            if (data == "" || data == null)
+            if (string.IsNullOrEmpty(data))
+            {
                 return false;
+            }
             m.location_data = Parser.ParseToObject<ModuleLocationData>(data);
             if (AssetDatabase.GUIDToAssetPath(m.location_data.guid) == "")
             {
@@ -117,8 +120,8 @@ namespace Thry
 
         private static void CheckForUnregisteredInstall(Module module)
         {
-            Debug.Log(module.available_module.classname + ":" + Helper.ClassExists(module.available_module.classname));
-            if (Helper.ClassExists(module.available_module.classname))
+            Debug.Log(module.available_module.classname + ":" + Helper.ClassWithNamespaceExists(module.available_module.classname));
+            if (Helper.ClassWithNamespaceExists(module.available_module.classname))
             {
                 module.path = ResolveFilesToDirectory(module.available_module.files.ToArray());
                 if (module.path != null)
@@ -136,7 +139,7 @@ namespace Thry
         private static void InitInstalledModule(Module m)
         {
             bool remove = false;
-            if (Helper.ClassExists(m.location_data.classname))
+            if (Helper.ClassWithNamespaceExists(m.location_data.classname))
             {
                 m.path = GetModuleDirectory(m);
                 if (m.path != null)
