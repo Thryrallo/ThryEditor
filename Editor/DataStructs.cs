@@ -191,7 +191,11 @@ namespace Thry
             }
             return false;
         }
-
+        
+        private static PropertyValueAction ParseForThryParser(string s)
+        {
+            return Parse(s);
+        }
         // value,property1=value1,property2=value2
         public static PropertyValueAction Parse(string s)
         {
@@ -212,6 +216,10 @@ namespace Thry
             return null;
         }
 
+        private static PropertyValueAction[] ParseToArrayForThryParser(string s)
+        {
+            return ParseToArray(s);
+        }
         public static PropertyValueAction[] ParseToArray(string s)
         {
             //s = v,p1=v1,p2=v2;v3
@@ -259,6 +267,10 @@ namespace Thry
             }
         }
 
+        private static DefineableAction ParseForThryParser(string s)
+        {
+            return Parse(s);
+        }
         public static DefineableAction Parse(string s)
         {
             s = s.Trim();
@@ -421,6 +433,10 @@ namespace Thry
             return "";
         }
 
+        private static DefineableCondition ParseForThryParser(string s)
+        {
+            return Parse(s);
+        }
         public static DefineableCondition Parse(string s)
         {
             s = Strip(s);
