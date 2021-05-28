@@ -120,13 +120,14 @@ namespace Thry
 
         private static void CheckForUnregisteredInstall(Module module)
         {
-            Debug.Log(module.available_module.classname + ":" + Helper.ClassWithNamespaceExists(module.available_module.classname));
+            //Debug.Log(module.available_module.classname + ":" + Helper.ClassWithNamespaceExists(module.available_module.classname));
             if (Helper.ClassWithNamespaceExists(module.available_module.classname))
             {
                 module.path = ResolveFilesToDirectory(module.available_module.files.ToArray());
-                if (module.path != null)
+                if (string.IsNullOrEmpty(module.path) == false)
                 {
                     module.installed_module = Parser.ParseToObject<ModuleInfo>(FileHelper.ReadFileIntoString(FindModuleFilePath(module.path)));
+                    Debug.Log(module.path);
                     SaveModuleLocationData(module,AssetDatabase.AssetPathToGUID(module.path));
                 }
             }
@@ -142,9 +143,11 @@ namespace Thry
             if (Helper.ClassWithNamespaceExists(m.location_data.classname))
             {
                 m.path = GetModuleDirectory(m);
-                if (m.path != null)
+                if (string.IsNullOrEmpty(m.path) == false)
                 {
+                    Debug.Log(m.path);
                     m.installed_module = Parser.ParseToObject<ModuleInfo>(FileHelper.ReadFileIntoString(FindModuleFilePath(m.path)));
+                    Debug.Log(m.path);
                     string calced_guid = AssetDatabase.AssetPathToGUID(m.path);
                     if (m.location_data.guid != calced_guid)
                         SaveModuleLocationData(m, calced_guid);
@@ -185,7 +188,7 @@ namespace Thry
                 string[] refernces = ResolveFilesToDirectoryFindAllReferneces(file);
                 foreach(string p in refernces)
                 {
-                    string found_dir = Directory.GetParent(Path.GetDirectoryName(p)).FullName;
+                    string found_dir = p.Replace(file, "");
                     if (path_refernces.ContainsKey(found_dir))
                         path_refernces[found_dir] = path_refernces[found_dir] + 1;
                     else
