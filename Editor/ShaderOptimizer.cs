@@ -1607,7 +1607,7 @@ namespace Thry
                     IEnumerable<AnimationClip> clips = descriptor.baseAnimationLayers.Select(l => l.animatorController).Where(a => a != null).SelectMany(a => a.animationClips).Distinct();
                     foreach (AnimationClip clip in clips)
                     {
-                        IEnumerable<Material> clipMaterials = AnimationUtility.GetObjectReferenceCurveBindings(clip).Where(b => b.isPPtrCurve && b.type == typeof(SkinnedMeshRenderer) && b.propertyName.StartsWith("m_Materials"))
+                        IEnumerable<Material> clipMaterials = AnimationUtility.GetObjectReferenceCurveBindings(clip).Where(b => b.isPPtrCurve && b.type == typeof(Renderer) && b.propertyName.StartsWith("m_Materials"))
                             .SelectMany(b => AnimationUtility.GetObjectReferenceCurve(clip, b)).Select(r => r.value as Material);
                         materials.AddRange(clipMaterials);
                     }
