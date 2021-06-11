@@ -1288,6 +1288,7 @@ namespace Thry
         private static void Add(ShaderEditorShader s)
         {
             Init();
+            if (dictionary == null || s == null) return;
             if (!dictionary.ContainsKey(s.name))
             {
                 dictionary.Add(s.name, s);
@@ -1298,6 +1299,7 @@ namespace Thry
         private static void RemoveAt(int i)
         {
             Init();
+            if (dictionary == null || i >= shaders.Count() || shaders[i] == null) return;
             if (dictionary.ContainsKey(shaders[i].name))
             {
                 dictionary.Remove(shaders[i].name);

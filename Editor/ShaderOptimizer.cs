@@ -733,6 +733,7 @@ namespace Thry
 
             if (applyShaderLater)
             {
+                Debug.Log("Apply later: "+applyStructsLater.Count+ ", "+material.name);
                 applyStructsLater.Add(material, applyStruct);
                 return true;
             }
@@ -1632,6 +1633,7 @@ namespace Thry
             //first the shaders are created. compiling is suppressed with start asset editing
             AssetDatabase.StartAssetEditing();
 
+            //Get cleaned materia list
             IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null &&
                 string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
                 && IsShaderUsingThryOptimizer(m.shader) && m.GetFloat(GetOptimizerPropertyName(m.shader)) != lockState).Distinct();
@@ -1639,6 +1641,7 @@ namespace Thry
             float i = 0;
             float length = materialsToChangeLock.Count();
 
+            //show popup dialog if defined
             if (showDialog && length > 0)
             {
                 if(EditorUtility.DisplayDialog("Locking Materials", Locale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
@@ -1647,9 +1650,10 @@ namespace Thry
                 }
                 PersistentData.Set("ShowLockInDialog", false);
             }
+            //Create shader assets
             foreach (Material m in materialsToChangeLock)
             {
-                //dont give it a progress bar if it is called by lockin police, else it breaks everything. why ? cause unity ...
+                //do progress bar
                 if (showProgressbar)
                 {
                     if (allowCancel)
@@ -1661,6 +1665,7 @@ namespace Thry
                         EditorUtility.DisplayProgressBar((lockState == 1) ? "Locking Materials" : "Unlocking Materials", m.name, i / length);
                     }
                 }
+                //create the assets
                 try
                 {
                     if (lockState == 1)
@@ -1692,7 +1697,7 @@ namespace Thry
                     bool success = ShaderOptimizer.LockApplyShader(m);
                     if (success)
                     {
-                        if (shaderOptimizer != null) shaderOptimizer.floatValue = lockState;
+                        if (shaderOptimizer != null) m.SetFloat(shaderOptimizer.name, lockState);
                         else m.SetFloat(GetOptimizerPropertyName(m.shader), lockState);
                     }
                 }
