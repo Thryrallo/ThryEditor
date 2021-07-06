@@ -180,11 +180,13 @@ namespace Thry
 
         public bool Execute(MaterialProperty p)
         {
-            if((p.floatValue.ToString()==value) 
+            if(
+                (p.type == MaterialProperty.PropType.Texture && p.floatValue.ToString() == value)
                 || ( p.colorValue.ToString() == value) 
                 || ( p.vectorValue.ToString() == value )
-                || (p.textureValue != null && p.textureValue.ToString() == value))
-            {
+                || (p.type == MaterialProperty.PropType.Texture && ((value == "1") == (p.textureValue != null)))
+            )
+                {
                 foreach (DefineableAction a in actions)
                     a.Perform();
                 return true;

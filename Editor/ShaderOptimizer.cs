@@ -776,10 +776,6 @@ namespace Thry
             // Write the new shader folder name in an override tag so it will be deleted 
             material.SetOverrideTag("OptimizedShaderFolder", smallguid);
 
-            // Remove ALL keywords
-            foreach (string keyword in material.shaderKeywords)
-                material.DisableKeyword(keyword);
-
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
             // So these are saved as temp values and reassigned after switching shaders
             string renderType = material.GetTag("RenderType", false, "");
@@ -796,6 +792,10 @@ namespace Thry
             ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
+
+            // Remove ALL keywords
+            foreach (string keyword in material.shaderKeywords)
+                material.DisableKeyword(keyword);
 
             foreach (var animProp in animatedPropsToRename)
             {

@@ -94,7 +94,7 @@ namespace Thry
             {
                 return;
             }
-            if (isFirstGUICall)
+            if (isFirstGUICall && !ShaderEditor.active.isLockedMaterial)
             {
                 CheckKeyword(prop);
                 isFirstGUICall = false;
