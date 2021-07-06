@@ -951,7 +951,7 @@ namespace Thry
             EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
             if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(state == HeaderHidingType.simple)))
                 SetType(HeaderHidingType.simple);
-            if (GUILayout.Button("Advanced", Styles.style_toolbar_toggle(state == HeaderHidingType.show_all)))
+            if (GUILayout.Button("Show All", Styles.style_toolbar_toggle(state == HeaderHidingType.show_all)))
                 SetType(HeaderHidingType.show_all);
             Rect right = GUILayoutUtility.GetRect(10, 20);
             Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);

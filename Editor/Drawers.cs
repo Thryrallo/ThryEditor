@@ -667,11 +667,15 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty shaderOptimizer, string label, MaterialEditor materialEditor)
         {
+            bool isLocked = (shaderOptimizer.targets[0] as Material).shader.name.StartsWith("Hidden/") && (shaderOptimizer.targets[0] as Material).GetTag("OriginalShader",false,"") != "";
             //this will make sure the button is unlocked if you manually swap to an unlocked shader
-            if(shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 1 &&
-                (shaderOptimizer.targets[0] as Material).shader.name.StartsWith("Hidden/") == false)
+            //shaders that have the ability to be locked shouldnt really be hidden themself. at least it wouldnt make too much sense
+            if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 1 && isLocked == false)
             {
                 shaderOptimizer.floatValue = 0;
+            }else if(shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 0 && isLocked)
+            {
+                shaderOptimizer.floatValue = 1;
             }
 
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.
