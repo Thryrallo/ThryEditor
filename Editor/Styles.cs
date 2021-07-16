@@ -15,6 +15,7 @@ namespace Thry
         public static GUIStyle dropDownHeader { get; private set; } = new GUIStyle(new GUIStyle("ShurikenModuleTitle"))
         {
             font = new GUIStyle(EditorStyles.label).font,
+            fontSize = GUI.skin.font.fontSize,
             border = new RectOffset(15, 7, 4, 4),
             fixedHeight = 22,
             contentOffset = new Vector2(20f, -2f)

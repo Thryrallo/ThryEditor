@@ -79,11 +79,14 @@ namespace Thry
                 new_module.author = info.author;
                 new_module.id = info.id;
                 new_module.available_module = Parser.ParseToObject<ModuleInfo>(data);
+                new_module.available_module.version = new_module.available_module.version.Replace(",", ".");
                 bool module_installed = LoadModuleLocationData(new_module);
                 if (module_installed)
                     InitInstalledModule(new_module);
                 else if (Helper.ClassWithNamespaceExists(new_module.available_module.classname))
                     CheckForUnregisteredInstall(new_module);
+                if(new_module.installed_module != null)
+                    new_module.installed_module.version = new_module.installed_module.version.Replace(",", ".");
                 if (new_module.available_module.requirement != null)
                     new_module.available_requirement_fullfilled = new_module.available_module.requirement.Test();
                 if (new_module.available_requirement_fullfilled && new_module.installed_module != null && Helper.compareVersions(new_module.installed_module.version, new_module.available_module.version) == 1)
@@ -309,7 +312,7 @@ namespace Thry
                 WebHelper.DownloadFileASync(base_url + "/"+ file_path, temp_path + "/" + file_path, delegate (string data)
                 {
                     i++;
-                    EditorUtility.DisplayProgressBar("Downloading files for " + module.available_module, "Downloaded " + base_url + file_path, (float)i / module.available_module.files.Count);
+                    EditorUtility.DisplayProgressBar("Downloading files for " + module.available_module.name, "Downloaded " + base_url + file_path, (float)i / module.available_module.files.Count);
                     if (i == module.available_module.files.Count)
                     {
                         EditorUtility.ClearProgressBar();

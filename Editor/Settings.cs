@@ -242,14 +242,15 @@ namespace Thry
 
         private void ModuleUI(Module module)
         {
-            string text = "    " + module.available_module.name;
+            string text = "      " + module.available_module.name;
             if (module.update_available)
-                text = "              " + text;
+                text = "                  " + text;
             module.ui_expanded = Foldout(text, module.ui_expanded);
             Rect rect = GUILayoutUtility.GetLastRect();
             rect.x += 20;
-            rect.y += 2;
+            rect.y += 1;
             rect.width = 20;
+            rect.height -= 4;
 
             bool is_installed = module.installed_module != null;
 
@@ -262,7 +263,7 @@ namespace Thry
             if (module.update_available)
             {
                 rect.x += 20;
-                rect.width = 47;
+                rect.width = 55;
                 GUIStyle style = new GUIStyle(EditorStyles.miniButton);
                 style.fixedHeight = 17;
                 if (GUI.Button(rect, "Update",style))

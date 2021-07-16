@@ -84,6 +84,8 @@ namespace Thry
         public static int compareVersions(string v1, string v2)
         {
             //fix the string
+            v1 = v1.Replace(",", ".");
+            v2 = v2.Replace(",", ".");
             Match v1_match = Regex.Match(v1, @"(a|b)?\d+((\.|a|b)\d+)*(a|b)?");
             Match v2_match = Regex.Match(v2, @"(a|b)?\d+((\.|a|b)\d+)*(a|b)?");
             if (!v1_match.Success && !v2_match.Success) return 0;
