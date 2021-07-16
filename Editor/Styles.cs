@@ -66,9 +66,10 @@ namespace Thry
 
         public static Texture2D rounded_texture { get; private set; } = LoadTextureByNameAndEditorType(RESOURCE_NAME.WHITE_RECT, RESOURCE_NAME.DARK_RECT);
         public static Texture2D settings_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SETTINGS_ICON_TEXTURE);
-        public static Texture2D dropdown_settings_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.DROPDOWN_SETTINGS_TEXTURE);
-        public static Texture2D active_link_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ACTICE_LINK_ICON);
-        public static Texture2D inactive_link_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.INACTICE_LINK_ICON);
+        public static Texture2D icon_menu { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_MENU);
+        public static Texture2D icon_help { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_HELP);
+        public static Texture2D icon_link_active { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK), Color.cyan);
+        public static Texture2D icon_link_inactive { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK);
         public static Texture2D visibility_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.VISIVILITY_ICON);
         public static Texture2D search_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SEARCH_ICON);
         public static Texture2D presets_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.PRESETS_ICON);
@@ -81,8 +82,7 @@ namespace Thry
                     t_texture_animated_renamed = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED), Color.red);
                 return t_texture_animated_renamed;
             } 
-        } 
-
+        }
 
         private static Texture2D LoadTextureByNameAndEditorType(string normalName, string proName)
         {

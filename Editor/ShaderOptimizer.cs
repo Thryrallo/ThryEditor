@@ -1702,7 +1702,6 @@ namespace Thry
                     }
                 }
             }
-            //ShaderEditor.reload();
             return true;
         }
 

@@ -725,12 +725,11 @@ namespace Thry
             if (options.reference_property != null && ShaderEditor.active.propertyDictionary.ContainsKey(options.reference_property))
             {
                 GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropDownHeader);
-                DrawIcons(rect, e);
-                DrawButton(rect, options, e);
+                DrawIcons(rect, options, e);
 
                 Rect togglePropertyRect = new Rect(rect);
                 togglePropertyRect.x += 5;
-                togglePropertyRect.y += 2;
+                togglePropertyRect.y += 1;
                 togglePropertyRect.height -= 4;
                 togglePropertyRect.width = GUI.skin.font.fontSize * 3;
                 float fieldWidth = EditorGUIUtility.fieldWidth;
@@ -745,8 +744,7 @@ namespace Thry
             }else if(keyword != null)
             {
                 GUI.Box(rect, "     " + content.text, Styles.dropDownHeader);
-                DrawIcons(rect, e);
-                DrawButton(rect, options, e);
+                DrawIcons(rect, options, e);
 
                 Rect togglePropertyRect = new Rect(rect);
                 togglePropertyRect.x += 20;
@@ -762,39 +760,9 @@ namespace Thry
             else
             {
                 GUI.Box(rect, content, Styles.dropDownHeader);
-                DrawIcons(rect, e);
-                DrawButton(rect, options, e);
+                DrawIcons(rect, options, e);
             }
 
-        }
-
-        /// <summary>
-        /// Draws extra buttons in the header
-        /// </summary>
-        /// <param name="rect"></param>
-        /// <param name="options"></param>
-        /// <param name="e"></param>
-        /// <param name="style"></param>
-        private void DrawButton(Rect rect, PropertyOptions options, Event e)
-        {
-            ButtonData button = this.button != null ? this.button : options.button_right;
-            if (button != null && button.condition_show.Test())
-            {
-                Rect buttonRect = new Rect(rect);
-                GUIContent buttoncontent = new GUIContent(button.text, button.hover);
-                float width = Styles.dropDownHeaderButton.CalcSize(buttoncontent).x;
-                width = width < rect.width / 3 ? rect.width / 3 : width;
-                buttonRect.x += buttonRect.width - width - 50;
-                buttonRect.y += 2;
-                buttonRect.width = width;
-                if (GUI.Button(buttonRect, buttoncontent, Styles.dropDownHeaderButton))
-                {
-                    e.Use();
-                    if (button.action != null)
-                        button.action.Perform();
-                }
-                EditorGUIUtility.AddCursorRect(buttonRect, MouseCursor.Link);
-            }
         }
 
         /// <summary>
@@ -802,10 +770,29 @@ namespace Thry
         /// </summary>
         /// <param name="rect"></param>
         /// <param name="e"></param>
-        private void DrawIcons(Rect rect, Event e)
+        private void DrawIcons(Rect rect, PropertyOptions options, Event e)
         {
+            DrawHelpButton(rect, options, e);
             DrawDowdownSettings(rect, e);
             DrawLinkSettings(rect, e);
+        }
+
+        private void DrawHelpButton(Rect rect, PropertyOptions options, Event e)
+        {
+            ButtonData button = this.button != null ? this.button : options.button_help;
+            if (button != null && button.condition_show.Test())
+            {
+                Rect buttonRect = new Rect(rect);
+                buttonRect.width = 20;
+                buttonRect.x += rect.width - 65;
+                buttonRect.y += 1;
+                buttonRect.height -= 4;
+                if (GUI.Button(buttonRect, Styles.icon_help, EditorStyles.largeLabel))
+                {
+                    e.Use();
+                    if (button.action != null) button.action.Perform();
+                }
+            }
         }
 
         private void DrawDowdownSettings(Rect rect, Event e)
@@ -815,7 +802,7 @@ namespace Thry
             buttonRect.x += rect.width - 25;
             buttonRect.y += 1;
             buttonRect.height -= 4;
-            if (GUI.Button(buttonRect, Styles.dropdown_settings_icon, EditorStyles.largeLabel))
+            if (GUI.Button(buttonRect, Styles.icon_menu, EditorStyles.largeLabel))
             {
                 e.Use();
 
@@ -837,9 +824,9 @@ namespace Thry
             buttonRect.y += 1;
             buttonRect.height -= 4;
             List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.active.currentProperty.materialProperty);
-            Texture2D icon = Styles.inactive_link_icon;
+            Texture2D icon = Styles.icon_link_inactive;
             if (linked_materials != null)
-                icon = Styles.active_link_icon;
+                icon = Styles.icon_link_active;
             if (GUI.Button(buttonRect, icon, EditorStyles.largeLabel))
             {
                 MaterialLinker.Popup(buttonRect, linked_materials, ShaderEditor.active.currentProperty.materialProperty);
@@ -991,12 +978,12 @@ namespace Thry
                 SetType(HeaderHidingType.show_all);
             Rect right = GUILayoutUtility.GetRect(10, 20);
             Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
-            if (GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel))
+            if (GUI.Button(arrow, Styles.icon_menu, EditorStyles.largeLabel))
                 DrawHeaderHiderMenu(arrow, editor.shaderParts);
             if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(state == HeaderHidingType.custom)))
                 SetType(HeaderHidingType.custom);
 
-            GUI.Button(arrow, Styles.dropdown_settings_icon, EditorStyles.largeLabel);
+            GUI.Button(arrow, Styles.icon_menu, EditorStyles.largeLabel);
 
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.Space();

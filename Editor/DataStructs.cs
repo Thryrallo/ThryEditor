@@ -49,17 +49,17 @@ namespace Thry
 
     public class RESOURCE_NAME
     {
-        public const string DROPDOWN_SETTINGS_TEXTURE = "thry_settings_dropdown";
         public const string SETTINGS_ICON_TEXTURE = "thry_settings_icon";
         public const string WHITE_RECT = "thry_white_rect";
         public const string DARK_RECT = "thry_dark_rect";
-        public const string ACTICE_LINK_ICON = "thry_link_icon_active";
-        public const string INACTICE_LINK_ICON = "thry_link_icon_inactive";
         public const string VISIVILITY_ICON = "thry_visiblity_icon";
         public const string SEARCH_ICON = "thry_magnifying_glass_icon";
         public const string PRESETS_ICON = "thry_presets_icon";
         public const string TEXTURE_ARROW = "thry_arrow";
         public const string TEXTURE_ANIMTED = "thry_animated_icon";
+        public const string ICON_NAME_MENU = "thryEditor_menu";
+        public const string ICON_NAME_HELP = "thryEditor_help";
+        public const string ICON_NAME_LINK = "thryEditor_link";
     }
 
     public class DrawingData
@@ -107,7 +107,7 @@ namespace Thry
         public PropertyValueAction[] on_value_actions;
         public string on_value;
         public DefineableAction[] actions;
-        public ButtonData button_right;
+        public ButtonData button_help;
         public TextureData texture;
         public string[] reference_properties;
         public string reference_property;
