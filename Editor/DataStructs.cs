@@ -49,14 +49,13 @@ namespace Thry
 
     public class RESOURCE_NAME
     {
-        public const string SETTINGS_ICON_TEXTURE = "thry_settings_icon";
         public const string WHITE_RECT = "thry_white_rect";
         public const string DARK_RECT = "thry_dark_rect";
-        public const string VISIVILITY_ICON = "thry_visiblity_icon";
-        public const string SEARCH_ICON = "thry_magnifying_glass_icon";
-        public const string PRESETS_ICON = "thry_presets_icon";
         public const string TEXTURE_ARROW = "thry_arrow";
         public const string TEXTURE_ANIMTED = "thry_animated_icon";
+
+        public const string ICON_SETTINGS = "thryEditor_settings";
+        public const string ICON_SEARCH = "thryEditor_search";
         public const string ICON_NAME_MENU = "thryEditor_menu";
         public const string ICON_NAME_HELP = "thryEditor_help";
         public const string ICON_NAME_LINK = "thryEditor_link";

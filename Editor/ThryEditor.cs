@@ -555,14 +555,14 @@ namespace Thry
             if (shaderHeader != null && shaderHeader.options.texture != null) shaderHeader.Draw();
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
-            if (GUILayout.Button(new GUIContent("", Styles.settings_icon), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20)))
+            if (GUILayout.Button(new GUIContent("", Styles.icon_settings), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20)))
             {
                 Thry.Settings window = Thry.Settings.getInstance();
                 window.Show();
                 window.Focus();
             }
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-            if (GUILayout.Button(Styles.search_icon, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
+            if (GUILayout.Button(Styles.icon_search, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
                 show_search_bar = !show_search_bar;
 
             //draw master label text after ui elements, so it can be positioned between

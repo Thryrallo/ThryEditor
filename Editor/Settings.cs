@@ -90,7 +90,6 @@ namespace Thry
             List<Type> subclasses = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(type => type.IsSubclassOf(typeof(ModuleSettings))).ToList();
             moduleSettings = new ModuleSettings[subclasses.Count];
             int i = 0;
-            Debug.Log("Classes: " + subclasses.Count);
             foreach(Type classtype in subclasses)
             {
                 moduleSettings[i++] = (ModuleSettings)Activator.CreateInstance(classtype);

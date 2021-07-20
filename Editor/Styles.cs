@@ -32,7 +32,7 @@ namespace Thry
         public static GUIStyle greenStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = new Color(0, 0.5f, 0) } };
         public static GUIStyle yellowStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = new Color(1, 0.79f, 0) } };
         public static GUIStyle redStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = Color.red } };
-        public static GUIStyle made_by_style { get; private set; } = new GUIStyle() { fontSize = 10 };
+        public static GUIStyle made_by_style { get; private set; } = new GUIStyle(EditorStyles.label) { fontSize = 10 };
         public static GUIStyle notification_style { get; private set; } = new GUIStyle(GUI.skin.box) { fontSize = 12, wordWrap = true, normal = new GUIStyleState() { textColor = Color.red } };
 
         public static GUIStyle none { get; private set; } = new GUIStyle();
@@ -66,14 +66,14 @@ namespace Thry
         }
 
         public static Texture2D rounded_texture { get; private set; } = LoadTextureByNameAndEditorType(RESOURCE_NAME.WHITE_RECT, RESOURCE_NAME.DARK_RECT);
-        public static Texture2D settings_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SETTINGS_ICON_TEXTURE);
-        public static Texture2D icon_menu { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_MENU);
-        public static Texture2D icon_help { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_HELP);
+
+        public static Texture2D icon_settings { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_SETTINGS), GUI.skin.label.normal.textColor);
+        public static Texture2D icon_menu { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_MENU), GUI.skin.label.normal.textColor);
+        public static Texture2D icon_help { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_HELP), GUI.skin.label.normal.textColor);
+        public static Texture2D icon_search { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_SEARCH), GUI.skin.label.normal.textColor);
+        public static Texture2D icon_link_inactive { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK), GUI.skin.label.normal.textColor);
         public static Texture2D icon_link_active { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK), Color.cyan);
-        public static Texture2D icon_link_inactive { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK);
-        public static Texture2D visibility_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.VISIVILITY_ICON);
-        public static Texture2D search_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.SEARCH_ICON);
-        public static Texture2D presets_icon { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.PRESETS_ICON);
+
         public static Texture2D t_arrow { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ARROW);
         public static Texture2D texture_animated { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED);
         private static Texture2D t_texture_animated_renamed;
@@ -133,9 +133,7 @@ namespace Thry
             {
                 for (int y = 0; y < tex.height; y++)
                 {
-                    Color oColor = tex.GetPixel(x, y);
-                    if (oColor.a == 0f)
-                        continue;
+                    color.a = tex.GetPixel(x, y).a;
                     tex.SetPixel(x, y, color);
                 }
             }
