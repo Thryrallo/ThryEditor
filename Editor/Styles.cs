@@ -21,9 +21,15 @@ namespace Thry
             contentOffset = new Vector2(20f, -2f)
         };
 
-        public static Color backgroundColor { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.8f, 0.8f, 0.8f);
-        public static Color backgroundColorTransparent { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f, 0.3f) : new Color(0.8f, 0.8f, 0.8f, 0.3f);
-        public static Color forgroundColor { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.8f, 0.8f, 0.8f) : Color.black;
+        public static Color COLOR_BG { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.8f, 0.8f, 0.8f);
+        public static Color COLOR_FG { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.8f, 0.8f, 0.8f) : Color.black;
+
+        private static Color COLOR_ICON_FONT = GUI.skin.label.normal.textColor;
+        private static Color COLOR_ICON_GRAY = EditorGUIUtility.isProSkin? COLOR_ICON_FONT: new Color(0.4f, 0.4f, 0.4f);
+        private static Color COLOR_ICON_ACTIVE_CYAN = Color.cyan;
+        private static Color COLOR_ICON_ACTIVE_RED = Color.red;
+        private static Color COLOR_BACKGROUND_1 = EditorGUIUtility.isProSkin ? new Color(0.27f, 0.27f, 0.27f) : new Color(0.65f, 0.65f, 0.65f);
+        private static Color COLOR_BACKGROUND_2 = EditorGUIUtility.isProSkin ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.85f, 0.85f, 0.85f);
 
         public static GUIStyle dropDownHeaderLabel { get; private set; } = new GUIStyle(EditorStyles.boldLabel) { alignment= TextAnchor.MiddleCenter };
         public static GUIStyle dropDownHeaderButton { get; private set; } = new GUIStyle(EditorStyles.toolbarButton);
@@ -39,8 +45,8 @@ namespace Thry
 
         public static GUIStyle style_toolbar { get; private set; } = new GUIStyle(Styles.dropDownHeader) { };
         public static GUIStyle style_toolbar_toggle_active { get; private set; } = new GUIStyle(Styles.dropDownHeader) { normal = new GUIStyleState() {
-            background = MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1, 1, 1, 1)),
-            textColor = Color.white}, contentOffset = new Vector2(0, -2), alignment = TextAnchor.MiddleCenter};
+            background = OverrideTextureWithColor(Styles.dropDownHeader.normal.background, COLOR_BACKGROUND_2)
+        }, contentOffset = new Vector2(0, -2), alignment = TextAnchor.MiddleCenter};
         public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = new GUIStyle(Styles.dropDownHeader) { alignment = TextAnchor.MiddleCenter, contentOffset = new Vector2(0, -2) };
         public static GUIStyle style_toolbar_toggle(bool active)
         {
@@ -56,7 +62,7 @@ namespace Thry
                         normal = new GUIStyleState()
                         {
                             textColor = Color.white,
-                            background = MultiplyTextureWithColor(Styles.dropDownHeader.normal.background, new Color(1, 1, 1, 1))
+                            background = OverrideTextureWithColor(Styles.dropDownHeader.normal.background, COLOR_BACKGROUND_2)
                         }
                     };
                 }
@@ -65,31 +71,31 @@ namespace Thry
             return style_toolbar_toggle_unactive;
         }
 
-        public static Texture2D rounded_texture { get; private set; } = LoadTextureByNameAndEditorType(RESOURCE_NAME.WHITE_RECT, RESOURCE_NAME.DARK_RECT);
-
-        public static Texture2D icon_settings { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_SETTINGS), GUI.skin.label.normal.textColor);
-        public static Texture2D icon_menu { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_MENU), GUI.skin.label.normal.textColor);
-        public static Texture2D icon_help { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_HELP), GUI.skin.label.normal.textColor);
-        public static Texture2D icon_search { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_SEARCH), GUI.skin.label.normal.textColor);
-        public static Texture2D icon_link_inactive { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK), GUI.skin.label.normal.textColor);
-        public static Texture2D icon_link_active { get; private set; } = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK), Color.cyan);
-
         public static Texture2D t_arrow { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ARROW);
-        public static Texture2D texture_animated { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED);
-        private static Texture2D t_texture_animated_renamed;
-        public static Texture2D texture_animated_renamed { 
-            get { 
-                if(t_texture_animated_renamed == null)
-                    t_texture_animated_renamed = OverrideTextureWithColor(LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ANIMTED), Color.red);
-                return t_texture_animated_renamed;
-            } 
-        }
 
-        private static Texture2D LoadTextureByNameAndEditorType(string normalName, string proName)
+        public static Texture2D rounded_texture          { get { return GetTextureOverwrittinWithColor(2,  RESOURCE_NAME.RECT          , COLOR_BACKGROUND_1     ); } }
+
+        public static Texture2D icon_settings            { get { return GetTextureOverwrittinWithColor(3,  RESOURCE_NAME.ICON_SETTINGS , COLOR_ICON_GRAY             ); } }
+        public static Texture2D icon_menu                { get { return GetTextureOverwrittinWithColor(4,  RESOURCE_NAME.ICON_NAME_MENU, COLOR_ICON_FONT             ); } }
+        public static Texture2D icon_help                { get { return GetTextureOverwrittinWithColor(5,  RESOURCE_NAME.ICON_NAME_HELP, COLOR_ICON_FONT             ); } }
+        public static Texture2D icon_search              { get { return GetTextureOverwrittinWithColor(6,  RESOURCE_NAME.ICON_SEARCH   , COLOR_ICON_GRAY             ); } }
+        public static Texture2D icon_link_inactive       { get { return GetTextureOverwrittinWithColor(7,  RESOURCE_NAME.ICON_NAME_LINK, COLOR_ICON_FONT             ); } }
+        public static Texture2D icon_link_active         { get { return GetTextureOverwrittinWithColor(8,  RESOURCE_NAME.ICON_NAME_LINK, COLOR_ICON_ACTIVE_CYAN ); } }
+
+        public static Texture2D texture_animated         { get { return GetTextureOverwrittinWithColor(9,  RESOURCE_NAME.TEXTURE_ANIMTED, COLOR_ICON_FONT            ); } }
+        public static Texture2D texture_animated_renamed { get { return GetTextureOverwrittinWithColor(10, RESOURCE_NAME.TEXTURE_ANIMTED, COLOR_ICON_ACTIVE_RED ); } }
+
+        private static Texture2D[] _colorsWithTextures = new Texture2D[0];
+        private static Texture2D GetTextureOverwrittinWithColor(int id, string textureName, Color c)
         {
-            if (EditorGUIUtility.isProSkin)
-                return LoadTextureByFileName(proName);
-            return LoadTextureByFileName(normalName);
+            if(id >= _colorsWithTextures.Length)
+            {
+                Texture2D[] temp = new Texture2D[id + 1];
+                Array.Copy(_colorsWithTextures, temp, _colorsWithTextures.Length);
+                _colorsWithTextures = temp;
+            }
+            if(_colorsWithTextures[id] == null) _colorsWithTextures[id] = OverrideTextureWithColor(LoadTextureByFileName(textureName), c);
+            return _colorsWithTextures[id];
         }
 
         private static Texture2D LoadTextureByFileName(string search_name)
@@ -107,21 +113,6 @@ namespace Thry
         {
             Texture2D tex = new Texture2D(1, 1);
             tex.SetPixel(0, 0, color);
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D MultiplyTextureWithColor(Texture2D ogtex, Color color)
-        {
-            Texture2D tex = TextureHelper.GetReadableTexture(ogtex);
-            for(int x = 0; x < tex.width; x++)
-            {
-                for (int y = 0; y < tex.height; y++)
-                {
-                    Color oColor = tex.GetPixel(x, y);
-                    tex.SetPixel(x, y, oColor * color);
-                }
-            }
             tex.Apply();
             return tex;
         }

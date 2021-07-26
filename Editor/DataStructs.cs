@@ -49,8 +49,7 @@ namespace Thry
 
     public class RESOURCE_NAME
     {
-        public const string WHITE_RECT = "thry_white_rect";
-        public const string DARK_RECT = "thry_dark_rect";
+        public const string RECT = "thry_rect";
         public const string TEXTURE_ARROW = "thry_arrow";
         public const string TEXTURE_ANIMTED = "thry_animated_icon";
 
@@ -279,7 +278,7 @@ namespace Thry
         {
             s = s.Trim();
             DefineableAction action = new DefineableAction();
-            if (s.StartsWith("https") || s.StartsWith("www"))
+            if (s.StartsWith("http") || s.StartsWith("www"))
             {
                 action.type = DefineableActionType.URL;
                 action.data = s;
