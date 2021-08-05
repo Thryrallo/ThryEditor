@@ -31,12 +31,6 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
 using System.Linq;
-#if VRC_SDK_VRCSDK3
-using VRC.SDKBase;
-#endif
-#if VRC_SDK_VRCSDK2
-using VRCSDK2;
-#endif
 #if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
 using VRC.SDKBase.Editor.BuildPipeline;
 #endif
@@ -1279,10 +1273,10 @@ namespace Thry
                         switch (constant.type)
                         {
                             case PropertyType.Float:
-                                sb.Append("half(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
+                                sb.Append("float(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
                                 break;
                             case PropertyType.Vector:
-                                sb.Append("half4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
+                                sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
                                                    +constant.value.y.ToString(CultureInfo.InvariantCulture)+","
                                                    +constant.value.z.ToString(CultureInfo.InvariantCulture)+","
                                                    +constant.value.w.ToString(CultureInfo.InvariantCulture)+")");
@@ -1622,32 +1616,6 @@ namespace Thry
 #endif
                 SetLockedForAllMaterials(materials, 1, showProgressbar: true, showDialog: PersistentData.Get<bool>("ShowLockInDialog", true), allowCancel: false);
                 //returning true all the time, because build process cant be stopped it seems
-                return true;
-            }
-        }
-#endif
-
-#if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
-        public class LockMaterialsOnWorldUpload : IVRCSDKBuildRequestedCallback
-        {
-            public int callbackOrder => 100;
-
-            bool IVRCSDKBuildRequestedCallback.OnBuildRequested(VRCSDKRequestedBuildType requestedBuildType)
-            {
-                List<Material> materials = new List<Material>();
-                if (requestedBuildType == VRCSDKRequestedBuildType.Scene)
-                {
-                    if (UnityEngine.Object.FindObjectsOfType(typeof(VRC_SceneDescriptor)) is VRC_SceneDescriptor[] descriptors && descriptors.Length > 0){
-                        var renderers = UnityEngine.Object.FindObjectsOfType<Renderer>();
-                        foreach (var rend in renderers)
-                        {
-                            foreach (var mat in rend.sharedMaterials){
-                                materials.Add(mat);
-                            }
-                        }
-                    }
-                    SetLockedForAllMaterials(materials, 1, showProgressbar: true, showDialog: PersistentData.Get<bool>("ShowLockInDialog", true), allowCancel: false);
-                }
                 return true;
             }
         }
