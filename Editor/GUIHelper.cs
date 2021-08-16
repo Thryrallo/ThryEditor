@@ -14,8 +14,6 @@ namespace Thry
 
         public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
-            editor.ShaderProperty(prop, label);
-            return;
             switch (Config.Singleton.default_texture_type)
             {
                 case TextureDisplayType.small:
