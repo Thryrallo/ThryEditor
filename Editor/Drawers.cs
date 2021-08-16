@@ -508,21 +508,30 @@ namespace Thry
     public class ThryHeaderLabelDecorator : MaterialPropertyDrawer
     {
         readonly string text;
+        readonly int size;
+        GUIStyle style;
 
-        public ThryHeaderLabelDecorator(string text)
+        public ThryHeaderLabelDecorator(string text) : this(text, EditorStyles.standardFont.fontSize)
+        {
+        }
+        public ThryHeaderLabelDecorator(string text, float size)
         {
             this.text = text;
+            this.size = (int)size;
+            style = new GUIStyle(EditorStyles.boldLabel);
+            style.fontSize = this.size;
         }
+
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            return 16f;
+            return size + 6f;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
         {
             position = EditorGUI.IndentedRect(position);
-            GUI.Label(position, text, EditorStyles.boldLabel);
+            GUI.Label(position, text, style);
         }
     }
 
