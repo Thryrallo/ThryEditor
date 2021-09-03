@@ -49,7 +49,7 @@ namespace Thry
             }
         }
 
-        //load the config from file
+        // load the config from file
         private static Config LoadConfig()
         {
             if (File.Exists(PATH_CONFIG_FILE))
