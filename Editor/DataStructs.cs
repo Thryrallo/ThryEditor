@@ -114,6 +114,8 @@ namespace Thry
         public bool is_hideable = false;
         public bool is_visible_simple = false;
         public string file_name;
+        public string remote_version_url;
+        public string generic_string;
     }
 
     public class ButtonData
