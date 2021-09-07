@@ -58,12 +58,24 @@ namespace Thry
     {
         public string keyword;
         private bool isFirstGUICall = true;
+        public bool left = false;
+
         public ThryToggleUIDrawer()
         {
         }
 
-        public ThryToggleUIDrawer(string keyword)
+        //the reason for weird string thing here is that you cant have bools as params for drawers
+        public ThryToggleUIDrawer(string keywordLeft)
         {
+            if (keywordLeft == "true") left = true;
+            else if (keywordLeft == "false") left = false;
+            //else keyword = keywordLeft;
+        }
+
+        public ThryToggleUIDrawer(string keyword, string left)
+        {
+            //this.keyword = keyword;
+            this.left = left == "true";
         }
 
         protected virtual void SetKeyword(MaterialProperty prop, bool on)
@@ -106,7 +118,8 @@ namespace Thry
 
             bool value = (Math.Abs(prop.floatValue) > 0.001f);
             EditorGUI.showMixedValue = prop.hasMixedValue;
-            value = EditorGUI.Toggle(position, label, value);
+            if(left) value = EditorGUI.ToggleLeft(position, label, value, Styles.style_toggle_left_richtext);
+            else     value = EditorGUI.Toggle(position, label, value);
             EditorGUI.showMixedValue = false;
             if (EditorGUI.EndChangeCheck())
             {
@@ -134,9 +147,18 @@ namespace Thry
         {
         }
 
-        public ThryToggleDrawer(string keyword)
+        //the reason for weird string thing here is that you cant have bools as params for drawers
+        public ThryToggleDrawer(string keywordLeft)
+        {
+            if (keywordLeft == "true") left = true;
+            else if (keywordLeft == "false") left = false;
+            else keyword = keywordLeft;
+        }
+
+        public ThryToggleDrawer(string keyword, string left)
         {
             this.keyword = keyword;
+            this.left = left == "true";
         }
 
         protected override void SetKeyword(MaterialProperty prop, bool on)

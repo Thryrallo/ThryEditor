@@ -40,6 +40,8 @@ namespace Thry
         public static GUIStyle redStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = Color.red } };
         public static GUIStyle made_by_style { get; private set; } = new GUIStyle(EditorStyles.label) { fontSize = 10 };
         public static GUIStyle notification_style { get; private set; } = new GUIStyle(GUI.skin.box) { fontSize = 12, wordWrap = true, normal = new GUIStyleState() { textColor = Color.red } };
+        
+        public static GUIStyle style_toggle_left_richtext  { get; private set; } = new GUIStyle(EditorStyles.label ) { richText= true };
 
         public static GUIStyle none { get; private set; } = new GUIStyle();
 
