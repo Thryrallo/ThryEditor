@@ -132,7 +132,8 @@ namespace Thry
         // attribute if it exists.
         public static readonly string TessellationMaxFactorPropertyName = "_TessellationFactorMax";
 
-        private static string CurrentLightmode = "";
+        enum LightModeType { None, ForwardBase, ForwardAdd, ShadowCaster, Meta };
+        private static LightModeType CurrentLightmode = LightModeType.None;
 
         // In-order list of inline sampler state names that will be replaced by InlineSamplerState() lines
         public static readonly string[] InlineSamplerStateNames = new string[]
@@ -153,7 +154,7 @@ namespace Thry
 
         // Would be better to dynamically parse the "C:\Program Files\UnityXXXX\Editor\Data\CGIncludes\" folder
         // to get version specific includes but eh
-        public static readonly string[] DefaultUnityShaderIncludes = new string[]
+        public static readonly HashSet<string> DefaultUnityShaderIncludes = new HashSet<string>()
         {
             "UnityUI.cginc",
             "AutoLight.cginc",
@@ -198,8 +199,8 @@ namespace Thry
             "UnityStandardShadow.cginc",
             "UnityStandardUtils.cginc"
         };
-
-        public static readonly char[] ValidSeparators = new char[] {' ','\t','\r','\n',';',',','.','(',')','[',']','{','}','>','<','=','!','&','|','^','+','-','*','/','#' };
+        
+        public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
 
         public static readonly string[] ValidPropertyDataTypes = new string[]
         {
@@ -217,7 +218,7 @@ namespace Thry
             "fixed4"
         };
 
-        public static readonly string[] IllegalPropertyRenames = new string[]
+        public static readonly HashSet<string> IllegalPropertyRenames = new HashSet<string>()
         {
             "_Color",
             "_EmissionColor",
@@ -365,15 +366,18 @@ namespace Thry
             {
                 if (prop == null) continue;
 
-                if (Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
+                if (prop.name.Contains("_commentIf"))
                 {
-                    string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_", "");
-                    uncommentKeywords.Add(key, false);
-                }
-                if (Regex.IsMatch(prop.name, @".*_commentIfZero_(\d|\w)+") && prop.floatValue == 0)
-                {
-                    string key = Regex.Match(prop.name, @"_commentIfZero_(\d|\w)+").Value.Replace("_commentIfZero_", "");
-                    uncommentKeywords.Add(key, false);
+                    if (Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
+                    {
+                        string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_", "");
+                        uncommentKeywords.Add(key, false);
+                    }
+                    if (Regex.IsMatch(prop.name, @".*_commentIfZero_(\d|\w)+") && prop.floatValue == 0)
+                    {
+                        string key = Regex.Match(prop.name, @"_commentIfZero_(\d|\w)+").Value.Replace("_commentIfZero_", "");
+                        uncommentKeywords.Add(key, false);
+                    }
                 }
 
                 // Every property gets turned into a preprocessor variable
@@ -397,13 +401,13 @@ namespace Thry
                         break;
                 }
 
-                if (prop.name.EndsWith(AnimatedPropertySuffix)) continue;
+                if (prop.name.EndsWith(AnimatedPropertySuffix, StringComparison.Ordinal)) continue;
                 else if (prop.name == UseInlineSamplerStatesPropertyName)
                 {
                     UseInlineSamplerStates = (prop.floatValue == 1);
                     continue;
                 }
-                else if (prop.name.StartsWith(GeometryShaderEnabledPropertyName))
+                else if (prop.name.StartsWith(GeometryShaderEnabledPropertyName, StringComparison.Ordinal))
                 {
                     if (prop.name == GeometryShaderEnabledPropertyName)
                         UseGeometry = (prop.floatValue == 1);
@@ -416,7 +420,7 @@ namespace Thry
                     else if (prop.name == GeometryShaderEnabledPropertyName + "Meta")
                         UseGeometryMeta = (prop.floatValue == 1);
                 }
-                else if (prop.name.StartsWith(TessellationEnabledPropertyName))
+                else if (prop.name.StartsWith(TessellationEnabledPropertyName, StringComparison.Ordinal))
                 {
                     if (prop.name == TessellationEnabledPropertyName)
                         UseTessellation = (prop.floatValue == 1);
@@ -437,10 +441,10 @@ namespace Thry
                     if (animateTag == "2")
                     {
                         if (prop.type != MaterialProperty.PropType.Texture &&
-                                !prop.name.EndsWith("UV") && !prop.name.EndsWith("Pan")) // this property might be animated, but we're not allowed to rename it. this will break things.
+                                !prop.name.EndsWith("UV", StringComparison.Ordinal) && !prop.name.EndsWith("Pan", StringComparison.Ordinal)) // this property might be animated, but we're not allowed to rename it. this will break things.
                         {
                             // be sure we're not renaming stuff like _MainTex that should always be named the same
-                            if (!Array.Exists(IllegalPropertyRenames, x => x.Equals(prop.name, StringComparison.InvariantCultureIgnoreCase)))
+                            if (!IllegalPropertyRenames.Contains(prop.name))
                             {
                                 animatedPropsToRename.Add(prop);
                             }
@@ -584,38 +588,40 @@ namespace Thry
                         }
                     }
                 }
+                
 
                 // Shader file specific stuff
-                if (psf.filePath.EndsWith(".shader"))
+                if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal))
                 {
                     for (int i=0; i<psf.lines.Length;i++)
                     {
                         string trimmedLine = psf.lines[i].TrimStart();
-                        string trimmedForKeyword = trimmedLine.TrimStart(new char[] { '/' }).TrimEnd();
-                        if (trimmedLine.StartsWith("Shader"))
+                        string trimmedForKeyword = trimmedLine.TrimStart('/').TrimEnd();
+
+                        if (trimmedLine.StartsWith("Shader", StringComparison.Ordinal))
                         {
                             string originalSgaderName = psf.lines[i].Split('\"')[1];
                             psf.lines[i] = psf.lines[i].Replace(originalSgaderName, newShaderName);
                         }
-                        else if (trimmedLine.StartsWith("//#pragmamulti_compile_LOD_FADE_CROSSFADE"))
+                        else if (trimmedLine.StartsWith("//#pragmamulti_compile_LOD_FADE_CROSSFADE", StringComparison.Ordinal))
                         {
                             MaterialProperty crossfadeProp = Array.Find(props, x => x.name == LODCrossFadePropertyName);
                             if (crossfadeProp != null && crossfadeProp.floatValue == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//#pragma", "#pragma");
                         }
-                        else if (trimmedLine.StartsWith("//\"IgnoreProjector\"=\"True\""))
+                        else if (trimmedLine.StartsWith("//\"IgnoreProjector\"=\"True\"", StringComparison.Ordinal))
                         {
                             MaterialProperty projProp = Array.Find(props, x => x.name == IgnoreProjectorPropertyName);
                             if (projProp != null && projProp.floatValue == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//\"IgnoreProjector", "\"IgnoreProjector");
                         }
-                        else if (trimmedLine.StartsWith("//\"ForceNoShadowCasting\"=\"True\""))
+                        else if (trimmedLine.StartsWith("//\"ForceNoShadowCasting\"=\"True\"", StringComparison.Ordinal))
                         {
                             MaterialProperty forceNoShadowsProp = Array.Find(props, x => x.name == ForceNoShadowCastingPropertyName);
                             if (forceNoShadowsProp != null && forceNoShadowsProp.floatValue == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//\"ForceNoShadowCasting", "\"ForceNoShadowCasting");
                         }
-                        else if (trimmedLine.StartsWith("GrabPass {"))
+                        else if (trimmedLine.StartsWith("GrabPass {", StringComparison.Ordinal))
                         {
                             GrabPassReplacement gpr = new GrabPassReplacement();
                             string[] splitLine = trimmedLine.Split('\"');
@@ -627,28 +633,28 @@ namespace Thry
                             psf.lines[i] = "GrabPass { \"" + gpr.newName + "\" }";
                             grabPassVariables.Add(gpr);
                         }
-                        else if (trimmedLine.StartsWith("CGINCLUDE"))
+                        else if (trimmedLine.StartsWith("CGINCLUDE", StringComparison.Ordinal))
                         {
                             for (int j=i+1; j<psf.lines.Length;j++)
-                                if (psf.lines[j].TrimStart().StartsWith("ENDCG"))
+                                if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantProps, macros, grabPassVariables);
                                     break;
                                 }
                         }
-                        else if (trimmedLine.StartsWith("CGPROGRAM"))
+                        else if (trimmedLine.StartsWith("CGPROGRAM", StringComparison.Ordinal))
                         {
                             if(commentKeywords == 0)
                                 psf.lines[i] += optimizerDefines;
                             for (int j=i+1; j<psf.lines.Length;j++)
-                                if (psf.lines[j].TrimStart().StartsWith("ENDCG"))
+                                if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantProps, macros, grabPassVariables);
                                     break;
                                 }
                         }
                         // Lightmode based pass removal, requires strict formatting
-                        else if (trimmedLine.StartsWith("Tags"))
+                        else if (trimmedLine.StartsWith("Tags", StringComparison.Ordinal))
                         {
                             string lineFullyTrimmed = trimmedLine.Replace(" ", "").Replace("\t", "");
                             // expects lightmode tag to be on the same line like: Tags { "LightMode" = "ForwardAdd" }
@@ -656,7 +662,11 @@ namespace Thry
                             {
                                 string lightModeName = lineFullyTrimmed.Split('\"')[3];
                                 // Store current lightmode name in a static, useful for per-pass geometry and tessellation removal
-                                CurrentLightmode = lightModeName;
+                                if (lightModeName == "ForwardBase") CurrentLightmode = LightModeType.ForwardBase;
+                                else if (lightModeName == "ForwardAdd") CurrentLightmode = LightModeType.ForwardAdd;
+                                else if (lightModeName == "ShadowCaster") CurrentLightmode = LightModeType.ShadowCaster;
+                                else if (lightModeName == "Meta") CurrentLightmode = LightModeType.Meta;
+                                else CurrentLightmode = LightModeType.None;
                                 if (disabledLightModes.Contains(lightModeName))
                                 {
                                     // Loop up from psf.lines[i] until standalone "Pass" line is found, delete it
@@ -795,13 +805,13 @@ namespace Thry
                 return false;
             }
             material.shader = newShader;
-            ShaderEditor.reload();
+            //ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
 
             // Remove ALL keywords
             foreach (string keyword in material.shaderKeywords)
-                material.DisableKeyword(keyword);
+                if(material.IsKeywordEnabled(keyword)) material.DisableKeyword(keyword);
 
             foreach (var animProp in animatedPropsToRename)
             {
@@ -907,23 +917,24 @@ namespace Thry
 
             // Parse file line by line
             List<String> macrosList = new List<string>();
-            string[] fileLines = Regex.Split(fileContents, "\r\n|\r|\n");
+            string[] fileLines = fileContents.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            //string[] fileLines = Regex.Split(fileContents, "\r\n|\r|\n");
             for (int i=0; i<fileLines.Length; i++)
             {
                 string lineParsed = fileLines[i].TrimStart();
                 // Specifically requires no whitespace between # and include, as it should be
-                if (lineParsed.StartsWith("#include"))
+                if (lineParsed.StartsWith("#include", StringComparison.Ordinal))
                 {
                     int firstQuotation = lineParsed.IndexOf('\"',0);
                     int lastQuotation = lineParsed.IndexOf('\"',firstQuotation+1);
                     string includeFilename = lineParsed.Substring(firstQuotation+1, lastQuotation-firstQuotation-1);
 
                     // Skip default includes
-                    if (Array.Exists(DefaultUnityShaderIncludes, x => x.Equals(includeFilename, StringComparison.InvariantCultureIgnoreCase)))
+                    if (DefaultUnityShaderIncludes.Contains(includeFilename))
                         continue;
 
                     // cginclude filepath is either absolute or relative
-                    if (includeFilename.StartsWith("Assets/"))
+                    if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal))
                     {
                         if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFilename, macros))
                             return false;
@@ -946,11 +957,11 @@ namespace Thry
                     {
                         i++;
                         lineTrimmed = fileLines[i].TrimEnd();
-                        if (lineTrimmed.EndsWith("\\"))
+                        if (lineTrimmed.EndsWith("\\", StringComparison.Ordinal))
                             macro += lineTrimmed.TrimEnd('\\') + Environment.NewLine; // keep new lines in macro to make output more readable
                         else macro += lineTrimmed;
                     } 
-                    while (lineTrimmed.EndsWith("\\"));
+                    while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
                     macrosList.Add(macro);
                 }
             }
@@ -964,13 +975,13 @@ namespace Thry
                 m = m.TrimStart();
                 if (m[0] != '#') continue;
                 m = m.Remove(0, "#".Length).TrimStart();
-                if (!m.StartsWith("define")) continue;
+                if (!m.StartsWith("define", StringComparison.Ordinal)) continue;
                 m = m.Remove(0, "define".Length).TrimStart();
                 int firstParenthesis = m.IndexOf('(');
                 macro.name = m.Substring(0, firstParenthesis);
                 m = m.Remove(0, firstParenthesis + "(".Length);
                 int lastParenthesis = m.IndexOf(')');
-                string allArgs = m.Substring(0, lastParenthesis).Replace(" ", "").Replace("\t", "");
+                string allArgs = m.Substring(0, lastParenthesis).Remove(' ').Remove('\t');
                 macro.args = allArgs.Split(',');
                 m = m.Remove(0, lastParenthesis + ")".Length);
                 macro.contents = m;
@@ -1009,7 +1020,7 @@ namespace Thry
             for (int i=startLine;i<endLine;i++)
             {
                 string lineTrimmed = lines[i].TrimStart();
-                if (lineTrimmed.StartsWith("#pragma geometry"))
+                if (lineTrimmed.StartsWith("#pragma geometry", StringComparison.Ordinal))
                 {
                     if (!UseGeometry)
                         lines[i] = "//" + lines[i];
@@ -1017,26 +1028,26 @@ namespace Thry
                     {
                         switch (CurrentLightmode)
                         {
-                            case "ForwardBase":
+                            case LightModeType.ForwardBase:
                                 if (!UseGeometryForwardBase)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "ForwardAdd":
+                            case LightModeType.ForwardAdd:
                                 if (!UseGeometryForwardAdd)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "ShadowCaster":
+                            case LightModeType.ShadowCaster:
                                 if (!UseGeometryShadowCaster)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "Meta":
+                            case LightModeType.Meta:
                                 if (!UseGeometryMeta)
                                     lines[i] = "//" + lines[i];
                                 break;
                         }
                     }
                 }
-                else if (lineTrimmed.StartsWith("#pragma hull") || lineTrimmed.StartsWith("#pragma domain"))
+                else if (lineTrimmed.StartsWith("#pragma hull", StringComparison.Ordinal) || lineTrimmed.StartsWith("#pragma domain", StringComparison.Ordinal))
                 {
                     if (!UseTessellation)
                         lines[i] = "//" + lines[i];
@@ -1044,19 +1055,19 @@ namespace Thry
                     {
                         switch (CurrentLightmode)
                         {
-                            case "ForwardBase":
+                            case LightModeType.ForwardBase:
                                 if (!UseTessellationForwardBase)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "ForwardAdd":
+                            case LightModeType.ForwardAdd:
                                 if (!UseTessellationForwardAdd)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "ShadowCaster":
+                            case LightModeType.ShadowCaster:
                                 if (!UseTessellationShadowCaster)
                                     lines[i] = "//" + lines[i];
                                 break;
-                            case "Meta":
+                            case LightModeType.Meta:
                                 if (!UseTessellationMeta)
                                     lines[i] = "//" + lines[i];
                                 break;
@@ -1064,12 +1075,12 @@ namespace Thry
                     }
                 }
                 // Remove all shader_feature directives
-                else if (lineTrimmed.StartsWith("#pragma shader_feature") || lineTrimmed.StartsWith("#pragma shader_feature_local"))
+                else if (lineTrimmed.StartsWith("#pragma shader_feature", StringComparison.Ordinal) || lineTrimmed.StartsWith("#pragma shader_feature_local", StringComparison.Ordinal))
                     lines[i] = "//" + lines[i];
                 // Replace inline smapler states
-                else if (UseInlineSamplerStates && lineTrimmed.StartsWith("//KSOInlineSamplerState"))
+                else if (UseInlineSamplerStates && lineTrimmed.StartsWith("//KSOInlineSamplerState", StringComparison.Ordinal))
                 {
-                    string lineParsed = lineTrimmed.Replace(" ", "").Replace("\t", "");
+                    string lineParsed = lineTrimmed.Remove(' ').Remove('\t');
                     // Remove all whitespace
                     int firstParenthesis = lineParsed.IndexOf('(');
                     int lastParenthesis = lineParsed.IndexOf(')');
@@ -1113,14 +1124,14 @@ namespace Thry
                         lines[i+1] = lines[i+1].Replace(args[0], InlineSamplerStateNames[inlineSamplerIndex]);
                     }
                 }
-                else if (lineTrimmed.StartsWith("//KSODuplicateTextureCheckStart"))
+                else if (lineTrimmed.StartsWith("//KSODuplicateTextureCheckStart", StringComparison.Ordinal))
                 {
                     // Since files are not fully parsed and instead loosely processed, each shader function needs to have
                     // its sampled texture list reset somewhere before KSODuplicateTextureChecks are made.
                     // As long as textures are sampled in-order inside a single function, this method will work.
                     uniqueSampledTextures = new List<TextureProperty>();
                 }
-                else if (lineTrimmed.StartsWith("//KSODuplicateTextureCheck"))
+                else if (lineTrimmed.StartsWith("//KSODuplicateTextureCheck", StringComparison.Ordinal))
                 {
                     // Each KSODuplicateTextureCheck line gets evaluated when the shader is optimized
                     // If the texture given has already been sampled as another texture (i.e. one texture is used in two slots)
@@ -1175,7 +1186,7 @@ namespace Thry
                         }
                     }
                 }
-                else if (lineTrimmed.StartsWith("[maxtessfactor("))
+                else if (lineTrimmed.StartsWith("[maxtessfactor(", StringComparison.Ordinal))
                 {
                     MaterialProperty maxTessFactorProperty = Array.Find(props, x => x.name == TessellationMaxFactorPropertyName);
                     if (maxTessFactorProperty != null)
@@ -1193,11 +1204,11 @@ namespace Thry
                 {
                     // Expects only one instance of a macro per line!
                     int macroIndex;
-                    if ((macroIndex = lines[i].IndexOf(macro.name + "(")) != -1)
+                    if ((macroIndex = lines[i].IndexOf(macro.name + "(", StringComparison.Ordinal)) != -1)
                     {
                         // Macro exists on this line, make sure its not the definition
-                        string lineParsed = lineTrimmed.Replace(" ", "").Replace("\t", "");
-                        if (lineParsed.StartsWith("#define")) continue;
+                        string lineParsed = lineTrimmed.Remove(' ').Remove('\t');
+                        if (lineParsed.StartsWith("#define", StringComparison.Ordinal)) continue;
 
                         // parse args between first '(' and first ')'
                         int firstParenthesis = macroIndex + macro.name.Length;
@@ -1212,7 +1223,7 @@ namespace Thry
                             args[j] = args[j].Trim();
                             int argIndex;
                             int lastIndex = 0;
-                            while ((argIndex = newContents.IndexOf(macro.args[j], lastIndex)) != -1)
+                            while ((argIndex = newContents.IndexOf(macro.args[j], lastIndex, StringComparison.Ordinal)) != -1)
                             {
                                 lastIndex = argIndex+1;
                                 char charLeft = ' ';
@@ -1221,7 +1232,7 @@ namespace Thry
                                 char charRight = ' ';
                                 if (argIndex+macro.args[j].Length < newContents.Length)
                                     charRight = newContents[argIndex+macro.args[j].Length];
-                                if (Array.Exists(ValidSeparators, x => x == charLeft) && Array.Exists(ValidSeparators, x => x == charRight))
+                                if (ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight))
                                 {
                                     // Replcae the arg!
                                     StringBuilder sbm = new StringBuilder(newContents.Length - macro.args[j].Length + args[j].Length);
@@ -1247,7 +1258,7 @@ namespace Thry
                     int constantIndex;
                     int lastIndex = 0;
                     bool declarationFound = false;
-                    while ((constantIndex = lines[i].IndexOf(constant.name, lastIndex)) != -1)
+                    while ((constantIndex = lines[i].IndexOf(constant.name, lastIndex, StringComparison.Ordinal)) != -1)
                     {
                         lastIndex = constantIndex+1;
                         char charLeft = ' ';
@@ -1257,7 +1268,7 @@ namespace Thry
                         if (constantIndex + constant.name.Length < lines[i].Length)
                             charRight = lines[i][constantIndex + constant.name.Length];
                         // Skip invalid matches (probably a subname of another symbol)
-                        if (!(Array.Exists(ValidSeparators, x => x == charLeft) && Array.Exists(ValidSeparators, x => x == charRight)))
+                        if (!(ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight)))
                             continue;
                         
                         // Skip basic declarations of unity shader properties i.e. "uniform float4 _Color;"
@@ -1265,7 +1276,7 @@ namespace Thry
                         {
                             string precedingText = lines[i].Substring(0, constantIndex-1).TrimEnd(); // whitespace removed string immediately to the left should be float or float4
                             string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
-                            if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x)) && restOftheFile.StartsWith(";"))
+                            if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
                             {
                                 declarationFound = true;
                                 continue;
@@ -1301,7 +1312,7 @@ namespace Thry
                     // find indexes of all instances of gpr.originalName that exist on this line
                     int lastIndex = 0;
                     int gbIndex;
-                    while ((gbIndex = lines[i].IndexOf(gpr.originalName, lastIndex)) != -1)
+                    while ((gbIndex = lines[i].IndexOf(gpr.originalName, lastIndex, StringComparison.Ordinal)) != -1)
                     {
                         lastIndex = gbIndex+1;
                         char charLeft = ' ';
@@ -1311,7 +1322,7 @@ namespace Thry
                         if (gbIndex + gpr.originalName.Length < lines[i].Length)
                             charRight = lines[i][gbIndex + gpr.originalName.Length];
                         // Skip invalid matches (probably a subname of another symbol)
-                        if (!(Array.Exists(ValidSeparators, x => x == charLeft) && Array.Exists(ValidSeparators, x => x == charRight)))
+                        if (!(ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight)))
                             continue;
                         
                         // Replace with new variable name
@@ -1658,7 +1669,6 @@ namespace Thry
             IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
-
         public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
             //first the shaders are created. compiling is suppressed with start asset editing
@@ -1715,6 +1725,7 @@ namespace Thry
                 }
                 i++;
             }
+
             EditorUtility.ClearProgressBar();
             AssetDatabase.StopAssetEditing();
             //unity now compiles all the shaders
