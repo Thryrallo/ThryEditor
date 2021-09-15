@@ -202,6 +202,9 @@ namespace Thry
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
 
+        public static readonly HashSet<string> DontRemoveIfBranchesKeywords = new HashSet<string>() { "UNITY_SINGLE_PASS_STEREO", "FORWARD_BASE_PASS", "FORWARD_ADD_PASS", "POINT", "SPOT" };
+        public static HashSet<string> DontRemoveIfBranchesKeywordsLocal = new HashSet<string>();
+
         public static readonly string[] ValidPropertyDataTypes = new string[]
         {
             "float",
@@ -358,7 +361,9 @@ namespace Thry
                 definesSB.Append(Environment.NewLine);
             }
 
-            Dictionary<string, bool> uncommentKeywords = new Dictionary<string, bool>();
+            DontRemoveIfBranchesKeywordsLocal.Clear();
+
+            Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
             List<MaterialProperty> animatedPropsToRename = new List<MaterialProperty>();
             List<MaterialProperty> animatedPropsToDuplicate = new List<MaterialProperty>();
@@ -371,12 +376,12 @@ namespace Thry
                     if (Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
                     {
                         string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_", "");
-                        uncommentKeywords.Add(key, false);
+                        removeBetweenKeywords.Add(key, false);
                     }
                     if (Regex.IsMatch(prop.name, @".*_commentIfZero_(\d|\w)+") && prop.floatValue == 0)
                     {
                         string key = Regex.Match(prop.name, @"_commentIfZero_(\d|\w)+").Value.Replace("_commentIfZero_", "");
-                        uncommentKeywords.Add(key, false);
+                        removeBetweenKeywords.Add(key, false);
                     }
                 }
 
@@ -536,7 +541,7 @@ namespace Thry
             // Parse shader and cginc files, also gets preprocessor macros
             List<ParsedShaderFile> shaderFiles = new List<ParsedShaderFile>();
             List<Macro> macros = new List<Macro>();
-            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros))
+            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material, removeBetweenKeywords))
                 return false;
 
             int longestCommonDirectoryPathLength = GetLongestCommonDirectoryLength(shaderFiles.Select(s => s.filePath).ToArray());
@@ -596,7 +601,6 @@ namespace Thry
                     for (int i=0; i<psf.lines.Length;i++)
                     {
                         string trimmedLine = psf.lines[i].TrimStart();
-                        string trimmedForKeyword = trimmedLine.TrimStart('/').TrimEnd();
 
                         if (trimmedLine.StartsWith("Shader", StringComparison.Ordinal))
                         {
@@ -691,18 +695,6 @@ namespace Thry
                                     }
                                 }
                             }
-                        }
-                        else if(uncommentKeywords.ContainsKey(trimmedForKeyword))
-                        {
-                            uncommentKeywords[trimmedForKeyword] = !uncommentKeywords[trimmedForKeyword];
-                            if (uncommentKeywords[trimmedForKeyword])
-                                commentKeywords++;
-                            else
-                                commentKeywords--;
-                        }
-                        if (commentKeywords > 0)
-                        {
-                            psf.lines[i] = "//" + psf.lines[i];
                         }
                     }
                 }
@@ -887,7 +879,7 @@ namespace Thry
         // Save each file as string[], parse each macro with //KSOEvaluateMacro
         // Only editing done is replacing #include "X" filepaths where necessary
         // most of these args could be private static members of the class
-        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros)
+        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros, Material material, Dictionary<string,bool> removeBetweenKeywords)
         {
             // Infinite recursion check
             if (filesParsed.Exists(x => x.filePath == filePath)) return true;
@@ -918,10 +910,126 @@ namespace Thry
             // Parse file line by line
             List<String> macrosList = new List<string>();
             string[] fileLines = fileContents.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            //string[] fileLines = Regex.Split(fileContents, "\r\n|\r|\n");
+
+            List<string> includedLines = new List<string>();
+
+            bool isIncluded = true;
+            int isNotIncludedAtDepth = 0;
+            int ifStacking = 0;
+            Stack<bool> removeEndifStack = new Stack<bool>();
+
+            bool isCommentedOut = false;
+
+            int removedViaKeyword = 0;
+
             for (int i=0; i<fileLines.Length; i++)
             {
                 string lineParsed = fileLines[i].TrimStart();
+
+                //Remove stuff between comment keywords
+                string trimmedForKeyword = lineParsed.TrimStart('/').TrimEnd();
+                if (removeBetweenKeywords.ContainsKey(trimmedForKeyword))
+                {
+                    removeBetweenKeywords[trimmedForKeyword] = !removeBetweenKeywords[trimmedForKeyword];
+                    if (removeBetweenKeywords[trimmedForKeyword])
+                        removedViaKeyword++;
+                    else
+                        removedViaKeyword--;
+                }
+                if (removedViaKeyword > 0) continue;
+
+                //if empty
+                if (lineParsed.Length == 0) continue;
+                //check if commented out
+                if (lineParsed== "*/")
+                {
+                    isCommentedOut = false;
+                    continue;
+                }
+                else if (lineParsed == "/*")
+                {
+                    isCommentedOut = true;
+                    continue;
+                }
+                else if (lineParsed.StartsWith("//", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (isCommentedOut) continue;
+
+                //Check if Line contains #ifs
+                if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
+                {
+                    bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
+                    if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
+                    {
+                        string keyword = lineParsed.Substring(6).Trim();
+                        bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && (DontRemoveIfBranchesKeywordsLocal.Contains(keyword) == false);
+                        bool isRemoved = false;
+                        if (isIncluded && allowRemoveal)
+                        {
+                            if (material.IsKeywordEnabled(keyword) == false)
+                            {
+                                isIncluded = false;
+                                isNotIncludedAtDepth = ifStacking;
+                                isRemoved = true;
+                            }
+                        }
+                        ifStacking++;
+                        removeEndifStack.Push(isRemoved);
+                        if(isRemoved) continue;
+                    }
+                    else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
+                    {
+                        string keyword = lineParsed.Substring(7).Trim();
+                        bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false && DontRemoveIfBranchesKeywordsLocal.Contains(keyword) == false;
+                        bool isRemoved = false;
+                        if (isIncluded && allowRemoveal)
+                        {
+                            if (material.IsKeywordEnabled(keyword) == true)
+                            {
+                                isIncluded = false;
+                                isNotIncludedAtDepth = ifStacking;
+                                isRemoved = true;
+                            }
+                        }
+                        ifStacking++;
+                        removeEndifStack.Push(isRemoved);
+                        if (isRemoved) continue;
+                    }
+                    else
+                    {
+                        ifStacking++;
+                        removeEndifStack.Push(false);
+                    }
+                }else if (lineParsed.StartsWith("#else"))
+                {
+                    if (isIncluded && removeEndifStack.Peek()) isIncluded = false;
+                    if (!isIncluded && ifStacking - 1 == isNotIncludedAtDepth) isIncluded = true;
+                    if (removeEndifStack.Peek()) continue;
+                }
+                else if (lineParsed.StartsWith("#endif", StringComparison.Ordinal))
+                {
+                    ifStacking--;
+                    if(ifStacking == isNotIncludedAtDepth)
+                    {
+                        isIncluded = true;
+                    }
+                    if (removeEndifStack.Pop()) continue;
+                }else if(lineParsed.StartsWith("#define", StringComparison.Ordinal))
+                {
+                    string d = lineParsed.Substring(7).Trim();
+                    if (DontRemoveIfBranchesKeywordsLocal.Contains(d) == false) DontRemoveIfBranchesKeywordsLocal.Add(d);
+                }
+
+                if (!isIncluded) continue;
+
+                //Remove pragmas
+                if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 // Specifically requires no whitespace between # and include, as it should be
                 if (lineParsed.StartsWith("#include", StringComparison.Ordinal))
                 {
@@ -930,22 +1038,23 @@ namespace Thry
                     string includeFilename = lineParsed.Substring(firstQuotation+1, lastQuotation-firstQuotation-1);
 
                     // Skip default includes
-                    if (DefaultUnityShaderIncludes.Contains(includeFilename))
-                        continue;
+                    if (DefaultUnityShaderIncludes.Contains(includeFilename) == false)
+                    {
 
-                    // cginclude filepath is either absolute or relative
-                    if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal))
-                    {
-                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFilename, macros))
-                            return false;
-                        // Only absolute filepaths need to be renampped in-file
-                        fileLines[i] = fileLines[i].Replace(includeFilename, newTopLevelDirectory + includeFilename);
-                    }
-                    else
-                    {
-                        string includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
-                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros))
-                            return false;
+                        // cginclude filepath is either absolute or relative
+                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal))
+                        {
+                            if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFilename, macros, material, removeBetweenKeywords))
+                                return false;
+                            // Only absolute filepaths need to be renampped in-file
+                            fileLines[i] = fileLines[i].Replace(includeFilename, newTopLevelDirectory + includeFilename);
+                        }
+                        else
+                        {
+                            string includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
+                            if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, removeBetweenKeywords))
+                                return false;
+                        }
                     }
                 }
                 // Specifically requires no whitespace between // and KSOEvaluateMacro
@@ -964,6 +1073,8 @@ namespace Thry
                     while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
                     macrosList.Add(macro);
                 }
+
+                includedLines.Add(fileLines[i]);
             }
 
             // Prepare the macros list into pattern matchable structs
@@ -989,7 +1100,7 @@ namespace Thry
             }
 
             // Save psf lines to list
-            psf.lines = fileLines;
+            psf.lines = includedLines.ToArray();
             return true;
         }
 
@@ -1074,9 +1185,6 @@ namespace Thry
                         }
                     }
                 }
-                // Remove all shader_feature directives
-                else if (lineTrimmed.StartsWith("#pragma shader_feature", StringComparison.Ordinal) || lineTrimmed.StartsWith("#pragma shader_feature_local", StringComparison.Ordinal))
-                    lines[i] = "//" + lines[i];
                 // Replace inline smapler states
                 else if (UseInlineSamplerStates && lineTrimmed.StartsWith("//KSOInlineSamplerState", StringComparison.Ordinal))
                 {
