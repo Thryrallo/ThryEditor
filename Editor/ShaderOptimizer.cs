@@ -1844,9 +1844,15 @@ namespace Thry
                 //Apply new shaders
                 foreach (Material m in materialsToChangeLock)
                 {
-                    ShaderOptimizer.LockApplyShader(m);
+                    if (ShaderOptimizer.LockApplyShader(m))
+                    {
+                        m.SetFloat(GetOptimizerPropertyName(m.shader), 1);
+                    }
                 }
-                GUIUtility.ExitGUI();
+                try
+                {
+                    GUIUtility.ExitGUI();
+                }catch (Exception) { }
             }
             return true;
         }
