@@ -69,6 +69,9 @@ namespace Thry
     // and link that new shader to the material automatically
     public class ShaderOptimizer
     {
+        //When locking don't include code from define blocks that are not enabled
+        const bool REMOVE_UNUSED_IF_DEFS = true;
+
         // For some reason, 'if' statements with replaced constant (literal) conditions cause some compilation error
         // So until that is figured out, branches will be removed by default
         // Set to false if you want to keep UNITY_BRANCH and [branch]
@@ -938,9 +941,9 @@ namespace Thry
                 }
                 if (removedViaKeyword > 0) continue;
 
-                //if empty
+                //removes empty lines
                 if (lineParsed.Length == 0) continue;
-                //check if commented out
+                //removes code that is commented
                 if (lineParsed== "*/")
                 {
                     isCommentedOut = false;
@@ -957,72 +960,78 @@ namespace Thry
                 }
                 if (isCommentedOut) continue;
 
-                //Check if Line contains #ifs
-                if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
+                //Removed code from defines blocks
+                if (REMOVE_UNUSED_IF_DEFS)
                 {
-                    bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
-                    if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
+                    //Check if Line contains #ifs
+                    if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
                     {
-                        string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
-                        bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false);
-                        bool isRemoved = false;
-                        if (isIncluded && allowRemoveal)
+                        bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
+                        if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
-                            if ((material.IsKeywordEnabled(keyword) == false) && (LocalDefines.Contains(keyword) == false))
+                            string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
+                            bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false);
+                            bool isRemoved = false;
+                            if (isIncluded && allowRemoveal)
                             {
-                                isIncluded = false;
-                                isNotIncludedAtDepth = ifStacking;
-                                isRemoved = true;
+                                if ((material.IsKeywordEnabled(keyword) == false) && (LocalDefines.Contains(keyword) == false))
+                                {
+                                    isIncluded = false;
+                                    isNotIncludedAtDepth = ifStacking;
+                                    isRemoved = true;
+                                }
                             }
+                            ifStacking++;
+                            removeEndifStack.Push(isRemoved);
+                            if (isRemoved) continue;
                         }
-                        ifStacking++;
-                        removeEndifStack.Push(isRemoved);
-                        if(isRemoved) continue;
-                    }
-                    else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
-                    {
-                        string keyword = lineParsed.Substring(7).Trim();
-                        bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false;
-                        bool isRemoved = false;
-                        if (isIncluded && allowRemoveal)
+                        else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
                         {
-                            if (material.IsKeywordEnabled(keyword) == true || LocalDefines.Contains(keyword))
+                            string keyword = lineParsed.Substring(7).Trim();
+                            bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false;
+                            bool isRemoved = false;
+                            if (isIncluded && allowRemoveal)
                             {
-                                isIncluded = false;
-                                isNotIncludedAtDepth = ifStacking;
-                                isRemoved = true;
+                                if (material.IsKeywordEnabled(keyword) == true || LocalDefines.Contains(keyword))
+                                {
+                                    isIncluded = false;
+                                    isNotIncludedAtDepth = ifStacking;
+                                    isRemoved = true;
+                                }
                             }
+                            ifStacking++;
+                            removeEndifStack.Push(isRemoved);
+                            if (isRemoved) continue;
                         }
-                        ifStacking++;
-                        removeEndifStack.Push(isRemoved);
-                        if (isRemoved) continue;
+                        else
+                        {
+                            ifStacking++;
+                            removeEndifStack.Push(false);
+                        }
                     }
-                    else
+                    else if (lineParsed.StartsWith("#else"))
                     {
-                        ifStacking++;
-                        removeEndifStack.Push(false);
+                        if (isIncluded && removeEndifStack.Peek()) isIncluded = false;
+                        if (!isIncluded && ifStacking - 1 == isNotIncludedAtDepth) isIncluded = true;
+                        if (removeEndifStack.Peek()) continue;
                     }
-                }else if (lineParsed.StartsWith("#else"))
-                {
-                    if (isIncluded && removeEndifStack.Peek()) isIncluded = false;
-                    if (!isIncluded && ifStacking - 1 == isNotIncludedAtDepth) isIncluded = true;
-                    if (removeEndifStack.Peek()) continue;
-                }
-                else if (lineParsed.StartsWith("#endif", StringComparison.Ordinal))
-                {
-                    ifStacking--;
-                    if(ifStacking == isNotIncludedAtDepth)
+                    else if (lineParsed.StartsWith("#endif", StringComparison.Ordinal))
                     {
-                        isIncluded = true;
+                        ifStacking--;
+                        if (ifStacking == isNotIncludedAtDepth)
+                        {
+                            isIncluded = true;
+                        }
+                        if (removeEndifStack.Pop()) continue;
                     }
-                    if (removeEndifStack.Pop()) continue;
-                }else if(lineParsed.StartsWith("#define", StringComparison.Ordinal))
-                {
-                    string d = lineParsed.Substring(7).Trim();
-                    if (LocalDefines.Contains(d) == false) LocalDefines.Add(d);
-                }
+                    else if (lineParsed.StartsWith("#define", StringComparison.Ordinal))
+                    {
+                        string d = lineParsed.Substring(7).Trim();
+                        if (LocalDefines.Contains(d) == false) LocalDefines.Add(d);
+                    }
 
-                if (!isIncluded) continue;
+                    if (!isIncluded) continue;
+                }
 
                 //Remove pragmas
                 if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
@@ -1849,10 +1858,10 @@ namespace Thry
                         m.SetFloat(GetOptimizerPropertyName(m.shader), 1);
                     }
                 }
-                try
+                if(ShaderEditor.active != null && ShaderEditor.active._isDrawing)
                 {
                     GUIUtility.ExitGUI();
-                }catch (Exception) { }
+                }
             }
             return true;
         }

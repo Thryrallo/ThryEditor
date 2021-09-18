@@ -77,6 +77,8 @@ namespace Thry
         private DefineableAction[] on_swap_to_actions = null;
         private bool swapped_to_shader = false;
 
+        public bool _isDrawing { get; private set; } = false;
+
         //-------------Init functions--------------------
 
         private Dictionary<string, string> LoadDisplayNamesFromFile()
@@ -508,6 +510,7 @@ namespace Thry
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
+            _isDrawing = true;
             //Init
             bool reloadUI = firstOnGUICall || (reloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != shader;
             if (reloadUI) 
@@ -548,6 +551,8 @@ namespace Thry
             GUIFooters();
 
             HandleEvents();
+
+            _isDrawing = false;
         }
 
         private void GUIManualReloadButton()
