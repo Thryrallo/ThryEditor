@@ -206,7 +206,6 @@ namespace Thry
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
 
         public static readonly HashSet<string> DontRemoveIfBranchesKeywords = new HashSet<string>() { "UNITY_SINGLE_PASS_STEREO", "FORWARD_BASE_PASS", "FORWARD_ADD_PASS", "POINT", "SPOT" };
-        public static HashSet<string> LocalDefines = new HashSet<string>();
 
         public static readonly string[] ValidPropertyDataTypes = new string[]
         {
@@ -363,8 +362,6 @@ namespace Thry
                 definesSB.Append(keyword);
                 definesSB.Append(Environment.NewLine);
             }
-
-            LocalDefines.Clear();
 
             Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
@@ -974,7 +971,7 @@ namespace Thry
                             bool isRemoved = false;
                             if (isIncluded && allowRemoveal)
                             {
-                                if ((material.IsKeywordEnabled(keyword) == false) && (LocalDefines.Contains(keyword) == false))
+                                if ((material.IsKeywordEnabled(keyword) == false))
                                 {
                                     isIncluded = false;
                                     isNotIncludedAtDepth = ifStacking;
@@ -987,12 +984,12 @@ namespace Thry
                         }
                         else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
                         {
-                            string keyword = lineParsed.Substring(7).Trim();
+                            string keyword = lineParsed.Substring(7).Trim().Split(' ')[0];
                             bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false;
                             bool isRemoved = false;
                             if (isIncluded && allowRemoveal)
                             {
-                                if (material.IsKeywordEnabled(keyword) == true || LocalDefines.Contains(keyword))
+                                if (material.IsKeywordEnabled(keyword) == true)
                                 {
                                     isIncluded = false;
                                     isNotIncludedAtDepth = ifStacking;
@@ -1024,12 +1021,6 @@ namespace Thry
                         }
                         if (removeEndifStack.Pop()) continue;
                     }
-                    else if (lineParsed.StartsWith("#define", StringComparison.Ordinal))
-                    {
-                        string d = lineParsed.Substring(7).Trim();
-                        if (LocalDefines.Contains(d) == false) LocalDefines.Add(d);
-                    }
-
                     if (!isIncluded) continue;
                 }
 
