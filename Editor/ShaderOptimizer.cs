@@ -206,6 +206,7 @@ namespace Thry
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
 
         public static readonly HashSet<string> DontRemoveIfBranchesKeywords = new HashSet<string>() { "UNITY_SINGLE_PASS_STEREO", "FORWARD_BASE_PASS", "FORWARD_ADD_PASS", "POINT", "SPOT" };
+        public static readonly HashSet<string> KeywordsUsedByPragmas = new HashSet<string>() {  };
 
         public static readonly string[] ValidPropertyDataTypes = new string[]
         {
@@ -362,6 +363,8 @@ namespace Thry
                 definesSB.Append(keyword);
                 definesSB.Append(Environment.NewLine);
             }
+
+            KeywordsUsedByPragmas.Clear();
 
             Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
@@ -967,7 +970,7 @@ namespace Thry
                         if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
                             string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
-                            bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false);
+                            bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && KeywordsUsedByPragmas.Contains(keyword);
                             bool isRemoved = false;
                             if (isIncluded && allowRemoveal)
                             {
@@ -985,7 +988,7 @@ namespace Thry
                         else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
                         {
                             string keyword = lineParsed.Substring(7).Trim().Split(' ')[0];
-                            bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false;
+                            bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false && KeywordsUsedByPragmas.Contains(keyword);
                             bool isRemoved = false;
                             if (isIncluded && allowRemoveal)
                             {
@@ -1027,6 +1030,8 @@ namespace Thry
                 //Remove pragmas
                 if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
                 {
+                    string keyword = lineParsed.Substring(22).Trim().Split(' ')[0];
+                    if (KeywordsUsedByPragmas.Contains(keyword) == false) KeywordsUsedByPragmas.Add(keyword);
                     continue;
                 }
 
