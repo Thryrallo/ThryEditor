@@ -340,7 +340,7 @@ namespace Thry
             string materialFilePath = AssetDatabase.GetAssetPath(material);
             string materialFolder = Path.GetDirectoryName(materialFilePath);
             string smallguid = material.name;
-            string newShaderName = "Hidden/" + shader.name + "/" + material.name + "-" + smallguid;
+            string newShaderName = "Hidden/Locked/" + shader.name + "/" + material.name + "-" + smallguid;
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + smallguid + "/";
 
