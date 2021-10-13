@@ -1864,44 +1864,149 @@ namespace Thry
 
         public static string GetOptimizerPropertyName(Shader shader)
         {
-            if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
+            if (isShaderUsingThryOptimizer.ContainsKey(shader))
             {
-                return shaderUsingThryOptimizerDictionary[shader];
+                if (isShaderUsingThryOptimizer[shader] == false) return null;
+                return shaderThryOptimizerPropertyName[shader];
             }
             else
             {
-                IsShaderUsingThryOptimizer(shader);
-                return shaderUsingThryOptimizerDictionary[shader];
+                if (IsShaderUsingThryOptimizer(shader) == false) return null;
+                return shaderThryOptimizerPropertyName[shader];
             }
         }
 
-        private static Dictionary<Shader, string> shaderUsingThryOptimizerDictionary = new Dictionary<Shader, string>();
+        private static Dictionary<Shader, string> shaderThryOptimizerPropertyName = new Dictionary<Shader, string>();
+        private static Dictionary<Shader, bool> isShaderUsingThryOptimizer = new Dictionary<Shader, bool>();
         public static bool IsShaderUsingThryOptimizer(Shader shader)
         {
-            string propertyName;
-            if (shaderUsingThryOptimizerDictionary.ContainsKey(shader))
+            if (isShaderUsingThryOptimizer.ContainsKey(shader))
             {
-                propertyName = shaderUsingThryOptimizerDictionary[shader];
-                return propertyName != null;
+                return isShaderUsingThryOptimizer[shader];
             }
-
-            //check shader code for drawer that's not commented out
-            string code = FileHelper.ReadFileIntoString(AssetDatabase.GetAssetPath(shader));
-            Match m = Regex.Match(code, @"\n[^(\/)]*\[ThryShaderOptimizerLockButton\].*\n");
-            if (m.Success)
+            SerializedObject shaderObject = new SerializedObject(shader);
+            SerializedProperty props = shaderObject.FindProperty("m_ParsedForm.m_PropInfo.m_Props");
+            if (props != null)
             {
-                //get property name
-                m = Regex.Match(m.Value, @"(?<=\[ThryShaderOptimizerLockButton\])\s*(\w|\d)+");
-                if (m.Success)
+                foreach (SerializedProperty p in props)
                 {
-                    propertyName = m.Value.Trim();
-                    shaderUsingThryOptimizerDictionary[shader] = propertyName;
-                    return true;
+                    SerializedProperty at = p.FindPropertyRelative("m_Attributes");
+                    if (at.arraySize > 0)
+                    {
+                        if (at.GetArrayElementAtIndex(0).stringValue == "ThryShaderOptimizerLockButton")
+                        {
+                            //Debug.Log(shader.name + " found to use optimizer ");
+                            isShaderUsingThryOptimizer[shader] = true;
+                            shaderThryOptimizerPropertyName[shader] = p.displayName;
+                            return true;
+                        }
+                    }
                 }
             }
-            propertyName = null;
-            shaderUsingThryOptimizerDictionary[shader] = propertyName;
+            isShaderUsingThryOptimizer[shader] = false;
             return false;
         }
+
+        public static bool IsMaterialLocked(Material material)
+        {
+            return material.shader.name.StartsWith("Hidden/") && material.GetTag("OriginalShader", false, "") != "";
+        }
+
+        private static Dictionary<Shader, int> shaderUsedTextureReferencesCount = new Dictionary<Shader, int>();
+        public static int GetUsedTextureReferencesCount(Shader s)
+        {
+            //Shader.m_ParsedForm.m_SubShaders[i].m_Passes[j].m_Programs[k].m_SubPrograms[l].m_Parameters[m].m_TextureParams[n]
+            //m_Programs not avaiable in unity 2019
+            return 0;
+            if (shaderUsedTextureReferencesCount.ContainsKey(s)) return shaderUsedTextureReferencesCount[s];
+            SerializedObject shaderObject = new SerializedObject(s);
+            SerializedProperty m_SubShaders = shaderObject.FindProperty("m_ParsedForm.m_SubShaders");
+            for (int i_subShader = 0; i_subShader < m_SubShaders.arraySize; i_subShader++)
+            {
+                SerializedProperty m_Passes = m_SubShaders.GetArrayElementAtIndex(i_subShader).FindPropertyRelative("m_Passes");
+                for (int i_passes = 0; i_passes < m_Passes.arraySize; i_passes++)
+                {
+                    SerializedProperty m_Programs = m_Passes.GetArrayElementAtIndex(i_passes);
+                    foreach (SerializedProperty p in m_Programs) Debug.Log(p.displayName);
+                }
+            }
+            return 0;
+        }
+    }
+
+    public class UnlockedMaterialsList : EditorWindow
+    {
+
+        [MenuItem("Thry/ShaderOptimizer/Unlocked Materials List")]
+        static void Init()
+        {
+            UnlockedMaterialsList window = (UnlockedMaterialsList)EditorWindow.GetWindow(typeof(UnlockedMaterialsList));
+            window.titleContent = new GUIContent("Unlocked Materials");
+            window.Show();
+        }
+
+        static Dictionary<Shader, List<Material>> unlockedMaterialsByShader = new Dictionary<Shader, List<Material>>();
+        private void OnEnable()
+        {
+            UpdateList();
+        }
+
+        void UpdateList()
+        {
+            unlockedMaterialsByShader.Clear();
+            List<Material> unlockedMaterials = new List<Material>();
+            string[] guids = AssetDatabase.FindAssets("t:material");
+            foreach (string g in guids)
+            {
+                Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
+                if (m != null && m.shader != null && ShaderOptimizer.IsShaderUsingThryOptimizer(m.shader) && ShaderOptimizer.IsMaterialLocked(m) == false)
+                {
+                    unlockedMaterials.Add(m);
+                }
+            }
+            foreach (IGrouping<Shader, Material> materials in unlockedMaterials.GroupBy(m => m.shader))
+            {
+                unlockedMaterialsByShader.Add(materials.Key, materials.ToList());
+            }
+        }
+
+        private void OnGUI()
+        {
+            EditorGUILayout.LabelField("Unlocked Materials", Styles.EDITOR_LABEL_HEADER);
+            if (GUILayout.Button("Update List")) UpdateList();
+            if (unlockedMaterialsByShader.Count == 0)
+            {
+                GUILayout.Label("All your materials are locked.", Styles.greenStyle);
+            }
+            foreach (KeyValuePair<Shader, List<Material>> shaderMaterials in unlockedMaterialsByShader)
+            {
+                EditorGUILayout.Space();
+
+                EditorGUILayout.LabelField(shaderMaterials.Key.name);
+                List<Material> lockedMaterials = new List<Material>();
+                foreach (Material m in shaderMaterials.Value)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.ObjectField(m, typeof(Material), false);
+                    //EditorGUILayout.IntField(ShaderOptimizer.GetUsedTextureReferencesCount(m.shader));
+                    if (GUILayout.Button("Lock"))
+                    {
+                        ShaderOptimizer.SetLockedForAllMaterials(new List<Material>() { m }, 1, true, false, true);
+                        lockedMaterials.Add(m);
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                foreach (Material m in lockedMaterials)
+                    shaderMaterials.Value.Remove(m);
+            }
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Lock All"))
+            {
+                ShaderOptimizer.SetLockedForAllMaterials(unlockedMaterialsByShader.Values.SelectMany(col => col), 1, true, false, true);
+                UpdateList();
+            }
+        }
+
     }
 }
