@@ -1956,6 +1956,9 @@ namespace Thry
             unlockedMaterialsByShader.Clear();
             List<Material> unlockedMaterials = new List<Material>();
             string[] guids = AssetDatabase.FindAssets("t:material");
+            float step = 1.0f / guids.Length;
+            float f = 0;
+            EditorUtility.DisplayProgressBar("Searching materials...", "", f);
             foreach (string g in guids)
             {
                 Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
@@ -1963,11 +1966,14 @@ namespace Thry
                 {
                     unlockedMaterials.Add(m);
                 }
+                f = f + step;
+                EditorUtility.DisplayProgressBar("Searching materials...", m.name, f);
             }
             foreach (IGrouping<Shader, Material> materials in unlockedMaterials.GroupBy(m => m.shader))
             {
                 unlockedMaterialsByShader.Add(materials.Key, materials.ToList());
             }
+            EditorUtility.ClearProgressBar();
         }
 
         private void OnGUI()
