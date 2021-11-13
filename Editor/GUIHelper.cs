@@ -35,6 +35,7 @@ namespace Thry
         public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
         {
             Rect thumbnailPos = position;
+            Rect foloutClickCheck = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
             DrawingData.currentTexProperty.tooltip.ConditionalDraw(thumbnailPos);
@@ -44,6 +45,7 @@ namespace Thry
                 Rect r = position;
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
+                foloutClickCheck.width -= r.width;
                 property.Draw(new CRect(r), new GUIContent());
                 property.tooltip.ConditionalDraw(r);
             }
@@ -78,7 +80,7 @@ namespace Thry
                             }
                         EditorGUI.indentLevel -= 2;
                     }
-                    if (ShaderEditor.input.MouseLeftClick && position.Contains(Event.current.mousePosition))
+                    if (ShaderEditor.input.MouseLeftClick && foloutClickCheck.Contains(Event.current.mousePosition))
                     {
                         ShaderEditor.input.Use();
                         DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;

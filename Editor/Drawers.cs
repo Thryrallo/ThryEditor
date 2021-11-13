@@ -12,6 +12,20 @@ using UnityEngine;
 
 namespace Thry
 {
+    public class ThryTextureDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            GuiHelper.drawConfigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.active.currentProperty).hasScaleOffset);
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
     public class SmallTextureDrawer : MaterialPropertyDrawer
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
