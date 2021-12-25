@@ -263,13 +263,15 @@ namespace Thry
 
         private void DrawLockedAnimated()
         {
-            Rect r = new Rect(8, DrawingData.tooltipCheckRect.y + 2, 16, 16);
-            GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
+            Rect r = new Rect(14, DrawingData.tooltipCheckRect.y + 2, 16, 16);
+            //GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
+            if (is_renaming) GUI.Label(r, "A", Styles.animatedIndicatorStyle);
+            else GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
         }
 
         private void DrawPresetProperty()
         {
-            Rect r = new Rect(0, DrawingData.tooltipCheckRect.y + 2, 8, 16);
+            Rect r = new Rect(2, DrawingData.tooltipCheckRect.y + 2, 8, 16);
             //GUI.DrawTexture(r, Styles.texture_preset, ScaleMode.StretchToFill, true);
             GUI.Label(r, "P", Styles.cyanStyle);
         }

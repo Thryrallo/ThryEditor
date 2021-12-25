@@ -54,7 +54,6 @@ namespace Thry
         public ShaderEditor gui;
         public Material[] materials;
         public Shader shader;
-        public Shader defaultShader;
         public ShaderPart currentProperty;
         public Dictionary<string, ShaderProperty> propertyDictionary;
         public List<ShaderPart> shaderParts;
@@ -434,8 +433,6 @@ namespace Thry
             materials = editor.targets.Select(o => o as Material).ToArray();
 
             shader = materials[0].shader;
-            string defaultShaderName = materials[0].shader.name.Split(new string[] { "-queue" }, System.StringSplitOptions.None)[0].Replace(".differentQueues/", "");
-            defaultShader = Shader.Find(defaultShaderName);
 
             animPropertySuffix = new string(materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
 
@@ -486,7 +483,12 @@ namespace Thry
 
         public override void AssignNewShaderToMaterial(Material material, Shader oldShader, Shader newShader)
         {
+            //Unity sets the render queue to the shader defult when changing shader
+            //This seems to be some deeper process that cant be disabled so i just set it again after the swap
+            //Even material.shader = newShader resets the queue. (this is actually the only thing the base function does)
+            int previousQueue = material.renderQueue;
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
+            material.renderQueue = previousQueue;
             reloadNextDraw = true;
             swapped_to_shader = true;
         }
