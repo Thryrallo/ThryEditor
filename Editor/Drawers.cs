@@ -303,7 +303,7 @@ namespace Thry
                 Init(prop);
 
             UpdateRects(position);
-            if (ShaderEditor.input.MouseClick && border_position.Contains(Event.current.mousePosition))
+            if (ShaderEditor.input.Click && border_position.Contains(Event.current.mousePosition))
             {
                 ShaderEditor.input.Use();
                 PropertyOptions options = ShaderEditor.active.currentProperty.options;

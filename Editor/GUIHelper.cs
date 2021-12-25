@@ -38,7 +38,6 @@ namespace Thry
             Rect foloutClickCheck = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
-            DrawingData.currentTexProperty.tooltip.ConditionalDraw(thumbnailPos);
             if (DrawingData.currentTexProperty.reference_property_exists)
             {
                 ShaderProperty property = ShaderEditor.active.propertyDictionary[DrawingData.currentTexProperty.options.reference_property];
@@ -67,8 +66,6 @@ namespace Thry
                         if (DrawingData.currentTexProperty.hasScaleOffset)
                         {
                             ShaderEditor.active.editor.TextureScaleOffsetProperty(prop);
-                            if(DrawingData.currentTexProperty.is_animatable)
-                                DrawingData.currentTexProperty.HandleKajAnimatable();
                         }
 
                         PropertyOptions options = DrawingData.currentTexProperty.options;
@@ -80,7 +77,7 @@ namespace Thry
                             }
                         EditorGUI.indentLevel -= 2;
                     }
-                    if (ShaderEditor.input.MouseLeftClick && foloutClickCheck.Contains(Event.current.mousePosition))
+                    if (ShaderEditor.input.LeftClick && foloutClickCheck.Contains(Event.current.mousePosition))
                     {
                         ShaderEditor.input.Use();
                         DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
@@ -91,6 +88,7 @@ namespace Thry
             Rect object_rect = new Rect(position);
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
             DrawingData.lastGuiObjectRect = object_rect;
+            DrawingData.tooltipCheckRect = position;
         }
 
         public static void drawBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
@@ -105,7 +103,7 @@ namespace Thry
             Rect object_rect = new Rect(position);
             object_rect.height += rect.height;
             DrawingData.lastGuiObjectRect = object_rect;
-            DrawingData.currentTexProperty.tooltip.ConditionalDraw(object_rect);
+            DrawingData.tooltipCheckRect = object_rect;
         }
 
         static int texturePickerWindow = -1;
@@ -148,8 +146,6 @@ namespace Thry
             quad.height = quad.width;
             quad.x = border.x + border.width - quad.width - 1;
             quad.y += 2;
-
-            DrawingData.currentTexProperty.tooltip.ConditionalDraw(border);
 
             Rect preview_rect_border = new Rect(position);
             preview_rect_border.height = rect.height + position.height - 6;
@@ -223,8 +219,6 @@ namespace Thry
                     scale_offset_rect.width -= 2 + preview_rect.width + 10 + 30;
                     scale_offset_rect.x += 30;
                     editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
-                    if (DrawingData.currentTexProperty.is_animatable)
-                        DrawingData.currentTexProperty.HandleKajAnimatable();
                 }
                 float oldLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 128;
@@ -240,8 +234,6 @@ namespace Thry
                     {
                         ShaderProperty property = ShaderEditor.active.propertyDictionary[r_property];
                         property.Draw(useEditorIndent: true);
-                        if (DrawingData.currentTexProperty.is_animatable)
-                            property.HandleKajAnimatable();
                     }
                 EditorGUIUtility.labelWidth = oldLabelWidth;
                 EditorGUI.indentLevel -= 2;
@@ -255,6 +247,7 @@ namespace Thry
             GUILayoutUtility.GetRect(0, 5);
             
             DrawingData.lastGuiObjectRect = border;
+            DrawingData.tooltipCheckRect = border;
         }
 
         const float kNumberWidth = 65;
@@ -721,7 +714,7 @@ namespace Thry
             DrawBoxAndContent(position, e, label, options);
 
             DrawSmallArrow(position, e);
-            HandleToggleInput(e, position);
+            HandleToggleInput(position);
         }
 
         private void DrawBoxAndContent(Rect rect, Event e, GUIContent content, PropertyOptions options)
@@ -877,12 +870,12 @@ namespace Thry
             }
         }
 
-        private void HandleToggleInput(Event e, Rect rect)
+        private void HandleToggleInput(Rect rect)
         {
-            if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition) && !e.alt)
+            if (ShaderEditor.input.LeftClick && rect.Contains(ShaderEditor.input.mouse_position) && !ShaderEditor.input.is_alt_down)
             {
                 this.Toggle();
-                e.Use();
+                ShaderEditor.input.Use();
             }
         }
     }

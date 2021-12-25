@@ -38,6 +38,7 @@ namespace Thry
         public static GUIStyle vectorPropertyStyle { get; private set; } = new GUIStyle() { padding = new RectOffset(0, 0, 2, 2) };
         public static GUIStyle greenStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = new Color(0, 0.5f, 0) } };
         public static GUIStyle orangeStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = new Color(0.9f, 0.5f, 0) } };
+        public static GUIStyle cyanStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = COLOR_ICON_ACTIVE_CYAN } };
         public static GUIStyle redStyle { get; private set; } = new GUIStyle() { normal = new GUIStyleState() { textColor = Color.red } };
         public static GUIStyle made_by_style { get; private set; } = new GUIStyle(EditorStyles.label) { fontSize = 10 };
         public static GUIStyle notification_style { get; private set; } = new GUIStyle(GUI.skin.box) { fontSize = 12, wordWrap = true, normal = new GUIStyleState() { textColor = Color.red } };
@@ -87,7 +88,8 @@ namespace Thry
 
         public static Texture2D texture_animated         { get { return GetTextureOverwrittinWithColor(9,  RESOURCE_NAME.TEXTURE_ANIMTED, COLOR_ICON_FONT            ); } }
         public static Texture2D texture_animated_renamed { get { return GetTextureOverwrittinWithColor(10, RESOURCE_NAME.TEXTURE_ANIMTED, COLOR_ICON_ACTIVE_RED ); } }
-
+        public static Texture2D texture_preset { get { return GetTextureOverwrittinWithColor(11, RESOURCE_NAME.TEXTURE_ANIMTED, COLOR_ICON_ACTIVE_CYAN); } }
+        
         private static Texture2D[] _colorsWithTextures = new Texture2D[0];
         private static Texture2D GetTextureOverwrittinWithColor(int id, string textureName, Color c)
         {

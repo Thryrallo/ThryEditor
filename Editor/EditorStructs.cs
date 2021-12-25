@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,8 +20,9 @@ namespace Thry
     {
         public bool HadMouseDownRepaint;
         public bool HadMouseDown;
-        public bool MouseClick;
-        public bool MouseLeftClick;
+        bool _MouseClick;
+        bool _MouseLeftClick;
+        bool _MouseRightClick;
 
         public bool is_alt_down;
 
@@ -29,12 +31,45 @@ namespace Thry
 
         public Vector2 mouse_position;
 
+        public void Update(bool isLockedMaterial)
+        {
+            Event e = Event.current;
+            _MouseClick = !isLockedMaterial && e.type == EventType.MouseDown;
+            _MouseLeftClick = _MouseClick && e.button == 0;
+            _MouseRightClick = _MouseClick && e.button == 1;
+            if (_MouseClick) HadMouseDown = _MouseClick;
+            if (HadMouseDown && e.type == EventType.Repaint)
+            {
+                HadMouseDownRepaint = true;
+                HadMouseDown = false;
+            }
+            is_alt_down = e.alt;
+            mouse_position = e.mousePosition;
+            is_drop_event = e.type == EventType.DragPerform;
+            is_drag_drop_event = is_drop_event || e.type == EventType.DragUpdated;
+        }
+
         public void Use()
         {
-            HadMouseDownRepaint = false;
-            HadMouseDown = false;
-            MouseClick = false;
-            MouseLeftClick = false;
+            _MouseClick = false;
+            _MouseLeftClick = false;
+            _MouseRightClick = false;
+            Event.current.Use();
+        }
+
+        public bool Click
+        {
+            get { return _MouseClick && Event.current.type != EventType.Used; }
+        }
+
+        public bool RightClick
+        {
+            get { return _MouseRightClick && Event.current.type != EventType.Used; }
+        }
+
+        public bool LeftClick
+        {
+            get { return _MouseLeftClick && Event.current.type != EventType.Used; }
         }
     }
 
@@ -53,6 +88,7 @@ namespace Thry
         public bool is_animated = false;
         public bool is_animatable = false;
         public bool is_renaming = false;
+        public bool is_preset = false;
         public bool exempt_from_locked_disabling = false;
 
         public BetterTooltips.Tooltip tooltip;
@@ -69,6 +105,7 @@ namespace Thry
             this.tooltip = new BetterTooltips.Tooltip(options.tooltip);
             this.reference_properties_exist = options.reference_properties != null && options.reference_properties.Length > 0;
             this.reference_property_exists = options.reference_property != null;
+            this.is_preset = shaderEditor._isPresetEditor && Presets.IsPreset(shaderEditor.materials[0], prop);
 
             if (prop == null)
                 return;
@@ -144,35 +181,55 @@ namespace Thry
             }
         }
 
-        public void HandleKajAnimatable()
+        public void HandleRightClickToggles(bool isInHeader)
         {
-            Rect lastRect = GUILayoutUtility.GetLastRect();
-            if (ShaderEditor.active.isLockedMaterial == false && Event.current.isMouse && Event.current.button == 1 && lastRect.Contains(Event.current.mousePosition))
+            if (ShaderEditor.input.RightClick && DrawingData.tooltipCheckRect.Contains(Event.current.mousePosition))
             {
-                if (Event.current.control && Config.Singleton.renameAnimatedProps)
+                //Preset toggle
+                if (Event.current.shift)
                 {
-                    if (!is_animated)
+                    if (ShaderEditor.active._isPresetEditor && isInHeader == false)
                     {
-                        is_animated = true;
-                    }
-
-                    if (is_animated)
-                    {
-                        is_renaming = !is_renaming;
+                        is_preset = !is_preset;
+                        Presets.SetProperty(ShaderEditor.active.materials[0], materialProperty, is_preset);
+                        ShaderEditor.Repaint();
+                        ShaderEditor.input.Use();
                     }
                 }
+                //Animated toggle
                 else
                 {
-                    is_animated = !is_animated;
+                    if (is_animatable && isInHeader == false && this is ShaderHeader == false)
+                    {
+                        if (Event.current.control && Config.Singleton.renameAnimatedProps)
+                        {
+                            if (!is_animated)
+                            {
+                                is_animated = true;
+                                is_renaming = true;
+                            }
+                            else if (!is_renaming)
+                            {
+                                is_renaming = true;
+                            }
+                            else
+                            {
+                                is_animated = false;
+                                is_renaming = false;
+                            }
+                        }
+                        else
+                        {
+                            is_animated = !is_animated;
+                            is_renaming = false;
+                        }
+                        ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
+                        ShaderEditor.Repaint();
+                        ShaderEditor.input.Use();
+                    }
                 }
-                ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
-                ShaderEditor.Repaint();
             }
-            if (is_animated)
-            {
-                Rect r = new Rect(8, lastRect.y + 2, 16, 16);
-                GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
-            }
+            
         }
 
         private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent, bool isInHeader = false)
@@ -182,9 +239,14 @@ namespace Thry
             EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
 
-            DrawingData.tooltipCheckRect = DrawingData.lastGuiObjectRect;
+            if(this is TextureProperty == false) DrawingData.tooltipCheckRect = DrawingData.lastGuiObjectRect;
             DrawingData.tooltipCheckRect.width = EditorGUIUtility.labelWidth;
-            if (this is TextureProperty == false) tooltip.ConditionalDraw(DrawingData.tooltipCheckRect);
+
+            HandleRightClickToggles(isInHeader);
+            if (is_animated) DrawLockedAnimated();
+            if (is_preset) DrawPresetProperty();
+
+            tooltip.ConditionalDraw(DrawingData.tooltipCheckRect);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -197,6 +259,19 @@ namespace Thry
                 }
             }
             Helper.testAltClick(DrawingData.lastGuiObjectRect, this);
+        }
+
+        private void DrawLockedAnimated()
+        {
+            Rect r = new Rect(8, DrawingData.tooltipCheckRect.y + 2, 16, 16);
+            GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
+        }
+
+        private void DrawPresetProperty()
+        {
+            Rect r = new Rect(0, DrawingData.tooltipCheckRect.y + 2, 8, 16);
+            //GUI.DrawTexture(r, Styles.texture_preset, ScaleMode.StretchToFill, true);
+            GUI.Label(r, "P", Styles.cyanStyle);
         }
     }
 
@@ -408,8 +483,6 @@ namespace Thry
             EditorGUI.indentLevel = oldIndentLevel;
             if (rect == null) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
             else DrawingData.lastGuiObjectRect = rect.r;
-            if (this is TextureProperty == false && is_animatable && isInHeader == false)
-                HandleKajAnimatable();
             if (ShaderEditor.active.isLockedMaterial)
                 EditorGUI.EndDisabledGroup();
         }

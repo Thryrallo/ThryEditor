@@ -11,6 +11,7 @@ using System;
 using System.Reflection;
 using System.Linq;
 using System.Threading;
+using Thry.ThryEditor;
 
 namespace Thry
 {
@@ -78,6 +79,7 @@ namespace Thry
         private bool swapped_to_shader = false;
 
         public bool _isDrawing { get; private set; } = false;
+        public bool _isPresetEditor { get; private set; } = false;
 
         //-------------Init functions--------------------
 
@@ -437,6 +439,8 @@ namespace Thry
 
             animPropertySuffix = new string(materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
 
+            _isPresetEditor = materials.Length == 1 && Presets.ArePreset(materials);
+
             //collect shader properties
             CollectAllProperties();
 
@@ -487,19 +491,6 @@ namespace Thry
             swapped_to_shader = true;
         }
 
-        private void UpdateEvents()
-        {
-            Event e = Event.current;
-            input.MouseClick = e.type == EventType.MouseDown;
-            input.MouseLeftClick = e.type == EventType.MouseDown && e.button == 0;
-            if (input.MouseClick) input.HadMouseDown = true;
-            if (input.HadMouseDown && e.type == EventType.Repaint) input.HadMouseDownRepaint = true;
-            input.is_alt_down = e.alt;
-            input.mouse_position = e.mousePosition;
-            input.is_drop_event = e.type == EventType.DragPerform;
-            input.is_drag_drop_event = input.is_drop_event || e.type == EventType.DragUpdated;
-        }
-
         void InitEditorData(MaterialEditor materialEditor)
         {
             editor = materialEditor;
@@ -523,7 +514,7 @@ namespace Thry
             //Update Data
             properties = props;
             shader = materials[0].shader;
-            UpdateEvents();
+            input.Update(isLockedMaterial);
 
             active = this;
 
@@ -533,6 +524,7 @@ namespace Thry
             GUITopBar();
             GUISearchBar();
             GUIComplexity();
+            Presets.PresetGUI(this);
 
             //Optimizer is now drawn wherever the property is. might change back later
             //ShaderOptimizerProperty?.Draw();
@@ -576,26 +568,35 @@ namespace Thry
             }
         }
 
+        static bool ButtonWithTextureStyle(Texture2D tex)
+        {
+            bool b = GUILayout.Button("", EditorStyles.boldLabel, GUILayout.Height(20), GUILayout.Width(20));
+            Rect r = GUILayoutUtility.GetLastRect();
+            GUI.DrawTexture(r, tex, ScaleMode.StretchToFill);
+            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
+            return b;
+        }
+
         private void GUITopBar()
         {
             //if header is texture, draw it first so other ui elements can be positions below
             if (shaderHeader != null && shaderHeader.options.texture != null) shaderHeader.Draw();
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
-            if (GUILayout.Button(new GUIContent("", Styles.icon_settings), EditorStyles.largeLabel, GUILayout.MaxHeight(20), GUILayout.MaxWidth(20)))
+            if (ButtonWithTextureStyle(Styles.icon_settings))
             {
                 Thry.Settings window = Thry.Settings.getInstance();
                 window.Show();
                 window.Focus();
             }
-            EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-            if (GUILayout.Button(Styles.icon_search, EditorStyles.largeLabel, GUILayout.MaxHeight(20)))
+            if (ButtonWithTextureStyle(Styles.icon_search))
                 show_search_bar = !show_search_bar;
 
             //draw master label text after ui elements, so it can be positioned between
             if (shaderHeader != null) shaderHeader.Draw(new CRect(mainHeaderRect));
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
+            GUILayout.FlexibleSpace();  
             GUILayout.Label("@UI by Thryrallo", Styles.made_by_style, GUILayout.Height(25), GUILayout.MaxWidth(100));
             EditorGUILayout.EndHorizontal();
         }
@@ -815,8 +816,6 @@ namespace Thry
             }
             return edtior_directory_path;
         }
-
-        
 
         [MenuItem("Thry/Twitter")]
         static void Init()

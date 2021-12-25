@@ -1918,7 +1918,7 @@ namespace Thry
             //Shader.m_ParsedForm.m_SubShaders[i].m_Passes[j].m_Programs[k].m_SubPrograms[l].m_Parameters[m].m_TextureParams[n]
             //m_Programs not avaiable in unity 2019
             return 0;
-            if (shaderUsedTextureReferencesCount.ContainsKey(s)) return shaderUsedTextureReferencesCount[s];
+            /*if (shaderUsedTextureReferencesCount.ContainsKey(s)) return shaderUsedTextureReferencesCount[s];
             SerializedObject shaderObject = new SerializedObject(s);
             SerializedProperty m_SubShaders = shaderObject.FindProperty("m_ParsedForm.m_SubShaders");
             for (int i_subShader = 0; i_subShader < m_SubShaders.arraySize; i_subShader++)
@@ -1930,7 +1930,7 @@ namespace Thry
                     foreach (SerializedProperty p in m_Programs) Debug.Log(p.displayName);
                 }
             }
-            return 0;
+            return 0;*/
         }
     }
 
