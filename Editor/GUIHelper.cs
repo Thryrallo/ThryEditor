@@ -135,12 +135,19 @@ namespace Thry
 
 
             //background
+            //GUI.DrawTexture(border, Styles.rounded_texture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 0);
+
+            Color prevC = GUI.color;
+            GUI.color = Styles.COLOR_BACKGROUND_1;
+
             GUI.DrawTexture(border, Styles.rounded_texture, ScaleMode.StretchToFill, true);
             Rect quad = new Rect(border);
             quad.width = quad.height / 2;
             GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0, 0, 0.5f, 1), true);
             quad.x += border.width - quad.width;
             GUI.DrawTextureWithTexCoords(quad, Styles.rounded_texture, new Rect(0.5f, 0, 0.5f, 1), true);
+
+            GUI.color = prevC;
 
             quad.width = border.height - 4;
             quad.height = quad.width;
@@ -476,6 +483,42 @@ namespace Thry
                 }
             }
         }
+
+        public static bool Button(Rect r, GUIStyle style)
+        {
+            return GUI.Button(r, GUIContent.none, style);
+        }
+
+        public static bool Button(GUIStyle style, int width, int height)
+        {
+            Rect r = GUILayoutUtility.GetRect(width, height);
+            return Button(r, style);
+        }
+        
+        public static bool ButtonWithCursor(GUIStyle style, int width, int height)
+        {
+            Rect r = GUILayoutUtility.GetRect(width, height);
+            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
+            return Button(r, style);
+        }
+
+        public static bool Button(GUIStyle style, int width, int height, Color c)
+        {
+            Color prevColor = GUI.backgroundColor;
+            GUI.backgroundColor = c;
+            bool b = GuiHelper.Button(style, width, height);
+            GUI.backgroundColor = prevColor;
+            return b;
+        }
+
+        public static bool Button(Rect r, GUIStyle style, Color c, bool doColor)
+        {
+            Color prevColor = GUI.backgroundColor;
+            if(doColor) GUI.backgroundColor = c;
+            bool b = GuiHelper.Button(r, style);
+            GUI.backgroundColor = prevColor;
+            return b;
+        }
     }
 
     public class BetterTooltips
@@ -637,7 +680,16 @@ namespace Thry
 
         public bool isHideable;
 
-        public int xOffset = 0;
+        int p_xOffset;
+        int p_xOffset_total;
+        public int xOffset
+        {
+            set
+            {
+                p_xOffset = value;
+                p_xOffset_total = value * 15 + 15;
+            }
+        }
 
         private ButtonData button;
 
@@ -705,9 +757,8 @@ namespace Thry
             PropertyOptions options = ShaderEditor.active.currentProperty.options;
             Event e = Event.current;
 
-            int offset = 15 * xOffset + 15;
-            position.width -= offset - position.x;
-            position.x = offset;
+            position.width -= p_xOffset_total - position.x;
+            position.x = p_xOffset_total;
 
             DrawingData.lastGuiObjectHeaderRect = position;
 
@@ -769,9 +820,18 @@ namespace Thry
         /// <param name="e"></param>
         private void DrawIcons(Rect rect, PropertyOptions options, Event e)
         {
-            DrawHelpButton(rect, options, e);
-            DrawDowdownSettings(rect, e);
-            DrawLinkSettings(rect, e);
+            Rect buttonRect = new Rect(rect);
+            buttonRect.y += 1;
+            buttonRect.height -= 4;
+            buttonRect.width = buttonRect.height;
+
+            float right = rect.x + rect.width;
+            buttonRect.x = right - 56;
+            DrawHelpButton(buttonRect, options, e);
+            buttonRect.x = right - 38;
+            DrawLinkSettings(buttonRect, e);
+            buttonRect.x = right - 20;
+            DrawDowdownSettings(buttonRect, e);
         }
 
         private void DrawHelpButton(Rect rect, PropertyOptions options, Event e)
@@ -779,12 +839,7 @@ namespace Thry
             ButtonData button = this.button != null ? this.button : options.button_help;
             if (button != null && button.condition_show.Test())
             {
-                Rect buttonRect = new Rect(rect);
-                buttonRect.width = 20;
-                buttonRect.x += rect.width - 65;
-                buttonRect.y += 1;
-                buttonRect.height -= 4;
-                if (GUI.Button(buttonRect, Styles.icon_help, EditorStyles.largeLabel))
+                if (GuiHelper.Button(rect, Styles.icon_style_help))
                 {
                     e.Use();
                     if (button.action != null) button.action.Perform();
@@ -794,15 +849,10 @@ namespace Thry
 
         private void DrawDowdownSettings(Rect rect, Event e)
         {
-            Rect buttonRect = new Rect(rect);
-            buttonRect.width = 20;
-            buttonRect.x += rect.width - 25;
-            buttonRect.y += 1;
-            buttonRect.height -= 4;
-            if (GUI.Button(buttonRect, Styles.icon_menu, EditorStyles.largeLabel))
+            if (GuiHelper.Button(rect, Styles.icon_style_menu))
             {
                 e.Use();
-
+                Rect buttonRect = new Rect(rect);
                 buttonRect.width = 150;
                 buttonRect.x = Mathf.Min(Screen.width - buttonRect.width, buttonRect.x);
                 buttonRect.height = 60;
@@ -815,18 +865,10 @@ namespace Thry
 
         private void DrawLinkSettings(Rect rect, Event e)
         {
-            Rect buttonRect = new Rect(rect);
-            buttonRect.width = 20;
-            buttonRect.x += rect.width - 45;
-            buttonRect.y += 1;
-            buttonRect.height -= 4;
-            List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.active.currentProperty.materialProperty);
-            Texture2D icon = Styles.icon_link_inactive;
-            if (linked_materials != null)
-                icon = Styles.icon_link_active;
-            if (GUI.Button(buttonRect, icon, EditorStyles.largeLabel))
+            if (GuiHelper.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.active.currentProperty.materialProperty)))
             {
-                MaterialLinker.Popup(buttonRect, linked_materials, ShaderEditor.active.currentProperty.materialProperty);
+                List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.active.currentProperty.materialProperty);
+                MaterialLinker.Popup(rect, linked_materials, ShaderEditor.active.currentProperty.materialProperty);
                 e.Use();
             }
         }
@@ -975,12 +1017,12 @@ namespace Thry
                 SetType(HeaderHidingType.show_all);
             Rect right = GUILayoutUtility.GetRect(10, 20);
             Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
-            if (GUI.Button(arrow, Styles.icon_menu, EditorStyles.largeLabel))
+            if (GUI.Button(arrow, Styles.icon_style_menu.normal.background, EditorStyles.largeLabel))
                 DrawHeaderHiderMenu(arrow, editor.shaderParts);
             if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(state == HeaderHidingType.custom)))
                 SetType(HeaderHidingType.custom);
 
-            GUI.Button(arrow, Styles.icon_menu, EditorStyles.largeLabel);
+            GUI.Button(arrow, Styles.icon_style_menu.normal.background, EditorStyles.largeLabel);
 
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.Space();
@@ -1029,6 +1071,5 @@ namespace Thry
             }
             menu.DropDown(position);
         }
-
     }
 }

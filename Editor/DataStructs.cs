@@ -51,12 +51,6 @@ namespace Thry
     {
         public const string RECT = "thry_rect";
         public const string TEXTURE_ARROW = "thry_arrow";
-        public const string TEXTURE_ANIMTED = "thry_animated_icon";
-
-        public const string ICON_SETTINGS = "thryEditor_settings";
-        public const string ICON_SEARCH = "thryEditor_search";
-        public const string ICON_NAME_MENU = "thryEditor_menu";
-        public const string ICON_NAME_HELP = "thryEditor_help";
         public const string ICON_NAME_LINK = "thryEditor_link";
     }
 

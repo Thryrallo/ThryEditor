@@ -570,28 +570,19 @@ namespace Thry
             }
         }
 
-        static bool ButtonWithTextureStyle(Texture2D tex)
-        {
-            bool b = GUILayout.Button("", EditorStyles.boldLabel, GUILayout.Height(20), GUILayout.Width(20));
-            Rect r = GUILayoutUtility.GetLastRect();
-            GUI.DrawTexture(r, tex, ScaleMode.StretchToFill);
-            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
-            return b;
-        }
-
         private void GUITopBar()
         {
             //if header is texture, draw it first so other ui elements can be positions below
             if (shaderHeader != null && shaderHeader.options.texture != null) shaderHeader.Draw();
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
-            if (ButtonWithTextureStyle(Styles.icon_settings))
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, 25, 25))
             {
                 Thry.Settings window = Thry.Settings.getInstance();
                 window.Show();
                 window.Focus();
             }
-            if (ButtonWithTextureStyle(Styles.icon_search))
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, 25, 25))
                 show_search_bar = !show_search_bar;
 
             //draw master label text after ui elements, so it can be positioned between
