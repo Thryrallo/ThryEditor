@@ -111,7 +111,7 @@ namespace Thry
             {
                 string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
                 displayName = parts[0];
-                parts[1].Replace("''", "\"");
+                parts[1] = parts[1].Replace("''", "\"");
                 PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
                 if (options != null)
                 {
