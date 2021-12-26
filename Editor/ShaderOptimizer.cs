@@ -1030,7 +1030,7 @@ namespace Thry
                 //Remove pragmas
                 if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
                 {
-                    string keyword = lineParsed.Substring(22).Trim().Split(' ')[0];
+                    string keyword = lineParsed.Split(' ')[2];
                     if (KeywordsUsedByPragmas.Contains(keyword) == false) KeywordsUsedByPragmas.Add(keyword);
                     continue;
                 }
