@@ -32,7 +32,8 @@ namespace Thry
         // UI Instance Variables
 
         public bool show_search_bar;
-        private string header_search_term = "";
+        private string entered_search_term = "";
+        private string applied_search_term = "";
         private bool show_eyeIcon_tutorial = false;
 
         // shader specified values
@@ -524,10 +525,7 @@ namespace Thry
 
             GUITopBar();
             GUISearchBar();
-            Presets.PresetGUI(this);
-
-            //Optimizer is now drawn wherever the property is. might change back later
-            //ShaderOptimizerProperty?.Draw();
+            Presets.PresetEditorGUI(this);
 
             //PROPERTIES
             foreach (ShaderPart part in mainHeader.parts)
@@ -581,7 +579,12 @@ namespace Thry
                 window.Focus();
             }
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, 25, 25))
+            {
                 show_search_bar = !show_search_bar;
+                if(!show_search_bar) ClearSearch();
+            }
+            Rect presetR = GUILayoutUtility.GetRect(25, 25);
+            Presets.PresetGUI(presetR, this);
 
             //draw master label text after ui elements, so it can be positioned between
             if (shaderHeader != null) shaderHeader.Draw(new CRect(mainHeaderRect));
@@ -597,9 +600,10 @@ namespace Thry
             if (show_search_bar)
             {
                 EditorGUI.BeginChangeCheck();
-                header_search_term = EditorGUILayout.TextField(header_search_term);
+                entered_search_term = EditorGUILayout.TextField(entered_search_term);
                 if (EditorGUI.EndChangeCheck())
                 {
+                    applied_search_term = entered_search_term.ToLower();
                     UpdateSearch(mainHeader);
                 }
             }
@@ -662,15 +666,21 @@ namespace Thry
         //if display part, display all parents parts
         private void UpdateSearch(ShaderPart part)
         {
-            part.has_searchedFor = part.content.text.ToLower().Contains(header_search_term);
+            part.has_not_searchedFor = part.content.text.ToLower().Contains(applied_search_term) == false;
             if (part is ShaderGroup)
             {
                 foreach (ShaderPart p in (part as ShaderGroup).parts)
                 {
                     UpdateSearch(p);
-                    part.has_searchedFor |= p.has_searchedFor;
+                    part.has_not_searchedFor &= p.has_not_searchedFor;
                 }
             }
+        }
+
+        private void ClearSearch()
+        {
+            applied_search_term = "";
+            UpdateSearch(mainHeader);
         }
 
         private void HandleReset()

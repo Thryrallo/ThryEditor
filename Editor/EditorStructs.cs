@@ -93,7 +93,7 @@ namespace Thry
 
         public BetterTooltips.Tooltip tooltip;
 
-        public bool has_searchedFor = true; //used for property search
+        public bool has_not_searchedFor = false; //used for property search
 
         public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
@@ -158,22 +158,28 @@ namespace Thry
 
         public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g);
 
+        bool addedDisable = false;
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
-            if (ShaderEditor.active.show_search_bar && !has_searchedFor)
+            if (has_not_searchedFor)
                 return;
-            bool addDisableGroup = options.condition_enable != null && DrawingData.is_enabled;
-            if (addDisableGroup)
+            bool testForDisable = DrawingData.is_enabled && options.condition_enable != null;
+            if (testForDisable)
             {
-                DrawingData.is_enabled = options.condition_enable.Test();
-                EditorGUI.BeginDisabledGroup(!DrawingData.is_enabled);
+                addedDisable = options.condition_enable.Test();
+                if(addedDisable == false)
+                {
+                    DrawingData.is_enabled = addedDisable;
+                    EditorGUI.BeginDisabledGroup(false);
+                }
             }
             if (options.condition_show.Test())
             {
                 PerformDraw(content, rect, useEditorIndent, isInHeader);
             }
-            if (addDisableGroup)
+            if (addedDisable)
             {
+                addedDisable = false;
                 DrawingData.is_enabled = true;
                 EditorGUI.EndDisabledGroup();
             }

@@ -21,26 +21,31 @@ namespace Thry.ThryEditor
                     p_presetMaterials = AssetDatabase.FindAssets("t:material")
                         .Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)))
                         .Where(m => IsPreset(m)).ToArray();
-                    p_presetNames = p_presetMaterials.Select(m => m.GetTag(TAG_PRESET_NAME,false,m.name)).Prepend("Presets").ToArray();
+                    p_presetNames = p_presetMaterials.Select(m => m.GetTag(TAG_PRESET_NAME,false,m.name)).Prepend("").ToArray();
                 }
                 return p_presetNames;
             }
         }
 
-        public static void PresetGUI(ShaderEditor shaderEditor)
+        public static void PresetGUI(Rect r, ShaderEditor shaderEditor)
         {
-            int i = EditorGUILayout.Popup(0, presetNames);
+            int i = EditorGUI.Popup(r, 0, presetNames, Styles.icon_style_presets);
             if(i > 0)
             {
                 Debug.Log("Apply Preset: " + presetNames[i]);
                 Apply(p_presetMaterials[i - 1], shaderEditor);
             }
+        }
+
+        public static void PresetEditorGUI(ShaderEditor shaderEditor)
+        {
             if (shaderEditor._isPresetEditor)
             {
+                EditorGUILayout.LabelField("This material is a preset.", Styles.greenStyle);
                 string name = shaderEditor.materials[0].GetTag(TAG_PRESET_NAME, false, "");
                 EditorGUI.BeginChangeCheck();
                 name = EditorGUILayout.TextField("Preset Name", name);
-                if(EditorGUI.EndChangeCheck())
+                if (EditorGUI.EndChangeCheck())
                 {
                     shaderEditor.materials[0].SetOverrideTag(TAG_PRESET_NAME, name);
                     p_presetNames = null;
