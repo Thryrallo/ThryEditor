@@ -77,7 +77,7 @@ namespace Thry
                             }
                         EditorGUI.indentLevel -= 2;
                     }
-                    if (ShaderEditor.input.LeftClick && foloutClickCheck.Contains(Event.current.mousePosition))
+                    if (ShaderEditor.input.LeftClick_IgnoreUnityUses && foloutClickCheck.Contains(Event.current.mousePosition))
                     {
                         ShaderEditor.input.Use();
                         DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
@@ -833,7 +833,7 @@ namespace Thry
             {
                 if (GuiHelper.Button(rect, Styles.icon_style_help))
                 {
-                    e.Use();
+                    ShaderEditor.input.Use();
                     if (button.action != null) button.action.Perform();
                 }
             }
@@ -843,7 +843,7 @@ namespace Thry
         {
             if (GuiHelper.Button(rect, Styles.icon_style_menu))
             {
-                e.Use();
+                ShaderEditor.input.Use();
                 Rect buttonRect = new Rect(rect);
                 buttonRect.width = 150;
                 buttonRect.x = Mathf.Min(Screen.width - buttonRect.width, buttonRect.x);
@@ -859,9 +859,9 @@ namespace Thry
         {
             if (GuiHelper.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.active.currentProperty.materialProperty)))
             {
+                ShaderEditor.input.Use();
                 List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.active.currentProperty.materialProperty);
                 MaterialLinker.Popup(rect, linked_materials, ShaderEditor.active.currentProperty.materialProperty);
-                e.Use();
             }
         }
 

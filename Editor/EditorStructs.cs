@@ -57,6 +57,16 @@ namespace Thry
             Event.current.Use();
         }
 
+        public bool LeftClick_IgnoreUnityUses
+        {
+            get { return _MouseLeftClick;  }
+        }
+
+        public bool RightClick_IgnoreUnityUses
+        {
+            get { return _MouseRightClick; }
+        }
+
         public bool Click
         {
             get { return _MouseClick && Event.current.type != EventType.Used; }
