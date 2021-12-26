@@ -269,8 +269,8 @@ namespace Thry
         {
             Rect r = new Rect(14, DrawingData.tooltipCheckRect.y + 2, 16, 16);
             //GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
-            if (is_renaming) GUI.Label(r, "A", Styles.animatedIndicatorStyle);
-            else GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
+            if (is_renaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
+            else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
         }
 
         private void DrawPresetProperty()
