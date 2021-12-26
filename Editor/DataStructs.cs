@@ -104,7 +104,6 @@ namespace Thry
         public string reference_property;
         public bool force_texture_options = false;
         public bool hide_in_inspector = false;
-        public bool is_hideable = false;
         public bool is_visible_simple = false;
         public string file_name;
         public string remote_version_url;

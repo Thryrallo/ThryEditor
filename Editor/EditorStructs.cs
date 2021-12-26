@@ -354,13 +354,10 @@ namespace Thry
 
         public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, materialEditor, displayName, xOffset, options)
         {
-            DrawingData.ResetLastDrawerData();
-            materialEditor.GetPropertyHeight(prop);
             if(DrawingData.lastPropertyDrawerType == DrawerType.Header)
             {
                 //new header setup with drawer
                 this.headerDrawer = DrawingData.lastPropertyDrawer as ThryHeaderDrawer;
-                options.is_hideable |= headerDrawer.isHideable;
             }
             else
             {
@@ -421,12 +418,18 @@ namespace Thry
 
         public string keyword;
 
-        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, options)
+        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, options)
         {
             drawDefault = false;
-            this.forceOneLine = forceOneLine;
 
-            property_index = System.Array.IndexOf(ShaderEditor.active.properties, materialProperty);
+            //Force one line test
+            this.forceOneLine = forceOneLine;
+            if (materialProperty.type == MaterialProperty.PropType.Vector && forceOneLine == false)
+            {
+                forceOneLine = !DrawingData.lastPropertyUsedCustomDrawer;
+            }
+
+            this.property_index = property_index;
         }
 
         public override void CopyFromMaterial(Material m)
@@ -515,7 +518,7 @@ namespace Thry
         public bool hasFoldoutProperties = false;
         public bool hasScaleOffset = false;
 
-        public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI) : base(shaderEditor, materialProperty, displayName, xOffset, options, false)
+        public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, options, false, property_index)
         {
             drawDefault = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
@@ -634,7 +637,7 @@ namespace Thry
 
     public class InstancingProperty : ShaderProperty
     {
-        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
+        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
             drawDefault = true;
         }
@@ -646,7 +649,7 @@ namespace Thry
     }
     public class GIProperty : ShaderProperty
     {
-        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
+        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
             drawDefault = true;
         }
@@ -718,7 +721,7 @@ namespace Thry
     }
     public class DSGIProperty : ShaderProperty
     {
-        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
+        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
             drawDefault = true;
         }
@@ -730,7 +733,7 @@ namespace Thry
     }
     public class LocaleProperty : ShaderProperty
     {
-        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine)
+        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
             drawDefault = true;
         }

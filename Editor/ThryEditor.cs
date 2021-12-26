@@ -10,7 +10,6 @@ using Thry;
 using System;
 using System.Reflection;
 using System.Linq;
-using System.Threading;
 using Thry.ThryEditor;
 
 namespace Thry
@@ -34,7 +33,6 @@ namespace Thry
         public bool show_search_bar;
         private string entered_search_term = "";
         private string applied_search_term = "";
-        private bool show_eyeIcon_tutorial = false;
 
         // shader specified values
         private ShaderHeaderProperty shaderHeader = null;
@@ -86,13 +84,7 @@ namespace Thry
         private Dictionary<string, string> LoadDisplayNamesFromFile()
         {
             //load display names from file if it exists
-            MaterialProperty label_file_property = null;
-            foreach (MaterialProperty m in properties)
-                if (m.name == PROPERTY_NAME_LABEL_FILE)
-                {
-                    label_file_property = m;
-                    break;
-                }
+            MaterialProperty label_file_property = GetMaterialProperty(PROPERTY_NAME_LABEL_FILE);
             Dictionary<string, string> labels = new Dictionary<string, string>();
             if (label_file_property != null)
             {
@@ -119,6 +111,7 @@ namespace Thry
             {
                 string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
                 displayName = parts[0];
+                parts[1].Replace("''", "\"");
                 PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
                 if (options != null)
                 {
@@ -149,37 +142,36 @@ namespace Thry
             if (DrawingData.lastPropertyDrawerType == DrawerType.Header)
                 return (DrawingData.lastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
 
-            if (name == PROPERTY_NAME_MASTER_LABEL)
-                return ThryPropertyType.master_label;
-            if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS)
-                return ThryPropertyType.on_swap_to;
-            if (name == PROPERTY_NAME_SHADER_VERSION)
-                return ThryPropertyType.shader_version;
-
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
-                if (name.StartsWith("m_start"))
+                if (name == PROPERTY_NAME_MASTER_LABEL)
+                    return ThryPropertyType.master_label;
+                if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS)
+                    return ThryPropertyType.on_swap_to;
+                if (name == PROPERTY_NAME_SHADER_VERSION)
+                    return ThryPropertyType.shader_version;
+
+                if (name.StartsWith("m_start", StringComparison.Ordinal))
                     return ThryPropertyType.legacy_header_start;
-                if (name.StartsWith("m_end"))
+                if (name.StartsWith("m_end", StringComparison.Ordinal))
                     return ThryPropertyType.legacy_header_end;
-                if (name.StartsWith("m_"))
+                if (name.StartsWith("m_", StringComparison.Ordinal))
                     return ThryPropertyType.legacy_header;
-                if (name.StartsWith("g_start"))
+                if (name.StartsWith("g_start", StringComparison.Ordinal))
                     return ThryPropertyType.group_start;
-                if (name.StartsWith("g_end"))
+                if (name.StartsWith("g_end", StringComparison.Ordinal))
                     return ThryPropertyType.group_end;
-                if (name.StartsWith("footer_"))
+                if (name.StartsWith("footer_", StringComparison.Ordinal))
                     return ThryPropertyType.footer;
-                string noWhiteSpaces = name.Replace(" ", "");
-                if (noWhiteSpaces == "Instancing")
+                if (name == "Instancing")
                     return ThryPropertyType.instancing;
-                if (noWhiteSpaces == "DSGI")
+                if (name == "DSGI")
                     return ThryPropertyType.dsgi;
-                if (noWhiteSpaces == "LightmapFlags")
+                if (name == "LightmapFlags")
                     return ThryPropertyType.lightmap_flags;
-                if (noWhiteSpaces == PROPERTY_NAME_LOCALE)
+                if (name == PROPERTY_NAME_LOCALE)
                     return ThryPropertyType.locale;
-                if (Regex.Match(name.ToLower(), @"^space\d*$").Success)
+                if (name.StartsWith("space"))
                     return ThryPropertyType.space;
             }
             else if(flags.HasFlag(MaterialProperty.PropFlags.HideInInspector) == false)
@@ -194,14 +186,8 @@ namespace Thry
 
         private void LoadLocales()
         {
-            MaterialProperty locales_property = null;
+            MaterialProperty locales_property = GetMaterialProperty(PROPERTY_NAME_LOCALE);
             locale = null;
-            foreach (MaterialProperty m in properties) 
-                if (m.name == PROPERTY_NAME_LOCALE)
-                {
-                    locales_property = m;
-                    break;
-                }
             if (locales_property != null)
             {
                 string displayName = locales_property.displayName;
@@ -230,9 +216,6 @@ namespace Thry
 
             for (int i = 0; i < props.Length; i++)
             {
-                DrawingData.ResetLastDrawerData();
-                editor.GetPropertyHeight(props[i]);
-
                 string displayName = props[i].displayName;
 
                 //Load from label file
@@ -241,25 +224,21 @@ namespace Thry
                 //Check for locale
                 if (locale != null)
                 {
-                    if (displayName.Contains("locale::"))
+                    if (displayName.StartsWith("locale::", StringComparison.Ordinal))
                     {
-                        Match m = Regex.Match(displayName, @"locale::(\d\w)+d");
-                        if (m.Success)
+                        if (locale.Constains(displayName))
                         {
-                            string key = m.Value.Substring(8, m.Value.Length - 8);
-                            if (locale.Constains(key))
-                            {
-                                displayName = displayName.Replace("locale::" + locale.Get(key), "");
-                            }
+                            displayName = locale.Get(displayName);
                         }
                     }
                 }
-                displayName = displayName.Replace("''", "\"");
-
                 //extract json data from display name
                 PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
                 int offset = options.offset + headerCount;
+
+                DrawingData.ResetLastDrawerData();
+                editor.GetPropertyHeight(props[i]);
 
                 ThryPropertyType type = GetPropertyType(props[i], options);
                 switch (type)
@@ -296,7 +275,6 @@ namespace Thry
                     case ThryPropertyType.headerWithEnd:
                     case ThryPropertyType.legacy_header:
                     case ThryPropertyType.legacy_header_start:
-                        if (options.is_hideable) show_HeaderHider = true;
                         ShaderHeader newHeader = new ShaderHeader(this, props[i], editor, displayName, offset, options);
                         headerStack.Peek().addPart(newHeader);
                         headerStack.Push(newHeader);
@@ -313,12 +291,10 @@ namespace Thry
                         break;
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
-
-                        bool forceOneLine = props[i].type == MaterialProperty.PropType.Vector && !DrawingData.lastPropertyUsedCustomDrawer;
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer);
+                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer, i);
                         else
-                            NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, forceOneLine);
+                            NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, false, i);
                         break;
                     case ThryPropertyType.lightmap_flags:
                         NewProperty = new GIProperty(this, props[i], displayName, offset, options, false);
@@ -346,7 +322,6 @@ namespace Thry
                     if (propertyDictionary.ContainsKey(props[i].name))
                         continue;
                     propertyDictionary.Add(props[i].name, NewProperty);
-                    //Debug.Log(NewProperty.materialProperty.name + ":" + headerStack.Count);
                     if (type != ThryPropertyType.none)
                         headerStack.Peek().addPart(NewProperty);
                 }
@@ -359,18 +334,8 @@ namespace Thry
                 if (newPart != null)
                 {
                     shaderParts.Add(newPart);
-
-                    DrawingData.lastInitiatedPart = newPart;
-                    editor.GetPropertyHeight(props[i]);
-                    DrawingData.lastInitiatedPart = null;
                 }
             }
-        }
-
-        private MaterialProperty FindProperty(string name)
-        {
-            return System.Array.Find(properties,
-                           element => element.name == name);
         }
 
 
@@ -425,8 +390,6 @@ namespace Thry
         public void InitlizeThryUI()
         {
             Config config = Config.Singleton;
-
-            show_eyeIcon_tutorial = !EditorPrefs.GetBool("thry_openeEyeIcon", false);
             active = this;
 
             //get material targets
