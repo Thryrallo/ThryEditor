@@ -53,7 +53,7 @@ namespace Thry
                 //draw dropdown triangle
                 thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
-                if (GUI.Button(thumbnailPos, "", Styles.none)) { }
+                if (GUI.Button(thumbnailPos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
                     EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
 
@@ -433,14 +433,6 @@ namespace Thry
         {
             Rect rect = new Rect(0, parent.y, parent.width, 18);
             EditorGUI.LabelField(rect, "<size=16>" + shaderName + "</size>", Styles.masterLabel);
-        }
-
-        public static void DrawNotificationBox(Rect position, int width, int height, string text)
-        {
-            Rect box_position = new Rect(position.x- width + position.width, position.y + position.height + 50, width,height);
-            Rect arrow_position = new Rect(position.x - 25, position.y + position.height, 50, 50);
-            GUI.DrawTexture(arrow_position, Styles.t_arrow, ScaleMode.ScaleToFit, true, 0, Color.red, 0, 0);
-            GUI.Box(box_position, text, Styles.notification_style);
         }
 
         public static float CurrentIndentWidth()
@@ -919,157 +911,6 @@ namespace Thry
                 this.Toggle();
                 ShaderEditor.input.Use();
             }
-        }
-    }
-
-    public class HeaderHider{
-
-        public enum HeaderHidingType
-        {
-            simple = 1,
-            show_all = 2,
-            custom=3
-        }
-
-        private static Dictionary<string,bool> headerHiddenSaved;
-        public static HeaderHidingType state { get; private set; }
-        private static void LoadHiddenHeaderNames()
-        {
-            string data = PersistentData.Get("HiddenHeaderNames");
-            if (data == null)
-                headerHiddenSaved = new Dictionary<string, bool>();
-            else
-                headerHiddenSaved = Parser.Deserialize<Dictionary<string, bool>>(data);
-            data = PersistentData.Get("HeaderHiderState");
-            if (data == null)
-                state = HeaderHidingType.simple;
-            else
-                state = (HeaderHidingType)Enum.Parse(typeof(HeaderHidingType),data);
-        }
-
-        public static bool InitHidden(ShaderHeader header)
-        {
-            if (headerHiddenSaved == null)
-                LoadHiddenHeaderNames();
-            if (header.options.is_hideable == false)
-                return false;
-            bool is_hidden = false;
-            if (headerHiddenSaved.ContainsKey(header.materialProperty.name))
-                is_hidden =  headerHiddenSaved[header.materialProperty.name];
-            else
-                headerHiddenSaved[header.materialProperty.name] = is_hidden;
-            header.is_hidden = is_hidden;
-            return is_hidden;
-        }
-
-        public static void SetHidden(ShaderHeader header, bool set_hidden, bool save=true)
-        {
-            bool contains = headerHiddenSaved.ContainsKey(header.materialProperty.name);
-            if (!contains || (contains && headerHiddenSaved[header.materialProperty.name] != set_hidden))
-            {
-                headerHiddenSaved[header.materialProperty.name] = set_hidden;
-                header.is_hidden = set_hidden;
-                if(save)
-                    PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
-            }
-            UpdateValues();
-        }
-        public static void SetHidden(List<ShaderPart> parts, bool set_hidden)
-        {
-            foreach (ShaderPart part in parts)
-            {
-                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
-                {
-                    SetHidden((ShaderHeader)part, set_hidden, false);
-                }
-            }
-            PersistentData.Set("HiddenHeaderNames", Parser.Serialize(headerHiddenSaved));
-            UpdateValues();
-        }
-
-        private static void UpdateValues()
-        {
-            foreach (ShaderPart part in ShaderEditor.active.shaderParts)
-            {
-                if (part.options.is_hideable == false)
-                    continue;
-                bool is_hidden = part.is_hidden;
-            }
-        }
-
-        private static void SetType(HeaderHidingType newstate)
-        {
-            state = newstate;
-            PersistentData.Set("HeaderHiderState", state.ToString());
-        }
-
-        public static bool IsHeaderHidden(ShaderPart header)
-        {
-            return header.options.is_hideable && ((header.is_hidden && state == HeaderHidingType.custom) || (state == HeaderHidingType.simple && !header.options.is_visible_simple));
-        }
-
-        public static void HeaderHiderGUI(ShaderEditor editor)
-        {
-            EditorGUILayout.BeginHorizontal(Styles.style_toolbar);
-            if (GUILayout.Button("Simple", Styles.style_toolbar_toggle(state == HeaderHidingType.simple)))
-                SetType(HeaderHidingType.simple);
-            if (GUILayout.Button("Show All", Styles.style_toolbar_toggle(state == HeaderHidingType.show_all)))
-                SetType(HeaderHidingType.show_all);
-            Rect right = GUILayoutUtility.GetRect(10, 20);
-            Rect arrow = new Rect(right.x + right.width - 20, right.y, 20, 20);
-            if (GUI.Button(arrow, Styles.icon_style_menu.normal.background, EditorStyles.largeLabel))
-                DrawHeaderHiderMenu(arrow, editor.shaderParts);
-            if (GUI.Button(right, "Custom", Styles.style_toolbar_toggle(state == HeaderHidingType.custom)))
-                SetType(HeaderHidingType.custom);
-
-            GUI.Button(arrow, Styles.icon_style_menu.normal.background, EditorStyles.largeLabel);
-
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.Space();
-        }
-
-        public static void DrawHeaderHiderMenu(Rect position, List<ShaderPart> shaderParts)
-        {
-            position.y -= 5;
-            position.width = 150;
-            position.x = Mathf.Min(Screen.width - position.width, position.x);
-            position.height = 60;
-            float maxY = GUIUtility.ScreenToGUIPoint(new Vector2(0, EditorWindow.focusedWindow.position.y + Screen.height)).y - 2.5f * position.height;
-            position.y = Mathf.Min(position.y - position.height / 2, maxY);
-
-            var menu = new GenericMenu();
-
-            bool allHidden = true;
-            bool allShown = true;
-            foreach (ShaderPart part in shaderParts)
-            {
-                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
-                {
-                    if (part.is_hidden)
-                        allShown = false;
-                    else
-                        allHidden = false;
-                }
-            }
-            menu.AddItem(new GUIContent("Everything"), allShown, delegate ()
-            {
-                SetHidden(shaderParts, false);
-            });
-            menu.AddItem(new GUIContent("Nothing"), allHidden, delegate ()
-            {
-                SetHidden(shaderParts, true);
-            });
-            foreach (ShaderPart part in shaderParts)
-            {
-                if (part.GetType() == typeof(ShaderHeader) && part.options.is_hideable)
-                {
-                    menu.AddItem(new GUIContent(part.content.text), !part.is_hidden, delegate ()
-                    {
-                        SetHidden((ShaderHeader)part, !part.is_hidden);
-                    });
-                }
-            }
-            menu.DropDown(position);
         }
     }
 }

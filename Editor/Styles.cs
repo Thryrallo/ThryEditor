@@ -46,36 +46,6 @@ namespace Thry
 
         public static GUIStyle style_toggle_left_richtext { get; private set; } = new GUIStyle(EditorStyles.label) { richText = true };
 
-        public static GUIStyle none { get; private set; } = new GUIStyle();
-
-        public static GUIStyle style_toolbar { get; private set; } = new GUIStyle(Styles.dropDownHeader) { };
-        public static GUIStyle style_toolbar_toggle_active { get; private set; } = new GUIStyle(Styles.dropDownHeader) { normal = new GUIStyleState() {
-            background = OverrideTextureWithColor(Styles.dropDownHeader.normal.background, COLOR_BACKGROUND_2)
-        }, contentOffset = new Vector2(0, -2), alignment = TextAnchor.MiddleCenter };
-        public static GUIStyle style_toolbar_toggle_unactive { get; private set; } = new GUIStyle(Styles.dropDownHeader) { alignment = TextAnchor.MiddleCenter, contentOffset = new Vector2(0, -2) };
-        public static GUIStyle style_toolbar_toggle(bool active)
-        {
-            //hack fix. for some people bg texture seems to dissapear, i cant figure out why, so ill just check here and set it if it's gone
-            if (active)
-            {
-                if (style_toolbar_toggle_active.normal.background == null)
-                {
-                    style_toolbar_toggle_active = new GUIStyle(Styles.dropDownHeader)
-                    {
-                        contentOffset = new Vector2(0, -2),
-                        alignment = TextAnchor.MiddleCenter,
-                        normal = new GUIStyleState()
-                        {
-                            textColor = Color.white,
-                            background = OverrideTextureWithColor(Styles.dropDownHeader.normal.background, COLOR_BACKGROUND_2)
-                        }
-                    };
-                }
-                return style_toolbar_toggle_active;
-            }
-            return style_toolbar_toggle_unactive;
-        }
-
         public static GUIStyle icon_style_help = CreateIconStyle(EditorGUIUtility.IconContent("_Help"));
         public static GUIStyle icon_style_menu = CreateIconStyle(EditorGUIUtility.IconContent("_Menu"));
         public static GUIStyle icon_style_settings = CreateIconStyle(EditorGUIUtility.IconContent("_Popup"));
@@ -101,8 +71,6 @@ namespace Thry
             };
         }
 
-        public static Texture2D t_arrow { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.TEXTURE_ARROW);
-
         public static Texture2D rounded_texture { get; private set; } = LoadTextureByFileName(RESOURCE_NAME.RECT);
 
         private static Texture2D LoadTextureByFileName(string search_name)
@@ -113,29 +81,6 @@ namespace Thry
                 tex = Texture2D.whiteTexture;
             else
                 tex = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
-            return tex;
-        }
-
-        private static Texture2D CreateColorTexture(Color color)
-        {
-            Texture2D tex = new Texture2D(1, 1);
-            tex.SetPixel(0, 0, color);
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D OverrideTextureWithColor(Texture2D ogtex, Color color)
-        {
-            Texture2D tex = TextureHelper.GetReadableTexture(ogtex);
-            for (int x = 0; x < tex.width; x++)
-            {
-                for (int y = 0; y < tex.height; y++)
-                {
-                    color.a = tex.GetPixel(x, y).a;
-                    tex.SetPixel(x, y, color);
-                }
-            }
-            tex.Apply();
             return tex;
         }
     }

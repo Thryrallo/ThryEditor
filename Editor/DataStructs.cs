@@ -50,7 +50,6 @@ namespace Thry
     public class RESOURCE_NAME
     {
         public const string RECT = "thry_rect";
-        public const string TEXTURE_ARROW = "thry_arrow";
         public const string ICON_NAME_LINK = "thryEditor_link";
     }
 

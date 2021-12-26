@@ -299,7 +299,6 @@ namespace Thry
                         ShaderHeader newHeader = new ShaderHeader(this, props[i], editor, displayName, offset, options);
                         headerStack.Peek().addPart(newHeader);
                         headerStack.Push(newHeader);
-                        HeaderHider.InitHidden(newHeader);
                         newPart = newHeader;
                         break;
                     case ThryPropertyType.group_start:
@@ -525,7 +524,6 @@ namespace Thry
 
             GUITopBar();
             GUISearchBar();
-            GUIComplexity();
             Presets.PresetGUI(this);
 
             //Optimizer is now drawn wherever the property is. might change back later
@@ -604,15 +602,6 @@ namespace Thry
                 {
                     UpdateSearch(mainHeader);
                 }
-            }
-        }
-
-        private void GUIComplexity()
-        {
-            //Visibility menu
-            if (show_HeaderHider)
-            {
-                HeaderHider.HeaderHiderGUI(active);
             }
         }
 

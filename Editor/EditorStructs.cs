@@ -162,8 +162,6 @@ namespace Thry
         {
             if (ShaderEditor.active.show_search_bar && !has_searchedFor)
                 return;
-            if (HeaderHider.IsHeaderHidden(this))
-                return;
             bool addDisableGroup = options.condition_enable != null && DrawingData.is_enabled;
             if (addDisableGroup)
             {
