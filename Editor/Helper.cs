@@ -952,6 +952,8 @@ namespace Thry
 
         public static Texture2D GradientToTexture(Gradient gradient, int width, int height)
         {
+            width = Mathf.Max(0, Mathf.Min(8192, width));
+            height = Mathf.Max(0, Mathf.Min(8192, height));
             Texture2D texture = new Texture2D(width, height);
             for (int x = 0; x < width; x++)
             {
