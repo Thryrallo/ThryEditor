@@ -12,6 +12,8 @@ namespace Thry.ThryEditor
         const string TAG_POSTFIX_IS_PRESET = "_isPreset";
         const string TAG_PRESET_NAME = "presetName";
 
+        static Dictionary<Material, (Material, Material)> appliedPresets = new Dictionary<Material, (Material, Material)>();
+
         static string[] p_presetNames;
         static Material[] p_presetMaterials;
         static string[] presetNames { get
@@ -41,27 +43,50 @@ namespace Thry.ThryEditor
         {
             if (shaderEditor._isPresetEditor)
             {
-                EditorGUILayout.LabelField("This material is a preset.", Styles.greenStyle);
+                EditorGUILayout.LabelField(Locale.editor.Get("preset_material_notify"), Styles.greenStyle);
                 string name = shaderEditor.materials[0].GetTag(TAG_PRESET_NAME, false, "");
                 EditorGUI.BeginChangeCheck();
-                name = EditorGUILayout.TextField("Preset Name", name);
+                name = EditorGUILayout.TextField(Locale.editor.Get("preset_name"), name);
                 if (EditorGUI.EndChangeCheck())
                 {
                     shaderEditor.materials[0].SetOverrideTag(TAG_PRESET_NAME, name);
                     p_presetNames = null;
                 }
             }
+            if (appliedPresets.ContainsKey(shaderEditor.materials[0]))
+            {
+                if(GUILayout.Button(Locale.editor.Get("preset_revert")+appliedPresets[shaderEditor.materials[0]].Item1.name))
+                {
+                    Revert(shaderEditor);
+                }
+            }
         }
 
         static void Apply(Material preset, ShaderEditor shaderEditor)
         {
-            foreach(ShaderPart prop in shaderEditor.shaderParts)
+            appliedPresets[shaderEditor.materials[0]] = (preset, new Material(shaderEditor.materials[0]));
+            foreach (ShaderPart prop in shaderEditor.shaderParts)
             {
                 if (IsPreset(preset, prop.materialProperty))
                 {
                     prop.CopyFromMaterial(preset);
                 }
             }
+        }
+
+        static void Revert(ShaderEditor shaderEditor)
+        {
+            Material key = shaderEditor.materials[0];
+            Material preset = appliedPresets[key].Item1;
+            Material prePreset = appliedPresets[key].Item2;
+            foreach (ShaderPart prop in shaderEditor.shaderParts)
+            {
+                if (IsPreset(preset, prop.materialProperty))
+                {
+                    prop.CopyFromMaterial(prePreset);
+                }
+            }
+            appliedPresets.Remove(key);
         }
 
         public static void SetProperty(Material m, MaterialProperty prop, bool value)

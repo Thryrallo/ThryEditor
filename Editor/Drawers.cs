@@ -672,7 +672,7 @@ namespace Thry
             if (shaderOptimizer.hasMixedValue)
             {
                 EditorGUI.BeginChangeCheck();
-                GUILayout.Button("Lock in Optimized Shaders (" + materialEditor.targets.Length + " materials)");
+                GUILayout.Button(Locale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
@@ -688,10 +688,10 @@ namespace Thry
                 if (shaderOptimizer.floatValue == 0)
                 {
                     if (materialEditor.targets.Length == 1)
-                        GUILayout.Button("Lock In Optimized Shader");
-                    else GUILayout.Button("Lock in Optimized Shaders (" + materialEditor.targets.Length + " materials)");
+                        GUILayout.Button(Locale.editor.Get("lockin_button_single"));
+                    else GUILayout.Button(Locale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
-                else GUILayout.Button("Unlock Shader");
+                else GUILayout.Button(Locale.editor.Get("unlock_button"));
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
