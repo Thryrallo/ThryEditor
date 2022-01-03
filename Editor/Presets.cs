@@ -113,7 +113,8 @@ namespace Thry.ThryEditor
         [MenuItem("Assets/Thry/Mark as preset")]
         static void MarkAsPreset()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
+            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
+                Where(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material)).Select(p => AssetDatabase.LoadAssetAtPath<Material>(p));
             foreach (Material m in mats)
             {
                 m.SetOverrideTag(TAG_IS_PRESET, "true");
@@ -125,14 +126,15 @@ namespace Thry.ThryEditor
         [MenuItem("Assets/Thry/Mark as preset", true)]
         static bool MarkAsPresetValid()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            return mats.Count() > 0 && mats.All(m => m.GetTag(TAG_IS_PRESET, false, "false") != "true");
+            return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
+                All(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material));
         }
 
         [MenuItem("Assets/Thry/Remove as preset")]
         static void RemoveAsPreset()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
+            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
+                Where(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material)).Select(p => AssetDatabase.LoadAssetAtPath<Material>(p));
             foreach (Material m in mats)
             {
                 m.SetOverrideTag(TAG_IS_PRESET, "");
@@ -143,8 +145,8 @@ namespace Thry.ThryEditor
         [MenuItem("Assets/Thry/Remove as preset", true)]
         static bool RemoveAsPresetValid()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            return mats.Count() > 0 && mats.All(m => m.GetTag(TAG_IS_PRESET, false, "false") == "true");
+            return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
+                All(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material));
         }
     }
 }
