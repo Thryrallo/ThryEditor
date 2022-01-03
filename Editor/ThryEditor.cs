@@ -26,7 +26,7 @@ namespace Thry
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
 
         // Stores the different shader properties
-        private ShaderHeader mainHeader;
+        public ShaderGroup mainGroup;
 
         // UI Instance Variables
 
@@ -207,10 +207,10 @@ namespace Thry
 
             propertyDictionary = new Dictionary<string, ShaderProperty>();
             shaderParts = new List<ShaderPart>();
-            mainHeader = new ShaderHeader(this); //init top object that all Shader Objects are childs of
+            mainGroup = new ShaderGroup(this); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
-            headerStack.Push(mainHeader); //add top object as top object to stack
-            headerStack.Push(mainHeader); //add top object a second time, because it get's popped with first actual header item
+            headerStack.Push(mainGroup); //add top object as top object to stack
+            headerStack.Push(mainGroup); //add top object a second time, because it get's popped with first actual header item
             footers = new List<FooterButton>(); //init footer list
             int headerCount = 0;
 
@@ -491,7 +491,7 @@ namespace Thry
             Presets.PresetEditorGUI(this);
 
             //PROPERTIES
-            foreach (ShaderPart part in mainHeader.parts)
+            foreach (ShaderPart part in mainGroup.parts)
             {
                 part.Draw();
             }
@@ -567,7 +567,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     applied_search_term = entered_search_term.ToLower();
-                    UpdateSearch(mainHeader);
+                    UpdateSearch(mainGroup);
                 }
             }
         }
@@ -643,7 +643,7 @@ namespace Thry
         private void ClearSearch()
         {
             applied_search_term = "";
-            UpdateSearch(mainHeader);
+            UpdateSearch(mainGroup);
         }
 
         private void HandleReset()

@@ -140,7 +140,7 @@ namespace Thry
             (ShaderEditor.active.propertyDictionary[prop.name] as ShaderProperty).keyword = keyword;
 
             EditorGUI.BeginChangeCheck();
-
+            
             bool value = (Math.Abs(prop.floatValue) > 0.001f);
             EditorGUI.showMixedValue = prop.hasMixedValue;
             if(left) value = EditorGUI.ToggleLeft(position, label, value, Styles.style_toggle_left_richtext);
