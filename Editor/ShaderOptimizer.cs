@@ -332,6 +332,14 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "");
         }
 
+        public static string GetAnimPropertySuffix(Material m)
+        {
+            //string lower = m.name.Trim().ToLower();
+            //string s = new string(lower.Where(char.IsLetter).ToArray());
+            //if(s.Length == 0) s = lower.to
+            return m.name.Trim().ToLower();
+        }
+
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
@@ -345,7 +353,7 @@ namespace Thry
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + smallguid + "/";
 
             // suffix for animated properties when renaming is enabled
-            string animPropertySuffix = new string(material.name.Trim().ToLower().Where(char.IsLetter).ToArray());
+            string animPropertySuffix = GetAnimPropertySuffix(material);
 
             // Get collection of all properties to replace
             // Simultaneously build a string of #defines for each CGPROGRAM

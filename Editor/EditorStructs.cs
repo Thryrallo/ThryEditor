@@ -143,6 +143,7 @@ namespace Thry
                 this.is_animatable = true;
             }
             
+            
             this.is_animated = is_animatable && tag != "";
             this.is_renaming = is_animatable && tag == "2";
         }

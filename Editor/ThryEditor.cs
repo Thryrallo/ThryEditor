@@ -397,7 +397,7 @@ namespace Thry
 
             shader = materials[0].shader;
 
-            animPropertySuffix = new string(materials[0].name.Trim().ToLower().Where(char.IsLetter).ToArray());
+            animPropertySuffix = ShaderOptimizer.GetAnimPropertySuffix(materials[0]);
 
             _isPresetEditor = materials.Length == 1 && Presets.ArePreset(materials);
 
