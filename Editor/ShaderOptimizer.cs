@@ -334,10 +334,7 @@ namespace Thry
 
         public static string GetAnimPropertySuffix(Material m)
         {
-            //string lower = m.name.Trim().ToLower();
-            //string s = new string(lower.Where(char.IsLetter).ToArray());
-            //if(s.Length == 0) s = lower.to
-            return m.name.Trim().ToLower();
+            return Regex.Replace(m.name.Trim().ToLower(), @"[^0-9a-zA-Z_-]+", string.Empty); ;
         }
 
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
