@@ -347,10 +347,10 @@ namespace Thry
             string shaderFilePath = AssetDatabase.GetAssetPath(shader);
             string materialFilePath = AssetDatabase.GetAssetPath(material);
             string materialFolder = Path.GetDirectoryName(materialFilePath);
-            string smallguid = material.name;
-            string newShaderName = "Hidden/Locked/" + shader.name + "/" + material.name + "-" + smallguid;
+            string guid = AssetDatabase.AssetPathToGUID(materialFilePath);
+            string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid;
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
-            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + smallguid + "/";
+            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "/";
 
             // suffix for animated properties when renaming is enabled
             string animPropertySuffix = GetAnimPropertySuffix(material);
@@ -744,7 +744,7 @@ namespace Thry
             ApplyStruct applyStruct = new ApplyStruct();
             applyStruct.material = material;
             applyStruct.shader = shader;
-            applyStruct.smallguid = smallguid;
+            applyStruct.smallguid = guid;
             applyStruct.newShaderName = newShaderName;
             applyStruct.animatedPropsToRename = animatedPropsToRename;
             applyStruct.animatedPropsToDuplicate = animatedPropsToDuplicate;
