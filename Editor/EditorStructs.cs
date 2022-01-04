@@ -420,12 +420,12 @@ namespace Thry
 
     public class ShaderProperty : ShaderPart
     {
-        public bool drawDefault;
-
         public float setFloat;
         public bool updateFloat;
 
-        public bool forceOneLine = false;
+        public bool doCustomDrawLogic = false;
+        public bool doForceIntoOneLine = false;
+        public bool doDrawTwoFields = false;
 
         private int property_index = 0;
 
@@ -433,14 +433,15 @@ namespace Thry
 
         public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, options)
         {
-            drawDefault = false;
+            this.doCustomDrawLogic = false;
+            this.doForceIntoOneLine = forceOneLine;
 
-            //Force one line test
-            this.forceOneLine = forceOneLine;
             if (materialProperty.type == MaterialProperty.PropType.Vector && forceOneLine == false)
             {
-                forceOneLine = !DrawingData.lastPropertyUsedCustomDrawer;
+                this.doForceIntoOneLine = !DrawingData.lastPropertyUsedCustomDrawer;
             }
+
+            this.doDrawTwoFields = options.reference_property != null;
 
             this.property_index = property_index;
         }
@@ -488,18 +489,35 @@ namespace Thry
             if (!useEditorIndent)
                 EditorGUI.indentLevel = xOffset + 1;
 
-            if (drawDefault)
+            if (doCustomDrawLogic)
+            {
                 DrawDefault();
+            }
+            else if (doDrawTwoFields)
+            {
+                Rect r = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
+                float labelWidth = (r.width - EditorGUIUtility.labelWidth) / 2; ;
+                r.width -= labelWidth;
+                shaderEditor.editor.ShaderProperty(r, this.materialProperty, content);
+
+                r.x += r.width;
+                r.width = labelWidth;
+                float prevLabelW = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 0;
+                shaderEditor.propertyDictionary[options.reference_property].Draw(new CRect(r), new GUIContent());
+                EditorGUIUtility.labelWidth = prevLabelW;
+            }
+            else if (doForceIntoOneLine)
+            {
+                shaderEditor.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
+            }
+            else if (rect != null)
+            {
+                shaderEditor.editor.ShaderProperty(rect.r, this.materialProperty, content);
+            }
             else
             {
-                //shaderEditor.gui.BeginAnimatedCheck(materialProperty);
-                if (forceOneLine)
-                    shaderEditor.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
-                else if (rect != null)
-                    shaderEditor.editor.ShaderProperty(rect.r, this.materialProperty, content);
-                else
-                    shaderEditor.editor.ShaderProperty(this.materialProperty, content);
-                //shaderEditor.gui.EndAnimatedCheck();
+                shaderEditor.editor.ShaderProperty(this.materialProperty, content);
             }
 
             EditorGUI.indentLevel = oldIndentLevel;
@@ -533,7 +551,7 @@ namespace Thry
 
         public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, options, false, property_index)
         {
-            drawDefault = forceThryUI;
+            doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
             this.hasFoldoutProperties = hasScaleOffset || reference_properties_exist;
         }
@@ -657,7 +675,7 @@ namespace Thry
     {
         public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
-            drawDefault = true;
+            doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
@@ -669,7 +687,7 @@ namespace Thry
     {
         public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
-            drawDefault = true;
+            doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
@@ -741,7 +759,7 @@ namespace Thry
     {
         public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
-            drawDefault = true;
+            doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
@@ -753,7 +771,7 @@ namespace Thry
     {
         public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
         {
-            drawDefault = true;
+            doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
