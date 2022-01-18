@@ -290,11 +290,15 @@ namespace Thry
         {
             Rect texturePosition = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, position.height);
             Rect buttonPosition = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - position.x, position.height);
-            if(GUI.Button(buttonPosition, "Flood Tool"))
+            LoadType();
+            if (_doesGradientFloodTypeExist)
             {
-                ShaderEditor.input.Use();
-                Init();
-                _showGui = !_showGui;
+                if (GUI.Button(buttonPosition, "Flood Tool"))
+                {
+                    ShaderEditor.input.Use();
+                    Init();
+                    _showGui = !_showGui;
+                }
             }
             if (_showGui && _hasGradientFoolTool)
             {
@@ -304,26 +308,31 @@ namespace Thry
             GuiHelper.drawSmallTextureProperty(texturePosition, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
         }
 
+        static Type t_gradientFlood;
+        bool _isTypeLoaded;
+        bool _doesGradientFloodTypeExist;
+        public void LoadType()
+        {
+            if (_isTypeLoaded) return;
+            Assembly asem = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName == "Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null").FirstOrDefault();
+            if (asem != null)
+            {
+                t_gradientFlood = asem.GetType("DreadScripts.GradientFlood");
+                _doesGradientFloodTypeExist = t_gradientFlood != null;
+            }
+            _isTypeLoaded = true;
+        }
+
         bool _isInit;
         public void Init()
         {
             if (_isInit) return;
-            Assembly asem = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName == "Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null").FirstOrDefault();
-            if (asem != null)
+            if (_isTypeLoaded && _doesGradientFloodTypeExist)
             {
-                Type t = asem.GetType("DreadScripts.GradientFlood");
-                if (t != null)
-                {
-                    _onGui = t.GetMethod("OnGUI", BindingFlags.NonPublic | BindingFlags.Instance);
-                    //_gradientFloodObject = t.GetConstructors()[0].Invoke(new object[0]);
-                    _gradientFloodObject = ScriptableObject.CreateInstance(t);
-                    t.GetEvent("GradientTextureGenerated").AddEventHandler(_gradientFloodObject, new EventHandler(GradientTextureGenerated));
-                    _hasGradientFoolTool = true;
-                }
-                else
-                {
-                    Debug.LogWarning("[Thry] DreadScripts.GradientFlood could not be found in your project.");
-                }
+                _onGui = t_gradientFlood.GetMethod("OnGUI", BindingFlags.NonPublic | BindingFlags.Instance);
+                _gradientFloodObject = ScriptableObject.CreateInstance(t_gradientFlood);
+                t_gradientFlood.GetEvent("GradientTextureGenerated").AddEventHandler(_gradientFloodObject, new EventHandler(GradientTextureGenerated));
+                _hasGradientFoolTool = true;
             }
             _isInit = true;
         }
