@@ -278,6 +278,69 @@ namespace Thry
         }
     }
 
+    public class DreadGradientFloodDrawer : MaterialPropertyDrawer
+    {
+        bool _hasGradientFoolTool;
+        MethodInfo _onGui;
+        object _gradientFloodObject;
+        bool _showGui;
+        MaterialProperty prop;
+
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            Rect texturePosition = new Rect(position.x, position.y, EditorGUIUtility.labelWidth, position.height);
+            Rect buttonPosition = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - position.x, position.height);
+            if(GUI.Button(buttonPosition, "Flood Tool"))
+            {
+                ShaderEditor.input.Use();
+                Init();
+                _showGui = !_showGui;
+            }
+            if (_showGui && _hasGradientFoolTool)
+            {
+                this.prop = prop;
+                _onGui.Invoke(_gradientFloodObject, new object[0]);
+            }
+            GuiHelper.drawSmallTextureProperty(texturePosition, prop, label, editor, DrawingData.currentTexProperty.hasFoldoutProperties);
+        }
+
+        bool _isInit;
+        public void Init()
+        {
+            if (_isInit) return;
+            Assembly asem = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName == "Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null").FirstOrDefault();
+            if (asem != null)
+            {
+                Type t = asem.GetType("DreadScripts.GradientFlood");
+                if (t != null)
+                {
+                    _onGui = t.GetMethod("OnGUI", BindingFlags.NonPublic | BindingFlags.Instance);
+                    //_gradientFloodObject = t.GetConstructors()[0].Invoke(new object[0]);
+                    _gradientFloodObject = ScriptableObject.CreateInstance(t);
+                    t.GetEvent("GradientTextureGenerated").AddEventHandler(_gradientFloodObject, new EventHandler(GradientTextureGenerated));
+                    _hasGradientFoolTool = true;
+                }
+                else
+                {
+                    Debug.LogWarning("[Thry] DreadScripts.GradientFlood could not be found in your project.");
+                }
+            }
+            _isInit = true;
+        }
+
+        void GradientTextureGenerated(object sender, EventArgs args)
+        {
+            Texture2D generated = args.GetType().GetField("generated_texture").GetValue(args) as Texture2D;
+            prop.textureValue = generated;
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
     public class GradientDrawer : MaterialPropertyDrawer
     {
        GradientData data;
