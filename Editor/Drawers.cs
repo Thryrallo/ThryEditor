@@ -659,11 +659,13 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            return size + 6f;
+            GUILayoutUtility.GetRect(100, size + 6);
+            return size + 6;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
         {
+            float offst = position.height;
             position = EditorGUI.IndentedRect(position);
             GUI.Label(position, text, style);
         }
