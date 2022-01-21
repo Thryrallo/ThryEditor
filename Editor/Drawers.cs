@@ -278,13 +278,22 @@ namespace Thry
         }
     }
 
-    public class DreadGradientFloodDrawer : MaterialPropertyDrawer
+    public class ThryExternalTextureToolDrawer : MaterialPropertyDrawer
     {
         bool _hasGradientFoolTool;
         MethodInfo _onGui;
         object _gradientFloodObject;
         bool _showGui;
         MaterialProperty prop;
+
+        string buttonText;
+        string toolTypeName;
+
+        public ThryExternalTextureToolDrawer(string buttonText, string toolTypeName)
+        {
+            this.buttonText = buttonText;
+            this.toolTypeName = toolTypeName;
+        }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
@@ -293,7 +302,7 @@ namespace Thry
             LoadType();
             if (_doesGradientFloodTypeExist)
             {
-                if (GUI.Button(buttonPosition, "Flood Tool"))
+                if (GUI.Button(buttonPosition, buttonText))
                 {
                     ShaderEditor.input.Use();
                     Init();
@@ -314,12 +323,8 @@ namespace Thry
         public void LoadType()
         {
             if (_isTypeLoaded) return;
-            Assembly asem = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.FullName == "Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null").FirstOrDefault();
-            if (asem != null)
-            {
-                t_gradientFlood = asem.GetType("DreadScripts.GradientFlood");
-                _doesGradientFloodTypeExist = t_gradientFlood != null;
-            }
+            t_gradientFlood = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(toolTypeName)).Where(t => t != null).FirstOrDefault();
+            _doesGradientFloodTypeExist = t_gradientFlood != null;
             _isTypeLoaded = true;
         }
 
@@ -331,16 +336,21 @@ namespace Thry
             {
                 _onGui = t_gradientFlood.GetMethod("OnGUI", BindingFlags.NonPublic | BindingFlags.Instance);
                 _gradientFloodObject = ScriptableObject.CreateInstance(t_gradientFlood);
-                t_gradientFlood.GetEvent("GradientTextureGenerated").AddEventHandler(_gradientFloodObject, new EventHandler(GradientTextureGenerated));
+                EventInfo eventTextureGenerated = t_gradientFlood.GetEvent("TextureGenerated");
+                if (eventTextureGenerated != null)
+                    eventTextureGenerated.AddEventHandler(_gradientFloodObject, new EventHandler(TextureGenerated));
                 _hasGradientFoolTool = true;
             }
             _isInit = true;
         }
 
-        void GradientTextureGenerated(object sender, EventArgs args)
+        void TextureGenerated(object sender, EventArgs args)
         {
-            Texture2D generated = args.GetType().GetField("generated_texture").GetValue(args) as Texture2D;
-            prop.textureValue = generated;
+            if (args != null && args.GetType().GetField("generated_texture") != null)
+            {
+                Texture2D generated = args.GetType().GetField("generated_texture").GetValue(args) as Texture2D;
+                prop.textureValue = generated;
+            }
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -781,7 +791,7 @@ namespace Thry
                     SaveChangeStack();
                     Material[] materials = new Material[shaderOptimizer.targets.Length];
                     for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
-                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, true, shaderOptimizer);
+                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
                     RestoreChangeStack();
                 }
             }
@@ -800,7 +810,7 @@ namespace Thry
                     SaveChangeStack();
                     Material[] materials = new Material[shaderOptimizer.targets.Length];
                     for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
-                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, true, shaderOptimizer);
+                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
                     RestoreChangeStack();
                 }
             }
