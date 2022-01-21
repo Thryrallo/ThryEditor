@@ -669,7 +669,6 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            GUILayoutUtility.GetRect(100, size + 6);
             return size + 6;
         }
 

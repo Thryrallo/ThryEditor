@@ -427,6 +427,10 @@ namespace Thry
         public bool doForceIntoOneLine = false;
         public bool doDrawTwoFields = false;
 
+        //Done for e.g. Vectors cause they draw in 2 lines for some fucking reasons
+        public bool doCustomHeightOffset = false;
+        public float customHeightOffset = 0;
+
         private int property_index = 0;
 
         public string keyword;
@@ -438,7 +442,8 @@ namespace Thry
 
             if (materialProperty.type == MaterialProperty.PropType.Vector && forceOneLine == false)
             {
-                this.doForceIntoOneLine = !DrawingData.lastPropertyUsedCustomDrawer;
+                this.doCustomHeightOffset = !DrawingData.lastPropertyUsedCustomDrawer;
+                this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
             }
 
             this.doDrawTwoFields = options.reference_property != null;
@@ -510,6 +515,11 @@ namespace Thry
             else if (doForceIntoOneLine)
             {
                 shaderEditor.editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.materialProperty, content);
+            }else if (doCustomHeightOffset)
+            {
+                shaderEditor.editor.ShaderProperty(
+                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, shaderEditor.editor.GetPropertyHeight(this.materialProperty, content.text) + customHeightOffset)
+                    , this.materialProperty, content);
             }
             else if (rect != null)
             {
