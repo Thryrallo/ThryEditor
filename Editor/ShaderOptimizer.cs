@@ -552,8 +552,6 @@ namespace Thry
             if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material, removeBetweenKeywords))
                 return false;
 
-            int longestCommonDirectoryPathLength = GetLongestCommonDirectoryLength(shaderFiles.Select(s => s.filePath).ToArray());
-
             int commentKeywords = 0;
 
             List<GrabPassReplacement> grabPassVariables = new List<GrabPassReplacement>();
@@ -720,18 +718,18 @@ namespace Thry
                 string output = sb.ToString();
 
                 //cull shader file path
-                string filePath = psf.filePath.Substring(longestCommonDirectoryPathLength,psf.filePath.Length- longestCommonDirectoryPathLength);
+                string fileName = Path.GetFileName(psf.filePath);
                 // Write output to file
-                (new FileInfo(newShaderDirectory + filePath)).Directory.Create();
+                (new FileInfo(newShaderDirectory + fileName)).Directory.Create();
                 try
                 {
-                    StreamWriter sw = new StreamWriter(newShaderDirectory + filePath);
+                    StreamWriter sw = new StreamWriter(newShaderDirectory + fileName);
                     sw.Write(output);
                     sw.Close();
                 }
                 catch (IOException e)
                 {
-                    Debug.LogError("[Kaj Shader Optimizer] Processed shader file " + newShaderDirectory + filePath + " could not be written.  " + e.ToString());
+                    Debug.LogError("[Kaj Shader Optimizer] Processed shader file " + newShaderDirectory + fileName + " could not be written.  " + e.ToString());
                     return false;
                 }
             }
@@ -1050,21 +1048,15 @@ namespace Thry
                     // Skip default includes
                     if (DefaultUnityShaderIncludes.Contains(includeFilename) == false)
                     {
-
-                        // cginclude filepath is either absolute or relative
-                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal))
+                        string includeFullpath = includeFilename;
+                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal) == false)//not absolute
                         {
-                            if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFilename, macros, material, removeBetweenKeywords))
-                                return false;
-                            // Only absolute filepaths need to be renampped in-file
-                            fileLines[i] = fileLines[i].Replace(includeFilename, newTopLevelDirectory + includeFilename);
+                            includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
                         }
-                        else
-                        {
-                            string includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
-                            if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, removeBetweenKeywords))
-                                return false;
-                        }
+                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, removeBetweenKeywords))
+                            return false;
+                        //Change include to be be ralative to only one directory up, because all files are moved into the same folder
+                        fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
                     }
                 }
                 // Specifically requires no whitespace between // and KSOEvaluateMacro
