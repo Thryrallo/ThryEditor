@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -1274,6 +1275,7 @@ namespace Thry
             public string path;
             public string name;
             public string version;
+            public bool isUsingEditor;
         }
 
         private static List<ShaderEditorShader> shaders;
@@ -1493,6 +1495,63 @@ namespace Thry
             }
             if (save)
                 Save();
+        }
+
+        static Dictionary<Shader, bool> usingThryShaderEditor = new Dictionary<Shader, bool>();
+        public static bool IsShaderUsingThryShaderEditor(Shader shader)
+        {
+            if (usingThryShaderEditor.ContainsKey(shader)) return usingThryShaderEditor[shader];
+            usingThryShaderEditor[shader] = Enumerable.Range(0, shader.GetPropertyCount()).Any(i => shader.GetPropertyName(i) == ShaderEditor.PROPERTY_NAME_EDITOR_DETECT);
+            return usingThryShaderEditor[shader];
+        }
+
+        static MethodInfo getPropertyHandlerMethod;
+        static PropertyInfo drawerProperty;
+        static FieldInfo keyWordFieldUnityDefault;
+        static FieldInfo keyWordFieldThry;
+        static bool areKeywordDrawerMethodsInit = false;
+        private static void InitKeywordDrawerMethods()
+        {
+            if (areKeywordDrawerMethodsInit) return;
+            Type materialPropertyDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialPropertyHandler");
+            getPropertyHandlerMethod = materialPropertyDrawerType.GetMethod("GetShaderPropertyHandler", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            drawerProperty = materialPropertyDrawerType.GetProperty("propertyDrawer");
+            Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
+            keyWordFieldUnityDefault = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
+            keyWordFieldThry = typeof(ThryToggleDrawer).GetField("keyword");
+            areKeywordDrawerMethodsInit = true;
+        }
+
+        public static void EnableDisableKeywordsBasedOnTheirFloatValue(IEnumerable<Material> targets, Shader shader, string propertyName)
+        {
+            InitKeywordDrawerMethods();
+            //Handle keywords
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { shader, propertyName });
+            //if has custom drawer
+            if (propertyHandler != null)
+            {
+                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
+                //if custom drawer exists
+                if (propertyDrawer != null)
+                {
+                    // if is keyword drawer make sure all materials have the keyworkd enabled / disabled depending on their value
+                    string keyword = null;
+                    if (propertyDrawer.GetType() == typeof(ThryToggleDrawer)){
+                        keyword = (string)keyWordFieldThry.GetValue(propertyDrawer);
+                    }else if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
+                    {
+                        keyword = (string)keyWordFieldUnityDefault.GetValue(propertyDrawer);
+                    }                    if(keyword != null) {
+                        foreach (Material m in targets)
+                        {
+                            if (m.GetFloat(propertyName) == 1)
+                                m.EnableKeyword(keyword);
+                            else
+                                m.DisableKeyword(keyword);
+                        }
+                    }
+                }
+            }
         }
 
     }

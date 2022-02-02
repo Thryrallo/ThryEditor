@@ -24,6 +24,7 @@ namespace Thry
         public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
+        public const string PROPERTY_NAME_EDITOR_DETECT = "shader_is_using_thry_editor";
 
         // Stores the different shader properties
         public ShaderGroup mainGroup;
@@ -344,46 +345,10 @@ namespace Thry
         {
             foreach (MaterialProperty p in properties)
             {
-                HandleKeyworDrawers(p);
+                ShaderHelper.EnableDisableKeywordsBasedOnTheirFloatValue(materials, shader, p.name);
             }
         }
-
-        // Not in use cause getPropertyHandlerMethod is really expensive
-        private void HandleKeyworDrawers(MaterialProperty p)
-        {
-            Type materialPropertyDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialPropertyHandler");
-            MethodInfo getPropertyHandlerMethod = materialPropertyDrawerType.GetMethod("GetShaderPropertyHandler", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
-            PropertyInfo drawerProperty = materialPropertyDrawerType.GetProperty("propertyDrawer");
-
-            Type materialToggleDrawerType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.MaterialToggleDrawer");
-            FieldInfo keyWordField = materialToggleDrawerType.GetField("keyword", BindingFlags.Instance | BindingFlags.NonPublic);
-            //Handle keywords
-            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { shader, p.name });
-            //if has custom drawer
-            if (propertyHandler != null)
-            {
-                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
-                //if custom drawer exists
-                if (propertyDrawer != null)
-                {
-                    // if is keyword drawer make sure all materials have the keyworkd enabled / disabled depending on their value
-                    if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
-                    {
-                        object keyword = keyWordField.GetValue(propertyDrawer);
-                        if (keyword != null)
-                        {
-                            foreach (Material m in materials)
-                            {
-                                if (m.GetFloat(p.name) == 1)
-                                    m.EnableKeyword((string)keyword);
-                                else
-                                    m.DisableKeyword((string)keyword);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        
 
         //-------------Draw Functions----------------
 
@@ -431,11 +396,11 @@ namespace Thry
 
         private void AddResetProperty()
         {
-            if (materials[0].HasProperty("shader_is_using_thry_editor") == false)
+            if (materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT) == false)
             {
                 EditorChanger.AddThryProperty(materials[0].shader);
             }
-            materials[0].SetFloat("shader_is_using_thry_editor", 69);
+            materials[0].SetFloat(PROPERTY_NAME_EDITOR_DETECT, 69);
         }
 
         public override void OnClosed(Material material)
@@ -770,6 +735,28 @@ namespace Thry
                 }
             }
             return edtior_directory_path;
+        }
+
+        [MenuItem("Thry/Fix Keywords (Very Slow)")]
+        static void FixKeywords()
+        {
+            IEnumerable<Material> materials = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.GUIDToAssetPath(g)).Where(p => string.IsNullOrEmpty(p) == false)
+                .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p)).Where(m => m != null && m.shader != null)
+                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false && ShaderHelper.IsShaderUsingThryShaderEditor(m.shader));
+            float f = 0;
+            int count = materials.Count();
+            foreach(Material m in materials)
+            {
+                for(int i= 0;i< m.shader.GetPropertyCount(); i++){
+                    if (m.shader.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Float)
+                    {
+                        ShaderHelper.EnableDisableKeywordsBasedOnTheirFloatValue(new Material[] { m }, m.shader, m.shader.GetPropertyName(i));
+                    }
+                }
+                EditorUtility.DisplayProgressBar("Fixing Keywords", m.name, f / count);
+                f += 1;
+            }
+            EditorUtility.ClearProgressBar();
         }
 
         [MenuItem("Thry/Twitter")]
