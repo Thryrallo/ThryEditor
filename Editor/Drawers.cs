@@ -102,12 +102,25 @@ namespace Thry
 
         protected void CheckKeyword(MaterialProperty prop)
         {
-            foreach (Material m in prop.targets)
+            if (prop.hasMixedValue)
             {
-                if (prop.floatValue == 1)
-                    m.EnableKeyword(keyword);
-                else
-                    m.DisableKeyword(keyword);
+                foreach (Material m in prop.targets)
+                {
+                    if (m.GetFloat(prop.name) == 1)
+                        m.EnableKeyword(keyword);
+                    else
+                        m.DisableKeyword(keyword);
+                }
+            }
+            else
+            {
+                foreach (Material m in prop.targets)
+                {
+                    if (prop.floatValue == 1)
+                        m.EnableKeyword(keyword);
+                    else
+                        m.DisableKeyword(keyword);
+                }
             }
         }
 
@@ -122,6 +135,7 @@ namespace Thry
             {
                 return EditorGUIUtility.singleLineHeight * 2.5f;
             }
+            if (hasKeyword) CheckKeyword(prop);
             return base.GetPropertyHeight(prop, label, editor);
         }
 
