@@ -870,11 +870,11 @@ namespace Thry
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
-                property.CopyFromMaterial(new Material(material.shader));
+                property.CopyFromMaterial(new Material(material.shader), true);
                 List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
-                        property.CopyToMaterial(m);
+                        property.CopyToMaterial(m, true);
             });
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
@@ -885,11 +885,11 @@ namespace Thry
             {
                 if (Mediator.copy_material != null || Mediator.transfer_group != null)
                 {
-                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group);
+                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true);
                     List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
                     if (linked_materials != null)
                         foreach (Material m in linked_materials)
-                            property.CopyToMaterial(m);
+                            property.CopyToMaterial(m, true);
                 }
             });
             menu.DropDown(position);

@@ -166,10 +166,10 @@ namespace Thry
         }
 
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
-        public abstract void CopyFromMaterial(Material m);
-        public abstract void CopyToMaterial(Material m);
+        public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
+        public abstract void CopyToMaterial(Material m, bool isTopCall = false);
 
-        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g);
+        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false);
 
         bool addedDisable = false;
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -318,20 +318,22 @@ namespace Thry
             parts.Add(part);
         }
 
-        public override void CopyFromMaterial(Material m)
+        public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             if (options.reference_property != null)
                 shaderEditor.propertyDictionary[options.reference_property].CopyFromMaterial(m);
             foreach (ShaderPart p in parts)
                 p.CopyFromMaterial(m);
+            if (isTopCall) shaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m)
+        public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             if (options.reference_property != null)
                 shaderEditor.propertyDictionary[options.reference_property].CopyToMaterial(m);
             foreach (ShaderPart p in parts)
                 p.CopyToMaterial(m);
+            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -342,7 +344,7 @@ namespace Thry
             }
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             if (p is ShaderGroup == false) return;
             ShaderGroup group = p as ShaderGroup;
@@ -352,6 +354,7 @@ namespace Thry
             {
                 parts[i].TransferFromMaterialAndGroup(m, group.parts[i]);
             }
+            if (isTopCall) shaderEditor.ApplyDrawers();
         }
     }
 
@@ -451,7 +454,7 @@ namespace Thry
             this.property_index = property_index;
         }
 
-        public override void CopyFromMaterial(Material m)
+        public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
             if (keyword != null) SetKeyword(shaderEditor.materials, m.GetFloat(materialProperty.name)==1);
@@ -461,14 +464,18 @@ namespace Thry
             }
             this.is_animated = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) != "";
             this.is_renaming = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) == "2";
+
+            if (isTopCall) shaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m)
+        public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
             if (keyword != null) SetKeyword(m, materialProperty.floatValue == 1);
             if (is_animatable)
                 ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, materialProperty);
+
+            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
         private void SetKeyword(Material[] materials, bool enabled)
@@ -541,7 +548,7 @@ namespace Thry
 
         public virtual void DrawDefault() { }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             if (materialProperty.type != p.materialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(materialProperty, p.materialProperty);
@@ -550,6 +557,8 @@ namespace Thry
                 ShaderOptimizer.CopyAnimatedTagFromProperty(p.materialProperty, materialProperty);
             this.is_animated = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) != "";
             this.is_renaming = is_animatable && ShaderOptimizer.GetAnimatedTag(materialProperty) == "2";
+
+            if (isTopCall) shaderEditor.ApplyDrawers();
         }
     }
 
@@ -578,19 +587,23 @@ namespace Thry
             DrawingData.lastGuiObjectRect = pos;
         }
 
-        public override void CopyFromMaterial(Material m)
+        public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(materialProperty, m);
             CopyReferencePropertiesFromMaterial(m);
+
+            if (isTopCall) shaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m)
+        public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueToMaterial(materialProperty, m);
             CopyReferencePropertiesToMaterial(m);
+
+            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             if (materialProperty.type != p.materialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(materialProperty, p.materialProperty);
@@ -665,17 +678,17 @@ namespace Thry
             }
         }
 
-        public override void CopyFromMaterial(Material m)
+        public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void CopyToMaterial(Material m)
+        public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             throw new System.NotImplementedException();
         }

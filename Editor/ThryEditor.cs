@@ -718,6 +718,12 @@ namespace Thry
             }
         }
 
+        public void ApplyDrawers()
+        {
+            foreach (Material target in materials)
+                MaterialEditor.ApplyMaterialPropertyDrawers(target);
+        }
+
         private static string edtior_directory_path;
         public static string GetShaderEditorDirectoryPath()
         {
