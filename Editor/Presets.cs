@@ -115,6 +115,24 @@ namespace Thry.ThryEditor
             appliedPresets.Remove(key);
         }
 
+        public static void ApplyList(ShaderEditor shaderEditor, Material[] originals, List<Material> presets)
+        {
+            for(int i=0;i<shaderEditor.materials.Length && i < originals.Length;i++)
+                shaderEditor.materials[i].CopyPropertiesFromMaterial(originals[i]);
+            foreach (Material preset in presets)
+            {
+                foreach (ShaderPart prop in shaderEditor.shaderParts)
+                {
+                    if (IsPreset(preset, prop.materialProperty))
+                    {
+                        prop.CopyFromMaterial(preset);
+                    }
+                }
+            }
+            MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.materials);
+            shaderEditor.Reload();
+        }
+
         public static void SetProperty(Material m, MaterialProperty prop, bool value)
         {
             m.SetOverrideTag(prop.name + TAG_POSTFIX_IS_PRESET, value?"true":"");
@@ -202,7 +220,7 @@ namespace Thry.ThryEditor
             {
                 preset = m;
             }
-            public void StructGUI(PresetsPopupGUI popupGUI, bool reapply)
+            public void StructGUI(PresetsPopupGUI popupGUI)
             {
                 if(preset != null)
                 {
@@ -210,12 +228,7 @@ namespace Thry.ThryEditor
                     isOn = EditorGUILayout.ToggleLeft(name, isOn);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        popupGUI.Revert();
-                        popupGUI.reapply = true;
-                    }
-                    if (reapply && isOn)
-                    {
-                        Presets.Apply(preset, popupGUI.shaderEditor);
+                        popupGUI.ToggelPreset(preset, isOn);
                     }
                 }
                 if(dict.Count > 0)
@@ -239,7 +252,7 @@ namespace Thry.ThryEditor
                         EditorGUI.indentLevel += 1;
                         foreach (KeyValuePair<string, PresetStruct> struc in dict)
                         {
-                            struc.Value.StructGUI(popupGUI, reapply);
+                            struc.Value.StructGUI(popupGUI);
                         }
                         EditorGUI.indentLevel -= 1;
                     }
@@ -249,6 +262,7 @@ namespace Thry.ThryEditor
         }
 
         Material[] beforePreset;
+        List<Material> tickedPresets = new List<Material>();
         PresetStruct mainStruct;
         ShaderEditor shaderEditor;
         public void Init(string[] names, Material[] presets, ShaderEditor shaderEditor)
@@ -272,10 +286,16 @@ namespace Thry.ThryEditor
             }
         }
 
+        void ToggelPreset(Material m, bool on)
+        {
+            if (tickedPresets.Contains(m) && !on) tickedPresets.Remove(m);
+            if (!tickedPresets.Contains(m) && on) tickedPresets.Add(m);
+            Presets.ApplyList(shaderEditor, beforePreset, tickedPresets);
+        }
+
         static Texture2D backgroundTextrure;
 
         Vector2 scroll;
-        bool reapply;
         void OnGUI()
         {
             if (mainStruct == null) { this.Close(); return; }
@@ -288,16 +308,7 @@ namespace Thry.ThryEditor
             GUI.DrawTexture(GUILayoutUtility.GetRect(5, 5, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(false)), backgroundTextrure);
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(position.height - 55));
 
-            if (reapply)
-            {
-                TopStructGUI(true);
-                shaderEditor.ForceRedraw();
-                reapply = false;
-            }
-            else
-            {
-                TopStructGUI(false);
-            }
+            TopStructGUI();
 
             GUILayout.EndScrollView();
             GUI.DrawTexture(GUILayoutUtility.GetRect(5, 5, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(false)), backgroundTextrure);
@@ -318,11 +329,11 @@ namespace Thry.ThryEditor
             GUI.DrawTexture(new Rect(5, position.height - 5, position.width - 10, 5), backgroundTextrure);
         }
 
-        void TopStructGUI(bool reapply)
+        void TopStructGUI()
         {
             foreach (KeyValuePair<string, PresetStruct> struc in mainStruct.dict)
             {
-                struc.Value.StructGUI(this, reapply);
+                struc.Value.StructGUI(this);
             }
         }
 
@@ -331,6 +342,7 @@ namespace Thry.ThryEditor
             for (int i = 0; i < shaderEditor.materials.Length; i++)
             {
                 shaderEditor.materials[i].CopyPropertiesFromMaterial(beforePreset[i]);
+                MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.materials[i]);
             }
         }
     }
