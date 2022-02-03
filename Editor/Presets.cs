@@ -94,6 +94,8 @@ namespace Thry.ThryEditor
                     prop.CopyFromMaterial(preset);
                 }
             }
+            foreach (Material m in shaderEditor.materials)
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
         static void Revert(ShaderEditor shaderEditor)
@@ -108,6 +110,8 @@ namespace Thry.ThryEditor
                     prop.CopyFromMaterial(prePreset);
                 }
             }
+            foreach (Material m in shaderEditor.materials)
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);
             appliedPresets.Remove(key);
         }
 
