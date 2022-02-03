@@ -176,7 +176,7 @@ namespace Thry.ThryEditor
     {
         class PresetStruct
         {
-            Dictionary<string,PresetStruct> dict;
+            public Dictionary<string,PresetStruct> dict;
             string name;
             Material preset;
             bool isOpen = false;
@@ -214,29 +214,33 @@ namespace Thry.ThryEditor
                         Presets.Apply(preset, popupGUI.shaderEditor);
                     }
                 }
-                foreach(KeyValuePair<string,PresetStruct> struc in dict)
+                if(dict.Count > 0)
                 {
                     Rect r = GUILayoutUtility.GetRect(new GUIContent(), Styles.dropDownHeader);
                     r.x = EditorGUI.indentLevel * 15;
                     r.width -= r.x;
-                    GUI.Box(r, struc.Key, Styles.dropDownHeader);
+                    GUI.Box(r, name, Styles.dropDownHeader);
                     if (Event.current.type == EventType.Repaint)
                     {
                         var toggleRect = new Rect(r.x + 4f, r.y + 2f, 13f, 13f);
-                        EditorStyles.foldout.Draw(toggleRect, false, false, struc.Value.isOpen, false);
+                        EditorStyles.foldout.Draw(toggleRect, false, false, isOpen, false);
                     }
                     if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
                     {
-                        struc.Value.isOpen = !struc.Value.isOpen;
+                        isOpen = !isOpen;
                         ShaderEditor.input.Use();
                     }
-                    if (struc.Value.isOpen)
+                    if (isOpen)
                     {
                         EditorGUI.indentLevel += 1;
-                        struc.Value.StructGUI(popupGUI, reapply);
+                        foreach (KeyValuePair<string, PresetStruct> struc in dict)
+                        {
+                            struc.Value.StructGUI(popupGUI, reapply);
+                        }
                         EditorGUI.indentLevel -= 1;
                     }
                 }
+                
             }
         }
 
@@ -282,13 +286,13 @@ namespace Thry.ThryEditor
 
             if (reapply)
             {
-                mainStruct.StructGUI(this, true);
+                TopStructGUI(true);
                 shaderEditor.ForceRedraw();
                 reapply = false;
             }
             else
             {
-                mainStruct.StructGUI(this, false);
+                TopStructGUI(false);
             }
 
             GUILayout.EndScrollView();
@@ -308,6 +312,14 @@ namespace Thry.ThryEditor
             }
 
             GUI.DrawTexture(new Rect(5, position.height - 5, position.width - 10, 5), backgroundTextrure);
+        }
+
+        void TopStructGUI(bool reapply)
+        {
+            foreach (KeyValuePair<string, PresetStruct> struc in mainStruct.dict)
+            {
+                struc.Value.StructGUI(this, reapply);
+            }
         }
 
         void Revert()
