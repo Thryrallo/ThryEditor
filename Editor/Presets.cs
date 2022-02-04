@@ -63,21 +63,21 @@ namespace Thry.ThryEditor
 
         public static void PresetEditorGUI(ShaderEditor shaderEditor)
         {
-            if (shaderEditor._isPresetEditor)
+            if (shaderEditor.IsPresetEditor)
             {
                 EditorGUILayout.LabelField(Locale.editor.Get("preset_material_notify"), Styles.greenStyle);
-                string name = shaderEditor.materials[0].GetTag(TAG_PRESET_NAME, false, "");
+                string name = shaderEditor.Materials[0].GetTag(TAG_PRESET_NAME, false, "");
                 EditorGUI.BeginChangeCheck();
                 name = EditorGUILayout.TextField(Locale.editor.Get("preset_name"), name);
                 if (EditorGUI.EndChangeCheck())
                 {
-                    shaderEditor.materials[0].SetOverrideTag(TAG_PRESET_NAME, name);
+                    shaderEditor.Materials[0].SetOverrideTag(TAG_PRESET_NAME, name);
                     p_presetNames = null;
                 }
             }
-            if (appliedPresets.ContainsKey(shaderEditor.materials[0]))
+            if (appliedPresets.ContainsKey(shaderEditor.Materials[0]))
             {
-                if(GUILayout.Button(Locale.editor.Get("preset_revert")+appliedPresets[shaderEditor.materials[0]].Item1.name))
+                if(GUILayout.Button(Locale.editor.Get("preset_revert")+appliedPresets[shaderEditor.Materials[0]].Item1.name))
                 {
                     Revert(shaderEditor);
                 }
@@ -86,42 +86,42 @@ namespace Thry.ThryEditor
 
         public static void Apply(Material preset, ShaderEditor shaderEditor)
         {
-            appliedPresets[shaderEditor.materials[0]] = (preset, new Material(shaderEditor.materials[0]));
-            foreach (ShaderPart prop in shaderEditor.shaderParts)
+            appliedPresets[shaderEditor.Materials[0]] = (preset, new Material(shaderEditor.Materials[0]));
+            foreach (ShaderPart prop in shaderEditor.ShaderParts)
             {
                 if (IsPreset(preset, prop.materialProperty))
                 {
                     prop.CopyFromMaterial(preset);
                 }
             }
-            foreach (Material m in shaderEditor.materials)
+            foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
         static void Revert(ShaderEditor shaderEditor)
         {
-            Material key = shaderEditor.materials[0];
+            Material key = shaderEditor.Materials[0];
             Material preset = appliedPresets[key].Item1;
             Material prePreset = appliedPresets[key].Item2;
-            foreach (ShaderPart prop in shaderEditor.shaderParts)
+            foreach (ShaderPart prop in shaderEditor.ShaderParts)
             {
                 if (IsPreset(preset, prop.materialProperty))
                 {
                     prop.CopyFromMaterial(prePreset);
                 }
             }
-            foreach (Material m in shaderEditor.materials)
+            foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
             appliedPresets.Remove(key);
         }
 
         public static void ApplyList(ShaderEditor shaderEditor, Material[] originals, List<Material> presets)
         {
-            for(int i=0;i<shaderEditor.materials.Length && i < originals.Length;i++)
-                shaderEditor.materials[i].CopyPropertiesFromMaterial(originals[i]);
+            for(int i=0;i<shaderEditor.Materials.Length && i < originals.Length;i++)
+                shaderEditor.Materials[i].CopyPropertiesFromMaterial(originals[i]);
             foreach (Material preset in presets)
             {
-                foreach (ShaderPart prop in shaderEditor.shaderParts)
+                foreach (ShaderPart prop in shaderEditor.ShaderParts)
                 {
                     if (IsPreset(preset, prop.materialProperty))
                     {
@@ -129,7 +129,7 @@ namespace Thry.ThryEditor
                     }
                 }
             }
-            MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.materials);
+            MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.Materials);
             shaderEditor.Reload();
         }
 
@@ -245,7 +245,7 @@ namespace Thry.ThryEditor
                     if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
                     {
                         isOpen = !isOpen;
-                        ShaderEditor.input.Use();
+                        ShaderEditor.Input.Use();
                     }
                     if (isOpen)
                     {
@@ -268,7 +268,7 @@ namespace Thry.ThryEditor
         public void Init(string[] names, Material[] presets, ShaderEditor shaderEditor)
         {
             this.shaderEditor = shaderEditor;
-            this.beforePreset = shaderEditor.materials.Select(m => new Material(m)).ToArray();
+            this.beforePreset = shaderEditor.Materials.Select(m => new Material(m)).ToArray();
             mainStruct = new PresetStruct("");
             backgroundTextrure = new Texture2D(1,1);
             if (EditorGUIUtility.isProSkin) backgroundTextrure.SetPixel(0, 0, new Color(0.18f, 0.18f, 0.18f, 1));
@@ -339,10 +339,10 @@ namespace Thry.ThryEditor
 
         void Revert()
         {
-            for (int i = 0; i < shaderEditor.materials.Length; i++)
+            for (int i = 0; i < shaderEditor.Materials.Length; i++)
             {
-                shaderEditor.materials[i].CopyPropertiesFromMaterial(beforePreset[i]);
-                MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.materials[i]);
+                shaderEditor.Materials[i].CopyPropertiesFromMaterial(beforePreset[i]);
+                MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.Materials[i]);
             }
         }
     }

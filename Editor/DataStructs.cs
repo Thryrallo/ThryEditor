@@ -250,14 +250,14 @@ namespace Thry
                     break;
                 case DefineableActionType.SET_TAG:
                     string[] keyValue = Regex.Split(data, @"=");
-                    foreach (Material m in ShaderEditor.active.materials)
+                    foreach (Material m in ShaderEditor.Active.Materials)
                         m.SetOverrideTag(keyValue[0].Trim(), keyValue[1].Trim());
                     break;
                 case DefineableActionType.SET_SHADER:
                     Shader shader = Shader.Find(data);
                     if (shader != null)
                     {
-                        foreach (Material m in ShaderEditor.active.materials)
+                        foreach (Material m in ShaderEditor.Active.Materials)
                             m.shader = shader;
                     }
                     break;
@@ -341,7 +341,7 @@ namespace Thry
             switch (type)
             {
                 case DefineableConditionType.PROPERTY_BOOL:
-                    ShaderProperty prop = ShaderEditor.active.propertyDictionary[obj];
+                    ShaderProperty prop = ShaderEditor.Active.PropertyDictionary[obj];
                     if (prop == null) return false;
                     if (comparator == "##") return prop.materialProperty.floatValue == 1;
                     float f = Parser.ParseFloat(parts[1]);
@@ -373,11 +373,11 @@ namespace Thry
                     if (comparator == "<=") return c_vrc == 1 || c_vrc == 0;
                     break;
                 case DefineableConditionType.TEXTURE_SET:
-                    ShaderProperty shaderProperty = ShaderEditor.active.propertyDictionary[data];
+                    ShaderProperty shaderProperty = ShaderEditor.Active.PropertyDictionary[data];
                     if (shaderProperty == null) return false;
                     return shaderProperty.materialProperty.textureValue != null;
                 case DefineableConditionType.DROPDOWN:
-                    ShaderProperty dropdownProperty = ShaderEditor.active.propertyDictionary[obj];
+                    ShaderProperty dropdownProperty = ShaderEditor.Active.PropertyDictionary[obj];
                     if (dropdownProperty == null) return false;
                     if (comparator == "##") return dropdownProperty.materialProperty.floatValue == 1;
                     if (comparator == "==") return "" + dropdownProperty.materialProperty.floatValue == parts[1];

@@ -1851,7 +1851,7 @@ namespace Thry
                         m.SetFloat(GetOptimizerPropertyName(m.shader), 1);
                     }
                 }
-                if(ShaderEditor.active != null && ShaderEditor.active._isDrawing)
+                if(ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
                 {
                     GUIUtility.ExitGUI();
                 }
