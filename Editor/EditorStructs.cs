@@ -20,7 +20,10 @@ namespace Thry
     {
         public bool HadMouseDownRepaint;
         public bool HadMouseDown;
+        int _button;
         bool _MouseClick;
+        bool _MouseLeftClickIgnoreLocked;
+        bool _MouseRightClickIgnoreLocked;
         bool _MouseLeftClick;
         bool _MouseRightClick;
 
@@ -35,9 +38,12 @@ namespace Thry
         public void Update(bool isLockedMaterial)
         {
             Event e = Event.current;
-            _MouseClick = !isLockedMaterial && e.type == EventType.MouseDown;
-            _MouseLeftClick = _MouseClick && e.button == 0;
-            _MouseRightClick = _MouseClick && e.button == 1;
+            _button = e.button;
+            _MouseClick = e.type == EventType.MouseDown && !isLockedMaterial;
+            _MouseLeftClick = _MouseClick && _button == 0;
+            _MouseRightClick = _MouseClick && _button == 1;
+            _MouseLeftClickIgnoreLocked = e.type == EventType.MouseDown && _button == 0;
+            _MouseRightClickIgnoreLocked = e.type == EventType.MouseDown && _button == 1;
             if (_MouseClick) HadMouseDown = _MouseClick;
             if (HadMouseDown && e.type == EventType.Repaint)
             {
@@ -67,6 +73,16 @@ namespace Thry
         public bool RightClick_IgnoreUnityUses
         {
             get { return _MouseRightClick; }
+        }
+
+        public bool LeftClick_IgnoreLocked
+        {
+            get { return _MouseLeftClickIgnoreLocked && Event.current.type != EventType.Used; }
+        }
+
+        public bool RightClick_IgnoreLocked
+        {
+            get { return _MouseRightClickIgnoreLocked && Event.current.type != EventType.Used; }
         }
 
         public bool Click
