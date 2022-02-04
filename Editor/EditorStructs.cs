@@ -799,7 +799,7 @@ namespace Thry
 
         public override void DrawDefault()
         {
-            GuiHelper.DrawLocaleSelection(this.content, shaderEditor.gui.locale.available_locales, shaderEditor.gui.locale.selected_locale_index);
+            GuiHelper.DrawLocaleSelection(this.content, shaderEditor.Locale.available_locales, shaderEditor.Locale.selected_locale_index);
         }
     }
 }
