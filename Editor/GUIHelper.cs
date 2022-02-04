@@ -12,27 +12,27 @@ namespace Thry
     public class GuiHelper
     {
 
-        public static void drawConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
+        public static void ConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             switch (Config.Singleton.default_texture_type)
             {
                 case TextureDisplayType.small:
-                    drawSmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
+                    SmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
                     if (DrawingData.currentTexProperty.reference_properties_exist || DrawingData.currentTexProperty.reference_property_exists)
-                        drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
+                        StylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
-                        drawBigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
+                        BigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
                     break;
 
                 case TextureDisplayType.stylized_big:
-                    drawStylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties, skip_drag_and_drop_handling);
+                    StylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties, skip_drag_and_drop_handling);
                     break;
             }
         }
 
-        public static void drawSmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
+        public static void SmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
         {
             Rect thumbnailPos = position;
             Rect foloutClickCheck = position;
@@ -91,7 +91,7 @@ namespace Thry
             DrawingData.tooltipCheckRect = position;
         }
 
-        public static void drawBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
+        public static void BigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
         {
             Rect rect = GUILayoutUtility.GetRect(label, Styles.bigTextureStyle);
             float defaultLabelWidth = EditorGUIUtility.labelWidth;
@@ -106,9 +106,9 @@ namespace Thry
             DrawingData.tooltipCheckRect = object_rect;
         }
 
-        static int texturePickerWindow = -1;
-        static MaterialProperty texturePickerWindowProperty = null;
-        public static void drawStylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
+        static int _TexturePickerWindow = -1;
+        static MaterialProperty _TexturePickerWindowProperty = null;
+        public static void StylizedBigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             position.x += (EditorGUI.indentLevel) * 15;
             position.width -= (EditorGUI.indentLevel) * 15;
@@ -181,21 +181,21 @@ namespace Thry
             Rect select_rect = new Rect(preview_rect);
             select_rect.height = 12;
             select_rect.y += preview_rect.height - 12;
-            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow && texturePickerWindowProperty.name == prop.name)
+            if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == _TexturePickerWindow && _TexturePickerWindowProperty.name == prop.name)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
                 ShaderEditor.Repaint();
             }
-            if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == texturePickerWindow)
+            if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == _TexturePickerWindow)
             {
-                texturePickerWindow = -1;
-                texturePickerWindowProperty = null;
+                _TexturePickerWindow = -1;
+                _TexturePickerWindowProperty = null;
             }
             if (GUI.Button(select_rect, "Select", EditorStyles.miniButton))
             {
                 EditorGUIUtility.ShowObjectPicker<Texture>(prop.textureValue, false, "", 0);
-                texturePickerWindow = EditorGUIUtility.GetObjectPickerControlID();
-                texturePickerWindowProperty = prop;
+                _TexturePickerWindow = EditorGUIUtility.GetObjectPickerControlID();
+                _TexturePickerWindowProperty = prop;
             }
             else if (Event.current.type == EventType.MouseDown && preview_rect.Contains(Event.current.mousePosition))
             {
@@ -257,8 +257,22 @@ namespace Thry
             DrawingData.tooltipCheckRect = border;
         }
 
-        const float kNumberWidth = 65;
+        static string[] _FallbackShaderTypes = { "Standard", "Toon", "Unlit", "VertexLit", "Particle", "Sprite", "Matcap", "MobileToon" };
+        static string[] _FallbackRenderTypes = { "Opaque", "Cutout", "Transparent", "Fade" };
+        static string[] _FallbackCullTypes = { "Default", "DoubleSided" };
+        static string[] _FallbackNoTypes = { "None", "Hidden" };
+        static string[] _VRCFallbackOptionsPopup = _FallbackNoTypes.Union(_FallbackShaderTypes.SelectMany(s => _FallbackRenderTypes.SelectMany(r => _FallbackCullTypes.Select(c => r + "/" + c).Select(rc => s + "/" + rc)))).ToArray();
+        static string[] _VRCFallbackOptionsValues = _FallbackNoTypes.Union(_FallbackShaderTypes.SelectMany(s => _FallbackRenderTypes.SelectMany(r => _FallbackCullTypes.Select(c => r + c).Select(rc => s + rc)))).ToArray();
+        public static void VRCFallbackSelector(ShaderEditor shaderEditor)
+        {
+            string current = shaderEditor.materials[0].GetTag("VRCFallback", false, "None");
+            EditorGUI.BeginChangeCheck();
+            int selected = EditorGUILayout.Popup("VRChat Fallback Shader", _VRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i , _VRCFallbackOptionsPopup);
+            if (EditorGUI.EndChangeCheck())
+                shaderEditor.materials[0].SetOverrideTag("VRCFallback", _VRCFallbackOptionsValues[selected].Replace("/",""));
+        }
 
+        const float _kNumberWidth = 65;
         public static void MinMaxSlider(Rect settingsRect, GUIContent content, MaterialProperty prop)
         {
             bool changed = false;
@@ -270,7 +284,7 @@ namespace Thry
             if (settingsRect.width > 160)
             {
                 Rect numberRect = settingsRect;
-                numberRect.width = kNumberWidth + (EditorGUI.indentLevel - 1) * 15;
+                numberRect.width = _kNumberWidth + (EditorGUI.indentLevel - 1) * 15;
 
                 numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
 
@@ -287,8 +301,8 @@ namespace Thry
                 changed |= EditorGUI.EndChangeCheck();
 
                 sliderRect.xMin = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
-                sliderRect.xMin += (kNumberWidth + -8);
-                sliderRect.xMax -= (kNumberWidth + -8);
+                sliderRect.xMin += (_kNumberWidth + -8);
+                sliderRect.xMax -= (_kNumberWidth + -8);
             }
 
             vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);

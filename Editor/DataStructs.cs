@@ -362,9 +362,9 @@ namespace Thry
                     if (comparator == "<=") return c_ev == 1 || c_ev == 0;
                     break;
                 case DefineableConditionType.VRC_SDK_VERSION:
-                    if (VRCInterface.Get().sdk_information.type == VRCInterface.VRC_SDK_Type.NONE)
+                    if (VRCInterface.Get().Sdk_information.type == VRCInterface.VRC_SDK_Type.NONE)
                         return false;
-                    int c_vrc = Helper.compareVersions(VRCInterface.Get().sdk_information.installed_version, value);
+                    int c_vrc = Helper.compareVersions(VRCInterface.Get().Sdk_information.installed_version, value);
                     if (comparator == "==") return c_vrc == 0;
                     if (comparator == "!=") return c_vrc != 0;
                     if (comparator == "<") return c_vrc == 1;

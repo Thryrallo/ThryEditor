@@ -583,7 +583,7 @@ namespace Thry
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
-            GuiHelper.drawConfigTextureProperty(pos, materialProperty, content, shaderEditor.editor, hasFoldoutProperties);
+            GuiHelper.ConfigTextureProperty(pos, materialProperty, content, shaderEditor.editor, hasFoldoutProperties);
             DrawingData.lastGuiObjectRect = pos;
         }
 

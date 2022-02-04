@@ -462,6 +462,7 @@ namespace Thry
             }
 
             //Render Queue selection
+            if(VRCInterface.IsVRCSDKInstalled()) GuiHelper.VRCFallbackSelector(this);
             if (Config.Singleton.showRenderQueue) materialEditor.RenderQueueField();
 
             BetterTooltips.DrawActive();

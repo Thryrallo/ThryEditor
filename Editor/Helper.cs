@@ -1600,18 +1600,18 @@ namespace Thry
 
     public class VRCInterface
     {
-        private static VRCInterface instance;
+        private static VRCInterface _Instance;
         public static VRCInterface Get()
         {
-            if (instance == null) instance = new VRCInterface();
-            return instance;
+            if (_Instance == null) _Instance = new VRCInterface();
+            return _Instance;
         }
         public static void Update()
         {
-            instance = new VRCInterface();
+            _Instance = new VRCInterface();
         }
 
-        public SDK_Information sdk_information;
+        public SDK_Information Sdk_information;
 
         public class SDK_Information
         {
@@ -1629,8 +1629,8 @@ namespace Thry
 
         private VRCInterface()
         {
-            sdk_information = new SDK_Information();
-            sdk_information.type = GetInstalledSDKType();
+            Sdk_information = new SDK_Information();
+            Sdk_information.type = GetInstalledSDKType();
             InitInstalledSDKVersionAndPaths();
         }
 
@@ -1648,12 +1648,12 @@ namespace Thry
                 return;
             string persistent = PersistentData.Get("vrc_sdk_version");
             if (persistent != null)
-                sdk_information.installed_version = persistent;
+                Sdk_information.installed_version = persistent;
             else
-                sdk_information.installed_version = Regex.Replace(FileHelper.ReadFileIntoString(path), @"\n?\r", "");
+                Sdk_information.installed_version = Regex.Replace(FileHelper.ReadFileIntoString(path), @"\n?\r", "");
         }
 
-        public VRC_SDK_Type GetInstalledSDKType()
+        public static VRC_SDK_Type GetInstalledSDKType()
         {
 #if VRC_SDK_VRCSDK3 && UDON
             return VRC_SDK_Type.SDK_3_World;
@@ -1666,7 +1666,7 @@ namespace Thry
 #endif
         }
 
-        private static bool IsVRCSDKInstalled()
+        public static bool IsVRCSDKInstalled()
         {
 #if VRC_SDK_VRCSDK3
             return true;
