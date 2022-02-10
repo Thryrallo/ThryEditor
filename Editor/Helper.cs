@@ -154,10 +154,9 @@ namespace Thry
 
         public static void testAltClick(Rect rect, ShaderPart property)
         {
-            if (ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && rect.Contains(ShaderEditor.Input.mouse_position))
+            if (property.options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && rect.Contains(ShaderEditor.Input.mouse_position))
             {
-                if (property.options.altClick != null)
-                    property.options.altClick.Perform();
+                property.options.altClick.Perform();
             }
         }
 

@@ -187,18 +187,17 @@ namespace Thry
 
         public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false);
 
-        bool addedDisable = false;
+        bool hasAddedDisabledGroup = false;
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (has_not_searchedFor)
                 return;
-            bool testForDisable = DrawingData.is_enabled && options.condition_enable != null;
-            if (testForDisable)
+            if (DrawingData.is_enabled && options.condition_enable != null)
             {
-                addedDisable = options.condition_enable.Test();
-                if(addedDisable == false)
+                hasAddedDisabledGroup = options.condition_enable.Test();
+                if(hasAddedDisabledGroup == false)
                 {
-                    DrawingData.is_enabled = addedDisable;
+                    DrawingData.is_enabled = hasAddedDisabledGroup;
                     EditorGUI.BeginDisabledGroup(false);
                 }
             }
@@ -206,9 +205,9 @@ namespace Thry
             {
                 PerformDraw(content, rect, useEditorIndent, isInHeader);
             }
-            if (addedDisable)
+            if (hasAddedDisabledGroup)
             {
-                addedDisable = false;
+                hasAddedDisabledGroup = false;
                 DrawingData.is_enabled = true;
                 EditorGUI.EndDisabledGroup();
             }
@@ -269,7 +268,8 @@ namespace Thry
         {
             if (content == null)
                 content = this.content;
-            EditorGUI.BeginChangeCheck();
+            if(options.on_value_actions != null)
+                EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
 
             if(this is TextureProperty == false) DrawingData.tooltipCheckRect = DrawingData.lastGuiObjectRect;
@@ -281,9 +281,9 @@ namespace Thry
 
             tooltip.ConditionalDraw(DrawingData.tooltipCheckRect);
 
-            if (EditorGUI.EndChangeCheck())
+            if (options.on_value_actions != null)
             {
-                if (options.on_value_actions != null)
+                if (EditorGUI.EndChangeCheck())
                 {
                     foreach (PropertyValueAction action in options.on_value_actions)
                     {
