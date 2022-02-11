@@ -150,7 +150,11 @@ namespace Thry
         void SetGradient(Gradient gradient)
         {
             data.gradient = gradient;
+#if UNITY_2020_1_OR_NEWER
+            gradient_editor_init.Invoke(gradient_editor, new object[] { gradient, 0, true, ColorSpace.Linear });
+#else
             gradient_editor_init.Invoke(gradient_editor, new object[] { gradient, 0, true });
+#endif
             UpdateGradientPreviewTexture();
         }
 

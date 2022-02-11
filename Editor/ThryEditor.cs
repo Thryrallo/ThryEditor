@@ -497,6 +497,10 @@ namespace Thry
         {
             //if header is texture, draw it first so other ui elements can be positions below
             if (_shaderHeader != null && _shaderHeader.options.texture != null) _shaderHeader.Draw();
+
+            bool drawAboveToolbar = EditorGUIUtility.wideMode == false;
+            if(drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
+
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, 25, 25))
@@ -514,7 +518,7 @@ namespace Thry
             Presets.PresetGUI(presetR, this);
 
             //draw master label text after ui elements, so it can be positioned between
-            if (_shaderHeader != null) _shaderHeader.Draw(new CRect(mainHeaderRect));
+            if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
             GUILayout.FlexibleSpace();  
