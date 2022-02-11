@@ -465,7 +465,7 @@ namespace Thry
             return texture;
         }
 
-        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureData settings)
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureData settings = null)
         {
             if (!path.EndsWith(".png"))
                 path += ".png";

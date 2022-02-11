@@ -374,6 +374,195 @@ namespace Thry
         }
     }
 
+    public class RGBAAtlasDrawer : MaterialPropertyDrawer
+    {
+        (Texture2D, bool, float, TextureChannel) _input_r;
+        (Texture2D, bool, float, TextureChannel) _input_g;
+        (Texture2D, bool, float, TextureChannel) _input_b;
+        (Texture2D, bool, float, TextureChannel) _input_a;
+
+        bool _isInit;
+        MaterialProperty _prop;
+
+        string _label1;
+        string _label2;
+        string _label3;
+        string _label4;
+
+        public RGBAAtlasDrawer(string label1, string label2, string label3, string label4)
+        {
+            _label1 = label1;
+            _label2 = label2;
+            _label3 = label3;
+            _label4 = label4;
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            _prop = prop;
+            GuiHelper.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
+        }
+
+        void TexturePackerGUI()
+        {
+            Init();
+            _input_r = TexturePackerSlotGUI(_input_r, _label1);
+            _input_g = TexturePackerSlotGUI(_input_g, _label2);
+            _input_b = TexturePackerSlotGUI(_input_b, _label3);
+            _input_a = TexturePackerSlotGUI(_input_a, _label4);
+            if (GUI.Button(EditorGUI.IndentedRect(EditorGUILayout.GetControlRect()), "Pack"))
+            {
+                Save();
+                Pack();
+            }
+        }
+
+        (Texture2D, bool, float, TextureChannel) TexturePackerSlotGUI((Texture2D, bool, float, TextureChannel) input, string label)
+        {
+            Rect totalRect = EditorGUILayout.GetControlRect(false);
+            totalRect  = EditorGUI.IndentedRect(totalRect);
+            Rect r = totalRect;
+
+            int ind = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            if (input.Item1 == null)
+            {
+                r.width = 60;
+                r.x = totalRect.x + totalRect.width - r.width;
+                input.Item3 = EditorGUI.FloatField(r, input.Item3);
+
+                r.width = 60;
+                r.x -= r.width;
+                EditorGUI.LabelField(r, "Fallback:");
+            }
+            else
+            {
+                r.width = 40;
+                r.x = totalRect.x + totalRect.width - r.width;
+                input.Item4 = (TextureChannel)EditorGUI.EnumPopup(r, input.Item4);
+
+                r.width = 20;
+                r.x -= r.width;
+                input.Item2 = EditorGUI.Toggle(r, input.Item2);
+
+                r.width = 60;
+                r.x -= r.width;
+                EditorGUI.LabelField(r, "Inverted:");
+            }
+
+            float texWidth = Math.Max(50, r.x - totalRect.x) - 5;
+            r.x = totalRect.x;
+            r.width = 30;
+            input.Item1 = EditorGUI.ObjectField(r, input.Item1, typeof(Texture2D), false) as Texture2D;
+
+            r.x += r.width + 5;
+            r.width = texWidth - r.width - 5;
+            EditorGUI.LabelField(r, label);
+            
+
+            EditorGUI.indentLevel = ind;
+
+            return input;
+        }
+
+        void Init()
+        {
+            if (_isInit) return;
+            _input_r = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "r");
+            _input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
+            _input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
+            _input_a = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "a");
+            _isInit = true;
+        }
+
+        void Save()
+        {
+            SaveForChannel(_input_r, _prop.name, "r");
+            SaveForChannel(_input_g, _prop.name, "g");
+            SaveForChannel(_input_b, _prop.name, "b");
+            SaveForChannel(_input_a, _prop.name, "a");
+        }
+
+        void SaveForChannel((Texture2D, bool, float, TextureChannel) input, string id, string channel)
+        {
+            foreach(Material m in ShaderEditor.Active.Materials)
+            {
+                if (input.Item1 != null) m.SetOverrideTag(id + "_texPack_" + channel + "_guid", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(input.Item1)));
+                else m.SetOverrideTag(id + "_texPack_" + channel + "_guid", "");
+                m.SetOverrideTag(id + "_texPack_" + channel + "_fallback", input.Item3.ToString());
+                m.SetOverrideTag(id + "_texPack_" + channel + "_inverted", input.Item2.ToString());
+                m.SetOverrideTag(id + "_texPack_" + channel + "_channel", ((int)input.Item4).ToString());
+            }
+        }
+
+        (Texture2D, bool, float, TextureChannel) LoadForChannel(Material m, string id, string channel)
+        {
+            Texture2D tex = null;
+            string guid = m.GetTag(id + "_texPack_" + channel + "_guid", false, "");
+            float fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "0"));
+            bool inverted = bool.Parse(m.GetTag(id + "_texPack_" + channel + "_inverted", false, "false"));
+            TextureChannel inputChannel = (TextureChannel)int.Parse(m.GetTag(id + "_texPack_" + channel + "_channel", false, "0"));
+            if(string.IsNullOrEmpty(guid) == false)
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guid);
+                if (p != null)
+                    tex = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+            }
+            return (tex, inverted, fallback, inputChannel);
+        }
+
+        void Pack()
+        {
+            int width = 16;
+            int height = 16;
+            Texture2D[] textures = new Texture2D[] { _input_r.Item1, _input_g.Item1, _input_b.Item1, _input_a.Item1 };
+            bool[] doFallback = textures.Select(t => t == null).ToArray();
+            int[] inputChannels = new int[] { (int)_input_r.Item4, (int)_input_g.Item4, (int)_input_b.Item4, (int)_input_a.Item4 };
+            //Find max size
+            foreach(Texture2D t in textures)
+            {
+                if (t == null) continue;
+                width = Mathf.Max(width, t.width);
+                height = Mathf.Max(height, t.height);
+            }
+            for(int i =0;i<textures.Length;i++)
+            {
+                if (textures[i] == null) continue;
+                textures[i] = TextureHelper.Resize(TextureHelper.GetReadableTexture( textures[i] ), width, height);
+            }
+            Texture2D atlas = new Texture2D(width, height);
+            for(int x = 0; x < width; x++)
+            {
+                for(int y = 0; y < height;y ++)
+                {
+                    Color c = new Color();
+                    c.r = doFallback[0] ? _input_r.Item3 : Mathf.Abs((_input_r.Item2?1:0) -textures[0].GetPixel(x, y)[inputChannels[0]]);
+                    c.g = doFallback[1] ? _input_g.Item3 : Mathf.Abs((_input_g.Item2?1:0) -textures[1].GetPixel(x, y)[inputChannels[1]]);
+                    c.b = doFallback[2] ? _input_b.Item3 : Mathf.Abs((_input_b.Item2?1:0) -textures[2].GetPixel(x, y)[inputChannels[2]]);
+                    c.a = doFallback[3] ? _input_a.Item3 : Mathf.Abs((_input_a.Item2?1:0) -textures[3].GetPixel(x, y)[inputChannels[3]]);
+                    atlas.SetPixel(x, y, c);
+                }
+            }
+            atlas.Apply();
+            string path = System.IO.Path.GetDirectoryName( AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]) );
+            path = path +"/"+ ShaderEditor.Active.Materials[0].name + _prop.name+".png";
+            _prop.textureValue = TextureHelper.SaveTextureAsPNG(atlas, path);
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            importer.streamingMipmaps = true;
+            importer.crunchedCompression = true;
+            importer.SaveAndReimport();
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.lastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+
+        enum TextureChannel { R,G,B,A}
+    }
+
     public class GradientDrawer : MaterialPropertyDrawer
     {
        GradientData data;

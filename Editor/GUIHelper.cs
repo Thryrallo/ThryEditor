@@ -32,7 +32,7 @@ namespace Thry
             }
         }
 
-        public static void SmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties)
+        public static void SmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, Action extraFoldoutGUI = null)
         {
             Rect thumbnailPos = position;
             Rect foloutClickCheck = position;
@@ -63,6 +63,7 @@ namespace Thry
                     if (DrawingData.currentTexProperty.showFoldoutProperties)
                     {
                         EditorGUI.indentLevel += 2;
+                        extraFoldoutGUI?.Invoke();
                         if (DrawingData.currentTexProperty.hasScaleOffset)
                         {
                             ShaderEditor.Active.Editor.TextureScaleOffsetProperty(prop);
