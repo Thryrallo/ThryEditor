@@ -208,16 +208,19 @@ namespace Thry
 
         private void GUIModulesInstalation()
         {
-            if (ModuleHandler.GetModules() == null)
+            if (ModuleHandler.GetFirstPartyModules() == null)
                 return;
-            if (ModuleHandler.GetModules().Count > 0)
+            if (ModuleHandler.GetFirstPartyModules().Count > 0) {
+                EditorGUILayout.BeginHorizontal();
                 GUILayout.Label(Locale.editor.Get("header_modules"), EditorStyles.boldLabel);
-            bool disabled = false;
-            foreach (Module module in ModuleHandler.GetModules())
-                if (module.is_being_installed_or_removed)
-                    disabled = true;
+                if (GUILayout.Button("Reload"))
+                    ModuleHandler.ForceReloadModules();
+                EditorGUILayout.EndHorizontal();
+            }
+            bool disabled = ModuleHandler.GetFirstPartyModules().Any(m => m.is_being_installed_or_removed);
+            disabled |= ModuleHandler.GetThirdPartyModules().Any(m => m.is_being_installed_or_removed);
             EditorGUI.BeginDisabledGroup(disabled);
-            foreach (Module module in ModuleHandler.GetModules())
+            foreach (Module module in ModuleHandler.GetFirstPartyModules())
             {
                 ModuleUI(module);
             }

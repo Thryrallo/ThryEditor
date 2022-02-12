@@ -21,7 +21,7 @@ namespace Thry
 
     public class ModuleHandler
     {
-        private static List<Module> modules;
+        private static List<Module> first_party_modules;
         private static List<Module> third_party_modules;
         private static bool modules_are_being_loaded = false;
 
@@ -38,11 +38,16 @@ namespace Thry
             public List<ModuleCollectionInfo> third_party = null;
         }
 
-        public static List<Module> GetModules()
+        public static List<Module> GetFirstPartyModules()
         {
             if (!modules_are_being_loaded)
                 LoadModules();
-            return modules;
+            return first_party_modules;
+        }
+
+        public static void ForceReloadModules()
+        {
+            LoadModules();
         }
 
         public static List<Module> GetThirdPartyModules()
@@ -56,12 +61,12 @@ namespace Thry
         {
             modules_are_being_loaded = true;
             WebHelper.DownloadStringASync(URL.MODULE_COLLECTION, delegate (string s) {
-                modules = new List<Module>();
+                first_party_modules = new List<Module>();
                 third_party_modules = new List<Module>();
                 ModuleCollection module_collection = Parser.ParseToObject<ModuleCollection>(s);
                 foreach(ModuleCollectionInfo info in module_collection.first_party)
                 {
-                    LoadModule(info,modules);
+                    LoadModule(info,first_party_modules);
                 }
                 foreach (ModuleCollectionInfo info in module_collection.third_party)
                 {
@@ -85,7 +90,7 @@ namespace Thry
                     InitInstalledModule(new_module);
                 else if (Helper.ClassWithNamespaceExists(new_module.available_module.classname))
                     CheckForUnregisteredInstall(new_module);
-                if(new_module.installed_module != null)
+                if (new_module.installed_module != null)
                     new_module.installed_module.version = new_module.installed_module.version.Replace(",", ".");
                 if (new_module.available_module.requirement != null)
                     new_module.available_requirement_fullfilled = new_module.available_module.requirement.Test();

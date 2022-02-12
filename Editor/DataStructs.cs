@@ -348,11 +348,11 @@ namespace Thry
                 _compareType = compareType;
 
                 string[] parts = Regex.Split(data, compareString);
-                string _obj = parts[0];
-                string _value = parts[parts.Length - 1];
+                _obj = parts[0];
+                _value = parts[parts.Length - 1];
 
                 _floatValue = Parser.ParseFloat(_value);
-                if (ShaderEditor.Active.PropertyDictionary.ContainsKey(_obj))
+                if (ShaderEditor.Active != null && ShaderEditor.Active.PropertyDictionary.ContainsKey(_obj))
                     _propertyObj = ShaderEditor.Active.PropertyDictionary[_obj];
 
                 if (type == DefineableConditionType.EDITOR_VERSION) InitEditorVersion();
