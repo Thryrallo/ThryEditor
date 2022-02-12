@@ -767,10 +767,39 @@ namespace Thry
             EditorUtility.ClearProgressBar();
         }
 
-        [MenuItem("Thry/Twitter")]
-        static void Init()
+        [MenuItem("Thry/Twitter", priority = -100)]
+        static void MenuThryTwitter()
         {
             Application.OpenURL("https://www.twitter.com/thryrallo");
+        }
+
+        [MenuItem("Thry/ShaderUI",priority = -80)]
+        [MenuItem("Thry/ShaderUI/Settings",priority = -20)]
+        static void MenuShaderUISettings()
+        {
+            Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
+            window.Show();
+        }
+
+        [MenuItem("Thry/ShaderUI/Use Thry Editor for other shaders", priority = 0)]
+        static void MenuShaderUIAddToShaders()
+        {
+            EditorChanger window = (EditorChanger)EditorWindow.GetWindow(typeof(EditorChanger));
+            window.Show();
+        }
+
+        [MenuItem("Thry/Shader Optimizer/Upgraded Animated Properties", priority = 40)]
+        static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
+        {
+            ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
+        }
+
+        [MenuItem("Thry/Shader Optimizer/Unlocked Materials List", priority = 40)]
+        static void MenuShaderOptUnlockedMaterials()
+        {
+            UnlockedMaterialsList window = (UnlockedMaterialsList)EditorWindow.GetWindow(typeof(UnlockedMaterialsList));
+            window.titleContent = new GUIContent("Unlocked Materials");
+            window.Show();
         }
     }
 }

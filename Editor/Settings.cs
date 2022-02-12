@@ -14,16 +14,6 @@ namespace Thry
 {
     public class Settings : EditorWindow
     {
-        //this is dope: this.ShowNotification(new GUIContent(s));
-
-        // Add menu named "My Window" to the Window menu
-        [MenuItem("Thry/Settings")]
-        static void Init()
-        {
-            // Get existing open window or if none, make a new one:
-            Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
-            window.Show();
-        }
 
         public static void firstTimePopup()
         {

@@ -1549,7 +1549,6 @@ namespace Thry
 
         #region Upgrade
 
-        [MenuItem("Thry/Editor Tools/Upgraded Animated Properties")]
         public static void UpgradeAnimatedPropertiesToTagsOnAllMaterials()
         {
             IEnumerable<Material> materials = Resources.FindObjectsOfTypeAll<Material>();
@@ -1933,14 +1932,6 @@ namespace Thry
 
     public class UnlockedMaterialsList : EditorWindow
     {
-
-        [MenuItem("Thry/ShaderOptimizer/Unlocked Materials List")]
-        static void Init()
-        {
-            UnlockedMaterialsList window = (UnlockedMaterialsList)EditorWindow.GetWindow(typeof(UnlockedMaterialsList));
-            window.titleContent = new GUIContent("Unlocked Materials");
-            window.Show();
-        }
 
         static Dictionary<Shader, List<Material>> unlockedMaterialsByShader = new Dictionary<Shader, List<Material>>();
         private void OnEnable()
