@@ -298,14 +298,6 @@ namespace Thry
             return "temp_module_" + module.id;
         }
 
-        private static string GetThryModulesDirectoryPath()
-        {
-            string editor_path = ShaderEditor.GetShaderEditorDirectoryPath();
-            if (editor_path == null)
-                editor_path = "Assets";
-            return editor_path+ "/thry_modules";
-        }
-
         private static void InstallModuleDownloadFiles(Module module, string temp_path)
         {
             EditorUtility.DisplayProgressBar(module.available_module.name+ " download progress", "", 0);
@@ -328,9 +320,9 @@ namespace Thry
 
         private static void InstallModuleFilesDownloaded(Module module, string temp_dir)
         {
-            string modules_path = GetThryModulesDirectoryPath();
+            string modules_path = "Assets/thry_modules";
             if (!Directory.Exists(modules_path))
-                Directory.CreateDirectory(modules_path);
+                AssetDatabase.CreateFolder("Assets", "thry_modules");
             string install_path = modules_path + "/" + module.id;
             module.installed_module = module.available_module;
             string guid = AssetDatabase.CreateFolder(modules_path, module.id);

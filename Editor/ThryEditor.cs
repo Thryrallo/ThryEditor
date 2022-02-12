@@ -731,11 +731,11 @@ namespace Thry
         {
             if (s_edtiorDirectoryPath == null)
             {
-                string[] guids = AssetDatabase.FindAssets("ShaderEditor");
+                string[] guids = AssetDatabase.FindAssets("ThryEditor");
                 foreach (string g in guids)
                 {
                     string p = AssetDatabase.GUIDToAssetPath(g);
-                    if (p.EndsWith("/ShaderEditor.cs"))
+                    if (p.EndsWith("/ThryEditor.cs"))
                     {
                         s_edtiorDirectoryPath = Directory.GetParent(Path.GetDirectoryName(p)).FullName;
                         break;
