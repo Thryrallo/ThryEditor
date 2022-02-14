@@ -322,7 +322,7 @@ namespace Thry.ThryEditor
             if (GUI.Button(new Rect(this.position.width / 2, this.position.height - 35, this.position.width / 2 - 5, 30), "Discard"))
             {
                 Revert();
-                shaderEditor.ForceRedraw();
+                shaderEditor.Repaint();
                 this.Close();
             }
 

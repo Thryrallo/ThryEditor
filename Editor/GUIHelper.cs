@@ -185,7 +185,7 @@ namespace Thry
             if (Event.current.commandName == "ObjectSelectorUpdated" && EditorGUIUtility.GetObjectPickerControlID() == s_texturePickerWindow && s_texturePickerWindowProperty.name == prop.name)
             {
                 prop.textureValue = (Texture)EditorGUIUtility.GetObjectPickerObject();
-                ShaderEditor.Repaint();
+                ShaderEditor.RepaintActive();
             }
             if (Event.current.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == s_texturePickerWindow)
             {
@@ -433,7 +433,7 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
             {
                 ShaderEditor.Active.PropertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
-                ShaderEditor.reload();
+                ShaderEditor.ReloadActive();
             }
         }
 

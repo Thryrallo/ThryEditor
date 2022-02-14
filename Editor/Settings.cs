@@ -91,20 +91,11 @@ namespace Thry
                 WebHelper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, delegate (string s) { thry_message = Parser.ParseToObject<ButtonData>(s); });
         }
 
-        //------------------Helpers----------------------------
-
-        public static Settings getInstance()
-        {
-            Settings instance = (Settings)UnityHelper.FindEditorWindow(typeof(Settings));
-            if (instance == null) instance = ScriptableObject.CreateInstance<Settings>();
-            return instance;
-        }
-
         //------------------Main GUI
         void OnGUI()
         {
             if (!is_init || moduleSettings==null) InitVariables();
-            GUILayout.Label("ShaderEditor v" + Config.Singleton.verion);
+            GUILayout.Label("ShaderUI v" + Config.Singleton.verion);
 
             GUINotification();
             drawLine();
@@ -349,7 +340,7 @@ namespace Thry
                 {
                     field.SetValue(config, !value);
                     config.save();
-                    ShaderEditor.Repaint();
+                    ShaderEditor.RepaintActive();
                 }
             }
         }
@@ -381,7 +372,7 @@ namespace Thry
                 {
                     field.SetValue(config, value);
                     config.save();
-                    ShaderEditor.Repaint();
+                    ShaderEditor.RepaintActive();
                 }
             }
         }
@@ -399,8 +390,7 @@ namespace Thry
             {
                 Config.Singleton.locale = Locale.editor.available_locales[Locale.editor.selected_locale_index];
                 Config.Singleton.save();
-                ShaderEditor.reload();
-                ShaderEditor.Repaint();
+                ShaderEditor.ReloadActive();
             }
         }
 

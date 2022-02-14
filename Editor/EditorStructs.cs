@@ -224,7 +224,7 @@ namespace Thry
                     {
                         is_preset = !is_preset;
                         Presets.SetProperty(shaderEditor.Materials[0], materialProperty, is_preset);
-                        ShaderEditor.Repaint();
+                        ShaderEditor.RepaintActive();
                         ShaderEditor.Input.Use();
                     }
                 }
@@ -256,7 +256,7 @@ namespace Thry
                             is_renaming = false;
                         }
                         ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
-                        ShaderEditor.Repaint();
+                        ShaderEditor.RepaintActive();
                         ShaderEditor.Input.Use();
                     }
                 }

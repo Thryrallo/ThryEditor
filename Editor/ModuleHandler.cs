@@ -97,7 +97,7 @@ namespace Thry
                 if (new_module.available_requirement_fullfilled && new_module.installed_module != null && Helper.compareVersions(new_module.installed_module.version, new_module.available_module.version) == 1)
                     new_module.update_available = true;
                 modules.Add(new_module);
-                UnityHelper.RepaintEditorWindow(typeof(Settings));
+                UnityHelper.RepaintEditorWindow<Settings>();
             });
         }
 
@@ -152,9 +152,7 @@ namespace Thry
                 m.path = GetModuleDirectory(m);
                 if (string.IsNullOrEmpty(m.path) == false)
                 {
-                    Debug.Log(m.path);
                     m.installed_module = Parser.ParseToObject<ModuleInfo>(FileHelper.ReadFileIntoString(FindModuleFilePath(m.path)));
-                    Debug.Log(m.path);
                     string calced_guid = AssetDatabase.AssetPathToGUID(m.path);
                     if (m.location_data.guid != calced_guid)
                         SaveModuleLocationData(m, calced_guid);
@@ -218,7 +216,7 @@ namespace Thry
         private static string[] ResolveFilesToDirectoryFindAllReferneces(string file_sub_path)
         {
             List<string> valid_paths = new List<string>();
-            string[] found_paths = UnityHelper.FindAssetOfFilesWithExtension(Path.GetFileName(file_sub_path)).ToArray();
+            string[] found_paths = UnityHelper.FindAssetsWithFilename(Path.GetFileName(file_sub_path)).ToArray();
             foreach (string p in found_paths)
             {
                 if (p.EndsWith(file_sub_path))
