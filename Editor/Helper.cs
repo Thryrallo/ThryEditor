@@ -82,7 +82,7 @@ namespace Thry
 
         //-------------------Comparetors----------------------
 
-        public static int compareVersions(string v1, string v2)
+        public static int CompareVersions(string v1, string v2)
         {
             //fix the string
             v1 = v1.Replace(",", ".");

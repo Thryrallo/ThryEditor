@@ -365,7 +365,7 @@ namespace Thry
 
         void InitEditorVersion()
         {
-            int c_ev = Helper.compareVersions(Config.Singleton.verion, _value);
+            int c_ev = Helper.CompareVersions(Config.Singleton.verion, _value);
             if (_compareType == CompareType.EQUAL) _constantValue = c_ev == 0;
             if (_compareType == CompareType.NOT_EQUAL) _constantValue = c_ev != 0;
             if (_compareType == CompareType.SMALLER) _constantValue = c_ev == 1;
@@ -381,7 +381,7 @@ namespace Thry
                 _constantValue = false;
                 return;
             }
-            int c_vrc = Helper.compareVersions(VRCInterface.Get().Sdk_information.installed_version, _value);
+            int c_vrc = Helper.CompareVersions(VRCInterface.Get().Sdk_information.installed_version, _value);
             if (_compareType == CompareType.EQUAL) _constantValue = c_vrc == 0;
             if (_compareType == CompareType.NOT_EQUAL) _constantValue = c_vrc != 0;
             if (_compareType == CompareType.SMALLER) _constantValue = c_vrc == 1;

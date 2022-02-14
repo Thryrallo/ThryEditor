@@ -94,7 +94,7 @@ namespace Thry
                     new_module.installed_module.version = new_module.installed_module.version.Replace(",", ".");
                 if (new_module.available_module.requirement != null)
                     new_module.available_requirement_fullfilled = new_module.available_module.requirement.Test();
-                if (new_module.available_requirement_fullfilled && new_module.installed_module != null && Helper.compareVersions(new_module.installed_module.version, new_module.available_module.version) == 1)
+                if (new_module.available_requirement_fullfilled && new_module.installed_module != null && Helper.CompareVersions(new_module.installed_module.version, new_module.available_module.version) == 1)
                     new_module.update_available = true;
                 modules.Add(new_module);
                 UnityHelper.RepaintEditorWindow<Settings>();

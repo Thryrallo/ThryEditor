@@ -198,7 +198,7 @@ namespace Thry
             {
                 Debug.Log("ShaderEditor is being deleted.");
                 Config.Singleton.verion = "0";
-                Config.Singleton.save();
+                Config.Singleton.Save();
                 ModuleHandler.OnEditorRemove();
             }
         }

@@ -312,7 +312,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     field.SetValue(config, value);
-                    config.save();
+                    config.Save();
                 }
                 if (createHorizontal)
                     GUILayout.EndHorizontal();
@@ -339,7 +339,7 @@ namespace Thry
                 if (Toggle(value, label, hover, label_style) != value)
                 {
                     field.SetValue(config, !value);
-                    config.save();
+                    config.Save();
                     ShaderEditor.RepaintActive();
                 }
             }
@@ -371,7 +371,7 @@ namespace Thry
                 if(EditorGUI.EndChangeCheck())
                 {
                     field.SetValue(config, value);
-                    config.save();
+                    config.Save();
                     ShaderEditor.RepaintActive();
                 }
             }
@@ -389,7 +389,7 @@ namespace Thry
             if(EditorGUI.EndChangeCheck())
             {
                 Config.Singleton.locale = Locale.editor.available_locales[Locale.editor.selected_locale_index];
-                Config.Singleton.save();
+                Config.Singleton.Save();
                 ShaderEditor.ReloadActive();
             }
         }
