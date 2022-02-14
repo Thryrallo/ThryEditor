@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -47,7 +48,8 @@ namespace Thry.ThryEditor
                     window.position = new Rect(pos.x, pos.y, 250, 200);
                     string[] names = presetNames;
                     window.Init(names, p_presetMaterials, shaderEditor);
-                    window.ShowPopup();
+                    window.titleContent = new GUIContent("Preset List");
+                    window.ShowUtility();
                 }
                 else
                 {
@@ -259,6 +261,13 @@ namespace Thry.ThryEditor
                 }
                 
             }
+
+            public void Reset()
+            {
+                isOn = false;
+                foreach (KeyValuePair<string, PresetStruct> struc in dict)
+                    struc.Value.Reset();
+            }
         }
 
         Material[] beforePreset;
@@ -296,37 +305,37 @@ namespace Thry.ThryEditor
         static Texture2D backgroundTextrure;
 
         Vector2 scroll;
+        bool _save;
         void OnGUI()
         {
             if (mainStruct == null) { this.Close(); return; }
 
-            GUI.DrawTexture(new Rect(0, 0, position.width, 18), backgroundTextrure, ScaleMode.StretchToFill);
-
-            GUILayout.Label("Presets", EditorStyles.boldLabel);
-
             GUILayout.BeginHorizontal();
-            GUI.DrawTexture(GUILayoutUtility.GetRect(5, 5, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(false)), backgroundTextrure);
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.Height(position.height - 55));
 
+            GUILayoutUtility.GetRect(10, 5);
             TopStructGUI();
 
             GUILayout.EndScrollView();
-            GUI.DrawTexture(GUILayoutUtility.GetRect(5, 5, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(false)), backgroundTextrure);
             GUILayout.EndHorizontal();
 
             if (GUI.Button(new Rect(5, this.position.height - 35, this.position.width / 2 - 5, 30), "Apply"))
             {
+                _save = true;
                 this.Close();
             }
                 
             if (GUI.Button(new Rect(this.position.width / 2, this.position.height - 35, this.position.width / 2 - 5, 30), "Discard"))
             {
                 Revert();
-                shaderEditor.Repaint();
-                this.Close();
             }
-
-            GUI.DrawTexture(new Rect(5, position.height - 5, position.width - 10, 5), backgroundTextrure);
+        }
+        private void OnDestroy()
+        {
+            if (!_save)
+            {
+                Revert();
+            }
         }
 
         void TopStructGUI()
@@ -344,6 +353,8 @@ namespace Thry.ThryEditor
                 shaderEditor.Materials[i].CopyPropertiesFromMaterial(beforePreset[i]);
                 MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.Materials[i]);
             }
+            mainStruct.Reset();
+            shaderEditor.Repaint();
         }
     }
 }
