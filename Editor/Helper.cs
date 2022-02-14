@@ -24,10 +24,9 @@ namespace Thry
     {
         public static string ReplaceVariables(this string s, params object[] values)
         {
-            int i = 0;
-            foreach(object o in values)
+            for(int i = 0; i < values.Length;i++)
             {
-                s = s.Replace("{" + (i++) + "}", o.ToString());
+                s = s.Replace("{" + i + "}", values[i].ToString());
             }
             return s;
         }
@@ -35,49 +34,12 @@ namespace Thry
 
     public class Helper
     {
-
-        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        public static long GetCurrentUnixTimestampMillis()
-        {
-            return (long)(DateTime.UtcNow - UnixEpoch).TotalMilliseconds;
-        }
-
-        public static long GetUnityStartUpTimeStamp()
-        {
-            return GetCurrentUnixTimestampMillis() - (long)EditorApplication.timeSinceStartup * 1000;
-        }
-
         public static bool ClassWithNamespaceExists(string classname)
         {
             return (from assembly in AppDomain.CurrentDomain.GetAssemblies()
                     from type in assembly.GetTypes()
                     where type.FullName == classname
                     select type).Count() > 0;
-        }
-
-        public static bool NameSpaceExists(string namespace_name)
-        {
-            bool namespaceFound = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
-                                   from type in assembly.GetTypes()
-                                   where type.Namespace == namespace_name
-                                   select type).Any();
-            return namespaceFound;
-        }
-
-        public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
-        {
-            valuetype value = default(valuetype);
-            if (dictionary.ContainsKey(key)) dictionary.TryGetValue(key, out value);
-            return value;
-        }
-
-        public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key, valuetype defaultValue)
-        {
-            valuetype value = default(valuetype);
-            if (dictionary.ContainsKey(key)) dictionary.TryGetValue(key, out value);
-            else return defaultValue;
-            return value;
         }
 
         //-------------------Comparetors----------------------
@@ -152,14 +114,6 @@ namespace Thry
             return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
         }
 
-        public static void testAltClick(Rect rect, ShaderPart property)
-        {
-            if (property.options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && rect.Contains(ShaderEditor.Input.mouse_position))
-            {
-                property.options.altClick.Perform();
-            }
-        }
-
         public static string GetStringBetweenBracketsAndAfterId(string input, string id, char[] brackets)
         {
             string[] parts = Regex.Split(input, id);
@@ -230,12 +184,7 @@ namespace Thry
 
     public class FileHelper
     {
-        public static string FindFile(string name)
-        {
-            return FindFile(name, null);
-        }
-
-        public static string FindFile(string name, string type)
+        public static string FindFile(string name, string type=null)
         {
             string[] guids;
             if (type != null)
@@ -249,20 +198,14 @@ namespace Thry
 
         //-----------------------Value To File Saver----------------------
 
-        private static Dictionary<string, Dictionary<string,string>> textFileData = new Dictionary<string, Dictionary<string, string>>();
+        private static Dictionary<string, Dictionary<string,string>> s_textFileData = new Dictionary<string, Dictionary<string, string>>();
 
         public static string LoadValueFromFile(string key, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            if (textFileData[path].ContainsKey(key))
-                return textFileData[path][key];
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            if (s_textFileData[path].ContainsKey(key))
+                return s_textFileData[path][key];
             return null;
-        }
-
-        public static Dictionary<string,string> LoadDictionaryFromFile(string path)
-        {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            return textFileData[path];
         }
 
         private static void ReadFileIntoTextFileData(string path)
@@ -276,30 +219,26 @@ namespace Thry
                 if(keyvalue.Length>1)
                     dictionary[keyvalue[0]] = keyvalue[1];
             }
-            textFileData[path] = dictionary; 
+            s_textFileData[path] = dictionary; 
         }
 
         public static bool SaveValueToFile(string key, string value, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            textFileData[path][key] = value;
-            return SaveDictionaryToFile(path, textFileData[path]);
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            s_textFileData[path][key] = value;
+            return SaveDictionaryToFile(path, s_textFileData[path]);
         }
 
         public static void RemoveValueFromFile(string key, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            if (textFileData[path].ContainsKey(key)) textFileData[path].Remove(key);
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            if (s_textFileData[path].ContainsKey(key)) s_textFileData[path].Remove(key);
         }
 
-        public static bool SaveDictionaryToFile(string path, Dictionary<string,string> dictionary)
+        private static bool SaveDictionaryToFile(string path, Dictionary<string,string> dictionary)
         {
-            textFileData[path] = dictionary;
-            string data = "";
-            foreach (KeyValuePair<string, string> keyvalue in textFileData[path])
-            {
-                data += keyvalue.Key + ":=" + keyvalue.Value + "\n";
-            }
+            s_textFileData[path] = dictionary;
+            string data = s_textFileData[path].Aggregate("", (d1, d2) => d1 + d2.Key + ":=" + d2.Value + "\n");
             WriteStringToFile(data, path);
             return true;
         }
@@ -342,7 +281,7 @@ namespace Thry
             writer.Close();
         }
 
-        public static bool writeBytesToFile(byte[] bytes, string path)
+        public static bool WriteBytesToFile(byte[] bytes, string path)
         {
             if (!File.Exists(path)) CreateFileWithDirectories(path);
             try
@@ -471,7 +410,7 @@ namespace Thry
                 path += ".png";
             byte[] encoding = texture.EncodeToPNG();
             Debug.Log("Texture saved at \"" + path + "\".");
-            FileHelper.writeBytesToFile(encoding, path);
+            FileHelper.WriteBytesToFile(encoding, path);
 
             AssetDatabase.ImportAsset(path);
             if (settings != null)
@@ -523,39 +462,6 @@ namespace Thry
 
     public class MaterialHelper
     {
-        public static void UpdateTargetsValue(MaterialProperty p, System.Object value)
-        {
-            if (p.type == MaterialProperty.PropType.Texture)
-                foreach (UnityEngine.Object m in p.targets)
-                    ((Material)m).SetTexture(p.name, (Texture)value);
-            else if (p.type == MaterialProperty.PropType.Float)
-            {
-                foreach (UnityEngine.Object m in p.targets)
-                    if (value.GetType() == typeof(float))
-                        ((Material)m).SetFloat(p.name, (float)value);
-                    else if (value.GetType() == typeof(int))
-                        ((Material)m).SetFloat(p.name, (int)value);
-            }
-        }
-
-        public static void UpdateTextureValue(MaterialProperty prop, Texture texture)
-        {
-            foreach (UnityEngine.Object m in prop.targets)
-            {
-                ((Material)m).SetTexture(prop.name, texture);
-            }
-            prop.textureValue = texture;
-        }
-
-        public static void UpdateFloatValue(MaterialProperty prop, float f)
-        {
-            foreach (UnityEngine.Object m in prop.targets)
-            {
-                ((Material)m).SetFloat(prop.name, f);
-            }
-            prop.floatValue = f;
-        }
-
         public static void ToggleKeyword(Material material, string keyword, bool turn_on)
         {
             bool is_on = material.IsKeywordEnabled(keyword);

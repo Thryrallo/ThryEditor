@@ -756,8 +756,6 @@ namespace Thry
             ShaderProperty shaderProperty = (ShaderProperty)ShaderEditor.Active.CurrentProperty;
             GuiHelper.ConfigTextureProperty(position, prop, label, editor, true, true);
 
-            string n = "";
-            if (prop.textureValue != null) n = prop.textureValue.name;
             if ((ShaderEditor.Input.is_drag_drop_event) && position.Contains(ShaderEditor.Input.mouse_position))
             {
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
@@ -776,31 +774,23 @@ namespace Thry
             string[] paths = DragAndDrop.paths;
             Texture2DArray tex;
             if (AssetDatabase.GetMainAssetTypeAtPath(paths[0]) != typeof(Texture2DArray))
-            {
                 tex = Converter.PathsToTexture2DArray(paths);
-                MaterialHelper.UpdateTargetsValue(prop, tex);
-            }
             else
-            {
                 tex = AssetDatabase.LoadAssetAtPath<Texture2DArray>(paths[0]);
-            }
             prop.textureValue = tex;
             UpdateFramesProperty(prop, shaderProperty, tex);
+            EditorGUIUtility.ExitGUI();
         }
 
         private void UpdateFramesProperty(MaterialProperty prop, ShaderProperty shaderProperty, Texture2DArray tex)
         {
+            if (framesProperty == null)
+                framesProperty = shaderProperty.options.reference_property;
+
             if (framesProperty != null)
             {
-                ShaderProperty p;
-                if (ShaderEditor.Active.PropertyDictionary.TryGetValue(framesProperty, out p))
-                    MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
-            }
-            else if (shaderProperty.options.reference_property != null)
-            {
-                ShaderProperty p;
-                if (ShaderEditor.Active.PropertyDictionary.TryGetValue(shaderProperty.options.reference_property, out p))
-                    MaterialHelper.UpdateFloatValue(p.materialProperty, tex.depth);
+                if (ShaderEditor.Active.PropertyDictionary.ContainsKey(framesProperty))
+                    ShaderEditor.Active.PropertyDictionary[framesProperty].materialProperty.floatValue = tex.depth;
             }
         }
 

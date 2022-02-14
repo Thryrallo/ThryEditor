@@ -291,7 +291,11 @@ namespace Thry
                     }
                 }
             }
-            Helper.testAltClick(DrawingData.lastGuiObjectRect, this);
+            //Alt click testing
+            if (options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && DrawingData.lastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
+            {
+                options.altClick.Perform();
+            }
         }
 
         private void DrawLockedAnimated()

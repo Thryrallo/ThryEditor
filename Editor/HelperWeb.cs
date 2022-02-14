@@ -128,7 +128,7 @@ namespace Thry
                     MainThreader.Call(callback, null);
                 else
                 {
-                    FileHelper.writeBytesToFile(a.Result, path);
+                    FileHelper.WriteBytesToFile(a.Result, path);
                     MainThreader.Call(callback, path);
                 }
             });
