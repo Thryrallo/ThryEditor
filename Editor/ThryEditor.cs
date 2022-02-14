@@ -141,8 +141,8 @@ namespace Thry
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
 
-            if (DrawingData.lastPropertyDrawerType == DrawerType.Header)
-                return (DrawingData.lastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
+            if (DrawingData.LastPropertyDrawerType == DrawerType.Header)
+                return (DrawingData.LastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
@@ -292,7 +292,7 @@ namespace Thry
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer, i);
+                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.LastPropertyUsedCustomDrawer, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, false, i);
                         break;

@@ -10,6 +10,7 @@ using UnityEngine.Rendering;
 
 namespace Thry
 {
+    #region Constants
     public class PATH
     {
         public const string TEXTURES_DIR = "Assets/textures";
@@ -52,25 +53,26 @@ namespace Thry
         public const string RECT = "thry_rect";
         public const string ICON_NAME_LINK = "thryEditor_link";
     }
+    #endregion
 
     public class DrawingData
     {
-        public static TextureProperty currentTexProperty;
-        public static Rect lastGuiObjectRect;
-        public static Rect lastGuiObjectHeaderRect;
-        public static Rect tooltipCheckRect;
-        public static bool lastPropertyUsedCustomDrawer;
-        public static DrawerType lastPropertyDrawerType;
-        public static MaterialPropertyDrawer lastPropertyDrawer;
-        public static bool is_enabled = true;
+        public static TextureProperty CurrentTextureProperty;
+        public static Rect LastGuiObjectRect;
+        public static Rect LastGuiObjectHeaderRect;
+        public static Rect TooltipCheckRect;
+        public static bool LastPropertyUsedCustomDrawer;
+        public static DrawerType LastPropertyDrawerType;
+        public static MaterialPropertyDrawer LastPropertyDrawer;
+        public static bool IsEnabled = true;
 
-        public static ShaderPart lastInitiatedPart;
+        public static ShaderPart LastInitiatedPart;
 
         public static void ResetLastDrawerData()
         {
-            lastPropertyUsedCustomDrawer = false;
-            lastPropertyDrawer = null;
-            lastPropertyDrawerType = DrawerType.None;
+            LastPropertyUsedCustomDrawer = false;
+            LastPropertyDrawer = null;
+            LastPropertyDrawerType = DrawerType.None;
         }
     }
 
@@ -81,12 +83,18 @@ namespace Thry
 
     public class GradientData
     {
-        public Texture preview_texture;
-        public Gradient gradient;
+        public Texture PreviewTexture;
+        public Gradient Gradient;
+    }
+
+    public enum TextureDisplayType
+    {
+        small, big, stylized_big
     }
 
     //--------------Shader Data Structs--------------------
 
+    #region In Shader Data
     public class PropertyOptions
     {
         public int offset = 0;
@@ -573,6 +581,10 @@ namespace Thry
         OR
     }
 
+    #endregion
+
+    #region Module Data
+
     public class Module
     {
         public string id;
@@ -605,8 +617,5 @@ namespace Thry
         public string[] files;
     }
 
-    public enum TextureDisplayType
-    {
-        small,big,stylized_big
-    }
+    #endregion
 }

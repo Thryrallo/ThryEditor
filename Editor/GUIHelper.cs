@@ -20,10 +20,10 @@ namespace Thry
                     SmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
-                    if (DrawingData.currentTexProperty.reference_properties_exist || DrawingData.currentTexProperty.reference_property_exists)
+                    if (DrawingData.CurrentTextureProperty.reference_properties_exist || DrawingData.CurrentTextureProperty.reference_property_exists)
                         StylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
-                        BigTextureProperty(position, prop, label, editor, DrawingData.currentTexProperty.hasScaleOffset);
+                        BigTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasScaleOffset);
                     break;
 
                 case TextureDisplayType.stylized_big:
@@ -38,9 +38,9 @@ namespace Thry
             Rect foloutClickCheck = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
-            if (DrawingData.currentTexProperty.reference_property_exists)
+            if (DrawingData.CurrentTextureProperty.reference_property_exists)
             {
-                ShaderProperty property = ShaderEditor.Active.PropertyDictionary[DrawingData.currentTexProperty.options.reference_property];
+                ShaderProperty property = ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.options.reference_property];
                 Rect r = position;
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
@@ -48,28 +48,28 @@ namespace Thry
                 property.Draw(new CRect(r), new GUIContent());
                 property.tooltip.ConditionalDraw(r);
             }
-            if (hasFoldoutProperties && DrawingData.currentTexProperty != null)
+            if (hasFoldoutProperties && DrawingData.CurrentTextureProperty != null)
             {
                 //draw dropdown triangle
-                thumbnailPos.x += DrawingData.currentTexProperty.xOffset * 15;
+                thumbnailPos.x += DrawingData.CurrentTextureProperty.xOffset * 15;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
                 if (GUI.Button(thumbnailPos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
-                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.currentTexProperty.showFoldoutProperties, false);
+                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.CurrentTextureProperty.showFoldoutProperties, false);
 
-                if (DrawingData.is_enabled)
+                if (DrawingData.IsEnabled)
                 {
                     //test click and draw scale/offset
-                    if (DrawingData.currentTexProperty.showFoldoutProperties)
+                    if (DrawingData.CurrentTextureProperty.showFoldoutProperties)
                     {
                         EditorGUI.indentLevel += 2;
                         extraFoldoutGUI?.Invoke();
-                        if (DrawingData.currentTexProperty.hasScaleOffset)
+                        if (DrawingData.CurrentTextureProperty.hasScaleOffset)
                         {
                             ShaderEditor.Active.Editor.TextureScaleOffsetProperty(prop);
                         }
 
-                        PropertyOptions options = DrawingData.currentTexProperty.options;
+                        PropertyOptions options = DrawingData.CurrentTextureProperty.options;
                         if (options.reference_properties != null)
                             foreach (string r_property in options.reference_properties)
                             {
@@ -81,15 +81,15 @@ namespace Thry
                     if (ShaderEditor.Input.LeftClick_IgnoreUnityUses && foloutClickCheck.Contains(Event.current.mousePosition))
                     {
                         ShaderEditor.Input.Use();
-                        DrawingData.currentTexProperty.showFoldoutProperties = !DrawingData.currentTexProperty.showFoldoutProperties;
+                        DrawingData.CurrentTextureProperty.showFoldoutProperties = !DrawingData.CurrentTextureProperty.showFoldoutProperties;
                     }
                 }
             }
             
             Rect object_rect = new Rect(position);
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
-            DrawingData.lastGuiObjectRect = object_rect;
-            DrawingData.tooltipCheckRect = position;
+            DrawingData.LastGuiObjectRect = object_rect;
+            DrawingData.TooltipCheckRect = position;
         }
 
         public static void BigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
@@ -103,8 +103,8 @@ namespace Thry
             EditorGUIUtility.fieldWidth = defaultFieldWidth;
             Rect object_rect = new Rect(position);
             object_rect.height += rect.height;
-            DrawingData.lastGuiObjectRect = object_rect;
-            DrawingData.tooltipCheckRect = object_rect;
+            DrawingData.LastGuiObjectRect = object_rect;
+            DrawingData.TooltipCheckRect = object_rect;
         }
 
         static int s_texturePickerWindow = -1;
@@ -120,18 +120,18 @@ namespace Thry
             border.position = new Vector2(border.x, border.y - position.height);
             border.height += position.height;
 
-            if (DrawingData.currentTexProperty.reference_properties_exist)
+            if (DrawingData.CurrentTextureProperty.reference_properties_exist)
             {
                 border.height += 8;
-                foreach (string r_property in DrawingData.currentTexProperty.options.reference_properties)
+                foreach (string r_property in DrawingData.CurrentTextureProperty.options.reference_properties)
                 {
                     border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[r_property].materialProperty);
                 }
             }
-            if (DrawingData.currentTexProperty.reference_property_exists)
+            if (DrawingData.CurrentTextureProperty.reference_property_exists)
             {
                 border.height += 8;
-                border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.currentTexProperty.options.reference_property].materialProperty);
+                border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.options.reference_property].materialProperty);
             }
 
 
@@ -216,11 +216,11 @@ namespace Thry
 
             //scale offset rect
 
-            if (hasFoldoutProperties || DrawingData.currentTexProperty.options.reference_property != null)
+            if (hasFoldoutProperties || DrawingData.CurrentTextureProperty.options.reference_property != null)
             {
                 EditorGUI.indentLevel += 2;
 
-                if (DrawingData.currentTexProperty.hasScaleOffset)
+                if (DrawingData.CurrentTextureProperty.hasScaleOffset)
                 {
                     Rect scale_offset_rect = new Rect(position);
                     scale_offset_rect.y += 37;
@@ -231,7 +231,7 @@ namespace Thry
                 float oldLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 128;
 
-                PropertyOptions options = DrawingData.currentTexProperty.options;
+                PropertyOptions options = DrawingData.CurrentTextureProperty.options;
                 if (options.reference_property != null)
                 {
                     ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
@@ -254,8 +254,8 @@ namespace Thry
 
             GUILayoutUtility.GetRect(0, 5);
             
-            DrawingData.lastGuiObjectRect = border;
-            DrawingData.tooltipCheckRect = border;
+            DrawingData.LastGuiObjectRect = border;
+            DrawingData.TooltipCheckRect = border;
         }
 
         static string[] s_fallbackShaderTypes = { "Standard", "Toon", "Unlit", "VertexLit", "Particle", "Sprite", "Matcap", "MobileToon" };
@@ -735,9 +735,9 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            DrawingData.lastPropertyUsedCustomDrawer = true;
-            DrawingData.lastPropertyDrawerType = DrawerType.Header;
-            DrawingData.lastPropertyDrawer = this;
+            DrawingData.LastPropertyUsedCustomDrawer = true;
+            DrawingData.LastPropertyDrawerType = DrawerType.Header;
+            DrawingData.LastPropertyDrawer = this;
             return base.GetPropertyHeight(prop, label, editor);
         }
 
@@ -769,7 +769,7 @@ namespace Thry
             position.width -= p_xOffset_total - position.x;
             position.x = p_xOffset_total;
 
-            DrawingData.lastGuiObjectHeaderRect = position;
+            DrawingData.LastGuiObjectHeaderRect = position;
 
             DrawBoxAndContent(position, e, label, options);
 

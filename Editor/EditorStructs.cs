@@ -192,12 +192,12 @@ namespace Thry
         {
             if (has_not_searchedFor)
                 return;
-            if (DrawingData.is_enabled && options.condition_enable != null)
+            if (DrawingData.IsEnabled && options.condition_enable != null)
             {
                 hasAddedDisabledGroup = options.condition_enable.Test();
                 if(hasAddedDisabledGroup == false)
                 {
-                    DrawingData.is_enabled = hasAddedDisabledGroup;
+                    DrawingData.IsEnabled = hasAddedDisabledGroup;
                     EditorGUI.BeginDisabledGroup(false);
                 }
             }
@@ -208,14 +208,14 @@ namespace Thry
             if (hasAddedDisabledGroup)
             {
                 hasAddedDisabledGroup = false;
-                DrawingData.is_enabled = true;
+                DrawingData.IsEnabled = true;
                 EditorGUI.EndDisabledGroup();
             }
         }
 
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
-            if (ShaderEditor.Input.RightClick && DrawingData.tooltipCheckRect.Contains(Event.current.mousePosition))
+            if (ShaderEditor.Input.RightClick && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
                 //Preset toggle
                 if (Event.current.shift)
@@ -272,14 +272,14 @@ namespace Thry
                 EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
 
-            if(this is TextureProperty == false) DrawingData.tooltipCheckRect = DrawingData.lastGuiObjectRect;
-            DrawingData.tooltipCheckRect.width = EditorGUIUtility.labelWidth;
+            if(this is TextureProperty == false) DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
+            DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
 
             HandleRightClickToggles(isInHeader);
             if (is_animated) DrawLockedAnimated();
             if (is_preset) DrawPresetProperty();
 
-            tooltip.ConditionalDraw(DrawingData.tooltipCheckRect);
+            tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
 
             if (options.on_value_actions != null)
             {
@@ -292,7 +292,7 @@ namespace Thry
                 }
             }
             //Alt click testing
-            if (options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && DrawingData.lastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
+            if (options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
             {
                 options.altClick.Perform();
             }
@@ -300,7 +300,7 @@ namespace Thry
 
         private void DrawLockedAnimated()
         {
-            Rect r = new Rect(14, DrawingData.tooltipCheckRect.y + 2, 16, 16);
+            Rect r = new Rect(14, DrawingData.TooltipCheckRect.y + 2, 16, 16);
             //GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
             if (is_renaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
             else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
@@ -308,7 +308,7 @@ namespace Thry
 
         private void DrawPresetProperty()
         {
-            Rect r = new Rect(2, DrawingData.tooltipCheckRect.y + 2, 8, 16);
+            Rect r = new Rect(2, DrawingData.TooltipCheckRect.y + 2, 8, 16);
             //GUI.DrawTexture(r, Styles.texture_preset, ScaleMode.StretchToFill, true);
             GUI.Label(r, "P", Styles.cyanStyle);
         }
@@ -390,10 +390,10 @@ namespace Thry
 
         public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, materialEditor, displayName, xOffset, options)
         {
-            if(DrawingData.lastPropertyDrawerType == DrawerType.Header)
+            if(DrawingData.LastPropertyDrawerType == DrawerType.Header)
             {
                 //new header setup with drawer
-                this.headerDrawer = DrawingData.lastPropertyDrawer as ThryHeaderDrawer;
+                this.headerDrawer = DrawingData.LastPropertyDrawer as ThryHeaderDrawer;
             }
             else
             {
@@ -416,7 +416,7 @@ namespace Thry
             Rect position = GUILayoutUtility.GetRect(content, Styles.dropDownHeader);
             if (isLegacy) headerDrawer.OnGUI(position, this.materialProperty, content, shaderEditor.Editor);
             else shaderEditor.Editor.ShaderProperty(position, this.materialProperty, content);
-            Rect headerRect = DrawingData.lastGuiObjectHeaderRect;
+            Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
             if (this.headerDrawer.is_expanded)
             {
                 EditorGUILayout.Space();
@@ -428,8 +428,8 @@ namespace Thry
             }
             if (EditorGUI.EndChangeCheck())
                 HandleLinkedMaterials();
-            DrawingData.lastGuiObjectHeaderRect = headerRect;
-            DrawingData.lastGuiObjectRect = headerRect;
+            DrawingData.LastGuiObjectHeaderRect = headerRect;
+            DrawingData.LastGuiObjectRect = headerRect;
         }
 
         private void HandleLinkedMaterials()
@@ -465,7 +465,7 @@ namespace Thry
 
             if (materialProperty.type == MaterialProperty.PropType.Vector && forceOneLine == false)
             {
-                this.doCustomHeightOffset = !DrawingData.lastPropertyUsedCustomDrawer;
+                this.doCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
                 this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
             }
 
@@ -558,8 +558,8 @@ namespace Thry
             }
 
             EditorGUI.indentLevel = oldIndentLevel;
-            if (rect == null) DrawingData.lastGuiObjectRect = GUILayoutUtility.GetLastRect();
-            else DrawingData.lastGuiObjectRect = rect.r;
+            if (rect == null) DrawingData.LastGuiObjectRect = GUILayoutUtility.GetLastRect();
+            else DrawingData.LastGuiObjectRect = rect.r;
             if (shaderEditor.IsLockedMaterial)
                 EditorGUI.EndDisabledGroup();
         }
@@ -597,14 +597,14 @@ namespace Thry
 
         public override void PreDraw()
         {
-            DrawingData.currentTexProperty = this;
+            DrawingData.CurrentTextureProperty = this;
         }
 
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
             GuiHelper.ConfigTextureProperty(pos, materialProperty, content, shaderEditor.Editor, hasFoldoutProperties);
-            DrawingData.lastGuiObjectRect = pos;
+            DrawingData.LastGuiObjectRect = pos;
         }
 
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
@@ -694,7 +694,7 @@ namespace Thry
                 //is text draw
                 Rect headerrect = new Rect(0, rect.r.y, rect.r.width, 18);
                 EditorGUI.LabelField(headerrect, "<size=16>" + this.content.text + "</size>", Styles.masterLabel);
-                DrawingData.lastGuiObjectRect = headerrect;
+                DrawingData.LastGuiObjectRect = headerrect;
             }
         }
 
