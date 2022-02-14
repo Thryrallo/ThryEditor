@@ -479,8 +479,7 @@ namespace Thry
 
         public static void ToggleKeyword(MaterialProperty p, string keyword, bool on)
         {
-            foreach (UnityEngine.Object o in p.targets)
-                ToggleKeyword((Material)o, keyword, on);
+            ToggleKeyword(p.targets as Material[], keyword, on);
         }
 
         /// <summary>
@@ -494,7 +493,7 @@ namespace Thry
             MaterialProperty p = ShaderEditor.Active.GetMaterialProperty(key);
             if (p != null)
             {
-                MaterialHelper.SetMaterialPropertyValue(p, materials, value);
+                MaterialHelper.SetMaterialPropertyValue(p, value);
             }
             else if (key == "render_queue")
             {
@@ -509,129 +508,99 @@ namespace Thry
             }
         }
 
-        public static void SetMaterialPropertyValue(MaterialProperty p, Material[] materials, string value)
+        public static void SetMaterialPropertyValue(MaterialProperty p, string value)
         {
+            object prev = null;
             if (p.type == MaterialProperty.PropType.Texture)
             {
-                Texture tex = AssetDatabase.LoadAssetAtPath<Texture>(value);
-                if (tex != null)
-                    foreach (Material m in materials) m.SetTexture(p.name, tex);
+                prev = p.textureValue;
+                p.textureValue = AssetDatabase.LoadAssetAtPath<Texture>(value);
             }
             else if (p.type == MaterialProperty.PropType.Float || p.type == MaterialProperty.PropType.Range)
             {
                 float f_value;
                 if (float.TryParse(Parser.GlobalizationFloat(value), out f_value))
                 {
+                    prev = p.floatValue;
                     p.floatValue = f_value;
-                    string[] drawer = ShaderHelper.GetDrawer(p);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        MaterialHelper.ToggleKeyword(p, drawer[1], f_value == 1);
+                    
                 }
             }
             else if (p.type == MaterialProperty.PropType.Vector)
             {
-                string[] xyzw = value.Split(",".ToCharArray());
-                Vector4 vector = new Vector4(float.Parse(xyzw[0]), float.Parse(xyzw[1]), float.Parse(xyzw[2]), float.Parse(xyzw[3]));
-                foreach (Material m in materials) m.SetVector(p.name, vector);
+                prev = p.vectorValue;
+                p.vectorValue = Converter.StringToVector(value);
             }
             else if (p.type == MaterialProperty.PropType.Color)
             {
-                Color col = Converter.stringToColor(value);
-                foreach (Material m in materials) m.SetColor(p.name, col);
+                prev = p.colorValue;
+                p.colorValue = Converter.StringToColor(value);
             }
+            if (p.applyPropertyCallback != null)
+                p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
         public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
         {
+            object prev = null;
             switch (p.type)
             {
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
-                    float f = source.GetFloat(p.name);
-                    p.floatValue = f;
-                    string[] drawer = ShaderHelper.GetDrawer(p);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(p, drawer[1], f == 1);
+                    prev = p.floatValue;
+                    p.floatValue = source.GetFloat(p.name);
                     break;
                 case MaterialProperty.PropType.Color:
-                    Color c = source.GetColor(p.name);
-                    p.colorValue = c;
+                    prev = p.colorValue;
+                    p.colorValue = source.GetColor(p.name);
                     break;
                 case MaterialProperty.PropType.Vector:
-                    Vector4 vector = source.GetVector(p.name);
-                    p.vectorValue = vector;
+                    prev = p.vectorValue;
+                    p.vectorValue = source.GetVector(p.name);
                     break;
                 case MaterialProperty.PropType.Texture:
-                    Texture t = source.GetTexture(p.name);
+                    prev = p.textureValue;
+                    p.textureValue = source.GetTexture(p.name);
                     Vector2 offset = source.GetTextureOffset(p.name);
                     Vector2 scale = source.GetTextureScale(p.name);
-                    p.textureValue = t;
                     p.textureScaleAndOffset = new Vector4(scale.x, scale.y, offset.x, offset.y);
                     break;
             }
-        }
-
-        public static void CopyMaterialTagFromMaterial(Material[] targets, Material source, string tag, string defaultValue)
-        {
-            string val = source.GetTag(tag, false, defaultValue);
-            foreach(Material m in targets)
-            {
-                m.SetOverrideTag(tag, val);
-            }
+            if (p.applyPropertyCallback != null)
+                p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
         public static void CopyMaterialValueFromProperty(MaterialProperty target, MaterialProperty source)
         {
+            object prev = null;
             switch (target.type)
             {
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
+                    prev = target.floatValue;
                     target.floatValue = source.floatValue;
-                    string[] drawer = ShaderHelper.GetDrawer(target);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(target, drawer[1], source.floatValue == 1);
                     break;
                 case MaterialProperty.PropType.Color:
+                    prev = target.colorValue;
                     target.colorValue = source.colorValue;
                     break;
                 case MaterialProperty.PropType.Vector:
+                    prev = target.vectorValue;
                     target.vectorValue = source.vectorValue;
                     break;
                 case MaterialProperty.PropType.Texture:
+                    prev = target.textureValue;
                     target.textureValue = source.textureValue;
                     target.textureScaleAndOffset = source.textureScaleAndOffset;
                     break;
             }
+            if (target.applyPropertyCallback != null)
+                target.applyPropertyCallback.Invoke(target, 1, prev);
         }
 
         public static void CopyPropertyValueToMaterial(MaterialProperty source, Material target)
         {
-            switch (source.type)
-            {
-                case MaterialProperty.PropType.Float:
-                case MaterialProperty.PropType.Range:
-                    float f = source.floatValue;
-                    target.SetFloat(source.name, f);
-                    string[] drawer = ShaderHelper.GetDrawer(source);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(target, drawer[1], f == 1);
-                    break;
-                case MaterialProperty.PropType.Color:
-                    Color c = source.colorValue;
-                    target.SetColor(source.name, c);
-                    break;
-                case MaterialProperty.PropType.Vector:
-                    Vector4 vector = source.vectorValue;
-                    target.SetVector(source.name, vector);
-                    break;
-                case MaterialProperty.PropType.Texture:
-                    Texture t = source.textureValue;
-                    Vector4 scaleoffset = source.textureScaleAndOffset;
-                    target.SetTexture(source.name, t);
-                    target.SetTextureOffset(source.name, new Vector2(scaleoffset.z,scaleoffset.w));
-                    target.SetTextureScale(source.name, new Vector2(scaleoffset.x,scaleoffset.y));
-                    break;
-            }
+            CopyMaterialValueFromProperty(MaterialEditor.GetMaterialProperty(new Material[] { target }, source.name), source);
         }
     }
 
@@ -656,32 +625,23 @@ namespace Thry
     public class Converter
     {
 
-        public static Color stringToColor(string s)
+        public static Color StringToColor(string s)
         {
             s = s.Trim(new char[] { '(', ')' });
             string[] split = s.Split(",".ToCharArray());
             float[] rgba = new float[4] { 1, 1, 1, 1 };
-            for (int i = 0; i < split.Length; i++) if (split[i].Replace(" ", "") != "") rgba[i] = float.Parse(split[i]);
+            for (int i = 0; i < split.Length; i++) if (string.IsNullOrWhiteSpace(split[i]) == false) rgba[i] = float.Parse(split[i]);
             return new Color(rgba[0], rgba[1], rgba[2], rgba[3]);
 
         }
 
-        public static Vector4 stringToVector(string s)
+        public static Vector4 StringToVector(string s)
         {
             s = s.Trim(new char[] { '(', ')' });
             string[] split = s.Split(",".ToCharArray());
             float[] xyzw = new float[4];
-            for (int i = 0; i < 4; i++) if (i < split.Length && split[i].Replace(" ", "") != "") xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
+            for (int i = 0; i < 4 && i < split.Length; i++) if (string.IsNullOrWhiteSpace(split[i]) == false) xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
             return new Vector4(xyzw[0], xyzw[1], xyzw[2], xyzw[3]);
-        }
-
-        public static string MaterialsToString(Material[] materials)
-        {
-            string s = "";
-            foreach (Material m in materials)
-                s += "\"" + m.name + "\"" + ",";
-            s = s.TrimEnd(',');
-            return s;
         }
 
         public static string ArrayToString(object[] a)
