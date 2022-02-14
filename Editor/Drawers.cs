@@ -154,7 +154,7 @@ namespace Thry
         Type t_ExternalToolType;
         MethodInfo _onGui;
         object _externalTool;
-        MaterialProperty prop;
+        MaterialProperty _prop;
 
         bool _isTypeLoaded;
         bool _doesExternalTypeExist;
@@ -172,6 +172,7 @@ namespace Thry
             LoadType();
             if (_doesExternalTypeExist)
             {
+                _prop = prop;
                 GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties, ExternalGUI);
             }
             else
@@ -186,7 +187,16 @@ namespace Thry
             if (_showTool)
             {
                 Init();
+
+                int indent = EditorGUI.indentLevel;
+                GuiHelper.BeginCustomIndentLevel(0);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(indent * 15);
+                GUILayout.BeginVertical();
                 _onGui.Invoke(_externalTool, new object[0]);
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
+                GuiHelper.EndCustomIndentLevel();
             }
         }
 
@@ -217,7 +227,7 @@ namespace Thry
             if (args != null && args.GetType().GetField("generated_texture") != null)
             {
                 Texture2D generated = args.GetType().GetField("generated_texture").GetValue(args) as Texture2D;
-                prop.textureValue = generated;
+                _prop.textureValue = generated;
             }
         }
 

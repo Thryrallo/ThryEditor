@@ -258,6 +258,18 @@ namespace Thry
             DrawingData.TooltipCheckRect = border;
         }
 
+        static Stack<int> s_previousIndentLevels = new Stack<int>();
+        public static void BeginCustomIndentLevel(int indent)
+        {
+            s_previousIndentLevels.Push(EditorGUI.indentLevel);
+            EditorGUI.indentLevel = indent;
+        }
+
+        public static void EndCustomIndentLevel()
+        {
+            EditorGUI.indentLevel = s_previousIndentLevels.Pop();
+        }
+
         static string[] s_fallbackShaderTypes = { "Standard", "Toon", "Unlit", "VertexLit", "Particle", "Sprite", "Matcap", "MobileToon" };
         static string[] s_fallbackRenderTypes = { "Opaque", "Cutout", "Transparent", "Fade" };
         static string[] s_fallbackRenderTypesValues = { "", "Cutout", "Transparent", "Fade" };
