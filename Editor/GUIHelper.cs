@@ -36,6 +36,7 @@ namespace Thry
         {
             Rect thumbnailPos = position;
             Rect foloutClickCheck = position;
+            Rect tooltipRect = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
             if (DrawingData.CurrentTextureProperty.reference_property_exists)
@@ -59,7 +60,7 @@ namespace Thry
 
                 if (DrawingData.IsEnabled)
                 {
-                    //test click and draw scale/offset
+                    //sub properties
                     if (DrawingData.CurrentTextureProperty.showFoldoutProperties)
                     {
                         EditorGUI.indentLevel += 2;
@@ -67,7 +68,10 @@ namespace Thry
                         if (DrawingData.CurrentTextureProperty.hasScaleOffset)
                         {
                             ShaderEditor.Active.Editor.TextureScaleOffsetProperty(prop);
+                            tooltipRect.height += GUILayoutUtility.GetLastRect().height;
                         }
+                        //In case of locked material end disabled group here to allow editing of sub properties
+                        if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
 
                         PropertyOptions options = DrawingData.CurrentTextureProperty.options;
                         if (options.reference_properties != null)
@@ -76,9 +80,13 @@ namespace Thry
                                 ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
                                 property.Draw(useEditorIndent: true);
                             }
+
+                        //readd disabled group
+                        if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
+
                         EditorGUI.indentLevel -= 2;
                     }
-                    if (ShaderEditor.Input.LeftClick_IgnoreUnityUses && foloutClickCheck.Contains(Event.current.mousePosition))
+                    if (ShaderEditor.Input.LeftClick_IgnoreLockedAndUnityUses && foloutClickCheck.Contains(Event.current.mousePosition))
                     {
                         ShaderEditor.Input.Use();
                         DrawingData.CurrentTextureProperty.showFoldoutProperties = !DrawingData.CurrentTextureProperty.showFoldoutProperties;
@@ -89,7 +97,7 @@ namespace Thry
             Rect object_rect = new Rect(position);
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
             DrawingData.LastGuiObjectRect = object_rect;
-            DrawingData.TooltipCheckRect = position;
+            DrawingData.TooltipCheckRect = tooltipRect;
         }
 
         public static void BigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
@@ -228,6 +236,10 @@ namespace Thry
                     scale_offset_rect.x += 30;
                     editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
                 }
+
+                //In case of locked material end disabled group here to allow editing of sub properties
+                if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
+
                 float oldLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 128;
 
@@ -245,6 +257,9 @@ namespace Thry
                     }
                 EditorGUIUtility.labelWidth = oldLabelWidth;
                 EditorGUI.indentLevel -= 2;
+
+                //readd disabled group
+                if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
             }
 
             Rect label_rect = new Rect(position);

@@ -85,6 +85,16 @@ namespace Thry
             get { return _MouseRightClickIgnoreLocked && Event.current.type != EventType.Used; }
         }
 
+        public bool LeftClick_IgnoreLockedAndUnityUses
+        {
+            get { return _MouseLeftClickIgnoreLocked; }
+        }
+
+        public bool RightClick_IgnoreLockedAndUnityUses
+        {
+            get { return _MouseRightClickIgnoreLocked; }
+        }
+
         public bool Click
         {
             get { return _MouseClick && Event.current.type != EventType.Used; }
@@ -215,7 +225,7 @@ namespace Thry
 
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
-            if (ShaderEditor.Input.RightClick && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
+            if (ShaderEditor.Input.RightClick_IgnoreUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
                 //Preset toggle
                 if (Event.current.shift)
