@@ -28,7 +28,6 @@ namespace Thry
 
         //Static
         private static string s_edtiorDirectoryPath;
-        private static bool s_doReloadNextDraw = false;
 
         public static InputEvent Input = new InputEvent();
         public static ShaderEditor Active;
@@ -49,6 +48,8 @@ namespace Thry
         // sates
         private bool _isFirstOnGUICall = true;
         private bool _wasUsed = false;
+        private bool _doReloadNextDraw = false;
+        private bool _didSwapToShader = false;
 
         //EditorData
         public MaterialEditor Editor;
@@ -76,7 +77,6 @@ namespace Thry
         ShaderProperty ShaderOptimizerProperty { get; set; }
 
         private DefineableAction[] _onSwapToActions = null;
-        private bool DidSwapToShader = false;
 
         public bool IsDrawing { get; private set; } = false;
         public bool IsPresetEditor { get; private set; } = false;
@@ -141,8 +141,8 @@ namespace Thry
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
 
-            if (DrawingData.lastPropertyDrawerType == DrawerType.Header)
-                return (DrawingData.lastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
+            if (DrawingData.LastPropertyDrawerType == DrawerType.Header)
+                return (DrawingData.LastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
@@ -292,7 +292,7 @@ namespace Thry
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.lastPropertyUsedCustomDrawer, i);
+                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.LastPropertyUsedCustomDrawer, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, false, i);
                         break;
@@ -416,8 +416,8 @@ namespace Thry
             int previousQueue = material.renderQueue;
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
             material.renderQueue = previousQueue;
-            s_doReloadNextDraw = true;
-            DidSwapToShader = true;
+            _doReloadNextDraw = true;
+            _didSwapToShader = true;
         }
 
         void InitEditorData(MaterialEditor materialEditor)
@@ -431,7 +431,7 @@ namespace Thry
         {
             IsDrawing = true;
             //Init
-            bool reloadUI = _isFirstOnGUICall || (s_doReloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != Shader;
+            bool reloadUI = _isFirstOnGUICall || (_doReloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != Shader;
             if (reloadUI) 
             {
                 InitEditorData(materialEditor);
@@ -497,13 +497,15 @@ namespace Thry
         {
             //if header is texture, draw it first so other ui elements can be positions below
             if (_shaderHeader != null && _shaderHeader.options.texture != null) _shaderHeader.Draw();
+
+            bool drawAboveToolbar = EditorGUIUtility.wideMode == false;
+            if(drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
+
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, 25, 25))
             {
-                Thry.Settings window = Thry.Settings.getInstance();
-                window.Show();
-                window.Focus();
+                EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
             }
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, 25, 25))
             {
@@ -514,7 +516,7 @@ namespace Thry
             Presets.PresetGUI(presetR, this);
 
             //draw master label text after ui elements, so it can be positioned between
-            if (_shaderHeader != null) _shaderHeader.Draw(new CRect(mainHeaderRect));
+            if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
 
             //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
             GUILayout.FlexibleSpace();  
@@ -555,20 +557,20 @@ namespace Thry
         {
             Event e = Event.current;
             //if reloaded, set reload to false
-            if (s_doReloadNextDraw && Event.current.type == EventType.Layout) s_doReloadNextDraw = false;
+            if (_doReloadNextDraw && Event.current.type == EventType.Layout) _doReloadNextDraw = false;
 
             //if was undo, reload
             bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
-            if (isUndo) s_doReloadNextDraw = true;
+            if (isUndo) _doReloadNextDraw = true;
 
 
             //on swap
-            if (_onSwapToActions != null && DidSwapToShader)
+            if (_onSwapToActions != null && _didSwapToShader)
             {
                 foreach (DefineableAction a in _onSwapToActions)
                     a.Perform();
                 _onSwapToActions = null;
-                DidSwapToShader = false;
+                _didSwapToShader = false;
             }
 
             //test if material has been reset
@@ -576,7 +578,7 @@ namespace Thry
             {
                 if (Materials[0].HasProperty("shader_is_using_thry_editor") && Materials[0].GetFloat("shader_is_using_thry_editor") != 69)
                 {
-                    s_doReloadNextDraw = true;
+                    _doReloadNextDraw = true;
                     HandleReset();
                     _wasUsed = true;
                 }
@@ -616,105 +618,30 @@ namespace Thry
             ShaderOptimizer.DeleteTags(Materials);
         }
 
-        public static void reload()
-        {
-            s_doReloadNextDraw = true;
-        }
-
-        public static void loadValuesFromMaterial()
-        {
-            if (Active.Editor != null)
-            {
-                try
-                {
-                    Material m = ((Material)Active.Editor.target);
-                    foreach (MaterialProperty property in Active.Properties)
-                    {
-                        switch (property.type)
-                        {
-                            case MaterialProperty.PropType.Float:
-                            case MaterialProperty.PropType.Range:
-                                property.floatValue = m.GetFloat(property.name);
-                                break;
-                            case MaterialProperty.PropType.Texture:
-                                property.textureValue = m.GetTexture(property.name);
-                                break;
-                            case MaterialProperty.PropType.Color:
-                                property.colorValue = m.GetColor(property.name);
-                                break;
-                            case MaterialProperty.PropType.Vector:
-                                property.vectorValue = m.GetVector(property.name);
-                                break;
-                        }
-
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
-            }
-        }
-
-        public static void propertiesChanged()
-        {
-            if (Active.Editor != null)
-            {
-                try
-                {
-                    Active.Editor.PropertiesChanged();
-                }
-                catch (System.Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
-            }
-        }
-
-        public static void addUndo(string label)
-        {
-            if (Active.Editor != null)
-            {
-                try
-                {
-                    Active.Editor.RegisterPropertyChangeUndo(label);
-                }
-                catch (System.Exception e)
-                {
-                    Debug.Log(e.ToString());
-                }
-            }
-        }
-
-        public void ForceRedraw()
+        public void Repaint()
         {
             if (Materials.Length > 0)
-            {
                 EditorUtility.SetDirty(Materials[0]);
-            }
         }
 
-        public static void Repaint()
+        public static void RepaintActive()
         {
             if (ShaderEditor.Active != null)
-            {
-                Active.ForceRedraw();
-            }
+                Active.Repaint();
         }
 
         public void Reload()
         {
             this._isFirstOnGUICall = true;
-            this.DidSwapToShader = true;
-            this.ForceRedraw();
+            this._didSwapToShader = true;
+            this._doReloadNextDraw = true;
+            this.Repaint();
         }
 
         public static void ReloadActive()
         {
             if (ShaderEditor.Active != null)
-            {
                 Active.Reload();
-            }
         }
 
         public void ApplyDrawers()
@@ -727,15 +654,11 @@ namespace Thry
         {
             if (s_edtiorDirectoryPath == null)
             {
-                string[] guids = AssetDatabase.FindAssets("ShaderEditor");
-                foreach (string g in guids)
+                IEnumerable<string> paths = AssetDatabase.FindAssets("ThryEditor").Select(g => AssetDatabase.GUIDToAssetPath(g));
+                foreach (string p in paths)
                 {
-                    string p = AssetDatabase.GUIDToAssetPath(g);
-                    if (p.EndsWith("/ShaderEditor.cs"))
-                    {
+                    if (p.EndsWith("/ThryEditor.cs"))
                         s_edtiorDirectoryPath = Directory.GetParent(Path.GetDirectoryName(p)).FullName;
-                        break;
-                    }
                 }
             }
             return s_edtiorDirectoryPath;
@@ -757,16 +680,39 @@ namespace Thry
                         ShaderHelper.EnableDisableKeywordsBasedOnTheirFloatValue(new Material[] { m }, m.shader, m.shader.GetPropertyName(i));
                     }
                 }
-                EditorUtility.DisplayProgressBar("Fixing Keywords", m.name, f / count);
-                f += 1;
+                EditorUtility.DisplayProgressBar("Fixing Keywords", m.name, f++ / count);
             }
             EditorUtility.ClearProgressBar();
         }
 
-        [MenuItem("Thry/Twitter")]
-        static void Init()
+        [MenuItem("Thry/Twitter", priority = -100)]
+        static void MenuThryTwitter()
         {
             Application.OpenURL("https://www.twitter.com/thryrallo");
+        }
+
+        [MenuItem("Thry/ShaderUI/Settings",priority = -20)]
+        static void MenuShaderUISettings()
+        {
+            EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
+        }
+
+        [MenuItem("Thry/ShaderUI/Use Thry Editor for other shaders", priority = 0)]
+        static void MenuShaderUIAddToShaders()
+        {
+            EditorWindow.GetWindow<EditorChanger>(false, "UI Changer", true);
+        }
+
+        [MenuItem("Thry/Shader Optimizer/Upgraded Animated Properties", priority = 40)]
+        static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
+        {
+            ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
+        }
+
+        [MenuItem("Thry/Shader Optimizer/Unlocked Materials List", priority = 40)]
+        static void MenuShaderOptUnlockedMaterials()
+        {
+            EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Unlocked Materials", true);
         }
     }
 }

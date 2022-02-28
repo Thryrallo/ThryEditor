@@ -16,7 +16,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.22.4";
+        private const string VERSION = "2.22.13";
 
         // static
         private static Config config;
@@ -31,11 +31,11 @@ namespace Thry
             {
                 string prevVersion = Singleton.verion;
                 string installedVersion = VERSION;
-                int versionComparision = Helper.compareVersions(installedVersion, prevVersion);
+                int versionComparision = Helper.CompareVersions(installedVersion, prevVersion);
                 if (versionComparision != 0)
                 {
                     config.verion = VERSION;
-                    config.save();
+                    config.Save();
                 }
                 if (versionComparision == 1)
                 {
@@ -49,20 +49,17 @@ namespace Thry
             }
         }
 
-        // load the config from file
-        private static Config LoadConfig()
-        {
-            if (File.Exists(PATH_CONFIG_FILE))
-                return JsonUtility.FromJson<Config>(FileHelper.ReadFileIntoString(PATH_CONFIG_FILE));
-            new Config().save();
-            return new Config();
-        }
-
         public static Config Singleton
         {
             get
             {
-                if (config == null) config = LoadConfig();
+                if (config == null)
+                {
+                    if (File.Exists(PATH_CONFIG_FILE))
+                        config = JsonUtility.FromJson<Config>(FileHelper.ReadFileIntoString(PATH_CONFIG_FILE));
+                    else
+                        config = new Config().Save();
+                }
                 return config;
             }
         }
@@ -79,9 +76,10 @@ namespace Thry
 
         public string verion = VERSION;
 
-        public void save()
+        public Config Save()
         {
             FileHelper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
+            return this;
         }
 
         private void OnUpgrade(string oldVersionString)
@@ -109,62 +107,62 @@ namespace Thry
 
         public static bool operator ==(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) == 0;
+            return Helper.CompareVersions(x.value, y.value) == 0;
         }
 
         public static bool operator !=(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) != 0;
+            return Helper.CompareVersions(x.value, y.value) != 0;
         }
 
         public static bool operator >(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) == -1;
+            return Helper.CompareVersions(x.value, y.value) == -1;
         }
 
         public static bool operator <(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) == 1;
+            return Helper.CompareVersions(x.value, y.value) == 1;
         }
 
         public static bool operator >=(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) < 1;
+            return Helper.CompareVersions(x.value, y.value) < 1;
         }
 
         public static bool operator <=(Version x, Version y)
         {
-            return Helper.compareVersions(x.value, y.value) > -1;
+            return Helper.CompareVersions(x.value, y.value) > -1;
         }
 
         public static bool operator ==(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) == 0;
+            return Helper.CompareVersions(x.value, y) == 0;
         }
 
         public static bool operator !=(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) != 0;
+            return Helper.CompareVersions(x.value, y) != 0;
         }
 
         public static bool operator >(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) == -1;
+            return Helper.CompareVersions(x.value, y) == -1;
         }
 
         public static bool operator <(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) == 1;
+            return Helper.CompareVersions(x.value, y) == 1;
         }
 
         public static bool operator >=(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) < 1;
+            return Helper.CompareVersions(x.value, y) < 1;
         }
 
         public static bool operator <=(Version x, string y)
         {
-            return Helper.compareVersions(x.value, y) > -1;
+            return Helper.CompareVersions(x.value, y) > -1;
         }
 
         public override bool Equals(object o)

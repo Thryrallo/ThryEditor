@@ -76,13 +76,10 @@ namespace Thry
 
         private static Texture2D LoadTextureByFileName(string search_name)
         {
-            Texture2D tex;
             string[] guids = AssetDatabase.FindAssets(search_name + " t:texture");
             if (guids.Length == 0)
-                tex = Texture2D.whiteTexture;
-            else
-                tex = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
-            return tex;
+                return Texture2D.whiteTexture;
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
         }
     }
 }

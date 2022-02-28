@@ -24,10 +24,9 @@ namespace Thry
     {
         public static string ReplaceVariables(this string s, params object[] values)
         {
-            int i = 0;
-            foreach(object o in values)
+            for(int i = 0; i < values.Length;i++)
             {
-                s = s.Replace("{" + (i++) + "}", o.ToString());
+                s = s.Replace("{" + i + "}", values[i].ToString());
             }
             return s;
         }
@@ -35,19 +34,6 @@ namespace Thry
 
     public class Helper
     {
-
-        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        public static long GetCurrentUnixTimestampMillis()
-        {
-            return (long)(DateTime.UtcNow - UnixEpoch).TotalMilliseconds;
-        }
-
-        public static long GetUnityStartUpTimeStamp()
-        {
-            return GetCurrentUnixTimestampMillis() - (long)EditorApplication.timeSinceStartup * 1000;
-        }
-
         public static bool ClassWithNamespaceExists(string classname)
         {
             return (from assembly in AppDomain.CurrentDomain.GetAssemblies()
@@ -56,33 +42,9 @@ namespace Thry
                     select type).Count() > 0;
         }
 
-        public static bool NameSpaceExists(string namespace_name)
-        {
-            bool namespaceFound = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
-                                   from type in assembly.GetTypes()
-                                   where type.Namespace == namespace_name
-                                   select type).Any();
-            return namespaceFound;
-        }
-
-        public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key)
-        {
-            valuetype value = default(valuetype);
-            if (dictionary.ContainsKey(key)) dictionary.TryGetValue(key, out value);
-            return value;
-        }
-
-        public static valuetype GetValueFromDictionary<keytype, valuetype>(Dictionary<keytype, valuetype> dictionary, keytype key, valuetype defaultValue)
-        {
-            valuetype value = default(valuetype);
-            if (dictionary.ContainsKey(key)) dictionary.TryGetValue(key, out value);
-            else return defaultValue;
-            return value;
-        }
-
         //-------------------Comparetors----------------------
 
-        public static int compareVersions(string v1, string v2)
+        public static int CompareVersions(string v1, string v2)
         {
             //fix the string
             v1 = v1.Replace(",", ".");
@@ -150,15 +112,6 @@ namespace Thry
         public static bool IsPrimitive(Type t)
         {
             return t.IsPrimitive || t == typeof(Decimal) || t == typeof(String);
-        }
-
-        public static void testAltClick(Rect rect, ShaderPart property)
-        {
-            if (ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && rect.Contains(ShaderEditor.Input.mouse_position))
-            {
-                if (property.options.altClick != null)
-                    property.options.altClick.Perform();
-            }
         }
 
         public static string GetStringBetweenBracketsAndAfterId(string input, string id, char[] brackets)
@@ -231,12 +184,7 @@ namespace Thry
 
     public class FileHelper
     {
-        public static string FindFile(string name)
-        {
-            return FindFile(name, null);
-        }
-
-        public static string FindFile(string name, string type)
+        public static string FindFile(string name, string type=null)
         {
             string[] guids;
             if (type != null)
@@ -250,20 +198,14 @@ namespace Thry
 
         //-----------------------Value To File Saver----------------------
 
-        private static Dictionary<string, Dictionary<string,string>> textFileData = new Dictionary<string, Dictionary<string, string>>();
+        private static Dictionary<string, Dictionary<string,string>> s_textFileData = new Dictionary<string, Dictionary<string, string>>();
 
         public static string LoadValueFromFile(string key, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            if (textFileData[path].ContainsKey(key))
-                return textFileData[path][key];
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            if (s_textFileData[path].ContainsKey(key))
+                return s_textFileData[path][key];
             return null;
-        }
-
-        public static Dictionary<string,string> LoadDictionaryFromFile(string path)
-        {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            return textFileData[path];
         }
 
         private static void ReadFileIntoTextFileData(string path)
@@ -277,30 +219,26 @@ namespace Thry
                 if(keyvalue.Length>1)
                     dictionary[keyvalue[0]] = keyvalue[1];
             }
-            textFileData[path] = dictionary; 
+            s_textFileData[path] = dictionary; 
         }
 
         public static bool SaveValueToFile(string key, string value, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            textFileData[path][key] = value;
-            return SaveDictionaryToFile(path, textFileData[path]);
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            s_textFileData[path][key] = value;
+            return SaveDictionaryToFile(path, s_textFileData[path]);
         }
 
         public static void RemoveValueFromFile(string key, string path)
         {
-            if (!textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
-            if (textFileData[path].ContainsKey(key)) textFileData[path].Remove(key);
+            if (!s_textFileData.ContainsKey(path)) ReadFileIntoTextFileData(path);
+            if (s_textFileData[path].ContainsKey(key)) s_textFileData[path].Remove(key);
         }
 
-        public static bool SaveDictionaryToFile(string path, Dictionary<string,string> dictionary)
+        private static bool SaveDictionaryToFile(string path, Dictionary<string,string> dictionary)
         {
-            textFileData[path] = dictionary;
-            string data = "";
-            foreach (KeyValuePair<string, string> keyvalue in textFileData[path])
-            {
-                data += keyvalue.Key + ":=" + keyvalue.Value + "\n";
-            }
+            s_textFileData[path] = dictionary;
+            string data = s_textFileData[path].Aggregate("", (d1, d2) => d1 + d2.Key + ":=" + d2.Value + "\n");
             WriteStringToFile(data, path);
             return true;
         }
@@ -343,7 +281,7 @@ namespace Thry
             writer.Close();
         }
 
-        public static bool writeBytesToFile(byte[] bytes, string path)
+        public static bool WriteBytesToFile(byte[] bytes, string path)
         {
             if (!File.Exists(path)) CreateFileWithDirectories(path);
             try
@@ -466,13 +404,13 @@ namespace Thry
             return texture;
         }
 
-        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureData settings)
+        public static Texture SaveTextureAsPNG(Texture2D texture, string path, TextureData settings = null)
         {
             if (!path.EndsWith(".png"))
                 path += ".png";
             byte[] encoding = texture.EncodeToPNG();
             Debug.Log("Texture saved at \"" + path + "\".");
-            FileHelper.writeBytesToFile(encoding, path);
+            FileHelper.WriteBytesToFile(encoding, path);
 
             AssetDatabase.ImportAsset(path);
             if (settings != null)
@@ -524,39 +462,6 @@ namespace Thry
 
     public class MaterialHelper
     {
-        public static void UpdateTargetsValue(MaterialProperty p, System.Object value)
-        {
-            if (p.type == MaterialProperty.PropType.Texture)
-                foreach (UnityEngine.Object m in p.targets)
-                    ((Material)m).SetTexture(p.name, (Texture)value);
-            else if (p.type == MaterialProperty.PropType.Float)
-            {
-                foreach (UnityEngine.Object m in p.targets)
-                    if (value.GetType() == typeof(float))
-                        ((Material)m).SetFloat(p.name, (float)value);
-                    else if (value.GetType() == typeof(int))
-                        ((Material)m).SetFloat(p.name, (int)value);
-            }
-        }
-
-        public static void UpdateTextureValue(MaterialProperty prop, Texture texture)
-        {
-            foreach (UnityEngine.Object m in prop.targets)
-            {
-                ((Material)m).SetTexture(prop.name, texture);
-            }
-            prop.textureValue = texture;
-        }
-
-        public static void UpdateFloatValue(MaterialProperty prop, float f)
-        {
-            foreach (UnityEngine.Object m in prop.targets)
-            {
-                ((Material)m).SetFloat(prop.name, f);
-            }
-            prop.floatValue = f;
-        }
-
         public static void ToggleKeyword(Material material, string keyword, bool turn_on)
         {
             bool is_on = material.IsKeywordEnabled(keyword);
@@ -574,8 +479,7 @@ namespace Thry
 
         public static void ToggleKeyword(MaterialProperty p, string keyword, bool on)
         {
-            foreach (UnityEngine.Object o in p.targets)
-                ToggleKeyword((Material)o, keyword, on);
+            ToggleKeyword(p.targets as Material[], keyword, on);
         }
 
         /// <summary>
@@ -589,7 +493,7 @@ namespace Thry
             MaterialProperty p = ShaderEditor.Active.GetMaterialProperty(key);
             if (p != null)
             {
-                MaterialHelper.SetMaterialPropertyValue(p, materials, value);
+                MaterialHelper.SetMaterialPropertyValue(p, value);
             }
             else if (key == "render_queue")
             {
@@ -604,129 +508,99 @@ namespace Thry
             }
         }
 
-        public static void SetMaterialPropertyValue(MaterialProperty p, Material[] materials, string value)
+        public static void SetMaterialPropertyValue(MaterialProperty p, string value)
         {
+            object prev = null;
             if (p.type == MaterialProperty.PropType.Texture)
             {
-                Texture tex = AssetDatabase.LoadAssetAtPath<Texture>(value);
-                if (tex != null)
-                    foreach (Material m in materials) m.SetTexture(p.name, tex);
+                prev = p.textureValue;
+                p.textureValue = AssetDatabase.LoadAssetAtPath<Texture>(value);
             }
             else if (p.type == MaterialProperty.PropType.Float || p.type == MaterialProperty.PropType.Range)
             {
                 float f_value;
                 if (float.TryParse(Parser.GlobalizationFloat(value), out f_value))
                 {
+                    prev = p.floatValue;
                     p.floatValue = f_value;
-                    string[] drawer = ShaderHelper.GetDrawer(p);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        MaterialHelper.ToggleKeyword(p, drawer[1], f_value == 1);
+                    
                 }
             }
             else if (p.type == MaterialProperty.PropType.Vector)
             {
-                string[] xyzw = value.Split(",".ToCharArray());
-                Vector4 vector = new Vector4(float.Parse(xyzw[0]), float.Parse(xyzw[1]), float.Parse(xyzw[2]), float.Parse(xyzw[3]));
-                foreach (Material m in materials) m.SetVector(p.name, vector);
+                prev = p.vectorValue;
+                p.vectorValue = Converter.StringToVector(value);
             }
             else if (p.type == MaterialProperty.PropType.Color)
             {
-                Color col = Converter.stringToColor(value);
-                foreach (Material m in materials) m.SetColor(p.name, col);
+                prev = p.colorValue;
+                p.colorValue = Converter.StringToColor(value);
             }
+            if (p.applyPropertyCallback != null)
+                p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
         public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
         {
+            object prev = null;
             switch (p.type)
             {
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
-                    float f = source.GetFloat(p.name);
-                    p.floatValue = f;
-                    string[] drawer = ShaderHelper.GetDrawer(p);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(p, drawer[1], f == 1);
+                    prev = p.floatValue;
+                    p.floatValue = source.GetFloat(p.name);
                     break;
                 case MaterialProperty.PropType.Color:
-                    Color c = source.GetColor(p.name);
-                    p.colorValue = c;
+                    prev = p.colorValue;
+                    p.colorValue = source.GetColor(p.name);
                     break;
                 case MaterialProperty.PropType.Vector:
-                    Vector4 vector = source.GetVector(p.name);
-                    p.vectorValue = vector;
+                    prev = p.vectorValue;
+                    p.vectorValue = source.GetVector(p.name);
                     break;
                 case MaterialProperty.PropType.Texture:
-                    Texture t = source.GetTexture(p.name);
+                    prev = p.textureValue;
+                    p.textureValue = source.GetTexture(p.name);
                     Vector2 offset = source.GetTextureOffset(p.name);
                     Vector2 scale = source.GetTextureScale(p.name);
-                    p.textureValue = t;
                     p.textureScaleAndOffset = new Vector4(scale.x, scale.y, offset.x, offset.y);
                     break;
             }
-        }
-
-        public static void CopyMaterialTagFromMaterial(Material[] targets, Material source, string tag, string defaultValue)
-        {
-            string val = source.GetTag(tag, false, defaultValue);
-            foreach(Material m in targets)
-            {
-                m.SetOverrideTag(tag, val);
-            }
+            if (p.applyPropertyCallback != null)
+                p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
         public static void CopyMaterialValueFromProperty(MaterialProperty target, MaterialProperty source)
         {
+            object prev = null;
             switch (target.type)
             {
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
+                    prev = target.floatValue;
                     target.floatValue = source.floatValue;
-                    string[] drawer = ShaderHelper.GetDrawer(target);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(target, drawer[1], source.floatValue == 1);
                     break;
                 case MaterialProperty.PropType.Color:
+                    prev = target.colorValue;
                     target.colorValue = source.colorValue;
                     break;
                 case MaterialProperty.PropType.Vector:
+                    prev = target.vectorValue;
                     target.vectorValue = source.vectorValue;
                     break;
                 case MaterialProperty.PropType.Texture:
+                    prev = target.textureValue;
                     target.textureValue = source.textureValue;
                     target.textureScaleAndOffset = source.textureScaleAndOffset;
                     break;
             }
+            if (target.applyPropertyCallback != null)
+                target.applyPropertyCallback.Invoke(target, 1, prev);
         }
 
         public static void CopyPropertyValueToMaterial(MaterialProperty source, Material target)
         {
-            switch (source.type)
-            {
-                case MaterialProperty.PropType.Float:
-                case MaterialProperty.PropType.Range:
-                    float f = source.floatValue;
-                    target.SetFloat(source.name, f);
-                    string[] drawer = ShaderHelper.GetDrawer(source);
-                    if (drawer != null && drawer.Length > 1 && drawer[0] == "Toggle" && drawer[1] != "__")
-                        ToggleKeyword(target, drawer[1], f == 1);
-                    break;
-                case MaterialProperty.PropType.Color:
-                    Color c = source.colorValue;
-                    target.SetColor(source.name, c);
-                    break;
-                case MaterialProperty.PropType.Vector:
-                    Vector4 vector = source.vectorValue;
-                    target.SetVector(source.name, vector);
-                    break;
-                case MaterialProperty.PropType.Texture:
-                    Texture t = source.textureValue;
-                    Vector4 scaleoffset = source.textureScaleAndOffset;
-                    target.SetTexture(source.name, t);
-                    target.SetTextureOffset(source.name, new Vector2(scaleoffset.z,scaleoffset.w));
-                    target.SetTextureScale(source.name, new Vector2(scaleoffset.x,scaleoffset.y));
-                    break;
-            }
+            CopyMaterialValueFromProperty(MaterialEditor.GetMaterialProperty(new Material[] { target }, source.name), source);
         }
     }
 
@@ -751,32 +625,23 @@ namespace Thry
     public class Converter
     {
 
-        public static Color stringToColor(string s)
+        public static Color StringToColor(string s)
         {
             s = s.Trim(new char[] { '(', ')' });
             string[] split = s.Split(",".ToCharArray());
             float[] rgba = new float[4] { 1, 1, 1, 1 };
-            for (int i = 0; i < split.Length; i++) if (split[i].Replace(" ", "") != "") rgba[i] = float.Parse(split[i]);
+            for (int i = 0; i < split.Length; i++) if (string.IsNullOrWhiteSpace(split[i]) == false) rgba[i] = float.Parse(split[i]);
             return new Color(rgba[0], rgba[1], rgba[2], rgba[3]);
 
         }
 
-        public static Vector4 stringToVector(string s)
+        public static Vector4 StringToVector(string s)
         {
             s = s.Trim(new char[] { '(', ')' });
             string[] split = s.Split(",".ToCharArray());
             float[] xyzw = new float[4];
-            for (int i = 0; i < 4; i++) if (i < split.Length && split[i].Replace(" ", "") != "") xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
+            for (int i = 0; i < 4 && i < split.Length; i++) if (string.IsNullOrWhiteSpace(split[i]) == false) xyzw[i] = float.Parse(split[i]); else xyzw[i] = 0;
             return new Vector4(xyzw[0], xyzw[1], xyzw[2], xyzw[3]);
-        }
-
-        public static string MaterialsToString(Material[] materials)
-        {
-            string s = "";
-            foreach (Material m in materials)
-                s += "\"" + m.name + "\"" + ",";
-            s = s.TrimEnd(',');
-            return s;
         }
 
         public static string ArrayToString(object[] a)
