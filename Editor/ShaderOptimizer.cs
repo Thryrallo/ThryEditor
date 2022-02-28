@@ -779,7 +779,6 @@ namespace Thry
         {
             Material material = applyStruct.material;
             Shader shader = applyStruct.shader;
-            string smallguid = applyStruct.smallguid;
             string newShaderName = applyStruct.newShaderName;
             List<MaterialProperty> animatedPropsToRename = applyStruct.animatedPropsToRename;
             List<MaterialProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
@@ -787,8 +786,7 @@ namespace Thry
 
             // Write original shader to override tag
             material.SetOverrideTag("OriginalShader", shader.name);
-            // Write the new shader folder name in an override tag so it will be deleted 
-            material.SetOverrideTag("OptimizedShaderFolder", smallguid);
+            // Write the new shader folder name in an override tag so it will be deleted
 
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
             // So these are saved as temp values and reassigned after switching shaders
@@ -1466,6 +1464,7 @@ namespace Thry
         }
         private static UnlockSuccess UnlockConcrete (Material material)
         {
+            Shader lockedShader = material.shader;
             // Revert to original shader
             string originalShaderName = material.GetTag("OriginalShader", false, "");
             if (originalShaderName == "")
@@ -1506,20 +1505,11 @@ namespace Thry
             material.renderQueue = renderQueue;
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
-            string shaderDirectory = material.GetTag("OptimizedShaderFolder", false, "");
-            if (shaderDirectory == "")
-            {
-                Debug.LogError("[Kaj Shader Optimizer] Optimized shader folder could not be found, not deleting anything");
-                return UnlockSuccess.couldNotDeleteLockedShader;
-            }
-            string materialFilePath = AssetDatabase.GetAssetPath(material);
-            string materialFolder = Path.GetDirectoryName(materialFilePath);
-            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + shaderDirectory;
-            // Both safe ways of removing the shader make the editor GUI throw an error, so just don't refresh the
-            // asset database immediately
-            //AssetDatabase.DeleteAsset(shaderFilePath);
-            FileUtil.DeleteFileOrDirectory(newShaderDirectory + "/");
-            FileUtil.DeleteFileOrDirectory(newShaderDirectory + ".meta");
+            
+            string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
+            string lockedFolder = Path.GetDirectoryName(materialFilePath);
+            FileUtil.DeleteFileOrDirectory(lockedFolder);
+            FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
             //AssetDatabase.Refresh();
 
             return UnlockSuccess.success;
