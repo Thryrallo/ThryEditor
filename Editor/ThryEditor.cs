@@ -355,6 +355,7 @@ namespace Thry
         {
             Config config = Config.Singleton;
             Active = this;
+            Helper.RegisterEditorUse();
 
             //get material targets
             Materials = Editor.targets.Select(o => o as Material).ToArray();

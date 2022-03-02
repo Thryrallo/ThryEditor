@@ -1770,6 +1770,7 @@ namespace Thry
         }
         public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
+            Helper.RegisterEditorUse();
             //first the shaders are created. compiling is suppressed with start asset editing
             AssetDatabase.StartAssetEditing();
 

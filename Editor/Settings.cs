@@ -44,30 +44,6 @@ namespace Thry
         
         public static ButtonData thry_message = null;
 
-        //------------------Message Calls-------------------------
-
-        public void OnDestroy()
-        {
-            if (!EditorPrefs.GetBool("thry_has_counted_user", false))
-            {
-                WebHelper.DownloadStringASync(URL.COUNT_USER, delegate (string s)
-                {
-                    if (s == "true")
-                        EditorPrefs.SetBool("thry_has_counted_user", true);
-                });
-            }
-            
-            string projectPrefix = PlayerSettings.companyName + "." +PlayerSettings.productName;
-            if (!EditorPrefs.GetBool(projectPrefix+"_thry_has_counted_project", false))
-            {
-                WebHelper.DownloadStringASync(URL.COUNT_PROJECT, delegate (string s)
-                {
-                    if (s == "true")
-                        EditorPrefs.SetBool(projectPrefix+"_thry_has_counted_project", true);
-                });
-            }
-        }
-
         //---------------------Stuff checkers and fixers-------------------
 
         public void Awake()
