@@ -253,12 +253,19 @@ namespace Thry
         string _label3;
         string _label4;
 
+        bool _makeSRGB = true;
+
         public RGBAAtlasDrawer(string label1, string label2, string label3, string label4)
         {
             _label1 = label1;
             _label2 = label2;
             _label3 = label3;
             _label4 = label4;
+        }
+
+        public RGBAAtlasDrawer(string label1, string label2, string label3, string label4, float sRGB) : this(label1,label2,label3,label4)
+        {
+            _makeSRGB = sRGB == 1;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -364,7 +371,7 @@ namespace Thry
         {
             Texture2D tex = null;
             string guid = m.GetTag(id + "_texPack_" + channel + "_guid", false, "");
-            float fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "0"));
+            float fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "1"));
             bool inverted = bool.Parse(m.GetTag(id + "_texPack_" + channel + "_inverted", false, "false"));
             TextureChannel inputChannel = (TextureChannel)int.Parse(m.GetTag(id + "_texPack_" + channel + "_channel", false, "0"));
             if (string.IsNullOrEmpty(guid) == false)
@@ -415,6 +422,7 @@ namespace Thry
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
+            importer.sRGBTexture = _makeSRGB;
             importer.SaveAndReimport();
         }
 
