@@ -253,12 +253,19 @@ namespace Thry
         string _label3;
         string _label4;
 
+        bool _makeSRGB = true;
+
         public RGBAAtlasDrawer(string label1, string label2, string label3, string label4)
         {
             _label1 = label1;
             _label2 = label2;
             _label3 = label3;
             _label4 = label4;
+        }
+
+        public RGBAAtlasDrawer(string label1, string label2, string label3, string label4, float sRGB) : this(label1,label2,label3,label4)
+        {
+            _makeSRGB = sRGB == 1;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -364,7 +371,7 @@ namespace Thry
         {
             Texture2D tex = null;
             string guid = m.GetTag(id + "_texPack_" + channel + "_guid", false, "");
-            float fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "0"));
+            float fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "1"));
             bool inverted = bool.Parse(m.GetTag(id + "_texPack_" + channel + "_inverted", false, "false"));
             TextureChannel inputChannel = (TextureChannel)int.Parse(m.GetTag(id + "_texPack_" + channel + "_channel", false, "0"));
             if (string.IsNullOrEmpty(guid) == false)
@@ -378,35 +385,35 @@ namespace Thry
 
         void Pack()
         {
+            EditorUtility.DisplayProgressBar("Packing image.", "", 0);
             int width = 16;
             int height = 16;
             Texture2D[] textures = new Texture2D[] { _input_r.Item1, _input_g.Item1, _input_b.Item1, _input_a.Item1 };
             bool[] doFallback = textures.Select(t => t == null).ToArray();
             int[] inputChannels = new int[] { (int)_input_r.Item4, (int)_input_g.Item4, (int)_input_b.Item4, (int)_input_a.Item4 };
             //Find max size
-            foreach (Texture2D t in textures)
-            {
-                if (t == null) continue;
-                width = Mathf.Max(width, t.width);
-                height = Mathf.Max(height, t.height);
-            }
             for (int i = 0; i < textures.Length; i++)
             {
                 if (textures[i] == null) continue;
-                textures[i] = TextureHelper.Resize(TextureHelper.GetReadableTexture(textures[i]), width, height);
+                width = Mathf.Max(width, textures[i].width);
+                height = Mathf.Max(height, textures[i].height);
+                textures[i] = TextureHelper.GetReadableTexture(textures[i]);
             }
             Texture2D atlas = new Texture2D(width, height);
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
                 {
+                    float u = (float)x / width;
+                    float v = (float)y / height;
                     Color c = new Color();
-                    c.r = doFallback[0] ? _input_r.Item3 : Mathf.Abs((_input_r.Item2 ? 1 : 0) - textures[0].GetPixel(x, y)[inputChannels[0]]);
-                    c.g = doFallback[1] ? _input_g.Item3 : Mathf.Abs((_input_g.Item2 ? 1 : 0) - textures[1].GetPixel(x, y)[inputChannels[1]]);
-                    c.b = doFallback[2] ? _input_b.Item3 : Mathf.Abs((_input_b.Item2 ? 1 : 0) - textures[2].GetPixel(x, y)[inputChannels[2]]);
-                    c.a = doFallback[3] ? _input_a.Item3 : Mathf.Abs((_input_a.Item2 ? 1 : 0) - textures[3].GetPixel(x, y)[inputChannels[3]]);
+                    c.r = doFallback[0] ? _input_r.Item3 : Mathf.Abs((_input_r.Item2 ? 1 : 0) - textures[0].GetPixelBilinear(u, v)[inputChannels[0]]);
+                    c.g = doFallback[1] ? _input_g.Item3 : Mathf.Abs((_input_g.Item2 ? 1 : 0) - textures[1].GetPixelBilinear(u, v)[inputChannels[1]]);
+                    c.b = doFallback[2] ? _input_b.Item3 : Mathf.Abs((_input_b.Item2 ? 1 : 0) - textures[2].GetPixelBilinear(u, v)[inputChannels[2]]);
+                    c.a = doFallback[3] ? _input_a.Item3 : Mathf.Abs((_input_a.Item2 ? 1 : 0) - textures[3].GetPixelBilinear(u, v)[inputChannels[3]]);
                     atlas.SetPixel(x, y, c);
                 }
+                EditorUtility.DisplayProgressBar("Packing image.", "", (float)x/width);
             }
             atlas.Apply();
             string path = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
@@ -415,7 +422,9 @@ namespace Thry
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
+            importer.sRGBTexture = _makeSRGB;
             importer.SaveAndReimport();
+            EditorUtility.ClearProgressBar();
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
