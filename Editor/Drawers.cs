@@ -238,8 +238,11 @@ namespace Thry
         }
     }
 
-    public class RGBAAtlasDrawer : MaterialPropertyDrawer
+    public class ThryRGBAPackerDrawer : MaterialPropertyDrawer
     {
+        Texture _previousTexture;
+        Texture2D _packedTexture;
+
         PackerChannelConfig _input_r;
         PackerChannelConfig _input_g;
         PackerChannelConfig _input_b;
@@ -255,7 +258,7 @@ namespace Thry
 
         bool _makeSRGB = true;
 
-        public RGBAAtlasDrawer(string label1, string label2, string label3, string label4)
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4)
         {
             _label1 = label1;
             _label2 = label2;
@@ -263,7 +266,7 @@ namespace Thry
             _label4 = label4;
         }
 
-        public RGBAAtlasDrawer(string label1, string label2, string label3, string label4, float sRGB) : this(label1,label2,label3,label4)
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4, float sRGB) : this(label1,label2,label3,label4)
         {
             _makeSRGB = sRGB == 1;
         }
@@ -272,20 +275,27 @@ namespace Thry
         {
             _prop = prop;
             GuiHelper.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
+            if (_prop.textureValue != _packedTexture) _previousTexture = _prop.textureValue;
         }
 
         void TexturePackerGUI()
         {
             Init();
+            EditorGUI.BeginChangeCheck();
             _input_r = TexturePackerSlotGUI(_input_r, _label1);
             _input_g = TexturePackerSlotGUI(_input_g, _label2);
             _input_b = TexturePackerSlotGUI(_input_b, _label3);
             _input_a = TexturePackerSlotGUI(_input_a, _label4);
-            if (GUI.Button(EditorGUI.IndentedRect(EditorGUILayout.GetControlRect()), "Pack"))
+            if (EditorGUI.EndChangeCheck())
             {
                 Save();
                 Pack();
             }
+            Rect buttonRect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
+            buttonRect.width /= 2;
+            if (GUI.Button(buttonRect, "Confirm")) Confirm();
+            buttonRect.x += buttonRect.width;
+            if (GUI.Button(buttonRect, "Revert")) Revert();
         }
 
         PackerChannelConfig TexturePackerSlotGUI(PackerChannelConfig input, string label)
@@ -344,6 +354,7 @@ namespace Thry
             _input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
             _input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
             _input_a = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "a");
+            _previousTexture = _prop.textureValue;
             _isInit = true;
         }
 
@@ -385,44 +396,57 @@ namespace Thry
 
         void Pack()
         {
-            EditorUtility.DisplayProgressBar("Packing image.", "", 0);
             int width = 16;
             int height = 16;
             //Find max size
-            _input_r.CreateReadableTexture();
             _input_r.FindMaxSize(ref width, ref height);
-            _input_g.CreateReadableTexture();
             _input_g.FindMaxSize(ref width, ref height);
-            _input_b.CreateReadableTexture();
             _input_b.FindMaxSize(ref width, ref height);
-            _input_a.CreateReadableTexture();
             _input_a.FindMaxSize(ref width, ref height);
-            Texture2D atlas = new Texture2D(width, height);
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    float u = (float)x / width;
-                    float v = (float)y / height;
-                    Color c = new Color();
-                    c.r = _input_r.GetValue(u, v);
-                    c.g = _input_g.GetValue(u, v);
-                    c.b = _input_b.GetValue(u, v);
-                    c.a = _input_a.GetValue(u, v);
-                    atlas.SetPixel(x, y, c);
-                }
-                EditorUtility.DisplayProgressBar("Packing image.", "", (float)x/width);
-            }
+
+            RenderTexture target = new RenderTexture(width,height, 32);
+            target.enableRandomWrite = true;
+            target.Create();
+
+            ComputeShader computeShader = AssetDatabase.FindAssets("ThryTexturePacker t:computeshader").
+                Select(g => AssetDatabase.GUIDToAssetPath(g)).Select(p => AssetDatabase.LoadAssetAtPath<ComputeShader>(p)).First();
+
+            computeShader.SetTexture(0, "Result", target);
+            computeShader.SetFloat("Width", width);
+            computeShader.SetFloat("Height", height);
+
+            _input_r.SetComputeShaderValues(computeShader, "R");
+            _input_g.SetComputeShaderValues(computeShader, "G");
+            _input_b.SetComputeShaderValues(computeShader, "B");
+            _input_a.SetComputeShaderValues(computeShader, "A");
+
+            computeShader.Dispatch(0, width / 8, height / 8, 1);
+
+            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true);
+            RenderTexture.active = target;
+            atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.Apply();
+
+            _packedTexture = atlas;
+            _prop.textureValue = _packedTexture;
+        }
+
+        void Confirm()
+        {
+            if (_packedTexture == null) Pack();
             string path = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
             path = path + "/" + ShaderEditor.Active.Materials[0].name + _prop.name + ".png";
-            _prop.textureValue = TextureHelper.SaveTextureAsPNG(atlas, path);
+            _prop.textureValue = TextureHelper.SaveTextureAsPNG(_packedTexture, path);
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
             importer.sRGBTexture = _makeSRGB;
             importer.SaveAndReimport();
-            EditorUtility.ClearProgressBar();
+        }
+
+        void Revert()
+        {
+            _prop.textureValue = _previousTexture;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -436,43 +460,29 @@ namespace Thry
             public Texture2D Texture;
             public bool Invert;
             public float Fallback;
-            public TextureChannel Channel = TextureChannel.RGB;
-
-            Texture2D _readableTexture;
-            bool _doFallback;
-
-            public void CreateReadableTexture()
-            {
-                _doFallback = Texture == null;
-                if (_doFallback) return;
-                _readableTexture = TextureHelper.GetReadableTexture(Texture);
-            }
+            public TextureChannel Channel = TextureChannel.Max;
 
             public void FindMaxSize(ref int width, ref int height)
             {
-                if (_doFallback) return;
+                if (Texture == null) return;
                 width = Mathf.Max(width, Texture.width);
                 height = Mathf.Max(height, Texture.height);
             }
 
-            public float GetValue(float u, float v)
+            public void SetComputeShaderValues(ComputeShader computeShader, string prefix)
             {
-                if (_doFallback) return Fallback;
-                float value = 0;
-                if(Channel == TextureChannel.RGB)
-                {
-                    Color pixel = _readableTexture.GetPixelBilinear(u, v);
-                    value = (pixel.r + pixel.g + pixel.b) / 3;
-                }
-                else
-                {
-                    value = _readableTexture.GetPixelBilinear(u, v)[(int)Channel];
-                }
-                if (Invert) return 1 - value;
-                return value;
+                //Always setting texture cause else null error, cant branch in shader (executes both sides always)
+                if(Texture != null) computeShader.SetTexture(0, prefix+"_Input", Texture);
+                else computeShader.SetTexture(0, prefix + "_Input", Texture2D.whiteTexture);
+                computeShader.SetVector(prefix+"_Config", GetComputeShaderConfig());
+            }
+
+            public Vector4 GetComputeShaderConfig()
+            {
+                return new Vector4(Texture == null?0:1, Fallback, (int)Channel, Invert ? 1 : 0);
             }
         }
-        enum TextureChannel { R, G, B, A, RGB }
+        enum TextureChannel { R, G, B, A, Max }
     }
 
     public class GradientDrawer : MaterialPropertyDrawer
