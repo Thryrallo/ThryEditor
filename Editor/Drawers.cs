@@ -420,7 +420,7 @@ namespace Thry
             _input_b.SetComputeShaderValues(computeShader, "B");
             _input_a.SetComputeShaderValues(computeShader, "A");
 
-            computeShader.Dispatch(0, width / 8, height / 8, 1);
+            computeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
 
             Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true);
             RenderTexture.active = target;
@@ -462,18 +462,35 @@ namespace Thry
             public float Fallback;
             public TextureChannel Channel = TextureChannel.Max;
 
+            Texture2D _loadedUnityTexture;
+            Texture2D _loadedUncompressedTexture;
+
             public void FindMaxSize(ref int width, ref int height)
             {
                 if (Texture == null) return;
-                width = Mathf.Max(width, Texture.width);
-                height = Mathf.Max(height, Texture.height);
+                if (_loadedUnityTexture != Texture || _loadedUncompressedTexture == null)
+                {
+                    string path = AssetDatabase.GetAssetPath(Texture);
+                    if(path.EndsWith(".png") || path.EndsWith(".jpg"))
+                    {
+                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height);
+                        ImageConversion.LoadImage(_loadedUncompressedTexture, System.IO.File.ReadAllBytes(path));
+                    }
+                    else
+                    {
+                        _loadedUncompressedTexture = Texture;
+                    }
+                }
+                _loadedUnityTexture = Texture;
+                width = Mathf.Max(width, _loadedUncompressedTexture.width);
+                height = Mathf.Max(height, _loadedUncompressedTexture.height);
             }
 
             public void SetComputeShaderValues(ComputeShader computeShader, string prefix)
             {
                 //Always setting texture cause else null error, cant branch in shader (executes both sides always)
-                if(Texture != null) computeShader.SetTexture(0, prefix+"_Input", Texture);
-                else computeShader.SetTexture(0, prefix + "_Input", Texture2D.whiteTexture);
+                if(Texture == null) computeShader.SetTexture(0, prefix + "_Input", Texture2D.whiteTexture);
+                else computeShader.SetTexture(0, prefix + "_Input", _loadedUncompressedTexture);
                 computeShader.SetVector(prefix+"_Config", GetComputeShaderConfig());
             }
 
@@ -636,9 +653,9 @@ namespace Thry
             return base.GetPropertyHeight(prop, label, editor);
         }
     }
-    #endregion
+#endregion
 
-    #region Decorators
+#region Decorators
     public class ThryHeaderLabelDecorator : MaterialPropertyDrawer
     {
         readonly string text;
@@ -683,7 +700,7 @@ namespace Thry
             GUI.Label(position, label, EditorStyles.boldLabel);
         }
     }
-    #endregion
+#endregion
 
     public class ThryToggleDrawer : MaterialPropertyDrawer
     {

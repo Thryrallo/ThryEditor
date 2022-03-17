@@ -20,6 +20,7 @@ Texture2D<float4> A_Input;
 float4 A_Config;
 
 SamplerState linearClampSampler;
+SamplerState pointClampSampler;
 
 float SampleInput(Texture2D<float4> tex, float4 config, float2 uv) {
 	if (config.r == 0) {
