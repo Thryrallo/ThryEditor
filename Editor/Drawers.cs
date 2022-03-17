@@ -298,6 +298,8 @@ namespace Thry
             if (GUI.Button(buttonRect, "Revert")) Revert();
         }
 
+        Texture test;
+
         PackerChannelConfig TexturePackerSlotGUI(PackerChannelConfig input, string label)
         {
             Rect totalRect = EditorGUILayout.GetControlRect(false);
@@ -306,6 +308,15 @@ namespace Thry
 
             int ind = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;
+
+            float texWidth = Math.Max(50, r.width - 130 - 30) - 5;
+            r.x = totalRect.x;
+            r.width = 30;
+            input.Texture = EditorGUI.ObjectField(r, input.Texture, typeof(Texture2D), false) as Texture2D;
+
+            r.x += r.width + 5;
+            r.width = texWidth - 5;
+            EditorGUI.LabelField(r, label);
 
             if (input.Texture == null)
             {
@@ -331,16 +342,6 @@ namespace Thry
                 r.x -= r.width;
                 EditorGUI.LabelField(r, "Inverted:");
             }
-
-            float texWidth = Math.Max(50, r.x - totalRect.x) - 5;
-            r.x = totalRect.x;
-            r.width = 30;
-            input.Texture = EditorGUI.ObjectField(r, input.Texture, typeof(Texture2D), false) as Texture2D;
-
-            r.x += r.width + 5;
-            r.width = texWidth - r.width - 5;
-            EditorGUI.LabelField(r, label);
-
 
             EditorGUI.indentLevel = ind;
 
@@ -435,7 +436,7 @@ namespace Thry
         FilterMode GetFiltermode()
         {
             if (_input_r.Texture != null) return _input_r.Texture.filterMode;
-            if (_input_g.Texture != null) return _input_a.Texture.filterMode;
+            if (_input_g.Texture != null) return _input_g.Texture.filterMode;
             if (_input_b.Texture != null) return _input_b.Texture.filterMode;
             if (_input_a.Texture != null) return _input_a.Texture.filterMode;
             return FilterMode.Bilinear;
