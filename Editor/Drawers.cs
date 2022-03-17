@@ -416,10 +416,10 @@ namespace Thry
             computeShader.SetFloat("Width", width);
             computeShader.SetFloat("Height", height);
 
-            _input_r.SetComputeShaderValues(computeShader, "R");
-            _input_g.SetComputeShaderValues(computeShader, "G");
-            _input_b.SetComputeShaderValues(computeShader, "B");
-            _input_a.SetComputeShaderValues(computeShader, "A");
+            _input_r.SetComputeShaderValues(computeShader, "R", width, height);
+            _input_g.SetComputeShaderValues(computeShader, "G", width, height);
+            _input_b.SetComputeShaderValues(computeShader, "B", width, height);
+            _input_a.SetComputeShaderValues(computeShader, "A", width, height);
 
             computeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
 
@@ -500,17 +500,19 @@ namespace Thry
                 height = Mathf.Max(height, _loadedUncompressedTexture.height);
             }
 
-            public void SetComputeShaderValues(ComputeShader computeShader, string prefix)
+            public void SetComputeShaderValues(ComputeShader computeShader, string prefix, int maxWidth, int maxHeight)
             {
                 //Always setting texture cause else null error, cant branch in shader (executes both sides always)
                 if(Texture == null) computeShader.SetTexture(0, prefix + "_Input", Texture2D.whiteTexture);
                 else computeShader.SetTexture(0, prefix + "_Input", _loadedUncompressedTexture);
-                computeShader.SetVector(prefix+"_Config", GetComputeShaderConfig());
+                computeShader.SetVector(prefix+"_Config", GetComputeShaderConfig(maxWidth, maxHeight));
             }
 
-            public Vector4 GetComputeShaderConfig()
+            public Vector4 GetComputeShaderConfig(int maxWidth, int maxHeight)
             {
-                return new Vector4(Texture == null?0:1, Fallback, (int)Channel, Invert ? 1 : 0);
+                float hasTexture = Texture != null ? 1 : 0;
+                float billinearFiltering = (Texture != null && (maxWidth != _loadedUncompressedTexture.width || maxHeight != _loadedUncompressedTexture.height)) ? 1 : 0;
+                return new Vector4(hasTexture, Texture == null?Fallback: billinearFiltering, (int)Channel, Invert ? 1 : 0);
             }
         }
         enum TextureChannel { R, G, B, A, Max }

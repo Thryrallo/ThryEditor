@@ -5,7 +5,7 @@ RWTexture2D<float4> Result;
 float Width;
 float Height;
 
-//Config: has texture, fallback, channel, invert
+//Config: has texture, billinearFiltering / fallback, channel, invert
 
 Texture2D<float4> R_Input;
 float4 R_Config;
@@ -27,7 +27,9 @@ float SampleInput(Texture2D<float4> tex, float4 config, float2 uv) {
 		return config.g;
 	}
 	float value = 0;
-	float4 pixelColor = tex.SampleLevel(pointClampSampler, uv, 0);
+	float4 pixelColor = float4(1,1,1,1);
+	if(config.g == 0) pixelColor = tex.SampleLevel(pointClampSampler, uv, 0);
+	else pixelColor = pixelColor = tex.SampleLevel(linearClampSampler, uv, 0);
 	if (config.b == 0) value = pixelColor.r;
 	else if (config.b == 1) value = pixelColor.g;
 	else if (config.b == 2) value = pixelColor.b;
