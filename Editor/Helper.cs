@@ -496,6 +496,85 @@ namespace Thry
             ret.Apply();
             return ret;
         }
+
+        //===============TGA Loader by aaro4130 https://forum.unity.com/threads/tga-loader-for-unity3d.172291/==============
+
+        public static Texture2D LoadTGA(string TGAFile)
+        {
+            using (BinaryReader r = new BinaryReader(File.Open(TGAFile, FileMode.Open)))
+            {
+                byte IDLength = r.ReadByte();
+                byte ColorMapType = r.ReadByte();
+                byte ImageType = r.ReadByte();
+                Int16 CMapStart = r.ReadInt16();
+                Int16 CMapLength = r.ReadInt16();
+                byte CMapDepth = r.ReadByte();
+                Int16 XOffset = r.ReadInt16();
+                Int16 YOffset = r.ReadInt16();
+                Int16 Width = r.ReadInt16();
+                Int16 Height = r.ReadInt16();
+                byte PixelDepth = r.ReadByte();
+                byte ImageDescriptor = r.ReadByte();
+                if (ImageType == 0)
+                {
+                    Debug.Log("Unsupported TGA file! No image data");
+                }
+                else if (ImageType == 3 | ImageType == 11)
+                {
+                    Debug.Log("Unsupported TGA file! Not truecolor");
+                }
+                else if (ImageType == 9 | ImageType == 10)
+                {
+                    Debug.Log("Unsupported TGA file! Colormapped");
+
+                }
+                //     MsgBox("Dimensions are "  Width  ","  Height)
+                Texture2D b = new Texture2D(Width, Height, TextureFormat.ARGB32, false);
+                for (int y = 0; y <= b.height - 1; y++)
+                {
+                    for (int x = 0; x <= b.width - 1; x++)
+                    {
+
+                        if (PixelDepth == 32)
+                        {
+
+                            float red = Convert.ToSingle(r.ReadByte());
+                            float green = Convert.ToSingle(r.ReadByte());
+                            float blue = Convert.ToSingle(r.ReadByte());
+                            float alpha = Convert.ToSingle(r.ReadByte());
+                            alpha /= 255;
+                            green /= 255;
+                            blue /= 255;
+                            red /= 255;
+                            Color cl = new Color(blue, green, red, alpha);
+                            b.SetPixel(x, y, cl);
+
+
+                        }
+                        else
+                        {
+
+                            float red = Convert.ToSingle(r.ReadByte());
+                            float green = Convert.ToSingle(r.ReadByte());
+                            float blue = Convert.ToSingle(r.ReadByte());
+
+
+                            green = Mathf.Pow(green / 255, 1 / 2.2f);
+                            blue = Mathf.Pow(blue / 255, 1 / 2.2f);
+                            red = Mathf.Pow(red / 255, 1 / 2.2f);
+                            Color cl = new Color(blue, green, red, 1);
+                            b.SetPixel(x, y, cl);
+
+
+                        }
+
+                    }
+                }
+                b.Apply();
+
+                return b;
+            }
+        }
     }
 
     public class MaterialHelper

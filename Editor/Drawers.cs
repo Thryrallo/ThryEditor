@@ -404,8 +404,9 @@ namespace Thry
             _input_b.FindMaxSize(ref width, ref height);
             _input_a.FindMaxSize(ref width, ref height);
 
-            RenderTexture target = new RenderTexture(width,height, 32);
+            RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, 0);
             target.enableRandomWrite = true;
+            target.filterMode = GetFiltermode();
             target.Create();
 
             ComputeShader computeShader = AssetDatabase.FindAssets("ThryTexturePacker t:computeshader").
@@ -431,6 +432,15 @@ namespace Thry
             _prop.textureValue = _packedTexture;
         }
 
+        FilterMode GetFiltermode()
+        {
+            if (_input_r.Texture != null) return _input_r.Texture.filterMode;
+            if (_input_g.Texture != null) return _input_a.Texture.filterMode;
+            if (_input_b.Texture != null) return _input_b.Texture.filterMode;
+            if (_input_a.Texture != null) return _input_a.Texture.filterMode;
+            return FilterMode.Bilinear;
+        }
+
         void Confirm()
         {
             if (_packedTexture == null) Pack();
@@ -441,6 +451,7 @@ namespace Thry
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
             importer.sRGBTexture = _makeSRGB;
+            importer.filterMode = GetFiltermode();
             importer.SaveAndReimport();
         }
 
@@ -473,8 +484,11 @@ namespace Thry
                     string path = AssetDatabase.GetAssetPath(Texture);
                     if(path.EndsWith(".png") || path.EndsWith(".jpg"))
                     {
-                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height);
+                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height, TextureFormat.ARGB32, false);
                         ImageConversion.LoadImage(_loadedUncompressedTexture, System.IO.File.ReadAllBytes(path));
+                    }else if (path.EndsWith(".tga"))
+                    {
+                        _loadedUncompressedTexture = TextureHelper.LoadTGA(path);
                     }
                     else
                     {
