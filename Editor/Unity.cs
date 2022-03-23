@@ -67,6 +67,26 @@ namespace Thry
         {
             return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(o));
         }
+
+        public static WindowType FindOpenEditorWindow<WindowType>() where WindowType : EditorWindow
+        {
+            WindowType[] windows = Resources.FindObjectsOfTypeAll<WindowType>();
+            if (windows != null && windows.Length > 0)
+            {
+                return windows[0];
+            }
+            return null;
+        }
+
+        public static EditorWindow FindOpenEditorWindow(Type type)
+        {
+            UnityEngine.Object[] windows = Resources.FindObjectsOfTypeAll(type);
+            if (windows != null && windows.Length > 0)
+            {
+                return windows[0] as EditorWindow;
+            }
+            return null;
+        }
     }
 
     public class UnityFixer

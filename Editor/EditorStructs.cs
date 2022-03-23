@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Thry.ThryEditor;
 using UnityEditor;
@@ -246,17 +249,101 @@ namespace Thry
                 //Context menu
                 if (contextMenu == null) {
                     GenericMenu contextMenu = new GenericMenu();
-                    contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = materialProperty.name; });
                     if (is_animatable)
                     {
-                        contextMenu.AddSeparator("");
                         contextMenu.AddItem(new GUIContent("Is Animated"), is_animated, () => { SetAnimated(!is_animated, false); });
                         contextMenu.AddItem(new GUIContent("Is Renaming"), is_animated && is_renaming, () => { SetAnimated(true, !is_renaming); });
+                        contextMenu.AddSeparator("");
                     }
+                    contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = materialProperty.name; });
+                    contextMenu.AddItem(new GUIContent("Copy Animated Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = GetAnimatedPropertyName(); });
+                    contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, () => CopyPropertyPath() );
+                    contextMenu.AddItem(new GUIContent("Copy Property as Keyframe"), false, CopyPropertyAsKeyframe);
                     contextMenu.ShowAsContext();
                 }
             }
-            
+        }
+
+        void CopyPropertyPath()
+        {
+            string path = GetAnimatedPropertyName();
+            Transform selected = Selection.activeTransform;
+            Transform root = selected;
+            while(root != null && root.GetComponent<Animator>() == null)
+                root = root.parent;
+            if (selected != null && root != null && selected != root)
+                path = AnimationUtility.CalculateTransformPath(selected, root) + "/" + path;
+            EditorGUIUtility.systemCopyBuffer = path;
+        }
+
+        string GetAnimatedPropertyName()
+        {
+            if (is_renaming) return materialProperty.name + "_" + ShaderEditor.Active.AnimPropertySuffix;
+            return materialProperty.name;
+        }
+
+        void CopyPropertyAsKeyframe()
+        {
+            string path = "";
+            Transform selected = Selection.activeTransform;
+            Transform root = selected;
+            while (root != null && root.GetComponent<Animator>() == null)
+                root = root.parent;
+            if (selected != null && root != null && selected != root)
+                path = AnimationUtility.CalculateTransformPath(selected, root);
+            if(selected == null && root == null)
+                return;
+
+            Type animationStateType = typeof(AnimationUtility).Assembly.GetType("UnityEditorInternal.AnimationWindowState");
+            Type animationKeyframeType = typeof(AnimationUtility).Assembly.GetType("UnityEditorInternal.AnimationWindowKeyframe");
+            Type animationCurveType = typeof(AnimationUtility).Assembly.GetType("UnityEditorInternal.AnimationWindowCurve");
+
+            FieldInfo clipboardField = animationStateType.GetField("s_KeyframeClipboard", BindingFlags.NonPublic | BindingFlags.Static);
+
+            Type keyframeListType = typeof(List<>).MakeGenericType(animationKeyframeType);
+            IList keyframeList = (IList)Activator.CreateInstance(keyframeListType);
+
+            AnimationClip clip = new AnimationClip();
+
+            string propertyname = "material." + GetAnimatedPropertyName();
+            if (materialProperty.type == MaterialProperty.PropType.Float || materialProperty.type == MaterialProperty.PropType.Range)
+            {
+                clip.SetCurve(path, typeof(Renderer), propertyname, new AnimationCurve(new Keyframe(0, materialProperty.floatValue)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ""));
+            }
+            else if(materialProperty.type == MaterialProperty.PropType.Color)
+            {
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".r", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.r)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".g", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.g)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".b", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.b)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".a", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.a)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".r"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".g"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".b"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".a"));
+            }else if(materialProperty.type == MaterialProperty.PropType.Vector)
+            {
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".x", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.x)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".y", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.y)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".z", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.z)));
+                clip.SetCurve(path, typeof(Renderer), propertyname + ".w", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.w)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".x"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".y"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".z"));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".w"));
+            }
+            clipboardField.SetValue(null, keyframeList);
+        }
+
+        object ClipToKeyFrame(Type animationCurveType, AnimationClip clip, string path, string propertyPostFix)
+        {
+            FieldInfo curvesField = animationCurveType.GetField("m_Keyframes", BindingFlags.Instance | BindingFlags.Public);
+
+            object windowCurve = Activator.CreateInstance(animationCurveType, clip,
+                EditorCurveBinding.FloatCurve(path, typeof(Renderer), "material." + GetAnimatedPropertyName() + propertyPostFix), typeof(float));
+            IEnumerator enumerator = (curvesField.GetValue(windowCurve) as IList).GetEnumerator();
+            enumerator.MoveNext();
+            return enumerator.Current;
         }
 
         public void SetAnimated(bool animated, bool renamed)
