@@ -133,6 +133,8 @@ namespace Thry
 
         public bool has_not_searchedFor = false; //used for property search
 
+        GenericMenu contextMenu;
+
         public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
             this.shaderEditor = shaderEditor;
@@ -147,31 +149,34 @@ namespace Thry
 
             if (prop == null)
                 return;
-            bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.AnimPropertySuffix) != null;
-            string tag = null;
-            //If prop is og, but is duplicated (locked) dont have it animateable
-            if (propHasDuplicate)
+            if (this is ShaderHeader == false)
             {
-                this.is_animatable = false;
-            }
-            else
-            {
-                //if prop is a duplicated or renamed get og property to check for animted status
-                if (prop.name.Contains(shaderEditor.AnimPropertySuffix))
+                bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.AnimPropertySuffix) != null;
+                string tag = null;
+                //If prop is og, but is duplicated (locked) dont have it animateable
+                if (propHasDuplicate)
                 {
-                    string ogName = prop.name.Substring(0, prop.name.Length - shaderEditor.AnimPropertySuffix.Length - 1);
-                    tag = ShaderOptimizer.GetAnimatedTag(materialProperty.targets[0] as Material, ogName);
+                    this.is_animatable = false;
                 }
                 else
                 {
-                    tag = ShaderOptimizer.GetAnimatedTag(materialProperty);
+                    //if prop is a duplicated or renamed get og property to check for animted status
+                    if (prop.name.Contains(shaderEditor.AnimPropertySuffix))
+                    {
+                        string ogName = prop.name.Substring(0, prop.name.Length - shaderEditor.AnimPropertySuffix.Length - 1);
+                        tag = ShaderOptimizer.GetAnimatedTag(materialProperty.targets[0] as Material, ogName);
+                    }
+                    else
+                    {
+                        tag = ShaderOptimizer.GetAnimatedTag(materialProperty);
+                    }
+                    this.is_animatable = true;
                 }
-                this.is_animatable = true;
+
+
+                this.is_animated = is_animatable && tag != "";
+                this.is_renaming = is_animatable && tag == "2";
             }
-            
-            
-            this.is_animated = is_animatable && tag != "";
-            this.is_renaming = is_animatable && tag == "2";
         }
 
         public void SetReferenceProperty(string s)
@@ -238,37 +243,17 @@ namespace Thry
                         ShaderEditor.Input.Use();
                     }
                 }
-                //Animated toggle
-                else
-                {
-                    if (is_animatable && isInHeader == false && this is ShaderHeader == false)
+                //Context menu
+                if (contextMenu == null) {
+                    GenericMenu contextMenu = new GenericMenu();
+                    contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = materialProperty.name; });
+                    if (is_animatable)
                     {
-                        if (Event.current.control && Config.Singleton.renameAnimatedProps)
-                        {
-                            if (!is_animated)
-                            {
-                                is_animated = true;
-                                is_renaming = true;
-                            }
-                            else if (!is_renaming)
-                            {
-                                is_renaming = true;
-                            }
-                            else
-                            {
-                                is_animated = false;
-                                is_renaming = false;
-                            }
-                        }
-                        else
-                        {
-                            is_animated = !is_animated;
-                            is_renaming = false;
-                        }
-                        SetAnimated(is_animated, is_renaming);
-                        ShaderEditor.RepaintActive();
-                        ShaderEditor.Input.Use();
+                        contextMenu.AddSeparator("");
+                        contextMenu.AddItem(new GUIContent("Is Animated"), is_animated, () => { SetAnimated(!is_animated, false); });
+                        contextMenu.AddItem(new GUIContent("Is Renaming"), is_animated && is_renaming, () => { SetAnimated(true, !is_renaming); });
                     }
+                    contextMenu.ShowAsContext();
                 }
             }
             
