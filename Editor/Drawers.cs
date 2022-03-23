@@ -250,25 +250,39 @@ namespace Thry
 
         bool _isInit;
         MaterialProperty _prop;
+        bool _hasConfigChanged;
+        bool _hasTextureChanged;
 
         string _label1;
         string _label2;
         string _label3;
         string _label4;
-
+        bool _firstTextureIsRGB;
         bool _makeSRGB = true;
 
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4)
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4, float sRGB)
         {
             _label1 = label1;
             _label2 = label2;
             _label3 = label3;
             _label4 = label4;
+            _makeSRGB = sRGB == 1;
         }
 
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4, float sRGB) : this(label1,label2,label3,label4)
+        public ThryRGBAPackerDrawer(string label1, string label2, float sRGB) : this(label1, label2, null, null, sRGB) { }
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, float sRGB) : this(label1, label2, label3, null, sRGB) { }
+
+        public ThryRGBAPackerDrawer(string label1, string label2) : this(label1,label2,null, null, 0){}
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3) : this(label1,label2,label3, null, 0){}
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4) : this(label1,label2,label3,label4, 0){}
+
+        public ThryRGBAPackerDrawer(float firstTextureIsRGB, string label1, string label2) : this(label1, label2, null, null, 0)
         {
-            _makeSRGB = sRGB == 1;
+            _firstTextureIsRGB = firstTextureIsRGB == 1;
+        }
+        public ThryRGBAPackerDrawer(float firstTextureIsRGB, string label1, string label2, float sRGB) : this(label1, label2, null, null, sRGB)
+        {
+            _firstTextureIsRGB = firstTextureIsRGB == 1;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -284,18 +298,24 @@ namespace Thry
             EditorGUI.BeginChangeCheck();
             _input_r = TexturePackerSlotGUI(_input_r, _label1);
             _input_g = TexturePackerSlotGUI(_input_g, _label2);
-            _input_b = TexturePackerSlotGUI(_input_b, _label3);
-            _input_a = TexturePackerSlotGUI(_input_a, _label4);
+            if( _label3 != null) _input_b = TexturePackerSlotGUI(_input_b, _label3);
+            if (_label4 != null) _input_a = TexturePackerSlotGUI(_input_a, _label4);
             if (EditorGUI.EndChangeCheck())
             {
+                _hasConfigChanged = true;
                 Save();
                 Pack();
             }
+
             Rect buttonRect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
             buttonRect.width /= 2;
+            EditorGUI.BeginDisabledGroup(!_hasConfigChanged);
             if (GUI.Button(buttonRect, "Confirm")) Confirm();
             buttonRect.x += buttonRect.width;
+            EditorGUI.EndDisabledGroup();
+            EditorGUI.BeginDisabledGroup(!_hasTextureChanged);
             if (GUI.Button(buttonRect, "Revert")) Revert();
+            EditorGUI.EndDisabledGroup();
         }
 
         Texture test;
@@ -332,7 +352,8 @@ namespace Thry
             {
                 r.width = 50;
                 r.x = totalRect.x + totalRect.width - r.width;
-                input.Channel = (TextureChannel)EditorGUI.EnumPopup(r, input.Channel);
+                if(!_firstTextureIsRGB || input != _input_r)
+                    input.Channel = (TextureChannel)EditorGUI.EnumPopup(r, input.Channel);
 
                 r.width = 20;
                 r.x -= r.width;
@@ -416,6 +437,7 @@ namespace Thry
             computeShader.SetTexture(0, "Result", target);
             computeShader.SetFloat("Width", width);
             computeShader.SetFloat("Height", height);
+            computeShader.SetBool("TakeRGBFromRTexture", _firstTextureIsRGB);
 
             _input_r.SetComputeShaderValues(computeShader, "R", width, height);
             _input_g.SetComputeShaderValues(computeShader, "G", width, height);
@@ -431,6 +453,8 @@ namespace Thry
 
             _packedTexture = atlas;
             _prop.textureValue = _packedTexture;
+
+            _hasTextureChanged = true;
         }
 
         FilterMode GetFiltermode()
@@ -454,11 +478,16 @@ namespace Thry
             importer.sRGBTexture = _makeSRGB;
             importer.filterMode = GetFiltermode();
             importer.SaveAndReimport();
+
+            _hasConfigChanged = false;
+            _hasTextureChanged = false;
         }
 
         void Revert()
         {
             _prop.textureValue = _previousTexture;
+
+            _hasTextureChanged = false;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
