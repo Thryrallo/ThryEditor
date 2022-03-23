@@ -265,7 +265,7 @@ namespace Thry
                             is_animated = !is_animated;
                             is_renaming = false;
                         }
-                        ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
+                        SetAnimated(is_animated, is_renaming);
                         ShaderEditor.RepaintActive();
                         ShaderEditor.Input.Use();
                     }
@@ -274,33 +274,40 @@ namespace Thry
             
         }
 
+        public void SetAnimated(bool animated, bool renamed)
+        {
+            is_animated = animated;
+            is_renaming = renamed;
+            ShaderOptimizer.SetAnimatedTag(materialProperty, is_animated ? (is_renaming ? "2" : "1") : "");
+        }
+
         private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent, bool isInHeader = false)
         {
             if (content == null)
                 content = this.content;
-            if(options.on_value_actions != null)
-                EditorGUI.BeginChangeCheck();
+            EditorGUI.BeginChangeCheck();
             DrawInternal(content, rect, useEditorIndent, isInHeader);
 
             if(this is TextureProperty == false) DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
             DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
 
             HandleRightClickToggles(isInHeader);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                if(options.on_value_actions != null)
+                    foreach (PropertyValueAction action in options.on_value_actions)
+                    {
+                        action.Execute(materialProperty);
+                    }
+                if (shaderEditor.IsInAnimationMode && !is_animated && is_animatable && this is ShaderProperty) SetAnimated(true, false);
+            }
+
             if (is_animated) DrawLockedAnimated();
             if (is_preset) DrawPresetProperty();
 
             tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
 
-            if (options.on_value_actions != null)
-            {
-                if (EditorGUI.EndChangeCheck())
-                {
-                    foreach (PropertyValueAction action in options.on_value_actions)
-                    {
-                        action.Execute(materialProperty);
-                    }
-                }
-            }
             //Alt click testing
             if (options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
             {

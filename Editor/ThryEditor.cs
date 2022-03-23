@@ -63,6 +63,7 @@ namespace Thry
         public bool IsFirstCall;
         public bool DoUseShaderOptimizer;
         public bool IsLockedMaterial;
+        public bool IsInAnimationMode;
         public string AnimPropertySuffix;
         public Locale Locale;
 
@@ -444,6 +445,7 @@ namespace Thry
             Properties = props;
             Shader = Materials[0].shader;
             Input.Update(IsLockedMaterial);
+            IsInAnimationMode = AnimationMode.InAnimationMode();
 
             Active = this;
 
