@@ -334,7 +334,10 @@ namespace Thry
 
         public static string GetAnimPropertySuffix(Material m)
         {
-            return Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
+            string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
+            if (Config.Singleton.allowCustomLockingRenaming)
+                return m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
+            return cleanedMaterialName;
         }
 
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)

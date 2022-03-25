@@ -1223,6 +1223,18 @@ namespace Thry
                     RestoreChangeStack();
                 }
             }
+            if(Config.Singleton.allowCustomLockingRenaming && !ShaderEditor.Active.IsLockedMaterial)
+            {
+                EditorGUI.BeginChangeCheck();
+                ShaderEditor.Active.AnimPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.AnimPropertySuffix);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    foreach (Material m in ShaderEditor.Active.Materials)
+                        m.SetOverrideTag("thry_rename_suffix", ShaderEditor.Active.AnimPropertySuffix);
+                    if (ShaderEditor.Active.AnimPropertySuffix == "")
+                        ShaderEditor.Active.AnimPropertySuffix = ShaderOptimizer.GetAnimPropertySuffix(ShaderEditor.Active.Materials[0]);
+                }
+            }
         }
 
         //This code purly exists cause Unity 2019 is a piece of shit that looses it's internal change stack on locking CAUSE FUCK IF I KNOW

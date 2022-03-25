@@ -233,7 +233,7 @@ namespace Thry
 
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
-            if (ShaderEditor.Input.RightClick_IgnoreUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
+            if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
                 //Preset toggle
                 if (Event.current.shift)
@@ -247,12 +247,15 @@ namespace Thry
                     }
                 }
                 //Context menu
-                if (contextMenu == null) {
+                //Show context menu, if not open.
+                //If locked material only show menu for animated materials. Only show data retieving options in locked state
+                if (contextMenu == null && (!ShaderEditor.Active.IsLockedMaterial || is_animated)) {
                     GenericMenu contextMenu = new GenericMenu();
-                    if (is_animatable)
+                    if (is_animatable && !ShaderEditor.Active.IsLockedMaterial)
                     {
-                        contextMenu.AddItem(new GUIContent("Is Animated"), is_animated, () => { SetAnimated(!is_animated, false); });
-                        contextMenu.AddItem(new GUIContent("Is Renaming"), is_animated && is_renaming, () => { SetAnimated(true, !is_renaming); });
+                        contextMenu.AddItem(new GUIContent("Animated (when locked)"), is_animated, () => { SetAnimated(!is_animated, false); });
+                        contextMenu.AddItem(new GUIContent("Renamed (when locked)"), is_animated && is_renaming, () => { SetAnimated(true, !is_renaming); });
+                        contextMenu.AddItem(new GUIContent("Locking Explanation"), false, () => { Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo&ab_channel=poiyomi"); });
                         contextMenu.AddSeparator("");
                     }
                     contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = materialProperty.name; });
@@ -278,7 +281,7 @@ namespace Thry
 
         string GetAnimatedPropertyName()
         {
-            if (is_renaming) return materialProperty.name + "_" + ShaderEditor.Active.AnimPropertySuffix;
+            if (is_renaming && !ShaderEditor.Active.IsLockedMaterial) return materialProperty.name + "_" + ShaderEditor.Active.AnimPropertySuffix;
             return materialProperty.name;
         }
 

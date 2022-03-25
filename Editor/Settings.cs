@@ -131,7 +131,7 @@ namespace Thry
                 EditorGUI.indentLevel += 2;
                 Dropdown("default_texture_type");
                 Toggle("showRenderQueue");
-                Toggle("renameAnimatedProps");
+                Toggle("allowCustomLockingRenaming");
                 Toggle("showManualReloadButton");
                 GUIGradients();
                 EditorGUI.indentLevel -= 2;
