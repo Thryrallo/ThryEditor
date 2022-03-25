@@ -399,7 +399,7 @@ namespace Thry
                     case MaterialProperty.PropType.Float:
                     case MaterialProperty.PropType.Range:
                         definesSB.Append("#define PROP");
-                        definesSB.Append(prop.name.ToUpper());
+                        definesSB.Append(prop.name.ToUpperInvariant());
                         definesSB.Append(' ');
                         definesSB.Append(prop.floatValue.ToString(CultureInfo.InvariantCulture));
                         definesSB.Append(Environment.NewLine);
@@ -408,7 +408,7 @@ namespace Thry
                         if (prop.textureValue != null)
                         {
                             definesSB.Append("#define PROP");
-                            definesSB.Append(prop.name.ToUpper());
+                            definesSB.Append(prop.name.ToUpperInvariant());
                             definesSB.Append(Environment.NewLine);
                         }
                         break;
