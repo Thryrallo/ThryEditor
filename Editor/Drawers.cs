@@ -240,18 +240,26 @@ namespace Thry
 
     public class ThryRGBAPackerDrawer : MaterialPropertyDrawer
     {
-        Texture _previousTexture;
-        Texture2D _packedTexture;
 
-        PackerChannelConfig _input_r;
-        PackerChannelConfig _input_g;
-        PackerChannelConfig _input_b;
-        PackerChannelConfig _input_a;
+        class ThryRGBAPackerData
+        {
+            public Texture _previousTexture;
+            public Texture2D _packedTexture;
 
-        bool _isInit;
+            public PackerChannelConfig _input_r;
+            public PackerChannelConfig _input_g;
+            public PackerChannelConfig _input_b;
+            public PackerChannelConfig _input_a;
+
+            public bool _isInit;
+            public bool _hasConfigChanged;
+            public bool _hasTextureChanged;
+        }
+
+        Dictionary<UnityEngine.Object, ThryRGBAPackerData> materialPackerData = new Dictionary<UnityEngine.Object, ThryRGBAPackerData>();
+
         MaterialProperty _prop;
-        bool _hasConfigChanged;
-        bool _hasTextureChanged;
+        ThryRGBAPackerData _current;
 
         string _label1;
         string _label2;
@@ -288,32 +296,34 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             _prop = prop;
+            if (materialPackerData.ContainsKey(_prop.targets[0]) == false) materialPackerData[_prop.targets[0]] = new ThryRGBAPackerData();
+            _current = materialPackerData[_prop.targets[0]];
             GuiHelper.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
-            if (_prop.textureValue != _packedTexture) _previousTexture = _prop.textureValue;
+            if (_prop.textureValue != _current._packedTexture) _current._previousTexture = _prop.textureValue;
         }
 
         void TexturePackerGUI()
         {
             Init();
             EditorGUI.BeginChangeCheck();
-            _input_r = TexturePackerSlotGUI(_input_r, _label1);
-            _input_g = TexturePackerSlotGUI(_input_g, _label2);
-            if( _label3 != null) _input_b = TexturePackerSlotGUI(_input_b, _label3);
-            if (_label4 != null) _input_a = TexturePackerSlotGUI(_input_a, _label4);
+            _current._input_r = TexturePackerSlotGUI(_current._input_r, _label1);
+            _current._input_g = TexturePackerSlotGUI(_current._input_g, _label2);
+            if( _label3 != null) _current._input_b = TexturePackerSlotGUI(_current._input_b, _label3);
+            if (_label4 != null) _current._input_a = TexturePackerSlotGUI(_current._input_a, _label4);
             if (EditorGUI.EndChangeCheck())
             {
-                _hasConfigChanged = true;
+                _current._hasConfigChanged = true;
                 Save();
                 Pack();
             }
 
             Rect buttonRect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
             buttonRect.width /= 2;
-            EditorGUI.BeginDisabledGroup(!_hasConfigChanged);
+            EditorGUI.BeginDisabledGroup(!_current._hasConfigChanged);
             if (GUI.Button(buttonRect, "Confirm")) Confirm();
             buttonRect.x += buttonRect.width;
             EditorGUI.EndDisabledGroup();
-            EditorGUI.BeginDisabledGroup(!_hasTextureChanged);
+            EditorGUI.BeginDisabledGroup(!_current._hasTextureChanged);
             if (GUI.Button(buttonRect, "Revert")) Revert();
             EditorGUI.EndDisabledGroup();
         }
@@ -352,7 +362,7 @@ namespace Thry
             {
                 r.width = 50;
                 r.x = totalRect.x + totalRect.width - r.width;
-                if(!_firstTextureIsRGB || input != _input_r)
+                if(!_firstTextureIsRGB || input != _current._input_r)
                     input.Channel = (TextureChannel)EditorGUI.EnumPopup(r, input.Channel);
 
                 r.width = 20;
@@ -371,21 +381,21 @@ namespace Thry
 
         void Init()
         {
-            if (_isInit) return;
-            _input_r = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "r");
-            _input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
-            _input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
-            _input_a = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "a");
-            _previousTexture = _prop.textureValue;
-            _isInit = true;
+            if (_current._isInit) return;
+            _current._input_r = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "r");
+            _current._input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
+            _current._input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
+            _current._input_a = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "a");
+            _current._previousTexture = _prop.textureValue;
+            _current._isInit = true;
         }
 
         void Save()
         {
-            SaveForChannel(_input_r, _prop.name, "r");
-            SaveForChannel(_input_g, _prop.name, "g");
-            SaveForChannel(_input_b, _prop.name, "b");
-            SaveForChannel(_input_a, _prop.name, "a");
+            SaveForChannel(_current._input_r, _prop.name, "r");
+            SaveForChannel(_current._input_g, _prop.name, "g");
+            SaveForChannel(_current._input_b, _prop.name, "b");
+            SaveForChannel(_current._input_a, _prop.name, "a");
         }
 
         void SaveForChannel(PackerChannelConfig input, string id, string channel)
@@ -421,10 +431,10 @@ namespace Thry
             int width = 16;
             int height = 16;
             //Find max size
-            _input_r.FindMaxSize(ref width, ref height);
-            _input_g.FindMaxSize(ref width, ref height);
-            _input_b.FindMaxSize(ref width, ref height);
-            _input_a.FindMaxSize(ref width, ref height);
+            _current._input_r.FindMaxSize(ref width, ref height);
+            _current._input_g.FindMaxSize(ref width, ref height);
+            _current._input_b.FindMaxSize(ref width, ref height);
+            _current._input_a.FindMaxSize(ref width, ref height);
 
             RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, 0);
             target.enableRandomWrite = true;
@@ -439,10 +449,10 @@ namespace Thry
             computeShader.SetFloat("Height", height);
             computeShader.SetBool("TakeRGBFromRTexture", _firstTextureIsRGB);
 
-            _input_r.SetComputeShaderValues(computeShader, "R", width, height);
-            _input_g.SetComputeShaderValues(computeShader, "G", width, height);
-            _input_b.SetComputeShaderValues(computeShader, "B", width, height);
-            _input_a.SetComputeShaderValues(computeShader, "A", width, height);
+            _current._input_r.SetComputeShaderValues(computeShader, "R", width, height);
+            _current._input_g.SetComputeShaderValues(computeShader, "G", width, height);
+            _current._input_b.SetComputeShaderValues(computeShader, "B", width, height);
+            _current._input_a.SetComputeShaderValues(computeShader, "A", width, height);
 
             computeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
 
@@ -451,27 +461,27 @@ namespace Thry
             atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.Apply();
 
-            _packedTexture = atlas;
-            _prop.textureValue = _packedTexture;
+            _current._packedTexture = atlas;
+            _prop.textureValue = _current._packedTexture;
 
-            _hasTextureChanged = true;
+            _current._hasTextureChanged = true;
         }
 
         FilterMode GetFiltermode()
         {
-            if (_input_r.Texture != null) return _input_r.Texture.filterMode;
-            if (_input_g.Texture != null) return _input_g.Texture.filterMode;
-            if (_input_b.Texture != null) return _input_b.Texture.filterMode;
-            if (_input_a.Texture != null) return _input_a.Texture.filterMode;
+            if (_current._input_r.Texture != null) return _current._input_r.Texture.filterMode;
+            if (_current._input_g.Texture != null) return _current._input_g.Texture.filterMode;
+            if (_current._input_b.Texture != null) return _current._input_b.Texture.filterMode;
+            if (_current._input_a.Texture != null) return _current._input_a.Texture.filterMode;
             return FilterMode.Bilinear;
         }
 
         void Confirm()
         {
-            if (_packedTexture == null) Pack();
+            if (_current._packedTexture == null) Pack();
             string path = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
             path = path + "/" + ShaderEditor.Active.Materials[0].name + _prop.name + ".png";
-            _prop.textureValue = TextureHelper.SaveTextureAsPNG(_packedTexture, path);
+            _prop.textureValue = TextureHelper.SaveTextureAsPNG(_current._packedTexture, path);
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
@@ -479,15 +489,15 @@ namespace Thry
             importer.filterMode = GetFiltermode();
             importer.SaveAndReimport();
 
-            _hasConfigChanged = false;
-            _hasTextureChanged = false;
+            _current._hasConfigChanged = false;
+            _current._hasTextureChanged = false;
         }
 
         void Revert()
         {
-            _prop.textureValue = _previousTexture;
+            _prop.textureValue = _current._previousTexture;
 
-            _hasTextureChanged = false;
+            _current._hasTextureChanged = false;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
