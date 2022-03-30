@@ -456,8 +456,7 @@ namespace Thry
                     // check if we're renaming the property as well
                     if (animateTag == "2")
                     {
-                        if (prop.type != MaterialProperty.PropType.Texture &&
-                                !prop.name.EndsWith("UV", StringComparison.Ordinal) && !prop.name.EndsWith("Pan", StringComparison.Ordinal)) // this property might be animated, but we're not allowed to rename it. this will break things.
+                        if (!prop.name.EndsWith("UV", StringComparison.Ordinal) && !prop.name.EndsWith("Pan", StringComparison.Ordinal)) // this property might be animated, but we're not allowed to rename it. this will break things.
                         {
                             // be sure we're not renaming stuff like _MainTex that should always be named the same
                             if (!IllegalPropertyRenames.Contains(prop.name))
@@ -570,16 +569,8 @@ namespace Thry
                         // don't have to match if that prop does not even exist in that line
                         if (psf.lines[i].Contains(animProp.name))
                         {
-                            // this is a terrible hack. but it makes sure we're not removing whatever comes after our property name. no idea how to do this better.
-                            // there should be only 1 character after our property name which is either a whitespace, a semicolon or a bracket.
-                            // this will ensure we're not removing it.
-                            // let's say it like this. It just works.
-                            string pattern = animProp.name + @"([^a-zA-Z\d]|$)";
-                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern, RegexOptions.Multiline);
-                            foreach (Match match in matches)
-                            {
-                                psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
-                            }
+                            string pattern = animProp.name + @"(?!(a-z|A-z|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
                         }
                     }
                     foreach (var animProp in animatedPropsToDuplicate)
@@ -829,6 +820,11 @@ namespace Thry
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.floatValue);
                         break;
+                    case MaterialProperty.PropType.Texture:
+                        material.SetTexture(newName, animProp.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
                 }
@@ -850,6 +846,11 @@ namespace Thry
                         break;
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.floatValue);
+                        break;
+                    case MaterialProperty.PropType.Texture:
+                        material.SetTexture(newName, animProp.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");

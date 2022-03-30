@@ -281,8 +281,10 @@ namespace Thry
 
         string GetAnimatedPropertyName()
         {
-            if (is_renaming && !ShaderEditor.Active.IsLockedMaterial) return materialProperty.name + "_" + ShaderEditor.Active.AnimPropertySuffix;
-            return materialProperty.name;
+            string propName = materialProperty.name;
+            if (is_renaming && !ShaderEditor.Active.IsLockedMaterial) propName = propName + "_" + ShaderEditor.Active.AnimPropertySuffix;
+            if (materialProperty.type == MaterialProperty.PropType.Texture) propName = propName + "_ST";
+            return propName;
         }
 
         void CopyPropertyAsKeyframe()
@@ -296,6 +298,10 @@ namespace Thry
                 path = AnimationUtility.CalculateTransformPath(selected, root);
             if(selected == null && root == null)
                 return;
+
+            Type rendererType = typeof(Renderer);
+            if (selected.GetComponent<SkinnedMeshRenderer>()) rendererType = typeof(SkinnedMeshRenderer);
+            if (selected.GetComponent<MeshRenderer>()) rendererType = typeof(MeshRenderer);
 
             Type animationStateType = typeof(AnimationUtility).Assembly.GetType("UnityEditorInternal.AnimationWindowState");
             Type animationKeyframeType = typeof(AnimationUtility).Assembly.GetType("UnityEditorInternal.AnimationWindowKeyframe");
@@ -311,39 +317,49 @@ namespace Thry
             string propertyname = "material." + GetAnimatedPropertyName();
             if (materialProperty.type == MaterialProperty.PropType.Float || materialProperty.type == MaterialProperty.PropType.Range)
             {
-                clip.SetCurve(path, typeof(Renderer), propertyname, new AnimationCurve(new Keyframe(0, materialProperty.floatValue)));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ""));
+                clip.SetCurve(path, rendererType, propertyname, new AnimationCurve(new Keyframe(0, materialProperty.floatValue)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, "", rendererType));
             }
             else if(materialProperty.type == MaterialProperty.PropType.Color)
             {
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".r", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.r)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".g", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.g)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".b", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.b)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".a", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.a)));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".r"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".g"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".b"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".a"));
+                clip.SetCurve(path, rendererType, propertyname + ".r", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.r)));
+                clip.SetCurve(path, rendererType, propertyname + ".g", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.g)));
+                clip.SetCurve(path, rendererType, propertyname + ".b", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.b)));
+                clip.SetCurve(path, rendererType, propertyname + ".a", new AnimationCurve(new Keyframe(0, materialProperty.colorValue.a)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".r", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".g", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".b", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".a", rendererType));
             }else if(materialProperty.type == MaterialProperty.PropType.Vector)
             {
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".x", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.x)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".y", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.y)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".z", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.z)));
-                clip.SetCurve(path, typeof(Renderer), propertyname + ".w", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.w)));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".x"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".y"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".z"));
-                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".w"));
+                clip.SetCurve(path, rendererType, propertyname + ".x", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.x)));
+                clip.SetCurve(path, rendererType, propertyname + ".y", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.y)));
+                clip.SetCurve(path, rendererType, propertyname + ".z", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.z)));
+                clip.SetCurve(path, rendererType, propertyname + ".w", new AnimationCurve(new Keyframe(0, materialProperty.vectorValue.w)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".x", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".y", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".z", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".w", rendererType));
+            }else if(materialProperty.type == MaterialProperty.PropType.Texture)
+            {
+                clip.SetCurve(path, rendererType, propertyname + ".x", new AnimationCurve(new Keyframe(0, materialProperty.textureScaleAndOffset.x)));
+                clip.SetCurve(path, rendererType, propertyname + ".y", new AnimationCurve(new Keyframe(0, materialProperty.textureScaleAndOffset.y)));
+                clip.SetCurve(path, rendererType, propertyname + ".z", new AnimationCurve(new Keyframe(0, materialProperty.textureScaleAndOffset.z)));
+                clip.SetCurve(path, rendererType, propertyname + ".w", new AnimationCurve(new Keyframe(0, materialProperty.textureScaleAndOffset.w)));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".x", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".y", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".z", rendererType));
+                keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".w", rendererType));
             }
             clipboardField.SetValue(null, keyframeList);
         }
 
-        object ClipToKeyFrame(Type animationCurveType, AnimationClip clip, string path, string propertyPostFix)
+        object ClipToKeyFrame(Type animationCurveType, AnimationClip clip, string path, string propertyPostFix, Type rendererType)
         {
             FieldInfo curvesField = animationCurveType.GetField("m_Keyframes", BindingFlags.Instance | BindingFlags.Public);
 
             object windowCurve = Activator.CreateInstance(animationCurveType, clip,
-                EditorCurveBinding.FloatCurve(path, typeof(Renderer), "material." + GetAnimatedPropertyName() + propertyPostFix), typeof(float));
+                EditorCurveBinding.FloatCurve(path, rendererType, "material." + GetAnimatedPropertyName() + propertyPostFix), typeof(float));
             IEnumerator enumerator = (curvesField.GetValue(windowCurve) as IList).GetEnumerator();
             enumerator.MoveNext();
             return enumerator.Current;
