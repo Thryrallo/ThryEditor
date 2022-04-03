@@ -569,7 +569,7 @@ namespace Thry
                         // don't have to match if that prop does not even exist in that line
                         if (psf.lines[i].Contains(animProp.name))
                         {
-                            string pattern = animProp.name + @"(?!(a-z|A-z|\d))";
+                            string pattern = animProp.name + @"(?!(\w|\d))";
                             psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
                         }
                     }
@@ -582,12 +582,10 @@ namespace Thry
                             string og = null;
                             if (isDefinition)
                                 og = psf.lines[i];
-                            string pattern = animProp.name + @"([^a-zA-Z\d]|$)";
-                            MatchCollection matches = Regex.Matches(psf.lines[i], pattern, RegexOptions.Multiline);
-                            foreach (Match match in matches)
-                            {
-                                psf.lines[i] = psf.lines[i].Replace(match.Groups[0].Value, animProp.name + "_" + animPropertySuffix + match.Groups[1]);
-                            }
+
+                            string pattern = animProp.name + @"((?!(\w|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
+
                             if (isDefinition)
                                 psf.lines[i] = og + "\r\n" + psf.lines[i];
                         }
@@ -1647,6 +1645,7 @@ namespace Thry
 
         //----Folder Lock
 
+        //This does not work for folders on the left side of the project explorer, because they are not exposed to Selection
         [MenuItem("Assets/Thry/Materials/Lock Folder", false, 303)]
         static void LockFolder()
         {
@@ -1660,6 +1659,14 @@ namespace Thry
         static bool LockFolderValidator()
         {
             return Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p)).Count() == Selection.objects.Length;
+        }
+
+        static string GetCurrentFolder()
+        {
+            if (Selection.activeObject) return "Assets";
+            string path = AssetDatabase.GetAssetPath(Selection.activeObject);
+            if (Directory.Exists(path)) return path;
+            else return Path.GetDirectoryName(path);
         }
 
         //-----Folder Unlock
