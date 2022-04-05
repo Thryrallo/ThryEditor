@@ -31,6 +31,8 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using Object = UnityEngine.Object;
 #if VRC_SDK_VRCSDK3
 using VRC.SDKBase;
 #endif
@@ -244,6 +246,20 @@ namespace Thry
             "_SrcBlend",
             "_UVSec",
             "_ZWrite"
+        };
+        
+        public static readonly HashSet<string> PropertiesToSkip = new HashSet<string>
+        {
+            "shader_master_label",
+            "shader_is_using_thry_editor",
+            "footer_youtube",
+            "footer_twitter",
+            "footer_patreon",
+            "footer_discord",
+            "footer_github",
+            "_LockTooltip",
+            "_ForgotToLockMaterial",
+            "_ShaderOptimizerEnabled",
         };
 
         public enum PropertyType
@@ -757,12 +773,18 @@ namespace Thry
             public List<MaterialProperty> animatedPropsToRename;
             public List<MaterialProperty> animatedPropsToDuplicate;
             public string animPropertySuffix;
+            public bool shared;
         }
 
         private static bool LockApplyShader(Material material)
         {
             if (applyStructsLater.ContainsKey(material) == false) return false;
             ApplyStruct applyStruct = applyStructsLater[material];
+            if (applyStruct.shared)
+            {
+                material.shader = applyStruct.material.shader;
+                return true;
+            }
             applyStructsLater.Remove(material);
             return LockApplyShader(applyStruct);
         }
@@ -1802,8 +1824,11 @@ namespace Thry
                 }
                 PersistentData.Set("ShowLockInDialog", false);
             }
+            
+            Dictionary<string, Material> materialHashset = new Dictionary<string, Material>();
+
             //Create shader assets
-            foreach (Material m in materialsToChangeLock)
+            foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
             {
                 //do progress bar
                 if (showProgressbar)
@@ -1822,7 +1847,68 @@ namespace Thry
                 {
                     if (lockState == 1)
                     {
-                        ShaderOptimizer.Lock(m, MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }), applyShaderLater: true);
+                        StringBuilder stringBuilder = new StringBuilder(m.shader.name);
+
+                        foreach (MaterialProperty prop in
+                                 MaterialEditor.GetMaterialProperties(new Object[] { m }))
+                        {
+                            string propName = prop.name;
+
+                            if (PropertiesToSkip.Contains(propName)) continue;
+
+                            string isAnimated = m.GetTag(propName + ShaderOptimizer.AnimatedTagSuffix, false,
+                                "0");
+
+                            if (isAnimated == "1" || isAnimated == "2")
+                            {
+                                stringBuilder.Append(propName + ShaderOptimizer.AnimatedTagSuffix + isAnimated);
+                            }
+
+                            switch (prop.type)
+                            {
+                                case MaterialProperty.PropType.Color:
+                                    stringBuilder.Append(m.GetColor(propName).ToString());
+                                    break;
+                                case MaterialProperty.PropType.Vector:
+                                    stringBuilder.Append(m.GetVector(propName).ToString());
+                                    break;
+                                case MaterialProperty.PropType.Range:
+                                case MaterialProperty.PropType.Float:
+                                    stringBuilder.Append(m.GetFloat(propName)
+                                        .ToString(CultureInfo.InvariantCulture));
+                                    break;
+                                case MaterialProperty.PropType.Texture:
+                                    Texture t = m.GetTexture(propName);
+                                    Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                                    if (t != null)
+                                        texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+
+                                    stringBuilder.Append(m.GetTextureOffset(propName).ToString());
+                                    stringBuilder.Append(m.GetTextureScale(propName).ToString());
+                                    stringBuilder.Append(texelSize.ToString());
+                                    break;
+                            }
+                        }
+
+                        // https://forum.unity.com/threads/hash-function-for-game.452779/
+                        ASCIIEncoding encoding = new ASCIIEncoding();
+                        byte[] bytes = encoding.GetBytes(stringBuilder.ToString());
+                        var sha = new MD5CryptoServiceProvider();
+                        string hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLower();
+                        
+                        if (materialHashset.ContainsKey(hash))
+                        {
+                            ApplyStruct applyStruct = applyStructsLater[materialHashset[hash]];
+                            applyStruct.material = m;
+                            applyStructsLater.Add(m, applyStruct);
+                        }
+                        else
+                        {
+                            ShaderOptimizer.Lock(m,
+                                MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
+                                applyShaderLater: true);
+                            materialHashset.Add(hash, m);
+                        }
                     }
                     else if (lockState == 0)
                     {
