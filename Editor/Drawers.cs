@@ -1223,7 +1223,12 @@ namespace Thry
                         GUILayout.Button(Locale.editor.Get("lockin_button_single"));
                     else GUILayout.Button(Locale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
-                else GUILayout.Button(Locale.editor.Get("unlock_button"));
+                else
+                {
+                    if (materialEditor.targets.Length == 1)
+                        GUILayout.Button(Locale.editor.Get("unlock_button_single"));
+                    else GUILayout.Button(Locale.editor.Get("unlock_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                }
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
