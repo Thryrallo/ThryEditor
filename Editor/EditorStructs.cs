@@ -154,7 +154,7 @@ namespace Thry
                 return;
             if (this is ShaderHeader == false)
             {
-                bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.AnimPropertySuffix) != null;
+                bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.RenamedPropertySuffix) != null;
                 string tag = null;
                 //If prop is og, but is duplicated (locked) dont have it animateable
                 if (propHasDuplicate)
@@ -164,9 +164,9 @@ namespace Thry
                 else
                 {
                     //if prop is a duplicated or renamed get og property to check for animted status
-                    if (prop.name.Contains(shaderEditor.AnimPropertySuffix))
+                    if (prop.name.Contains(shaderEditor.RenamedPropertySuffix))
                     {
-                        string ogName = prop.name.Substring(0, prop.name.Length - shaderEditor.AnimPropertySuffix.Length - 1);
+                        string ogName = prop.name.Substring(0, prop.name.Length - shaderEditor.RenamedPropertySuffix.Length - 1);
                         tag = ShaderOptimizer.GetAnimatedTag(materialProperty.targets[0] as Material, ogName);
                     }
                     else
@@ -282,7 +282,7 @@ namespace Thry
         string GetAnimatedPropertyName()
         {
             string propName = materialProperty.name;
-            if (is_renaming && !ShaderEditor.Active.IsLockedMaterial) propName = propName + "_" + ShaderEditor.Active.AnimPropertySuffix;
+            if (is_renaming && !ShaderEditor.Active.IsLockedMaterial) propName = propName + "_" + ShaderEditor.Active.RenamedPropertySuffix;
             if (materialProperty.type == MaterialProperty.PropType.Texture) propName = propName + "_ST";
             return propName;
         }

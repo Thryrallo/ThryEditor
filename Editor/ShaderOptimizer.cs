@@ -248,18 +248,10 @@ namespace Thry
             "_ZWrite"
         };
         
-        public static readonly HashSet<string> PropertiesToSkip = new HashSet<string>
+        public static readonly HashSet<string> PropertiesToSkipInMaterialEquallityComparission = new HashSet<string>
         {
             "shader_master_label",
-            "shader_is_using_thry_editor",
-            "footer_youtube",
-            "footer_twitter",
-            "footer_patreon",
-            "footer_discord",
-            "footer_github",
-            "_LockTooltip",
-            "_ForgotToLockMaterial",
-            "_ShaderOptimizerEnabled",
+            "shader_is_using_thry_editor"
         };
 
         public enum PropertyType
@@ -348,7 +340,7 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "");
         }
 
-        public static string GetAnimPropertySuffix(Material m)
+        public static string GetRenamedPropertySuffix(Material m)
         {
             string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
             if (Config.Singleton.allowCustomLockingRenaming)
@@ -369,7 +361,7 @@ namespace Thry
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "/";
 
             // suffix for animated properties when renaming is enabled
-            string animPropertySuffix = GetAnimPropertySuffix(material);
+            string animPropertySuffix = GetRenamedPropertySuffix(material);
 
             // Get collection of all properties to replace
             // Simultaneously build a string of #defines for each CGPROGRAM
@@ -1796,6 +1788,57 @@ namespace Thry
         }
 #endif
 
+        static string MaterialToShaderPropertyHash(Material m)
+        {
+            StringBuilder stringBuilder = new StringBuilder(m.shader.name);
+
+            foreach (MaterialProperty prop in
+                     MaterialEditor.GetMaterialProperties(new Object[] { m }))
+            {
+                string propName = prop.name;
+
+                if (PropertiesToSkipInMaterialEquallityComparission.Contains(propName)) continue;
+
+                string isAnimated = GetAnimatedTag(m, propName);
+
+                if (isAnimated == "1" || isAnimated == "2")
+                {
+                    stringBuilder.Append(isAnimated);
+                }
+
+                switch (prop.type)
+                {
+                    case MaterialProperty.PropType.Color:
+                        stringBuilder.Append(m.GetColor(propName).ToString());
+                        break;
+                    case MaterialProperty.PropType.Vector:
+                        stringBuilder.Append(m.GetVector(propName).ToString());
+                        break;
+                    case MaterialProperty.PropType.Range:
+                    case MaterialProperty.PropType.Float:
+                        stringBuilder.Append(m.GetFloat(propName)
+                            .ToString(CultureInfo.InvariantCulture));
+                        break;
+                    case MaterialProperty.PropType.Texture:
+                        Texture t = m.GetTexture(propName);
+                        Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                        if (t != null)
+                            texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+
+                        stringBuilder.Append(m.GetTextureOffset(propName).ToString());
+                        stringBuilder.Append(m.GetTextureScale(propName).ToString());
+                        stringBuilder.Append(texelSize.ToString());
+                        break;
+                }
+            }
+
+            // https://forum.unity.com/threads/hash-function-for-game.452779/
+            ASCIIEncoding encoding = new ASCIIEncoding();
+            byte[] bytes = encoding.GetBytes(stringBuilder.ToString());
+            var sha = new MD5CryptoServiceProvider();
+            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLower();
+        }
+
         public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
             IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
@@ -1825,7 +1868,7 @@ namespace Thry
                 PersistentData.Set("ShowLockInDialog", false);
             }
             
-            Dictionary<string, Material> materialHashset = new Dictionary<string, Material>();
+            Dictionary<string, Material> shaderPropertyCombinations = new Dictionary<string, Material>();
 
             //Create shader assets
             foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
@@ -1847,58 +1890,10 @@ namespace Thry
                 {
                     if (lockState == 1)
                     {
-                        StringBuilder stringBuilder = new StringBuilder(m.shader.name);
-
-                        foreach (MaterialProperty prop in
-                                 MaterialEditor.GetMaterialProperties(new Object[] { m }))
+                        string hash = MaterialToShaderPropertyHash(m);
+                        if (shaderPropertyCombinations.ContainsKey(hash))
                         {
-                            string propName = prop.name;
-
-                            if (PropertiesToSkip.Contains(propName)) continue;
-
-                            string isAnimated = m.GetTag(propName + ShaderOptimizer.AnimatedTagSuffix, false,
-                                "0");
-
-                            if (isAnimated == "1" || isAnimated == "2")
-                            {
-                                stringBuilder.Append(propName + ShaderOptimizer.AnimatedTagSuffix + isAnimated);
-                            }
-
-                            switch (prop.type)
-                            {
-                                case MaterialProperty.PropType.Color:
-                                    stringBuilder.Append(m.GetColor(propName).ToString());
-                                    break;
-                                case MaterialProperty.PropType.Vector:
-                                    stringBuilder.Append(m.GetVector(propName).ToString());
-                                    break;
-                                case MaterialProperty.PropType.Range:
-                                case MaterialProperty.PropType.Float:
-                                    stringBuilder.Append(m.GetFloat(propName)
-                                        .ToString(CultureInfo.InvariantCulture));
-                                    break;
-                                case MaterialProperty.PropType.Texture:
-                                    Texture t = m.GetTexture(propName);
-                                    Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                                    if (t != null)
-                                        texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
-
-                                    stringBuilder.Append(m.GetTextureOffset(propName).ToString());
-                                    stringBuilder.Append(m.GetTextureScale(propName).ToString());
-                                    stringBuilder.Append(texelSize.ToString());
-                                    break;
-                            }
-                        }
-
-                        // https://forum.unity.com/threads/hash-function-for-game.452779/
-                        ASCIIEncoding encoding = new ASCIIEncoding();
-                        byte[] bytes = encoding.GetBytes(stringBuilder.ToString());
-                        var sha = new MD5CryptoServiceProvider();
-                        string hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLower();
-                        
-                        if (materialHashset.ContainsKey(hash))
-                        {
-                            ApplyStruct applyStruct = applyStructsLater[materialHashset[hash]];
+                            ApplyStruct applyStruct = applyStructsLater[shaderPropertyCombinations[hash]];
                             applyStruct.material = m;
                             applyStructsLater.Add(m, applyStruct);
                         }
@@ -1907,7 +1902,7 @@ namespace Thry
                             ShaderOptimizer.Lock(m,
                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
                                 applyShaderLater: true);
-                            materialHashset.Add(hash, m);
+                            shaderPropertyCombinations.Add(hash, m);
                         }
                     }
                     else if (lockState == 0)

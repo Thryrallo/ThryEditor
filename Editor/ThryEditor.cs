@@ -64,7 +64,7 @@ namespace Thry
         public bool DoUseShaderOptimizer;
         public bool IsLockedMaterial;
         public bool IsInAnimationMode;
-        public string AnimPropertySuffix;
+        public string RenamedPropertySuffix;
         public Locale Locale;
 
         //Shader Versioning
@@ -363,7 +363,7 @@ namespace Thry
 
             Shader = Materials[0].shader;
 
-            AnimPropertySuffix = ShaderOptimizer.GetAnimPropertySuffix(Materials[0]);
+            RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
 
             IsPresetEditor = Materials.Length == 1 && Presets.ArePreset(Materials);
 

@@ -1241,13 +1241,13 @@ namespace Thry
             if(Config.Singleton.allowCustomLockingRenaming && !ShaderEditor.Active.IsLockedMaterial)
             {
                 EditorGUI.BeginChangeCheck();
-                ShaderEditor.Active.AnimPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.AnimPropertySuffix);
+                ShaderEditor.Active.RenamedPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.RenamedPropertySuffix);
                 if (EditorGUI.EndChangeCheck())
                 {
                     foreach (Material m in ShaderEditor.Active.Materials)
-                        m.SetOverrideTag("thry_rename_suffix", ShaderEditor.Active.AnimPropertySuffix);
-                    if (ShaderEditor.Active.AnimPropertySuffix == "")
-                        ShaderEditor.Active.AnimPropertySuffix = ShaderOptimizer.GetAnimPropertySuffix(ShaderEditor.Active.Materials[0]);
+                        m.SetOverrideTag("thry_rename_suffix", ShaderEditor.Active.RenamedPropertySuffix);
+                    if (ShaderEditor.Active.RenamedPropertySuffix == "")
+                        ShaderEditor.Active.RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(ShaderEditor.Active.Materials[0]);
                 }
             }
         }
