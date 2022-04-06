@@ -66,6 +66,7 @@ namespace Thry
         public bool IsInAnimationMode;
         public string RenamedPropertySuffix;
         public Locale Locale;
+        public ShaderTranslator SuggestedTranslationDefinition;
 
         //Shader Versioning
         private Version _shaderVersionLocal;
@@ -418,6 +419,7 @@ namespace Thry
             int previousQueue = material.renderQueue;
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
             material.renderQueue = previousQueue;
+            SuggestedTranslationDefinition = ShaderTranslator.CheckForExistingTranslationFile(oldShader, newShader);
             _doReloadNextDraw = true;
             _didSwapToShader = true;
         }
@@ -455,6 +457,7 @@ namespace Thry
             GUITopBar();
             GUISearchBar();
             Presets.PresetEditorGUI(this);
+            ShaderTranslator.SuggestedTranslationButtonGUI(this);
 
             //PROPERTIES
             foreach (ShaderPart part in mainGroup.parts)
@@ -506,24 +509,24 @@ namespace Thry
 
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, 25, 25))
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, "Settings", 25, 25))
             {
                 EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
             }
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, 25, 25))
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, "Search", 25, 25))
             {
                 DoShowSearchBar = !DoShowSearchBar;
                 if(!DoShowSearchBar) ClearSearch();
             }
-            Rect presetR = GUILayoutUtility.GetRect(25, 25);
-            Presets.PresetGUI(presetR, this);
+            Presets.PresetGUI(this);
 
             //draw master label text after ui elements, so it can be positioned between
             if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
 
-            //GUILayout.Label("Thryrallo",GUILayout.ExpandWidth(true));
-            GUILayout.FlexibleSpace();  
-            GUILayout.Label("@UI by Thryrallo", Styles.made_by_style, GUILayout.Height(25), GUILayout.MaxWidth(100));
+            GUILayout.FlexibleSpace();
+            ShaderTranslator.TranslationSelectionGUI(this);
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_thryIcon, "Thryrallo", 25, 25))
+                Application.OpenURL("https://www.twitter.com/thryrallo");
             EditorGUILayout.EndHorizontal();
         }
 

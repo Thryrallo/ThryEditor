@@ -525,6 +525,11 @@ namespace Thry
             return GUI.Button(r, GUIContent.none, style);
         }
 
+        public static bool Button(Rect r, string tooltip, GUIStyle style)
+        {
+            return GUI.Button(r, new GUIContent("", tooltip), style);
+        }
+
         public static bool Button(GUIStyle style, int width, int height)
         {
             Rect r = GUILayoutUtility.GetRect(width, height);
@@ -536,6 +541,29 @@ namespace Thry
             Rect r = GUILayoutUtility.GetRect(width, height);
             EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
             return Button(r, style);
+        }
+        
+        public static bool ButtonWithCursor(GUIStyle style, string tooltip, int width, int height)
+        {
+            Rect r = GUILayoutUtility.GetRect(width, height);
+            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
+            return Button(r, tooltip, style);
+        }
+
+        public static bool ButtonWithCursor(GUIStyle style, string tooltip, int width, int height, out Rect r)
+        {
+            r = GUILayoutUtility.GetRect(width, height);
+            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
+            return Button(r, tooltip, style);
+        }
+
+        public static bool Button(Rect r, string tooltip, GUIStyle style, Color c)
+        {
+            Color prevColor = GUI.backgroundColor;
+            GUI.backgroundColor = c;
+            bool b = GuiHelper.Button(r, tooltip, style);
+            GUI.backgroundColor = prevColor;
+            return b;
         }
 
         public static bool Button(GUIStyle style, int width, int height, Color c)
@@ -555,6 +583,66 @@ namespace Thry
             GUI.backgroundColor = prevColor;
             return b;
         }
+
+        #region SearchableEnumPopup
+        public class SearchableEnumPopup : EditorWindow
+        {
+            private static SearchableEnumPopup window;
+            public static void CreateSearchableEnumPopup(string[] options, string selected, Action<string> setter)
+            {
+                Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+                pos.x = Mathf.Min(EditorWindow.focusedWindow.position.x + EditorWindow.focusedWindow.position.width - 250, pos.x);
+                pos.y = Mathf.Min(EditorWindow.focusedWindow.position.y + EditorWindow.focusedWindow.position.height - 200, pos.y);
+
+                if (window != null)
+                    window.Close();
+                window = ScriptableObject.CreateInstance<SearchableEnumPopup>();
+                window.position = new Rect(pos.x, pos.y, 250, 200);
+                window._options = options;
+                window._selected = selected;
+                window._setter = setter;
+                window._searchedFor = "";
+                window.ShowPopup();
+            }
+
+            private SearchableEnumPopup() { }
+
+            string[] _options;
+            string _selected;
+            string _searchedFor;
+            Action<string> _setter;
+
+            bool first = true;
+
+            private void OnGUI()
+            {
+                if (GUILayout.Button("Close")) this.Close();
+                GUI.SetNextControlName("SearchTextField");
+                _searchedFor = GUILayout.TextField(_searchedFor);
+                string seachTerm = _searchedFor.ToLowerInvariant().TrimStart('_');
+                string[] filteredOptions = _options.Where(o => o.TrimStart('_').ToLowerInvariant().StartsWith(seachTerm)).ToArray();
+                for (int i = 0; i < 7 && i < filteredOptions.Length; i++)
+                {
+                    if (GUILayout.Button(filteredOptions[i]))
+                    {
+                        _selected = filteredOptions[i];
+                        _setter.Invoke(_selected);
+                        this.Close();
+                    }
+                }
+                if (filteredOptions.Length > 7)
+                {
+                    GUILayout.Label("... More");
+                }
+                if (first)
+                {
+                    GUI.FocusControl("SearchTextField");
+                    first = false;
+                }
+            }
+        }
+
+        #endregion
     }
 
     public class BetterTooltips

@@ -1675,14 +1675,6 @@ namespace Thry
             return Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p)).Count() == Selection.objects.Length;
         }
 
-        static string GetCurrentFolder()
-        {
-            if (Selection.activeObject) return "Assets";
-            string path = AssetDatabase.GetAssetPath(Selection.activeObject);
-            if (Directory.Exists(path)) return path;
-            else return Path.GetDirectoryName(path);
-        }
-
         //-----Folder Unlock
 
         [MenuItem("Assets/Thry/Materials/Unlock Folder", false, 303)]

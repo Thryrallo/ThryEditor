@@ -31,9 +31,9 @@ namespace Thry.ThryEditor
         }
 
         private static PresetsPopupGUI window;
-        public static void PresetGUI(Rect r, ShaderEditor shaderEditor)
+        public static void PresetGUI(ShaderEditor shaderEditor)
         {
-            if(GUI.Button(r, "", Styles.icon_style_presets))
+            if(GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets", 25, 25))
             {
                 Event.current.Use();
                 if (Event.current.button == 0)
@@ -53,7 +53,7 @@ namespace Thry.ThryEditor
                 }
                 else
                 {
-                    EditorUtility.DisplayCustomMenu(r, presetNames.Select(s => new GUIContent(s)).ToArray(), 0, ApplyQuickPreset, shaderEditor);
+                    EditorUtility.DisplayCustomMenu(GUILayoutUtility.GetLastRect(), presetNames.Select(s => new GUIContent(s)).ToArray(), 0, ApplyQuickPreset, shaderEditor);
                 }
             }
         }

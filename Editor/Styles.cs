@@ -51,7 +51,14 @@ namespace Thry
         public static GUIStyle icon_style_settings = CreateIconStyle(EditorGUIUtility.IconContent("_Popup"));
         public static GUIStyle icon_style_search = CreateIconStyle(EditorGUIUtility.IconContent("Search Icon"));
         public static GUIStyle icon_style_presets = CreateIconStyle(EditorGUIUtility.IconContent("Preset.Context"));
+        public static GUIStyle icon_style_add = CreateIconStyle(EditorGUIUtility.IconContent("PrefabOverlayAdded Icon"));
+        public static GUIStyle icon_style_remove = CreateIconStyle(EditorGUIUtility.IconContent("PrefabOverlayRemoved Icon"));
+        public static GUIStyle icon_style_refresh = CreateIconStyle(EditorGUIUtility.IconContent("d_Refresh"));
+        public static GUIStyle icon_style_shaders = CreateIconStyle(EditorGUIUtility.IconContent("d_ShaderVariantCollection Icon"));
         public static GUIStyle icon_style_linked = CreateIconStyle(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_LINK));
+        public static GUIStyle icon_style_thryIcon = CreateIconStyle(LoadTextureByFileName(RESOURCE_NAME.ICON_NAME_THRY));
+
+        public static Texture texture_icon_shaders = EditorGUIUtility.IconContent("d_ShaderVariantCollection Icon").image;
 
         static GUIStyle CreateIconStyle(GUIContent content)
         {

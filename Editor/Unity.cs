@@ -87,6 +87,14 @@ namespace Thry
             }
             return null;
         }
+
+        public static string GetCurrentAssetExplorerFolder()
+        {
+            if (Selection.activeObject) return "Assets";
+            string path = AssetDatabase.GetAssetPath(Selection.activeObject);
+            if (Directory.Exists(path)) return path;
+            else return Path.GetDirectoryName(path);
+        }
     }
 
     public class UnityFixer

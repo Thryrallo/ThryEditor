@@ -52,6 +52,7 @@ namespace Thry
     {
         public const string RECT = "thry_rect";
         public const string ICON_NAME_LINK = "thryEditor_link";
+        public const string ICON_NAME_THRY = "thryEditor_iconThry";
     }
     #endregion
 
