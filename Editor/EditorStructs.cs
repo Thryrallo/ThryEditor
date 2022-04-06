@@ -235,17 +235,6 @@ namespace Thry
         {
             if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
-                //Preset toggle
-                if (Event.current.shift)
-                {
-                    if (shaderEditor.IsPresetEditor && isInHeader == false)
-                    {
-                        is_preset = !is_preset;
-                        Presets.SetProperty(shaderEditor.Materials[0], materialProperty, is_preset);
-                        ShaderEditor.RepaintActive();
-                        ShaderEditor.Input.Use();
-                    }
-                }
                 //Context menu
                 //Show context menu, if not open.
                 //If locked material only show menu for animated materials. Only show data retieving options in locked state
@@ -258,13 +247,25 @@ namespace Thry
                         contextMenu.AddItem(new GUIContent("Locking Explanation"), false, () => { Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo&ab_channel=poiyomi"); });
                         contextMenu.AddSeparator("");
                     }
+                    if (ShaderEditor.Active.IsPresetEditor && isInHeader == false)
+                    {
+                        contextMenu.AddItem(new GUIContent("Is part of preset"), is_preset, ToggleIsPreset);
+                        contextMenu.AddSeparator("");
+                    }
                     contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = materialProperty.name; });
                     contextMenu.AddItem(new GUIContent("Copy Animated Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = GetAnimatedPropertyName(); });
-                    contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, () => CopyPropertyPath() );
+                    contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, CopyPropertyPath );
                     contextMenu.AddItem(new GUIContent("Copy Property as Keyframe"), false, CopyPropertyAsKeyframe);
                     contextMenu.ShowAsContext();
                 }
             }
+        }
+
+        void ToggleIsPreset()
+        {
+            is_preset = !is_preset;
+            Presets.SetProperty(shaderEditor.Materials[0], materialProperty, is_preset);
+            ShaderEditor.RepaintActive();
         }
 
         void CopyPropertyPath()
