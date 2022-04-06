@@ -45,7 +45,12 @@ namespace Thry.ThryEditor
                         case MaterialProperty.PropType.Float:
                         case MaterialProperty.PropType.Range:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Floats", trans.Origin);
-                            if(p != null) editor.PropertyDictionary[trans.Target].materialProperty.floatValue = p.FindPropertyRelative("second").floatValue;
+                            if (p != null)
+                            {
+                                float f = p.FindPropertyRelative("second").floatValue;
+                                if (trans.Math.Length > 0) f = Helper.SolveMath(trans.Math, f);
+                                editor.PropertyDictionary[trans.Target].materialProperty.floatValue = f;
+                            }
                             break;
                         case MaterialProperty.PropType.Vector:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);

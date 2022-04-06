@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -190,6 +191,76 @@ namespace Thry
                 return parts[1].Substring(begin, end);
             }
             return input;
+        }
+
+        public static float SolveMath(string exp, float parameter)
+        {
+            exp = exp.Replace("x", parameter.ToString(CultureInfo.InvariantCulture));
+            exp = exp.Replace(" ","");
+            return SolveMath(exp);
+        }
+
+        private static float SolveMath(string exp)
+        {
+            int bracketOpen = exp.IndexOf('(');
+            int bracketClose = exp.IndexOf(')');
+            if (bracketClose > -1 && bracketOpen > -1)
+                return SolveMath(exp.Substring(0, bracketOpen) + 
+                    SolveMath(exp.Substring(bracketOpen + 1, bracketClose - bracketOpen - 1)).ToString(CultureInfo.InvariantCulture) +
+                    exp.Substring(bracketClose + 1));
+
+            int op = -1;
+            int opIndex = int.MaxValue;
+
+            int i = exp.IndexOf('*');
+            if (i > -1)
+            {
+                opIndex = i;
+                op = 1;
+            }
+            else
+            {
+                i = exp.IndexOf('+');
+                if (i > -1 && i < opIndex)
+                {
+                    opIndex = i;
+                    op = 2;
+                }
+                i = exp.IndexOf('-');
+                if (i > -1 && i < opIndex)
+                {
+                    opIndex = i;
+                    op = 3;
+                }
+            }
+
+            if (op == -1)
+            {
+                float f;
+                if (float.TryParse(exp, out f)) return f;
+                return 0;
+            }
+
+            int startValue1 = exp.LastIndexOfAny(new char[] { '+', '-', '*' }, opIndex - 1) + 1;
+            if (startValue1 < 0) startValue1 = 0;
+            int endValue2 = exp.IndexOfAny(new char[] { '+', '-', '*' }, opIndex + 1) - 1;
+            if (endValue2 < 0) endValue2 = exp.Length - 1;
+            float value1 = float.Parse(exp.Substring(startValue1, opIndex - startValue1),
+                CultureInfo.InvariantCulture);
+            float value2 = float.Parse(exp.Substring(opIndex + 1, endValue2 - opIndex),
+                CultureInfo.InvariantCulture);
+
+            string preOp = exp.Substring(0, startValue1);
+            string postOp = "";
+            if (endValue2 + 1 < exp.Length) postOp = exp.Substring(endValue2 + 1);
+
+            float value = 0;
+            if (op == 1) value = value1 * value2;
+            if (op == 2) value = value1 + value2;
+            if (op == 3) value = value1 - value2;
+
+            if (preOp.Length == 0 && postOp.Length == 0) return value;
+            return SolveMath(preOp + value.ToString(CultureInfo.InvariantCulture) + postOp);
         }
     }
 
