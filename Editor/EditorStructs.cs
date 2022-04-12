@@ -213,10 +213,10 @@ namespace Thry
             if (DrawingData.IsEnabled && options.condition_enable != null)
             {
                 hasAddedDisabledGroup = options.condition_enable.Test();
-                if(hasAddedDisabledGroup == false)
+                if(hasAddedDisabledGroup)
                 {
-                    DrawingData.IsEnabled = hasAddedDisabledGroup;
-                    EditorGUI.BeginDisabledGroup(false);
+                    DrawingData.IsEnabled = !hasAddedDisabledGroup;
+                    EditorGUI.BeginDisabledGroup(true);
                 }
             }
             if (options.condition_show.Test())
@@ -400,10 +400,11 @@ namespace Thry
 
             tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
 
-            //Alt click testing
-            if (options.altClick != null && ShaderEditor.Input.HadMouseDownRepaint && ShaderEditor.Input.is_alt_down && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
+            //Click testing
+            if(Event.current.type == EventType.MouseDown && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
             {
-                options.altClick.Perform();
+                if ((ShaderEditor.Input.is_alt_down && options.altClick != null)) options.altClick.Perform();
+                else if (options.onClick != null) options.onClick.Perform();
             }
         }
 

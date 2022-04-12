@@ -101,6 +101,7 @@ namespace Thry
         public int offset = 0;
         public string tooltip = "";
         public DefineableAction altClick;
+        public DefineableAction onClick;
         public DefineableCondition condition_show = new DefineableCondition();
         public string condition_showS;
         public DefineableCondition condition_enable = null;
@@ -314,6 +315,11 @@ namespace Thry
                 action.data = "https://www.youtube.com/watch?v="+s.Substring(8);
             }
             return action;
+        }
+
+        public override string ToString()
+        {
+            return $"{{{type},{data}}}";
         }
     }
 
