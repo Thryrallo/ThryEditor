@@ -212,7 +212,7 @@ namespace Thry
                 return;
             if (DrawingData.IsEnabled && options.condition_enable != null)
             {
-                hasAddedDisabledGroup = options.condition_enable.Test();
+                hasAddedDisabledGroup = !options.condition_enable.Test();
                 if(hasAddedDisabledGroup)
                 {
                     DrawingData.IsEnabled = !hasAddedDisabledGroup;
