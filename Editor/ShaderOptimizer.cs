@@ -591,7 +591,7 @@ namespace Thry
                             if (isDefinition)
                                 og = psf.lines[i];
 
-                            string pattern = animProp.name + @"((?!(\w|\d))";
+                            string pattern = animProp.name + @"(?!(\w|\d))";
                             psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
 
                             if (isDefinition)
