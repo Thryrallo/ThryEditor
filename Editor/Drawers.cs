@@ -456,7 +456,7 @@ namespace Thry
 
             computeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
 
-            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true);
+            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true, !_makeSRGB);
             RenderTexture.active = target;
             atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.Apply();
