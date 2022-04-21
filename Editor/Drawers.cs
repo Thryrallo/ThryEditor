@@ -436,7 +436,7 @@ namespace Thry
             _current._input_b.FindMaxSize(ref width, ref height);
             _current._input_a.FindMaxSize(ref width, ref height);
 
-            RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, 0);
+            RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
             target.filterMode = GetFiltermode();
             target.Create();
@@ -524,7 +524,7 @@ namespace Thry
                     string path = AssetDatabase.GetAssetPath(Texture);
                     if(path.EndsWith(".png") || path.EndsWith(".jpg"))
                     {
-                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height, TextureFormat.ARGB32, false);
+                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height, TextureFormat.ARGB32, false, true);
                         ImageConversion.LoadImage(_loadedUncompressedTexture, System.IO.File.ReadAllBytes(path));
                     }else if (path.EndsWith(".tga"))
                     {
