@@ -1903,13 +1903,19 @@ namespace Thry
                     if (lockState == 1)
                     {
                         string hash = MaterialToShaderPropertyHash(m);
-                        //Check that shader still exists
+                        // Check that shader has already been created for this hash and still exists
                         if (s_shaderPropertyCombinations.ContainsKey(hash) && Shader.Find(applyStructsLater[s_shaderPropertyCombinations[hash]].newShaderName) != null)
                         {
+                            // Reuse existing shader and struct
                             ApplyStruct applyStruct = applyStructsLater[s_shaderPropertyCombinations[hash]];
                             applyStruct.material = m;
                             applyStructsLater[m] = applyStruct;
+                            //Disable shader keywords
+                            foreach (string keyword in m.shaderKeywords)
+                                if (m.IsKeywordEnabled(keyword)) m.DisableKeyword(keyword);
+
                         }
+                        // Create new locked shader
                         else
                         {
                             ShaderOptimizer.Lock(m,
