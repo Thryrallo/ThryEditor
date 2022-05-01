@@ -134,6 +134,12 @@ namespace Thry
                 Toggle("allowCustomLockingRenaming");
                 Toggle("showManualReloadButton");
                 GUIGradients();
+                EditorGUILayout.Space();
+                
+                Toggle("autoSetAnchorOverride");
+                Dropdown("humanBoneAnchor");
+                Text("anchorOverrideObjectName");
+                
                 EditorGUI.indentLevel -= 2;
             }
         }
