@@ -518,29 +518,22 @@ namespace Thry
                         constantProps.Add(propData);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        animateTag = material.GetTag(prop.name + "_ST" + AnimatedTagSuffix, false, "0");
-                        if (!(animateTag != "" && animateTag == "1"))
-                        {
-                            PropertyData ST = new PropertyData();
-                            ST.type = PropertyType.Vector;
-                            ST.name = prop.name + "_ST";
-                            Vector2 offset = material.GetTextureOffset(prop.name);
-                            Vector2 scale = material.GetTextureScale(prop.name);
-                            ST.value = new Vector4(scale.x, scale.y, offset.x, offset.y);
-                            constantProps.Add(ST);
-                        }
-                        animateTag = material.GetTag(prop.name + "_TexelSize" + AnimatedTagSuffix, false, "0");
-                        if (!(animateTag != null && animateTag == "1"))
-                        {
-                            PropertyData TexelSize = new PropertyData();
-                            TexelSize.type = PropertyType.Vector;
-                            TexelSize.name = prop.name + "_TexelSize";
-                            Texture t = prop.textureValue;
-                            if (t != null)
-                                TexelSize.value = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
-                            else TexelSize.value = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                            constantProps.Add(TexelSize);
-                        }
+                        PropertyData ST = new PropertyData();
+                        ST.type = PropertyType.Vector;
+                        ST.name = prop.name + "_ST";
+                        Vector2 offset = material.GetTextureOffset(prop.name);
+                        Vector2 scale = material.GetTextureScale(prop.name);
+                        ST.value = new Vector4(scale.x, scale.y, offset.x, offset.y);
+                        constantProps.Add(ST);
+
+                        PropertyData TexelSize = new PropertyData();
+                        TexelSize.type = PropertyType.Vector;
+                        TexelSize.name = prop.name + "_TexelSize";
+                        Texture t = prop.textureValue;
+                        if (t != null)
+                            TexelSize.value = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+                        else TexelSize.value = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                        constantProps.Add(TexelSize);
                         break;
                 }
             }
@@ -1799,30 +1792,33 @@ namespace Thry
                 {
                     stringBuilder.Append(isAnimated);
                 }
-
-                switch (prop.type)
+                else
                 {
-                    case MaterialProperty.PropType.Color:
-                        stringBuilder.Append(m.GetColor(propName).ToString());
-                        break;
-                    case MaterialProperty.PropType.Vector:
-                        stringBuilder.Append(m.GetVector(propName).ToString());
-                        break;
-                    case MaterialProperty.PropType.Range:
-                    case MaterialProperty.PropType.Float:
-                        stringBuilder.Append(m.GetFloat(propName)
-                            .ToString(CultureInfo.InvariantCulture));
-                        break;
-                    case MaterialProperty.PropType.Texture:
-                        Texture t = m.GetTexture(propName);
-                        Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                        if (t != null)
-                            texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
 
-                        stringBuilder.Append(m.GetTextureOffset(propName).ToString());
-                        stringBuilder.Append(m.GetTextureScale(propName).ToString());
-                        stringBuilder.Append(texelSize.ToString());
-                        break;
+                    switch (prop.type)
+                    {
+                        case MaterialProperty.PropType.Color:
+                            stringBuilder.Append(m.GetColor(propName).ToString());
+                            break;
+                        case MaterialProperty.PropType.Vector:
+                            stringBuilder.Append(m.GetVector(propName).ToString());
+                            break;
+                        case MaterialProperty.PropType.Range:
+                        case MaterialProperty.PropType.Float:
+                            stringBuilder.Append(m.GetFloat(propName)
+                                .ToString(CultureInfo.InvariantCulture));
+                            break;
+                        case MaterialProperty.PropType.Texture:
+                            Texture t = m.GetTexture(propName);
+                            Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                            if (t != null)
+                                texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+
+                            stringBuilder.Append(m.GetTextureOffset(propName).ToString());
+                            stringBuilder.Append(m.GetTextureScale(propName).ToString());
+                            stringBuilder.Append(texelSize.ToString());
+                            break;
+                    }
                 }
             }
 
@@ -1838,6 +1834,8 @@ namespace Thry
             IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
+
+        static Dictionary<string, Material> s_shaderPropertyCombinations = new Dictionary<string, Material>();
         public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
             Helper.RegisterEditorUse();
@@ -1861,8 +1859,6 @@ namespace Thry
                 }
                 PersistentData.Set("ShowLockInDialog", false);
             }
-            
-            Dictionary<string, Material> shaderPropertyCombinations = new Dictionary<string, Material>();
 
             //Create shader assets
             foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
@@ -1885,9 +1881,9 @@ namespace Thry
                     if (lockState == 1)
                     {
                         string hash = MaterialToShaderPropertyHash(m);
-                        if (shaderPropertyCombinations.ContainsKey(hash))
+                        if (s_shaderPropertyCombinations.ContainsKey(hash))
                         {
-                            ApplyStruct applyStruct = applyStructsLater[shaderPropertyCombinations[hash]];
+                            ApplyStruct applyStruct = applyStructsLater[s_shaderPropertyCombinations[hash]];
                             applyStruct.material = m;
                             applyStructsLater.Add(m, applyStruct);
                         }
@@ -1896,7 +1892,7 @@ namespace Thry
                             ShaderOptimizer.Lock(m,
                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
                                 applyShaderLater: true);
-                            shaderPropertyCombinations.Add(hash, m);
+                            s_shaderPropertyCombinations.Add(hash, m);
                         }
                     }
                     else if (lockState == 0)
