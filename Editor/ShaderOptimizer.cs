@@ -228,6 +228,7 @@ namespace Thry
 
         public static readonly HashSet<string> IllegalPropertyRenames = new HashSet<string>()
         {
+            "_MainTex",
             "_Color",
             "_EmissionColor",
             "_BumpScale",
@@ -348,6 +349,19 @@ namespace Thry
             return cleanedMaterialName;
         }
 
+        struct RenamingProperty
+        {
+            public MaterialProperty Prop;
+            public string Keyword;
+            public string Replace;
+            public RenamingProperty(MaterialProperty prop, string keyword, string replace)
+            {
+                this.Prop = prop;
+                this.Keyword = keyword;
+                this.Replace = replace;
+            }
+        }
+
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
@@ -384,8 +398,8 @@ namespace Thry
 
             Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
-            List<MaterialProperty> animatedPropsToRename = new List<MaterialProperty>();
-            List<MaterialProperty> animatedPropsToDuplicate = new List<MaterialProperty>();
+            List<RenamingProperty> animatedPropsToRename = new List<RenamingProperty>();
+            List<RenamingProperty> animatedPropsToDuplicate = new List<RenamingProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -466,15 +480,14 @@ namespace Thry
                     {
                         if (!prop.name.EndsWith("UV", StringComparison.Ordinal) && !prop.name.EndsWith("Pan", StringComparison.Ordinal)) // this property might be animated, but we're not allowed to rename it. this will break things.
                         {
-                            // be sure we're not renaming stuff like _MainTex that should always be named the same
-                            if (!IllegalPropertyRenames.Contains(prop.name))
-                            {
-                                animatedPropsToRename.Add(prop);
-                            }
+                            if (IllegalPropertyRenames.Contains(prop.name))
+                                animatedPropsToDuplicate.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
                             else
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
+                            if (prop.type == MaterialProperty.PropType.Texture)
                             {
-                                //stuff like main tex should be duplicated instead of rename to allow for fallback
-                                animatedPropsToDuplicate.Add(prop);
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_ST", prop.name + "_" + animPropertySuffix + "_ST"));
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_TexelSize", prop.name + "_" + animPropertySuffix + "_TexelSize"));
                             }
                         }
                     }
@@ -570,24 +583,24 @@ namespace Thry
                     foreach (var animProp in animatedPropsToRename)
                     {
                         // don't have to match if that prop does not even exist in that line
-                        if (psf.lines[i].Contains(animProp.name))
+                        if (psf.lines[i].Contains(animProp.Keyword))
                         {
-                            string pattern = animProp.name + @"(?!(\w|\d))";
-                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
+                            string pattern = animProp.Keyword + @"(?!(\w|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.Replace, RegexOptions.Multiline);
                         }
                     }
                     foreach (var animProp in animatedPropsToDuplicate)
                     {
-                        if (psf.lines[i].Contains(animProp.name))
+                        if (psf.lines[i].Contains(animProp.Keyword))
                         {
                             //if Line is property definition duplicate it
-                            bool isDefinition = Regex.Match(psf.lines[i], animProp.name+@"\s*\(""[^""]+""\s*,\s*\w+\)\s*=\s").Success;
+                            bool isDefinition = Regex.Match(psf.lines[i], animProp.Keyword + @"\s*\(""[^""]+""\s*,\s*\w+\)\s*=").Success;
                             string og = null;
                             if (isDefinition)
                                 og = psf.lines[i];
 
-                            string pattern = animProp.name + @"(?!(\w|\d))";
-                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
+                            string pattern = animProp.Keyword + @"(?!(\w|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.Replace, RegexOptions.Multiline);
 
                             if (isDefinition)
                                 psf.lines[i] = og + "\r\n" + psf.lines[i];
@@ -757,8 +770,8 @@ namespace Thry
             public Shader shader;
             public string smallguid;
             public string newShaderName;
-            public List<MaterialProperty> animatedPropsToRename;
-            public List<MaterialProperty> animatedPropsToDuplicate;
+            public List<RenamingProperty> animatedPropsToRename;
+            public List<RenamingProperty> animatedPropsToDuplicate;
             public string animPropertySuffix;
             public bool shared;
         }
@@ -781,8 +794,8 @@ namespace Thry
             Material material = applyStruct.material;
             Shader shader = applyStruct.shader;
             string newShaderName = applyStruct.newShaderName;
-            List<MaterialProperty> animatedPropsToRename = applyStruct.animatedPropsToRename;
-            List<MaterialProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
+            List<RenamingProperty> animatedPropsToRename = applyStruct.animatedPropsToRename;
+            List<RenamingProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
             string animPropertySuffix = applyStruct.animPropertySuffix;
 
             // Write original shader to override tag
@@ -812,25 +825,25 @@ namespace Thry
 
             foreach (var animProp in animatedPropsToRename)
             {
-                var newName = animProp.name + "_" + animPropertySuffix;
-                switch (animProp.type)
+                var newName = animProp.Prop.name + "_" + animPropertySuffix;
+                switch (animProp.Prop.type)
                 {
                     case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.colorValue);
+                        material.SetColor(newName, animProp.Prop.colorValue);
                         break;
                     case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.vectorValue);
+                        material.SetVector(newName, animProp.Prop.vectorValue);
                         break;
                     case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
+                        material.SetTexture(newName, animProp.Prop.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
@@ -839,25 +852,25 @@ namespace Thry
 
             foreach (var animProp in animatedPropsToDuplicate)
             {
-                var newName = animProp.name + "_" + animPropertySuffix;
-                switch (animProp.type)
+                var newName = animProp.Prop.name + "_" + animPropertySuffix;
+                switch (animProp.Prop.type)
                 {
                     case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.colorValue);
+                        material.SetColor(newName, animProp.Prop.colorValue);
                         break;
                     case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.vectorValue);
+                        material.SetVector(newName, animProp.Prop.vectorValue);
                         break;
                     case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
+                        material.SetTexture(newName, animProp.Prop.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
