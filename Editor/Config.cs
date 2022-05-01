@@ -73,6 +73,11 @@ namespace Thry
         public string locale = "English";
 
         public string gradient_name = "gradient_<hash>.png";
+        
+        public bool autoSetAnchorOverride = true;
+        public HumanBodyBones humanBoneAnchor = HumanBodyBones.Spine;
+        public string anchorOverrideObjectName = "AutoAnchorObject";
+        public bool autoSetAnchorAskedOnce = false;
 
         public string verion = VERSION;
 
