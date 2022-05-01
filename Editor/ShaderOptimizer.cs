@@ -743,7 +743,7 @@ namespace Thry
             if (applyShaderLater)
             {
                 //Debug.Log("Apply later: "+applyStructsLater.Count+ ", "+material.name);
-                applyStructsLater.Add(material, applyStruct);
+                applyStructsLater[material] = applyStruct;
                 return true;
             }
             return LockApplyShader(applyStruct);
@@ -772,7 +772,7 @@ namespace Thry
                 material.shader = applyStruct.material.shader;
                 return true;
             }
-            applyStructsLater.Remove(material);
+            //applyStructsLater.Remove(material);
             return LockApplyShader(applyStruct);
         }
 
@@ -1516,11 +1516,16 @@ namespace Thry
             material.renderQueue = renderQueue;
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
-            
-            string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
-            string lockedFolder = Path.GetDirectoryName(materialFilePath);
-            FileUtil.DeleteFileOrDirectory(lockedFolder);
-            FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
+
+            bool isOtherShaderUsingLockedShader = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).
+                Any(m => m.shader == lockedShader && m != material);
+            if (!isOtherShaderUsingLockedShader)
+            {
+                string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
+                string lockedFolder = Path.GetDirectoryName(materialFilePath);
+                FileUtil.DeleteFileOrDirectory(lockedFolder);
+                FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
+            }
             //AssetDatabase.Refresh();
 
             return UnlockSuccess.success;
@@ -1788,9 +1793,14 @@ namespace Thry
 
                 string isAnimated = GetAnimatedTag(m, propName);
 
-                if (isAnimated == "1" || isAnimated == "2")
+                if (isAnimated == "1")
                 {
                     stringBuilder.Append(isAnimated);
+                }
+                else if(isAnimated == "2")
+                {
+                    //This is because materials with renaming should not share shaders
+                    stringBuilder.Append(m.name);
                 }
                 else
                 {
@@ -1816,7 +1826,6 @@ namespace Thry
 
                             stringBuilder.Append(m.GetTextureOffset(propName).ToString());
                             stringBuilder.Append(m.GetTextureScale(propName).ToString());
-                            stringBuilder.Append(texelSize.ToString());
                             break;
                     }
                 }
@@ -1881,11 +1890,12 @@ namespace Thry
                     if (lockState == 1)
                     {
                         string hash = MaterialToShaderPropertyHash(m);
-                        if (s_shaderPropertyCombinations.ContainsKey(hash))
+                        //Check that shader still exists
+                        if (s_shaderPropertyCombinations.ContainsKey(hash) && Shader.Find(applyStructsLater[s_shaderPropertyCombinations[hash]].newShaderName) != null)
                         {
                             ApplyStruct applyStruct = applyStructsLater[s_shaderPropertyCombinations[hash]];
                             applyStruct.material = m;
-                            applyStructsLater.Add(m, applyStruct);
+                            applyStructsLater[m] = applyStruct;
                         }
                         else
                         {
@@ -1928,6 +1938,7 @@ namespace Thry
                     GUIUtility.ExitGUI();
                 }
             }
+            AssetDatabase.Refresh();
             return true;
         }
 
