@@ -1,5 +1,7 @@
 ﻿#if VRC_SDK_VRCSDK2 || VRC_SDK_VRCSDK3
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Thry;
 using UnityEditor;
@@ -38,8 +40,14 @@ namespace Pumkin.VRCCallbacks
         {
             try
             {
-                if(!AskedOnce)
+                Renderer[] renderersWithNoAnchors = null;
+                if(!AskedOnce) // If we haven't already asked, only display dialog once a renderer with no anchors is found
                 {
+                    renderersWithNoAnchors = avatarGameObject.GetComponentsInChildren<Renderer>(true)?.Where(r => r.probeAnchor == null).ToArray();
+                    
+                    if(renderersWithNoAnchors == null || renderersWithNoAnchors.Length == 0)
+                        return true;
+                    
                     Enabled = EditorUtility.DisplayDialog(DialogTitle, DialogMessage, DialogYes, DialogNo);
                     AskedOnce = true;
                     Config.Singleton.Save();
@@ -47,7 +55,13 @@ namespace Pumkin.VRCCallbacks
 
                 if(!Enabled)
                     return true;
+                
+                if(renderersWithNoAnchors == null)
+                    renderersWithNoAnchors = avatarGameObject.GetComponentsInChildren<Renderer>(true)?.Where(r => r.probeAnchor == null).ToArray();
 
+                if(renderersWithNoAnchors == null || renderersWithNoAnchors.Length == 0)
+                    return true;
+                
                 Transform anchorObject = null;
                 
                 string anchorName = AnchorName;
@@ -68,9 +82,8 @@ namespace Pumkin.VRCCallbacks
                         return true;
                     }
                 }
-
-                var renderers = avatarGameObject.GetComponentsInChildren<Renderer>();
-                foreach(var render in renderers)
+                
+                foreach(var render in renderersWithNoAnchors)
                 {
                     if(render.probeAnchor != null)
                         continue;
