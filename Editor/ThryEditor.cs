@@ -64,6 +64,7 @@ namespace Thry
         public bool DoUseShaderOptimizer;
         public bool IsLockedMaterial;
         public bool IsInAnimationMode;
+        public Renderer ActiveRenderer;
         public string RenamedPropertySuffix;
         public Locale Locale;
         public ShaderTranslator SuggestedTranslationDefinition;
@@ -447,6 +448,7 @@ namespace Thry
             Properties = props;
             Shader = Materials[0].shader;
             Input.Update(IsLockedMaterial);
+            ActiveRenderer = Selection.activeTransform?.GetComponent<Renderer>();
             IsInAnimationMode = AnimationMode.InAnimationMode();
 
             Active = this;

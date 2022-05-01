@@ -154,6 +154,7 @@ namespace Thry
                 return;
             if (this is ShaderHeader == false)
             {
+                this.is_animatable = !DrawingData.LastPropertyDoesntAllowAnimation;
                 bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.RenamedPropertySuffix) != null;
                 string tag = null;
                 //If prop is og, but is duplicated (locked) dont have it animateable
@@ -173,7 +174,6 @@ namespace Thry
                     {
                         tag = ShaderOptimizer.GetAnimatedTag(materialProperty);
                     }
-                    this.is_animatable = true;
                 }
 
 
@@ -233,13 +233,14 @@ namespace Thry
 
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
+            if (this is ShaderGroup) return;
             if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
                 //Context menu
                 //Show context menu, if not open.
                 //If locked material only show menu for animated materials. Only show data retieving options in locked state
-                if (contextMenu == null && (!ShaderEditor.Active.IsLockedMaterial || is_animated)) {
-                    GenericMenu contextMenu = new GenericMenu();
+                if ( (!ShaderEditor.Active.IsLockedMaterial || is_animated)) {
+                    contextMenu = new GenericMenu();
                     if (is_animatable && !ShaderEditor.Active.IsLockedMaterial)
                     {
                         contextMenu.AddItem(new GUIContent("Animated (when locked)"), is_animated, () => { SetAnimated(!is_animated, false); });
@@ -247,7 +248,7 @@ namespace Thry
                         contextMenu.AddItem(new GUIContent("Locking Explanation"), false, () => { Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo&ab_channel=poiyomi"); });
                         contextMenu.AddSeparator("");
                     }
-                    if (ShaderEditor.Active.IsPresetEditor && isInHeader == false)
+                    if (ShaderEditor.Active.IsPresetEditor )
                     {
                         contextMenu.AddItem(new GUIContent("Is part of preset"), is_preset, ToggleIsPreset);
                         contextMenu.AddSeparator("");
@@ -392,10 +393,17 @@ namespace Thry
                     {
                         action.Execute(materialProperty);
                     }
-                if (shaderEditor.IsInAnimationMode && !is_animated && is_animatable && this is ShaderProperty) SetAnimated(true, false);
+                //Check if property is being animated
+                if(this is ShaderProperty && shaderEditor.ActiveRenderer != null && shaderEditor.IsInAnimationMode && is_animatable && !is_animated)
+                {
+                    if (materialProperty.type == MaterialProperty.PropType.Texture ? 
+                        AnimationMode.IsPropertyAnimated(shaderEditor.ActiveRenderer, "material." + materialProperty.name + "_ST.x" ) :
+                        AnimationMode.IsPropertyAnimated(shaderEditor.ActiveRenderer, "material." + materialProperty.name))
+                        SetAnimated(true, false);
+                }
             }
 
-            if (is_animated) DrawLockedAnimated();
+            if (is_animatable && is_animated) DrawLockedAnimated();
             if (is_preset) DrawPresetProperty();
 
             tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);

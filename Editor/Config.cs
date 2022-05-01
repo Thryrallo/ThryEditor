@@ -16,7 +16,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.24.8";
+        private const string VERSION = "2.24.9";
 
         // static
         private static Config config;
@@ -69,6 +69,7 @@ namespace Thry
         public bool showRenderQueue = true;
         public bool showManualReloadButton = false;
         public bool allowCustomLockingRenaming = false;
+        public bool autoMarkPropertiesAnimated = true;
 
         public string locale = "English";
 

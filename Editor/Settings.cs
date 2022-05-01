@@ -131,11 +131,14 @@ namespace Thry
                 EditorGUI.indentLevel += 2;
                 Dropdown("default_texture_type");
                 Toggle("showRenderQueue");
-                Toggle("allowCustomLockingRenaming");
                 Toggle("showManualReloadButton");
+
+                EditorGUILayout.Space();
+                Toggle("autoMarkPropertiesAnimated");
+                Toggle("allowCustomLockingRenaming");
                 GUIGradients();
                 EditorGUILayout.Space();
-                
+
                 Toggle("autoSetAnchorOverride");
                 Dropdown("humanBoneAnchor");
                 Text("anchorOverrideObjectName");

@@ -482,6 +482,8 @@ namespace Thry
                     continue;
                 }
 
+                if (prop.displayName.EndsWith("NL", StringComparison.Ordinal)) continue;
+
                 PropertyData propData;
                 switch(prop.type)
                 {
