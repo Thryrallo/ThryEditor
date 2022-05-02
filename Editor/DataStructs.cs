@@ -63,6 +63,7 @@ namespace Thry
         public static Rect LastGuiObjectHeaderRect;
         public static Rect TooltipCheckRect;
         public static bool LastPropertyUsedCustomDrawer;
+        public static bool LastPropertyDoesntAllowAnimation;
         public static DrawerType LastPropertyDrawerType;
         public static MaterialPropertyDrawer LastPropertyDrawer;
         public static bool IsEnabled = true;
@@ -72,6 +73,7 @@ namespace Thry
         public static void ResetLastDrawerData()
         {
             LastPropertyUsedCustomDrawer = false;
+            LastPropertyDoesntAllowAnimation = false;
             LastPropertyDrawer = null;
             LastPropertyDrawerType = DrawerType.None;
         }

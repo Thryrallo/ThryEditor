@@ -228,6 +228,7 @@ namespace Thry
 
         public static readonly HashSet<string> IllegalPropertyRenames = new HashSet<string>()
         {
+            "_MainTex",
             "_Color",
             "_EmissionColor",
             "_BumpScale",
@@ -348,6 +349,19 @@ namespace Thry
             return cleanedMaterialName;
         }
 
+        struct RenamingProperty
+        {
+            public MaterialProperty Prop;
+            public string Keyword;
+            public string Replace;
+            public RenamingProperty(MaterialProperty prop, string keyword, string replace)
+            {
+                this.Prop = prop;
+                this.Keyword = keyword;
+                this.Replace = replace;
+            }
+        }
+
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
@@ -384,8 +398,8 @@ namespace Thry
 
             Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
-            List<MaterialProperty> animatedPropsToRename = new List<MaterialProperty>();
-            List<MaterialProperty> animatedPropsToDuplicate = new List<MaterialProperty>();
+            List<RenamingProperty> animatedPropsToRename = new List<RenamingProperty>();
+            List<RenamingProperty> animatedPropsToDuplicate = new List<RenamingProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -466,21 +480,22 @@ namespace Thry
                     {
                         if (!prop.name.EndsWith("UV", StringComparison.Ordinal) && !prop.name.EndsWith("Pan", StringComparison.Ordinal)) // this property might be animated, but we're not allowed to rename it. this will break things.
                         {
-                            // be sure we're not renaming stuff like _MainTex that should always be named the same
-                            if (!IllegalPropertyRenames.Contains(prop.name))
-                            {
-                                animatedPropsToRename.Add(prop);
-                            }
+                            if (IllegalPropertyRenames.Contains(prop.name))
+                                animatedPropsToDuplicate.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
                             else
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
+                            if (prop.type == MaterialProperty.PropType.Texture)
                             {
-                                //stuff like main tex should be duplicated instead of rename to allow for fallback
-                                animatedPropsToDuplicate.Add(prop);
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_ST", prop.name + "_" + animPropertySuffix + "_ST"));
+                                animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_TexelSize", prop.name + "_" + animPropertySuffix + "_TexelSize"));
                             }
                         }
                     }
 
                     continue;
                 }
+
+                if (prop.displayName.EndsWith("NL", StringComparison.Ordinal)) continue;
 
                 PropertyData propData;
                 switch(prop.type)
@@ -516,29 +531,22 @@ namespace Thry
                         constantProps.Add(propData);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        animateTag = material.GetTag(prop.name + "_ST" + AnimatedTagSuffix, false, "0");
-                        if (!(animateTag != "" && animateTag == "1"))
-                        {
-                            PropertyData ST = new PropertyData();
-                            ST.type = PropertyType.Vector;
-                            ST.name = prop.name + "_ST";
-                            Vector2 offset = material.GetTextureOffset(prop.name);
-                            Vector2 scale = material.GetTextureScale(prop.name);
-                            ST.value = new Vector4(scale.x, scale.y, offset.x, offset.y);
-                            constantProps.Add(ST);
-                        }
-                        animateTag = material.GetTag(prop.name + "_TexelSize" + AnimatedTagSuffix, false, "0");
-                        if (!(animateTag != null && animateTag == "1"))
-                        {
-                            PropertyData TexelSize = new PropertyData();
-                            TexelSize.type = PropertyType.Vector;
-                            TexelSize.name = prop.name + "_TexelSize";
-                            Texture t = prop.textureValue;
-                            if (t != null)
-                                TexelSize.value = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
-                            else TexelSize.value = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                            constantProps.Add(TexelSize);
-                        }
+                        PropertyData ST = new PropertyData();
+                        ST.type = PropertyType.Vector;
+                        ST.name = prop.name + "_ST";
+                        Vector2 offset = material.GetTextureOffset(prop.name);
+                        Vector2 scale = material.GetTextureScale(prop.name);
+                        ST.value = new Vector4(scale.x, scale.y, offset.x, offset.y);
+                        constantProps.Add(ST);
+
+                        PropertyData TexelSize = new PropertyData();
+                        TexelSize.type = PropertyType.Vector;
+                        TexelSize.name = prop.name + "_TexelSize";
+                        Texture t = prop.textureValue;
+                        if (t != null)
+                            TexelSize.value = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+                        else TexelSize.value = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                        constantProps.Add(TexelSize);
                         break;
                 }
             }
@@ -575,24 +583,24 @@ namespace Thry
                     foreach (var animProp in animatedPropsToRename)
                     {
                         // don't have to match if that prop does not even exist in that line
-                        if (psf.lines[i].Contains(animProp.name))
+                        if (psf.lines[i].Contains(animProp.Keyword))
                         {
-                            string pattern = animProp.name + @"(?!(\w|\d))";
-                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
+                            string pattern = animProp.Keyword + @"(?!(\w|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.Replace, RegexOptions.Multiline);
                         }
                     }
                     foreach (var animProp in animatedPropsToDuplicate)
                     {
-                        if (psf.lines[i].Contains(animProp.name))
+                        if (psf.lines[i].Contains(animProp.Keyword))
                         {
                             //if Line is property definition duplicate it
-                            bool isDefinition = Regex.Match(psf.lines[i], animProp.name+@"\s*\(""[^""]+""\s*,\s*\w+\)\s*=\s").Success;
+                            bool isDefinition = Regex.Match(psf.lines[i], animProp.Keyword + @"\s*\(""[^""]+""\s*,\s*\w+\)\s*=").Success;
                             string og = null;
                             if (isDefinition)
                                 og = psf.lines[i];
 
-                            string pattern = animProp.name + @"(?!(\w|\d))";
-                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.name + "_" + animPropertySuffix, RegexOptions.Multiline);
+                            string pattern = animProp.Keyword + @"(?!(\w|\d))";
+                            psf.lines[i] = Regex.Replace(psf.lines[i], pattern, animProp.Replace, RegexOptions.Multiline);
 
                             if (isDefinition)
                                 psf.lines[i] = og + "\r\n" + psf.lines[i];
@@ -748,7 +756,7 @@ namespace Thry
             if (applyShaderLater)
             {
                 //Debug.Log("Apply later: "+applyStructsLater.Count+ ", "+material.name);
-                applyStructsLater.Add(material, applyStruct);
+                applyStructsLater[material] = applyStruct;
                 return true;
             }
             return LockApplyShader(applyStruct);
@@ -762,8 +770,8 @@ namespace Thry
             public Shader shader;
             public string smallguid;
             public string newShaderName;
-            public List<MaterialProperty> animatedPropsToRename;
-            public List<MaterialProperty> animatedPropsToDuplicate;
+            public List<RenamingProperty> animatedPropsToRename;
+            public List<RenamingProperty> animatedPropsToDuplicate;
             public string animPropertySuffix;
             public bool shared;
         }
@@ -777,7 +785,7 @@ namespace Thry
                 material.shader = applyStruct.material.shader;
                 return true;
             }
-            applyStructsLater.Remove(material);
+            //applyStructsLater.Remove(material);
             return LockApplyShader(applyStruct);
         }
 
@@ -786,8 +794,8 @@ namespace Thry
             Material material = applyStruct.material;
             Shader shader = applyStruct.shader;
             string newShaderName = applyStruct.newShaderName;
-            List<MaterialProperty> animatedPropsToRename = applyStruct.animatedPropsToRename;
-            List<MaterialProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
+            List<RenamingProperty> animatedPropsToRename = applyStruct.animatedPropsToRename;
+            List<RenamingProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
             string animPropertySuffix = applyStruct.animPropertySuffix;
 
             // Write original shader to override tag
@@ -817,25 +825,25 @@ namespace Thry
 
             foreach (var animProp in animatedPropsToRename)
             {
-                var newName = animProp.name + "_" + animPropertySuffix;
-                switch (animProp.type)
+                var newName = animProp.Prop.name + "_" + animPropertySuffix;
+                switch (animProp.Prop.type)
                 {
                     case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.colorValue);
+                        material.SetColor(newName, animProp.Prop.colorValue);
                         break;
                     case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.vectorValue);
+                        material.SetVector(newName, animProp.Prop.vectorValue);
                         break;
                     case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
+                        material.SetTexture(newName, animProp.Prop.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
@@ -844,25 +852,25 @@ namespace Thry
 
             foreach (var animProp in animatedPropsToDuplicate)
             {
-                var newName = animProp.name + "_" + animPropertySuffix;
-                switch (animProp.type)
+                var newName = animProp.Prop.name + "_" + animPropertySuffix;
+                switch (animProp.Prop.type)
                 {
                     case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.colorValue);
+                        material.SetColor(newName, animProp.Prop.colorValue);
                         break;
                     case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.vectorValue);
+                        material.SetVector(newName, animProp.Prop.vectorValue);
                         break;
                     case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.floatValue);
+                        material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
                     case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.textureScaleAndOffset.x, animProp.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.textureScaleAndOffset.z, animProp.textureScaleAndOffset.w));
+                        material.SetTexture(newName, animProp.Prop.textureValue);
+                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
+                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
@@ -1521,11 +1529,16 @@ namespace Thry
             material.renderQueue = renderQueue;
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
-            
-            string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
-            string lockedFolder = Path.GetDirectoryName(materialFilePath);
-            FileUtil.DeleteFileOrDirectory(lockedFolder);
-            FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
+
+            bool isOtherShaderUsingLockedShader = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).
+                Any(m => m.shader == lockedShader && m != material);
+            if (!isOtherShaderUsingLockedShader)
+            {
+                string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
+                string lockedFolder = Path.GetDirectoryName(materialFilePath);
+                FileUtil.DeleteFileOrDirectory(lockedFolder);
+                FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
+            }
             //AssetDatabase.Refresh();
 
             return UnlockSuccess.success;
@@ -1793,34 +1806,41 @@ namespace Thry
 
                 string isAnimated = GetAnimatedTag(m, propName);
 
-                if (isAnimated == "1" || isAnimated == "2")
+                if (isAnimated == "1")
                 {
                     stringBuilder.Append(isAnimated);
                 }
-
-                switch (prop.type)
+                else if(isAnimated == "2")
                 {
-                    case MaterialProperty.PropType.Color:
-                        stringBuilder.Append(m.GetColor(propName).ToString());
-                        break;
-                    case MaterialProperty.PropType.Vector:
-                        stringBuilder.Append(m.GetVector(propName).ToString());
-                        break;
-                    case MaterialProperty.PropType.Range:
-                    case MaterialProperty.PropType.Float:
-                        stringBuilder.Append(m.GetFloat(propName)
-                            .ToString(CultureInfo.InvariantCulture));
-                        break;
-                    case MaterialProperty.PropType.Texture:
-                        Texture t = m.GetTexture(propName);
-                        Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-                        if (t != null)
-                            texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+                    //This is because materials with renaming should not share shaders
+                    stringBuilder.Append(m.name);
+                }
+                else
+                {
 
-                        stringBuilder.Append(m.GetTextureOffset(propName).ToString());
-                        stringBuilder.Append(m.GetTextureScale(propName).ToString());
-                        stringBuilder.Append(texelSize.ToString());
-                        break;
+                    switch (prop.type)
+                    {
+                        case MaterialProperty.PropType.Color:
+                            stringBuilder.Append(m.GetColor(propName).ToString());
+                            break;
+                        case MaterialProperty.PropType.Vector:
+                            stringBuilder.Append(m.GetVector(propName).ToString());
+                            break;
+                        case MaterialProperty.PropType.Range:
+                        case MaterialProperty.PropType.Float:
+                            stringBuilder.Append(m.GetFloat(propName)
+                                .ToString(CultureInfo.InvariantCulture));
+                            break;
+                        case MaterialProperty.PropType.Texture:
+                            Texture t = m.GetTexture(propName);
+                            Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                            if (t != null)
+                                texelSize = new Vector4(1.0f / t.width, 1.0f / t.height, t.width, t.height);
+
+                            stringBuilder.Append(m.GetTextureOffset(propName).ToString());
+                            stringBuilder.Append(m.GetTextureScale(propName).ToString());
+                            break;
+                    }
                 }
             }
 
@@ -1836,6 +1856,8 @@ namespace Thry
             IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
+
+        static Dictionary<string, Material> s_shaderPropertyCombinations = new Dictionary<string, Material>();
         public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
             Helper.RegisterEditorUse();
@@ -1859,8 +1881,6 @@ namespace Thry
                 }
                 PersistentData.Set("ShowLockInDialog", false);
             }
-            
-            Dictionary<string, Material> shaderPropertyCombinations = new Dictionary<string, Material>();
 
             //Create shader assets
             foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
@@ -1883,18 +1903,25 @@ namespace Thry
                     if (lockState == 1)
                     {
                         string hash = MaterialToShaderPropertyHash(m);
-                        if (shaderPropertyCombinations.ContainsKey(hash))
+                        // Check that shader has already been created for this hash and still exists
+                        if (s_shaderPropertyCombinations.ContainsKey(hash) && Shader.Find(applyStructsLater[s_shaderPropertyCombinations[hash]].newShaderName) != null)
                         {
-                            ApplyStruct applyStruct = applyStructsLater[shaderPropertyCombinations[hash]];
+                            // Reuse existing shader and struct
+                            ApplyStruct applyStruct = applyStructsLater[s_shaderPropertyCombinations[hash]];
                             applyStruct.material = m;
-                            applyStructsLater.Add(m, applyStruct);
+                            applyStructsLater[m] = applyStruct;
+                            //Disable shader keywords
+                            foreach (string keyword in m.shaderKeywords)
+                                if (m.IsKeywordEnabled(keyword)) m.DisableKeyword(keyword);
+
                         }
+                        // Create new locked shader
                         else
                         {
                             ShaderOptimizer.Lock(m,
                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
                                 applyShaderLater: true);
-                            shaderPropertyCombinations.Add(hash, m);
+                            s_shaderPropertyCombinations.Add(hash, m);
                         }
                     }
                     else if (lockState == 0)
@@ -1930,6 +1957,7 @@ namespace Thry
                     GUIUtility.ExitGUI();
                 }
             }
+            AssetDatabase.Refresh();
             return true;
         }
 
