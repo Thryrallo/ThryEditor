@@ -254,6 +254,7 @@ namespace Thry
             public bool _isInit;
             public bool _hasConfigChanged;
             public bool _hasTextureChanged;
+            public long _lastConfirmTime;
         }
 
         Dictionary<UnityEngine.Object, ThryRGBAPackerData> materialPackerData = new Dictionary<UnityEngine.Object, ThryRGBAPackerData>();
@@ -302,17 +303,30 @@ namespace Thry
             if (_prop.textureValue != _current._packedTexture) _current._previousTexture = _prop.textureValue;
         }
 
+        bool DidTextureGetEdit(PackerChannelConfig data)
+        {
+            if (data.Texture == null) return false;
+            string path = AssetDatabase.GetAssetPath(data.Texture);
+            if (System.IO.File.Exists(path) == false) return false;
+            return Helper.DatetimeToUnixSeconds(System.IO.File.GetLastWriteTime(path)) > _current._lastConfirmTime;
+        }
+
         void TexturePackerGUI()
         {
             Init();
             EditorGUI.BeginChangeCheck();
             _current._input_r = TexturePackerSlotGUI(_current._input_r, _label1);
             _current._input_g = TexturePackerSlotGUI(_current._input_g, _label2);
-            if( _label3 != null) _current._input_b = TexturePackerSlotGUI(_current._input_b, _label3);
+            if (_label3 != null) _current._input_b = TexturePackerSlotGUI(_current._input_b, _label3);
             if (_label4 != null) _current._input_a = TexturePackerSlotGUI(_current._input_a, _label4);
-            if (EditorGUI.EndChangeCheck())
+            bool prevConfigChanged = _current._hasConfigChanged;
+            _current._hasConfigChanged |= EditorGUI.EndChangeCheck();
+            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_r);
+            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_g);
+            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_b);
+            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_a);
+            if(_current._hasConfigChanged != prevConfigChanged)
             {
-                _current._hasConfigChanged = true;
                 Save();
                 Pack();
             }
@@ -320,7 +334,7 @@ namespace Thry
             Rect buttonRect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
             buttonRect.width /= 2;
             EditorGUI.BeginDisabledGroup(!_current._hasConfigChanged);
-            if (GUI.Button(buttonRect, "Confirm")) Confirm();
+            if (GUI.Button(buttonRect, "Confirm Merge")) Confirm();
             buttonRect.x += buttonRect.width;
             EditorGUI.EndDisabledGroup();
             EditorGUI.BeginDisabledGroup(!_current._hasTextureChanged);
@@ -386,6 +400,7 @@ namespace Thry
             _current._input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
             _current._input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
             _current._input_a = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "a");
+            _current._lastConfirmTime = long.Parse(ShaderEditor.Active.Materials[0].GetTag(_prop.name + "_texPack_lastConfirmTime", false, "" + Helper.DatetimeToUnixSeconds(DateTime.Now)));
             _current._previousTexture = _prop.textureValue;
             _current._isInit = true;
         }
@@ -396,6 +411,10 @@ namespace Thry
             SaveForChannel(_current._input_g, _prop.name, "g");
             SaveForChannel(_current._input_b, _prop.name, "b");
             SaveForChannel(_current._input_a, _prop.name, "a");
+            foreach(Material m in ShaderEditor.Active.Materials)
+            {
+                m.SetOverrideTag(_prop.name + "_texPack_lastConfirmTime", "" +_current._lastConfirmTime);
+            }
         }
 
         void SaveForChannel(PackerChannelConfig input, string id, string channel)
@@ -491,6 +510,7 @@ namespace Thry
 
             _current._hasConfigChanged = false;
             _current._hasTextureChanged = false;
+            _current._lastConfirmTime = Helper.DatetimeToUnixSeconds(DateTime.Now);
         }
 
         void Revert()
