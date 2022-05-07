@@ -308,7 +308,11 @@ namespace Thry
             if (data.Texture == null) return false;
             string path = AssetDatabase.GetAssetPath(data.Texture);
             if (System.IO.File.Exists(path) == false) return false;
-            return Helper.DatetimeToUnixSeconds(System.IO.File.GetLastWriteTime(path)) > _current._lastConfirmTime;
+            long lastEditTime = Helper.DatetimeToUnixSeconds(System.IO.File.GetLastWriteTime(path));
+            bool hasBeenEdited = lastEditTime > _current._lastConfirmTime && lastEditTime != data.LastHandledTextureEditTime;
+            data.LastHandledTextureEditTime = lastEditTime;
+            if (hasBeenEdited) data.DoReloadUncompressedTexture = true;
+            return hasBeenEdited;
         }
 
         void TexturePackerGUI()
@@ -319,14 +323,14 @@ namespace Thry
             _current._input_g = TexturePackerSlotGUI(_current._input_g, _label2);
             if (_label3 != null) _current._input_b = TexturePackerSlotGUI(_current._input_b, _label3);
             if (_label4 != null) _current._input_a = TexturePackerSlotGUI(_current._input_a, _label4);
-            bool prevConfigChanged = _current._hasConfigChanged;
-            _current._hasConfigChanged |= EditorGUI.EndChangeCheck();
-            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_r);
-            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_g);
-            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_b);
-            _current._hasConfigChanged |= DidTextureGetEdit(_current._input_a);
-            if(_current._hasConfigChanged != prevConfigChanged)
+            bool changeCheck = EditorGUI.EndChangeCheck();
+            changeCheck |= DidTextureGetEdit(_current._input_r);
+            changeCheck |= DidTextureGetEdit(_current._input_g);
+            changeCheck |= DidTextureGetEdit(_current._input_b);
+            changeCheck |= DidTextureGetEdit(_current._input_a);
+            if(changeCheck)
             {
+                _current._hasConfigChanged = true;
                 Save();
                 Pack();
             }
@@ -535,11 +539,13 @@ namespace Thry
 
             Texture2D _loadedUnityTexture;
             Texture2D _loadedUncompressedTexture;
+            public long LastHandledTextureEditTime;
+            public bool DoReloadUncompressedTexture;
 
             public void FindMaxSize(ref int width, ref int height)
             {
                 if (Texture == null) return;
-                if (_loadedUnityTexture != Texture || _loadedUncompressedTexture == null)
+                if (_loadedUnityTexture != Texture || _loadedUncompressedTexture == null || DoReloadUncompressedTexture)
                 {
                     string path = AssetDatabase.GetAssetPath(Texture);
                     if(path.EndsWith(".png") || path.EndsWith(".jpg"))
