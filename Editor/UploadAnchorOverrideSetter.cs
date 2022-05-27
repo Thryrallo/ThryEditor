@@ -67,7 +67,7 @@ namespace Pumkin.VRCCallbacks
                 string anchorName = AnchorName;
                 if(!string.IsNullOrEmpty(anchorName))
                 {
-                    var children = avatarGameObject.GetComponentsInChildren<Transform>().Skip(1);
+                    var children = avatarGameObject.GetComponentsInChildren<Transform>(true).Skip(1);
                     anchorObject = children.FirstOrDefault(t => t.name.Equals(anchorName, StringComparison.OrdinalIgnoreCase));
                 }
 
