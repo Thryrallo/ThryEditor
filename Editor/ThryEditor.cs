@@ -375,7 +375,7 @@ namespace Thry
             if (ShaderOptimizer.IsShaderUsingThryOptimizer(Shader))
             {
                 ShaderOptimizerProperty = PropertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(Shader)];
-                if(ShaderOptimizerProperty != null) ShaderOptimizerProperty.exempt_from_locked_disabling = true;
+                if(ShaderOptimizerProperty != null) ShaderOptimizerProperty.ExemptFromLockedDisabling = true;
             }
 
             AddResetProperty();
@@ -504,7 +504,7 @@ namespace Thry
         private void GUITopBar()
         {
             //if header is texture, draw it first so other ui elements can be positions below
-            if (_shaderHeader != null && _shaderHeader.options.texture != null) _shaderHeader.Draw();
+            if (_shaderHeader != null && _shaderHeader.Options.texture != null) _shaderHeader.Draw();
 
             bool drawAboveToolbar = EditorGUIUtility.wideMode == false;
             if(drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
@@ -603,7 +603,7 @@ namespace Thry
         //if display part, display all parents parts
         private void UpdateSearch(ShaderPart part)
         {
-            part.has_not_searchedFor = part.content.text.ToLower().Contains(_appliedSearchTerm) == false;
+            part.has_not_searchedFor = part.Content.text.ToLower().Contains(_appliedSearchTerm) == false;
             if (part is ShaderGroup)
             {
                 foreach (ShaderPart p in (part as ShaderGroup).parts)
@@ -672,7 +672,7 @@ namespace Thry
             return s_edtiorDirectoryPath;
         }
 
-        [MenuItem("Thry/Fix Keywords (Very Slow)")]
+        [MenuItem("Thry/Shader Tools/Fix Keywords (Very Slow)", priority = -20)]
         static void FixKeywords()
         {
             IEnumerable<Material> materials = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.GUIDToAssetPath(g)).Where(p => string.IsNullOrEmpty(p) == false)
@@ -705,19 +705,19 @@ namespace Thry
             EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
         }
 
+        [MenuItem("Thry/Shader Optimizer/Upgraded Animated Properties", priority = -20)]
+        static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
+        {
+            ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
+        }
+
         [MenuItem("Thry/ShaderUI/Use Thry Editor for other shaders", priority = 0)]
         static void MenuShaderUIAddToShaders()
         {
             EditorWindow.GetWindow<EditorChanger>(false, "UI Changer", true);
         }
 
-        [MenuItem("Thry/Shader Optimizer/Upgraded Animated Properties", priority = 40)]
-        static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
-        {
-            ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
-        }
-
-        [MenuItem("Thry/Shader Optimizer/Unlocked Materials List", priority = 40)]
+        [MenuItem("Thry/Shader Optimizer/Unlocked Materials List", priority = 0)]
         static void MenuShaderOptUnlockedMaterials()
         {
             EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Unlocked Materials", true);

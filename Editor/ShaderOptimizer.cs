@@ -513,6 +513,7 @@ namespace Thry
                         else if ((prop.flags & MaterialProperty.PropFlags.Gamma) != 0)
                             propData.value = prop.colorValue;
                         else propData.value = prop.colorValue.linear;
+                        if (PlayerSettings.colorSpace == ColorSpace.Gamma) propData.value = prop.colorValue;
                         constantProps.Add(propData);
                         break;
                     case MaterialProperty.PropType.Vector:

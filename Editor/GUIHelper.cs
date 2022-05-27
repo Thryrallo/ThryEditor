@@ -20,7 +20,7 @@ namespace Thry
                     SmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     break;
                 case TextureDisplayType.big:
-                    if (DrawingData.CurrentTextureProperty.reference_properties_exist || DrawingData.CurrentTextureProperty.reference_property_exists)
+                    if (DrawingData.CurrentTextureProperty.DoReferencePropertiesExist || DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
                         StylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties);
                     else
                         BigTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasScaleOffset);
@@ -39,9 +39,9 @@ namespace Thry
             Rect tooltipRect = position;
             thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
-            if (DrawingData.CurrentTextureProperty.reference_property_exists)
+            if (DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
             {
-                ShaderProperty property = ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.options.reference_property];
+                ShaderProperty property = ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.Options.reference_property];
                 Rect r = position;
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
@@ -52,7 +52,7 @@ namespace Thry
             if (hasFoldoutProperties && DrawingData.CurrentTextureProperty != null)
             {
                 //draw dropdown triangle
-                thumbnailPos.x += DrawingData.CurrentTextureProperty.xOffset * 15;
+                thumbnailPos.x += DrawingData.CurrentTextureProperty.XOffset * 15;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
                 if (GUI.Button(thumbnailPos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
@@ -73,7 +73,7 @@ namespace Thry
                         //In case of locked material end disabled group here to allow editing of sub properties
                         if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
 
-                        PropertyOptions options = DrawingData.CurrentTextureProperty.options;
+                        PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
                         if (options.reference_properties != null)
                             foreach (string r_property in options.reference_properties)
                             {
@@ -128,18 +128,18 @@ namespace Thry
             border.position = new Vector2(border.x, border.y - position.height);
             border.height += position.height;
 
-            if (DrawingData.CurrentTextureProperty.reference_properties_exist)
+            if (DrawingData.CurrentTextureProperty.DoReferencePropertiesExist)
             {
                 border.height += 8;
-                foreach (string r_property in DrawingData.CurrentTextureProperty.options.reference_properties)
+                foreach (string r_property in DrawingData.CurrentTextureProperty.Options.reference_properties)
                 {
-                    border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[r_property].materialProperty);
+                    border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[r_property].MaterialProperty);
                 }
             }
-            if (DrawingData.CurrentTextureProperty.reference_property_exists)
+            if (DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
             {
                 border.height += 8;
-                border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.options.reference_property].materialProperty);
+                border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.Options.reference_property].MaterialProperty);
             }
 
 
@@ -224,7 +224,7 @@ namespace Thry
 
             //scale offset rect
 
-            if (hasFoldoutProperties || DrawingData.CurrentTextureProperty.options.reference_property != null)
+            if (hasFoldoutProperties || DrawingData.CurrentTextureProperty.Options.reference_property != null)
             {
                 EditorGUI.indentLevel += 2;
 
@@ -243,7 +243,7 @@ namespace Thry
                 float oldLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 128;
 
-                PropertyOptions options = DrawingData.CurrentTextureProperty.options;
+                PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
                 if (options.reference_property != null)
                 {
                     ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
@@ -459,7 +459,7 @@ namespace Thry
             selected = EditorGUILayout.Popup(label.text, selected, locales);
             if (EditorGUI.EndChangeCheck())
             {
-                ShaderEditor.Active.PropertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].materialProperty.floatValue = selected;
+                ShaderEditor.Active.PropertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].MaterialProperty.floatValue = selected;
                 ShaderEditor.ReloadActive();
             }
         }
@@ -878,7 +878,7 @@ namespace Thry
                 this.expanded = prop.floatValue == 1;
             }
 
-            PropertyOptions options = ShaderEditor.Active.CurrentProperty.options;
+            PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
             Event e = Event.current;
 
             position.width -= p_xOffset_total - position.x;
@@ -908,10 +908,10 @@ namespace Thry
                 EditorGUIUtility.fieldWidth = 20;
                 ShaderProperty prop = ShaderEditor.Active.PropertyDictionary[options.reference_property];
 
-                int xOffset = prop.xOffset;
-                prop.xOffset = 0;
+                int xOffset = prop.XOffset;
+                prop.XOffset = 0;
                 prop.Draw(new CRect(togglePropertyRect), new GUIContent(), isInHeader: true);
-                prop.xOffset = xOffset;
+                prop.XOffset = xOffset;
                 EditorGUIUtility.fieldWidth = fieldWidth;
             }else if(keyword != null)
             {
@@ -989,11 +989,11 @@ namespace Thry
 
         private void DrawLinkSettings(Rect rect, Event e)
         {
-            if (GuiHelper.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.Active.CurrentProperty.materialProperty)))
+            if (GuiHelper.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty)))
             {
                 ShaderEditor.Input.Use();
-                List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.Active.CurrentProperty.materialProperty);
-                MaterialLinker.Popup(rect, linked_materials, ShaderEditor.Active.CurrentProperty.materialProperty);
+                List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty);
+                MaterialLinker.Popup(rect, linked_materials, ShaderEditor.Active.CurrentProperty.MaterialProperty);
             }
         }
 
@@ -1003,7 +1003,7 @@ namespace Thry
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
                 property.CopyFromMaterial(new Material(material.shader), true);
-                List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
+                List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
                         property.CopyToMaterial(m, true);
@@ -1018,7 +1018,7 @@ namespace Thry
                 if (Mediator.copy_material != null || Mediator.transfer_group != null)
                 {
                     property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true);
-                    List<Material> linked_materials = MaterialLinker.GetLinked(property.materialProperty);
+                    List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                     if (linked_materials != null)
                         foreach (Material m in linked_materials)
                             property.CopyToMaterial(m, true);

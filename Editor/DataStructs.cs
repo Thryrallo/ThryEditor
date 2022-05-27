@@ -416,22 +416,22 @@ namespace Thry
             {
                 case DefineableConditionType.PROPERTY_BOOL:
                     if (_propertyObj == null) return false;
-                    if (_compareType == CompareType.NONE) return _propertyObj.materialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return _propertyObj.materialProperty.floatValue == _floatValue;
-                    if (_compareType == CompareType.NOT_EQUAL) return _propertyObj.materialProperty.floatValue != _floatValue;
-                    if (_compareType == CompareType.SMALLER) return _propertyObj.materialProperty.floatValue < _floatValue;
-                    if (_compareType == CompareType.BIGGER) return _propertyObj.materialProperty.floatValue > _floatValue;
-                    if (_compareType == CompareType.BIGGER_EQ) return _propertyObj.materialProperty.floatValue >= _floatValue;
-                    if (_compareType == CompareType.SMALLER_EQ) return _propertyObj.materialProperty.floatValue <= _floatValue;
+                    if (_compareType == CompareType.NONE) return _propertyObj.MaterialProperty.floatValue == 1;
+                    if (_compareType == CompareType.EQUAL) return _propertyObj.MaterialProperty.floatValue == _floatValue;
+                    if (_compareType == CompareType.NOT_EQUAL) return _propertyObj.MaterialProperty.floatValue != _floatValue;
+                    if (_compareType == CompareType.SMALLER) return _propertyObj.MaterialProperty.floatValue < _floatValue;
+                    if (_compareType == CompareType.BIGGER) return _propertyObj.MaterialProperty.floatValue > _floatValue;
+                    if (_compareType == CompareType.BIGGER_EQ) return _propertyObj.MaterialProperty.floatValue >= _floatValue;
+                    if (_compareType == CompareType.SMALLER_EQ) return _propertyObj.MaterialProperty.floatValue <= _floatValue;
                     break;
                 case DefineableConditionType.TEXTURE_SET:
                     if (_propertyObj == null) return false;
-                    return _propertyObj.materialProperty.textureValue != null;
+                    return _propertyObj.MaterialProperty.textureValue != null;
                 case DefineableConditionType.DROPDOWN:
                     if (_propertyObj == null) return false;
-                    if (_compareType == CompareType.NONE) return _propertyObj.materialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return "" + _propertyObj.materialProperty.floatValue == _value;
-                    if (_compareType == CompareType.NOT_EQUAL) return "" + _propertyObj.materialProperty.floatValue != _value;
+                    if (_compareType == CompareType.NONE) return _propertyObj.MaterialProperty.floatValue == 1;
+                    if (_compareType == CompareType.EQUAL) return "" + _propertyObj.MaterialProperty.floatValue == _value;
+                    if (_compareType == CompareType.NOT_EQUAL) return "" + _propertyObj.MaterialProperty.floatValue != _value;
                     break;
                 case DefineableConditionType.AND:
                     if(condition1!=null&&condition2!=null) return condition1.Test() && condition2.Test();

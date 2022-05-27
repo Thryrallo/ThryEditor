@@ -91,7 +91,7 @@ namespace Thry.ThryEditor
             appliedPresets[shaderEditor.Materials[0]] = (preset, new Material(shaderEditor.Materials[0]));
             foreach (ShaderPart prop in shaderEditor.ShaderParts)
             {
-                if (IsPreset(preset, prop.materialProperty))
+                if (IsPreset(preset, prop.MaterialProperty))
                 {
                     prop.CopyFromMaterial(preset);
                 }
@@ -107,7 +107,7 @@ namespace Thry.ThryEditor
             Material prePreset = appliedPresets[key].Item2;
             foreach (ShaderPart prop in shaderEditor.ShaderParts)
             {
-                if (IsPreset(preset, prop.materialProperty))
+                if (IsPreset(preset, prop.MaterialProperty))
                 {
                     prop.CopyFromMaterial(prePreset);
                 }
@@ -125,7 +125,7 @@ namespace Thry.ThryEditor
             {
                 foreach (ShaderPart prop in shaderEditor.ShaderParts)
                 {
-                    if (IsPreset(preset, prop.materialProperty))
+                    if (IsPreset(preset, prop.MaterialProperty))
                     {
                         prop.CopyFromMaterial(preset);
                     }
