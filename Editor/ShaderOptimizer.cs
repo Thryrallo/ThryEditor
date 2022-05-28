@@ -738,7 +738,7 @@ namespace Thry
                 }
                 catch (IOException e)
                 {
-                    Debug.LogError("[Kaj Shader Optimizer] Processed shader file " + newShaderDirectory + fileName + " could not be written.  " + e.ToString());
+                    Debug.LogError("[Shader Optimizer] Processed shader file " + newShaderDirectory + fileName + " could not be written.  " + e.ToString());
                     return false;
                 }
             }
@@ -812,7 +812,7 @@ namespace Thry
             Shader newShader = Shader.Find(newShaderName);
             if (newShader == null)
             {
-                Debug.LogError("[Kaj Shader Optimizer] Generated shader " + newShaderName + " could not be found");
+                Debug.LogError("[Shader Optimizer] Generated shader " + newShaderName + " could not be found");
                 return false;
             }
             material.shader = newShader;
@@ -927,12 +927,12 @@ namespace Thry
             }
             catch (FileNotFoundException e)
             {
-                Debug.LogError("[Kaj Shader Optimizer] Shader file " + filePath + " not found.  " + e.ToString());
+                Debug.LogError("[Shader Optimizer] Shader file " + filePath + " not found.  " + e.ToString());
                 return false;
             }
             catch (IOException e)
             {
-                Debug.LogError("[Kaj Shader Optimizer] Error reading shader file.  " + e.ToString());
+                Debug.LogError("[Shader Optimizer] Error reading shader file.  " + e.ToString());
                 return false;
             }
 
@@ -1496,12 +1496,12 @@ namespace Thry
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
-                    Debug.LogError("[Kaj Shader Optimizer] Original shader not saved to material, could not unlock shader");
+                    Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
                     return UnlockSuccess.hasNoSavedShader;
                 }
                 else
                 {
-                    Debug.LogWarning("[Kaj Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
+                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
                     return UnlockSuccess.wasNotLocked;
                 }
 
@@ -1511,12 +1511,12 @@ namespace Thry
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
-                    Debug.LogError("[Kaj Shader Optimizer] Original shader " + originalShaderName + " could not be found");
+                    Debug.LogError("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
                     return UnlockSuccess.couldNotFindOriginalShader;
                 }
                 else
                 {
-                    Debug.LogWarning("[Kaj Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
+                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
                     return UnlockSuccess.wasNotLocked;
                 }
             }
