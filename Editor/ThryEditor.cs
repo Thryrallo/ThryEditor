@@ -33,7 +33,9 @@ namespace Thry
         public static ShaderEditor Active;
 
         // Stores the different shader properties
-        public ShaderGroup mainGroup;
+        public ShaderGroup MainGroup;
+        private RenderQueueProperty _renderQueueProperty;
+        private VRCFallbackProperty _vRCFallbackProperty;
 
         // UI Instance Variables
 
@@ -210,10 +212,10 @@ namespace Thry
 
             PropertyDictionary = new Dictionary<string, ShaderProperty>();
             ShaderParts = new List<ShaderPart>();
-            mainGroup = new ShaderGroup(this); //init top object that all Shader Objects are childs of
+            MainGroup = new ShaderGroup(this); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> headerStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
-            headerStack.Push(mainGroup); //add top object as top object to stack
-            headerStack.Push(mainGroup); //add top object a second time, because it get's popped with first actual header item
+            headerStack.Push(MainGroup); //add top object as top object to stack
+            headerStack.Push(MainGroup); //add top object a second time, because it get's popped with first actual header item
             _footers = new List<FooterButton>(); //init footer list
             int headerCount = 0;
 
@@ -378,6 +380,11 @@ namespace Thry
                 if(ShaderOptimizerProperty != null) ShaderOptimizerProperty.ExemptFromLockedDisabling = true;
             }
 
+            _renderQueueProperty = new RenderQueueProperty(this);
+            _vRCFallbackProperty = new VRCFallbackProperty(this);
+            ShaderParts.Add(_renderQueueProperty);
+            ShaderParts.Add(_vRCFallbackProperty);
+
             AddResetProperty();
 
             _isFirstOnGUICall = false;
@@ -462,14 +469,14 @@ namespace Thry
             ShaderTranslator.SuggestedTranslationButtonGUI(this);
 
             //PROPERTIES
-            foreach (ShaderPart part in mainGroup.parts)
+            foreach (ShaderPart part in MainGroup.parts)
             {
                 part.Draw();
             }
 
             //Render Queue selection
-            if(VRCInterface.IsVRCSDKInstalled()) GuiHelper.VRCFallbackSelector(this);
-            if (Config.Singleton.showRenderQueue) materialEditor.RenderQueueField();
+            if(VRCInterface.IsVRCSDKInstalled()) _vRCFallbackProperty.Draw();
+            if (Config.Singleton.showRenderQueue) _renderQueueProperty.Draw();
 
             BetterTooltips.DrawActive();
 
@@ -541,7 +548,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     _appliedSearchTerm = _enteredSearchTerm.ToLower();
-                    UpdateSearch(mainGroup);
+                    UpdateSearch(MainGroup);
                 }
             }
         }
@@ -617,7 +624,7 @@ namespace Thry
         private void ClearSearch()
         {
             _appliedSearchTerm = "";
-            UpdateSearch(mainGroup);
+            UpdateSearch(MainGroup);
         }
 
         private void HandleReset()

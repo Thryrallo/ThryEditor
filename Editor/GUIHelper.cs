@@ -285,24 +285,6 @@ namespace Thry
             EditorGUI.indentLevel = s_previousIndentLevels.Pop();
         }
 
-        static string[] s_fallbackShaderTypes = { "Standard", "Toon", "Unlit", "VertexLit", "Particle", "Sprite", "Matcap", "MobileToon" };
-        static string[] s_fallbackRenderTypes = { "Opaque", "Cutout", "Transparent", "Fade" };
-        static string[] s_fallbackRenderTypesValues = { "", "Cutout", "Transparent", "Fade" };
-        static string[] s_fallbackCullTypes = { "OneSided", "DoubleSided" };
-        static string[] s_fallbackCullTypesValues = { "", "DoubleSided" };
-        static string[] s_fallbackNoTypes = { "None", "Hidden" };
-        static string[] s_fallbackNoTypesValues = { "", "Hidden" };
-        static string[] s_vRCFallbackOptionsPopup = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypes.SelectMany(r => s_fallbackCullTypes.Select(c => r + "/" + c).Select(rc => s + "/" + rc)))).ToArray();
-        static string[] s_vRCFallbackOptionsValues = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypesValues.SelectMany(r => s_fallbackCullTypesValues.Select(c => r + c).Select(rc => s + rc)))).ToArray();
-        public static void VRCFallbackSelector(ShaderEditor shaderEditor)
-        {
-            string current = shaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
-            EditorGUI.BeginChangeCheck();
-            int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i , s_vRCFallbackOptionsPopup);
-            if (EditorGUI.EndChangeCheck())
-                shaderEditor.Materials[0].SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
-        }
-
         public static void MinMaxSlider(Rect settingsRect, GUIContent content, MaterialProperty prop)
         {
             bool changed = false;

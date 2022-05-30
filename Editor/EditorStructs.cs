@@ -121,6 +121,7 @@ namespace Thry
         public int XOffset = 0;
         public GUIContent Content;
         public MaterialProperty MaterialProperty;
+        public string PropertyIdentifier;
         public System.Object PropertyData = null;
         public PropertyOptions Options;
         public bool DoReferencePropertiesExist = false;
@@ -138,6 +139,17 @@ namespace Thry
 
         GenericMenu contextMenu;
 
+        public ShaderPart(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip)
+        {
+            this.ActiveShaderEditor = shaderEditor;
+            this.PropertyIdentifier = propertyIdentifier;
+            this.XOffset = xOffset;
+            this.Options = new PropertyOptions();
+            this.Content = new GUIContent(displayName);
+            this.tooltip = new BetterTooltips.Tooltip(tooltip);
+            this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
+        }
+
         public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
         {
             this.ActiveShaderEditor = shaderEditor;
@@ -148,7 +160,7 @@ namespace Thry
             this.tooltip = new BetterTooltips.Tooltip(options.tooltip);
             this.DoReferencePropertiesExist = options.reference_properties != null && options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = options.reference_property != null;
-            this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], prop);
+            this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
 
             if (prop == null)
                 return;
@@ -264,7 +276,7 @@ namespace Thry
         void ToggleIsPreset()
         {
             IsPreset = !IsPreset;
-            Presets.SetProperty(ActiveShaderEditor.Materials[0], MaterialProperty, IsPreset);
+            if(MaterialProperty != null) Presets.SetProperty(ActiveShaderEditor.Materials[0], this, IsPreset);
             ShaderEditor.RepaintActive();
         }
 
@@ -576,6 +588,11 @@ namespace Thry
 
         public string keyword;
 
+        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(shaderEditor, propertyIdentifier, xOffset, displayName, tooltip)
+        {
+
+        }
+
         public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, options)
         {
             this.doCustomDrawLogic = false;
@@ -832,6 +849,64 @@ namespace Thry
         }
     }
 
+    public class RenderQueueProperty : ShaderProperty
+    {
+        public RenderQueueProperty(ShaderEditor shaderEditor) : base(shaderEditor, "RenderQueue", 0, "", "Change the Queue at which the material is rendered.")
+        {
+            doCustomDrawLogic = true;
+        }
+
+        public override void DrawDefault()
+        {
+            ActiveShaderEditor.Editor.RenderQueueField();
+        }
+
+        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        {
+            foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
+        }
+        public override void CopyToMaterial(Material targetM, bool isTopCall = false)
+        {
+            targetM.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
+        }
+    }
+    public class VRCFallbackProperty : ShaderProperty
+    {
+        static string[] s_fallbackShaderTypes = { "Standard", "Toon", "Unlit", "VertexLit", "Particle", "Sprite", "Matcap", "MobileToon" };
+        static string[] s_fallbackRenderTypes = { "Opaque", "Cutout", "Transparent", "Fade" };
+        static string[] s_fallbackRenderTypesValues = { "", "Cutout", "Transparent", "Fade" };
+        static string[] s_fallbackCullTypes = { "OneSided", "DoubleSided" };
+        static string[] s_fallbackCullTypesValues = { "", "DoubleSided" };
+        static string[] s_fallbackNoTypes = { "None", "Hidden" };
+        static string[] s_fallbackNoTypesValues = { "", "Hidden" };
+        static string[] s_vRCFallbackOptionsPopup = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypes.SelectMany(r => s_fallbackCullTypes.Select(c => r + "/" + c).Select(rc => s + "/" + rc)))).ToArray();
+        static string[] s_vRCFallbackOptionsValues = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypesValues.SelectMany(r => s_fallbackCullTypesValues.Select(c => r + c).Select(rc => s + rc)))).ToArray();
+
+        public VRCFallbackProperty(ShaderEditor shaderEditor) : base(shaderEditor, "VRCFallback", 0, "", "Select the shader VRChat should use when your shaders are being hidden.")
+        {
+            doCustomDrawLogic = true;
+        }
+
+        public override void DrawDefault()
+        {
+            string current = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+            EditorGUI.BeginChangeCheck();
+            int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
+            if (EditorGUI.EndChangeCheck())
+                ActiveShaderEditor.Materials[0].SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
+        }
+
+        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        {
+            string value = sourceM.GetTag("VRCFallback", false, "None");
+            foreach (Material m in ActiveShaderEditor.Materials) m.SetOverrideTag("VRCFallback", value);
+        }
+        public override void CopyToMaterial(Material targetM, bool isTopCall = false)
+        {
+            string value = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+            targetM.SetOverrideTag("VRCFallback", value);
+        }
+    }
     public class InstancingProperty : ShaderProperty
     {
         public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
