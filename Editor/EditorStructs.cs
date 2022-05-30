@@ -400,13 +400,9 @@ namespace Thry
 
             if (EditorGUI.EndChangeCheck())
             {
-                if(Options.on_value_actions != null)
-                    foreach (PropertyValueAction action in Options.on_value_actions)
-                    {
-                        action.Execute(MaterialProperty);
-                    }
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
                 //Check if property is being animated
-                if(this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
+                if (this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
                 {
                     if (MaterialProperty.type == MaterialProperty.PropType.Texture ? 
                         AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x" ) :
@@ -423,8 +419,8 @@ namespace Thry
             //Click testing
             if(Event.current.type == EventType.MouseDown && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
             {
-                if ((ShaderEditor.Input.is_alt_down && Options.altClick != null)) Options.altClick.Perform();
-                else if (Options.onClick != null) Options.onClick.Perform();
+                if ((ShaderEditor.Input.is_alt_down && Options.altClick != null)) Options.altClick.Perform(ShaderEditor.Active.Materials);
+                else if (Options.onClick != null) Options.onClick.Perform(ShaderEditor.Active.Materials);
             }
         }
 
@@ -441,6 +437,15 @@ namespace Thry
             Rect r = new Rect(2, DrawingData.TooltipCheckRect.y + 2, 8, 16);
             //GUI.DrawTexture(r, Styles.texture_preset, ScaleMode.StretchToFill, true);
             GUI.Label(r, "P", Styles.cyanStyle);
+        }
+
+        protected void ExecuteOnValueActions(Material[] targets)
+        {
+            if (Options.on_value_actions != null)
+                foreach (PropertyValueAction action in Options.on_value_actions)
+                {
+                    action.Execute(MaterialProperty, targets);
+                }
         }
     }
 
@@ -620,6 +625,8 @@ namespace Thry
             this.IsAnimated = IsAnimatable && ShaderOptimizer.GetAnimatedTag(MaterialProperty) != "";
             this.IsRenaming = IsAnimatable && ShaderOptimizer.GetAnimatedTag(MaterialProperty) == "2";
 
+            ExecuteOnValueActions(ShaderEditor.Active.Materials);
+
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
 
@@ -629,6 +636,8 @@ namespace Thry
             if (keyword != null) SetKeyword(m, MaterialProperty.floatValue == 1);
             if (IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, MaterialProperty);
+
+            ExecuteOnValueActions(new Material[] { m });
 
             if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }

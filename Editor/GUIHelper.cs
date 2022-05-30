@@ -746,7 +746,7 @@ namespace Thry
             if (isTextureContent)
             {
                 if(GUILayout.Button(content, new GUIStyle(), GUILayout.MaxWidth(texture_width), GUILayout.Height(texture_height))){
-                    data.action.Perform();
+                    data.action.Perform(ShaderEditor.Active?.Materials);
                 }
                 cursorRect = GUILayoutUtility.GetLastRect();
                 GUILayout.Space(8);
@@ -754,7 +754,7 @@ namespace Thry
             else
             {
                 if (GUILayout.Button(content, GUILayout.ExpandWidth(false), GUILayout.Height(texture_height)))
-                    data.action.Perform();
+                    data.action.Perform(ShaderEditor.Active?.Materials);
                 cursorRect = GUILayoutUtility.GetLastRect();
                 GUILayout.Space(2);
             }
@@ -948,7 +948,7 @@ namespace Thry
                 if (GuiHelper.Button(rect, Styles.icon_style_help))
                 {
                     ShaderEditor.Input.Use();
-                    if (button.action != null) button.action.Perform();
+                    if (button.action != null) button.action.Perform(ShaderEditor.Active?.Materials);
                 }
             }
         }

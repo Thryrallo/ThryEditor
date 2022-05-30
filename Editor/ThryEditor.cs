@@ -583,7 +583,7 @@ namespace Thry
             if (_onSwapToActions != null && _didSwapToShader)
             {
                 foreach (DefineableAction a in _onSwapToActions)
-                    a.Perform();
+                    a.Perform(Materials);
                 _onSwapToActions = null;
                 _didSwapToShader = false;
             }

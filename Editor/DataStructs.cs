@@ -182,7 +182,7 @@ namespace Thry
         public string value;
         public DefineableAction[] actions;
 
-        public bool Execute(MaterialProperty p)
+        public bool Execute(MaterialProperty p, Material[] targets)
         {
             if(
                 (p.type == MaterialProperty.PropType.Float   && p.floatValue.ToString()   ==  value)          ||
@@ -195,7 +195,7 @@ namespace Thry
             )
                 {
                 foreach (DefineableAction a in actions)
-                    a.Perform();
+                    a.Perform(targets);
                 return true;
             }
             return false;
@@ -248,7 +248,7 @@ namespace Thry
     {
         public DefineableActionType type = DefineableActionType.NONE;
         public string data = "";
-        public void Perform()
+        public void Perform(Material[] targets)
         {
             switch (type)
             {
@@ -262,14 +262,14 @@ namespace Thry
                     break;
                 case DefineableActionType.SET_TAG:
                     string[] keyValue = Regex.Split(data, @"=");
-                    foreach (Material m in ShaderEditor.Active.Materials)
+                    foreach (Material m in targets)
                         m.SetOverrideTag(keyValue[0].Trim(), keyValue[1].Trim());
                     break;
                 case DefineableActionType.SET_SHADER:
                     Shader shader = Shader.Find(data);
                     if (shader != null)
                     {
-                        foreach (Material m in ShaderEditor.Active.Materials)
+                        foreach (Material m in targets)
                             m.shader = shader;
                     }
                     break;
