@@ -45,6 +45,14 @@ namespace Thry
                     select type).Count() > 0;
         }
 
+        public static Type FindTypeByFullName(string fullname)
+        {
+            return (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                    from type in assembly.GetTypes()
+                    where type.FullName == fullname
+                    select type).FirstOrDefault();
+        }
+
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         public static long GetCurrentUnixTimestampMillis()

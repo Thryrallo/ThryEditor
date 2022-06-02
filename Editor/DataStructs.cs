@@ -273,6 +273,22 @@ namespace Thry
                             m.shader = shader;
                     }
                     break;
+                case DefineableActionType.OPEN_EDITOR:
+                    System.Type t = Helper.FindTypeByFullName(data);
+                    if (t != null)
+                    {
+                        try
+                        {
+                            EditorWindow window = EditorWindow.GetWindow(t);
+                            window.titleContent = new GUIContent("TPS Setup Wizard");
+                            window.Show();
+                        }catch(System.Exception e)
+                        {
+                            Debug.LogError("[Thry] Couldn't open Editor Window of type" + data);
+                            Debug.LogException(e);
+                        }
+                    }
+                    break;
             }
         }
 
@@ -304,6 +320,11 @@ namespace Thry
                 action.type = DefineableActionType.SET_PROPERTY;
                 action.data = s;
             }
+            else if (Regex.IsMatch(s, @"\w+(\.\w+)"))
+            {
+                action.type = DefineableActionType.OPEN_EDITOR;
+                action.data = s;
+            }
             return action;
         }
 
@@ -331,7 +352,8 @@ namespace Thry
         URL,
         SET_PROPERTY,
         SET_SHADER,
-        SET_TAG
+        SET_TAG,
+        OPEN_EDITOR,
     }
 
     public class DefineableCondition
