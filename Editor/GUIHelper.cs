@@ -779,12 +779,11 @@ namespace Thry
     {
         private MaterialProperty property;
 
-        private bool expanded;
-
+        private bool _isExpanded;
         private string keyword;
         private string end;
 
-        public bool isHideable;
+        private bool _disableContentWhenKeywordOff;
 
         int p_xOffset;
         int p_xOffset_total;
@@ -799,31 +798,16 @@ namespace Thry
 
         private ButtonData button;
 
-        public ThryHeaderDrawer(string end, string keyword, string buttonText, string buttonHover, string buttonAction, float isHideable)
+        public ThryHeaderDrawer(string end, string keyword, float disableContentWhenKeywordOff)
         {
             this.end = end;
             this.keyword = keyword;
-
-            button = new ButtonData();
-            button.text = buttonText;
-            button.hover = buttonHover;
-            button.action = DefineableAction.ParseDrawerParameter(buttonAction);
-
-            this.isHideable = isHideable == 1;
+            this._disableContentWhenKeywordOff = disableContentWhenKeywordOff == 1;
         }
-        
-        public ThryHeaderDrawer(string end, string keyword, string buttonText, string buttonHover, string buttonAction) : this(end, keyword, buttonText, buttonHover, buttonAction, 0          ) { }
-        public ThryHeaderDrawer(string end, string keyword, float isHideable) :                                           this(end, keyword, null,       null,        null,         isHideable ) { }
-        public ThryHeaderDrawer(string end, string keyword, string buttonAction) :                                        this(end, keyword, null,       null,        buttonAction, 0          ) { }
-        public ThryHeaderDrawer(string end, string keyword) :                                                             this(end, keyword, null,       null,        null,         0          ) { }
-        public ThryHeaderDrawer(string end) :                                                                             this(end, null   , null,       null,        null,         0          ) { }
 
-        public ThryHeaderDrawer(float isHideable) :                                                                       this(null,null,    null,       null,        null,         isHideable ) { }
-        public ThryHeaderDrawer(float isHideable, string end) :                                                           this(end, null,    null,       null,        null,         isHideable ) { }
-        public ThryHeaderDrawer(float isHideable, string buttonText, string buttonHover, string buttonAction) :           this(null,null,    buttonText, buttonHover, buttonAction, 0          ) { }
-        public ThryHeaderDrawer(float isHideable, string end, string buttonText, string buttonHover, string buttonAction):this(end, null,    buttonText, buttonHover, buttonAction, isHideable ) { }
-
-        public ThryHeaderDrawer(){}
+        public ThryHeaderDrawer(string end, string keyword) : this(end, keyword, 0) { }
+        public ThryHeaderDrawer(string end) : this(end, null, 0) { }
+        public ThryHeaderDrawer() : this(null, null, 0) { }
 
         public string GetEndProperty()
         {
@@ -838,18 +822,26 @@ namespace Thry
             return base.GetPropertyHeight(prop, label, editor);
         }
 
-        public bool is_expanded
+        public bool IsExpanded
         {
             get
             {
-                return expanded;
+                return _isExpanded;
+            }
+        }
+
+        public bool DisableContent
+        {
+            get
+            {
+                return _disableContentWhenKeywordOff && !ShaderEditor.Active.Materials[0].IsKeywordEnabled(keyword);
             }
         }
 
         public void Toggle()
         {
-            expanded = !expanded;
-            foreach (Material m in ShaderEditor.Active.Materials) m.SetFloat(property.name, expanded ? 1 : 0);
+            _isExpanded = !_isExpanded;
+            foreach (Material m in ShaderEditor.Active.Materials) m.SetFloat(property.name, _isExpanded ? 1 : 0);
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -857,7 +849,7 @@ namespace Thry
             if (this.property == null)
             {
                 this.property = prop;
-                this.expanded = prop.floatValue == 1;
+                this._isExpanded = prop.floatValue == 1;
             }
 
             PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
@@ -1014,7 +1006,7 @@ namespace Thry
             if (e.type == EventType.Repaint)
             {
                 var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-                EditorStyles.foldout.Draw(toggleRect, false, false, expanded, false);
+                EditorStyles.foldout.Draw(toggleRect, false, false, _isExpanded, false);
             }
         }
 

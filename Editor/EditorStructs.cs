@@ -447,6 +447,8 @@ namespace Thry
                     action.Execute(MaterialProperty, targets);
                 }
         }
+
+        public abstract void FindUnusedTextures(List<string> unusedList, bool isEnabled);
     }
 
     public class ShaderGroup : ShaderPart
@@ -511,6 +513,16 @@ namespace Thry
             }
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
+
+        public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
+        {
+            if (isEnabled && Options.condition_enable != null)
+            {
+                isEnabled &= Options.condition_enable.Test();
+            }
+            foreach (ShaderPart p in (this as ShaderGroup).parts)
+                p.FindUnusedTextures(unusedList, isEnabled);
+        }
     }
 
     public class ShaderHeader : ShaderGroup
@@ -552,13 +564,15 @@ namespace Thry
             if (isLegacy) headerDrawer.OnGUI(position, this.MaterialProperty, content, ActiveShaderEditor.Editor);
             else ActiveShaderEditor.Editor.ShaderProperty(position, this.MaterialProperty, content);
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
-            if (this.headerDrawer.is_expanded)
+            if (this.headerDrawer.IsExpanded)
             {
                 EditorGUILayout.Space();
+                EditorGUI.BeginDisabledGroup(headerDrawer.DisableContent);
                 foreach (ShaderPart part in parts)
                 {
                     part.Draw();
                 }
+                EditorGUI.EndDisabledGroup();
                 EditorGUILayout.Space();
             }
             if (EditorGUI.EndChangeCheck())
@@ -573,6 +587,17 @@ namespace Thry
             if (linked_materials != null)
                 foreach (Material m in linked_materials)
                     this.CopyToMaterial(m);
+        }
+
+        public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
+        {
+            if (isEnabled && Options.condition_enable != null)
+            {
+                isEnabled &= Options.condition_enable.Test();
+            }
+            isEnabled &= !headerDrawer.DisableContent;
+            foreach (ShaderPart p in (this as ShaderGroup).parts)
+                p.FindUnusedTextures(unusedList, isEnabled);
         }
     }
 
@@ -724,6 +749,18 @@ namespace Thry
 
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
+
+        public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
+        {
+            if (isEnabled && Options.condition_enable != null)
+            {
+                isEnabled &= Options.condition_enable.Test();
+            }
+            if (!isEnabled && MaterialProperty != null && MaterialProperty.type == MaterialProperty.PropType.Texture && MaterialProperty.textureValue != null)
+            {
+                unusedList.Add(MaterialProperty.name);
+            }
+        }
     }
 
     public class TextureProperty : ShaderProperty
@@ -855,6 +892,10 @@ namespace Thry
         public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             throw new System.NotImplementedException();
+        }
+
+        public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
+        {
         }
     }
 

@@ -1,4 +1,4 @@
-// Material/Shader Inspector for Unity 2017/2018
+﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
 using System.Collections.Generic;
@@ -576,17 +576,35 @@ namespace Thry
         private void PopupTools(Rect position)
         {
             var menu = new GenericMenu();
-            int unusedTextures = MaterialCleaner.CountUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
-            int unusedProperties = MaterialCleaner.CountAllUnusedProperties(Materials);
-            if (unusedTextures > 0 && !IsLockedMaterial)
+            int unboundTextures = MaterialCleaner.CountUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+            int unboundProperties = MaterialCleaner.CountAllUnusedProperties(Materials);
+            List<string> unusedTextures = new List<string>();
+            MainGroup.FindUnusedTextures(unusedTextures, true);
+            if (unboundTextures > 0 && !IsLockedMaterial)
             {
-                menu.AddItem(new GUIContent($"List {unusedTextures} unused textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"List {unboundTextures} unbound textures"), false, delegate ()
                 {
                     MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
                 });
-                menu.AddItem(new GUIContent($"Remove {unusedTextures} unused textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"Remove {unboundTextures} unbound textures"), false, delegate ()
                 {
                     MaterialCleaner.RemoveUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent($"List 0 unbound textures"));
+                menu.AddDisabledItem(new GUIContent($"Remove 0 unbound textures"));
+            }
+            if (unusedTextures.Count > 0 && !IsLockedMaterial)
+            {
+                menu.AddItem(new GUIContent($"List {unusedTextures.Count} unused textures"), false, delegate ()
+                {
+                    Out("Unused textures", unusedTextures.Select(s => $"↳{s}").Aggregate((s1,s2) => s1+"\n"+s2));
+                });
+                menu.AddItem(new GUIContent($"Remove {unusedTextures.Count} unused textures"), false, delegate ()
+                {
+                    foreach (string t in unusedTextures) if (PropertyDictionary.ContainsKey(t)) PropertyDictionary[t].MaterialProperty.textureValue = null;
                 });
             }
             else
@@ -594,18 +612,27 @@ namespace Thry
                 menu.AddDisabledItem(new GUIContent($"List 0 unused textures"));
                 menu.AddDisabledItem(new GUIContent($"Remove 0 unused textures"));
             }
-            if (unusedProperties > 0 && !IsLockedMaterial)
+            if (unboundProperties > 0 && !IsLockedMaterial)
             {
-                menu.AddItem(new GUIContent($"Remove all {unusedProperties} unused properties"), false, delegate ()
+                menu.AddItem(new GUIContent($"Remove all {unboundProperties} unbound properties"), false, delegate ()
                 {
                     MaterialCleaner.RemoveAllUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
                 });
             }
             else
             {
-                menu.AddDisabledItem(new GUIContent($"Remove all 0 unused properties"));
+                menu.AddDisabledItem(new GUIContent($"Remove all 0 unbound properties"));
             }
             menu.DropDown(position);
+        }
+
+        static void Out(string s)
+        {
+            Debug.Log($"<color=#ff80ff>[Thry]</color> {s}");
+        }
+        static void Out(string header, string text)
+        {
+            Debug.Log($"<color=#ff80ff>[Thry] {header}</color> \n{text}");
         }
 
         private void HandleEvents()
