@@ -371,6 +371,7 @@ namespace Thry
             string materialFolder = Path.GetDirectoryName(materialFilePath);
             string guid = AssetDatabase.AssetPathToGUID(materialFilePath);
             string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid;
+            string shaderOptimizerButtonDrawerName = $"[{nameof(ThryShaderOptimizerLockButtonDrawer).Replace("Drawer", "")}]";
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "/";
 
@@ -621,6 +622,9 @@ namespace Thry
                         {
                             string originalSgaderName = psf.lines[i].Split('\"')[1];
                             psf.lines[i] = psf.lines[i].Replace(originalSgaderName, newShaderName);
+                        }else if (trimmedLine.StartsWith(shaderOptimizerButtonDrawerName))
+                        {
+                            psf.lines[i] = Regex.Replace(psf.lines[i], @"\d+\w*$", "1");
                         }
                         else if (trimmedLine.StartsWith("//#pragmamulti_compile_LOD_FADE_CROSSFADE", StringComparison.Ordinal))
                         {
@@ -1487,15 +1491,37 @@ namespace Thry
                 else material.SetFloat(GetOptimizerPropertyName(material.shader), 0);
             }
         }
+        private static bool GuessShader(Shader locked, out Shader shader)
+        {
+            string name = locked.name;
+            name = Regex.Match(name.Substring(7), @".*(?=\/)").Value;
+            ShaderInfo[] allShaders = ShaderUtil.GetAllShaderInfo();
+            int closestDistance = int.MaxValue;
+            string closestShaderName = null;
+            foreach (ShaderInfo s in allShaders)
+            {
+                if (!s.supported) continue;
+                int d = Helper.LevenshteinDistance(s.name, name);
+                if(d < closestDistance)
+                {
+                    closestDistance = d;
+                    closestShaderName = s.name;
+                }
+            }
+            shader = Shader.Find(closestShaderName);
+            return shader != null && closestDistance < name.Length / 2;
+        }
         private static UnlockSuccess UnlockConcrete (Material material)
         {
             Shader lockedShader = material.shader;
             // Revert to original shader
             string originalShaderName = material.GetTag("OriginalShader", false, "");
-            if (originalShaderName == "")
+            Shader orignalShader = null;
+            if (originalShaderName == "" && !GuessShader(lockedShader, out orignalShader))
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
+                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved. Please select a shader manually.", "Ok")) { }
                     Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
                     return UnlockSuccess.hasNoSavedShader;
                 }
@@ -1506,11 +1532,12 @@ namespace Thry
                 }
 
             }
-            Shader orignalShader = Shader.Find(originalShaderName);
-            if (orignalShader == null)
+            if(orignalShader == null) orignalShader = Shader.Find(originalShaderName);
+            if (orignalShader == null && !GuessShader(lockedShader, out orignalShader))
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
+                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved. Please select a shader manually.", "Ok")) { }
                     Debug.LogError("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
                     return UnlockSuccess.couldNotFindOriginalShader;
                 }

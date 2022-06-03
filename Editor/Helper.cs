@@ -216,6 +216,39 @@ namespace Thry
             if (ExpressionEvaluator.Evaluate<float>(exp, out f)) return f;
             return 0;
         }
+
+        // This code is an implementation of the pseudocode from the Wikipedia,
+        // showing a naive implementation.
+        // You should research an algorithm with better space complexity.
+        public static int LevenshteinDistance(string s, string t)
+        {
+            int n = s.Length;
+            int m = t.Length;
+            int[,] d = new int[n + 1, m + 1];
+            if (n == 0)
+            {
+                return m;
+            }
+            if (m == 0)
+            {
+                return n;
+            }
+            for (int i = 0; i <= n; d[i, 0] = i++)
+                ;
+            for (int j = 0; j <= m; d[0, j] = j++)
+                ;
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+            return d[n, m];
+        }
     }
 
     public class PersistentData
@@ -1727,17 +1760,16 @@ namespace Thry
             {
                 int count = 0;
                 SerializedObject serObj = new SerializedObject(m);
-                count += CountUnusedProperties(m, serObj, CleanPropertyType.Texture, false);
-                count += CountUnusedProperties(m, serObj, CleanPropertyType.Float, false);
-                count += CountUnusedProperties(m, serObj, CleanPropertyType.Color, false);
+                count += CountUnusedProperties(m, serObj, CleanPropertyType.Texture);
+                count += CountUnusedProperties(m, serObj, CleanPropertyType.Float);
+                count += CountUnusedProperties(m, serObj, CleanPropertyType.Color);
                 return count;
             });
         }
-        private static int CountUnusedProperties(Material mat, SerializedObject serObj, CleanPropertyType type, bool doPrint)
+        private static int CountUnusedProperties(Material mat, SerializedObject serObj, CleanPropertyType type, List<string> list = null)
         {
             var properties = serObj.FindProperty(GetPath(type));
             int count = 0;
-            if (doPrint) Debug.Log($"Unused properties of type {type} on material {mat.name}");
             if (properties != null && properties.isArray)
             {
                 for (int i = 0; i < properties.arraySize; i++)
@@ -1745,7 +1777,7 @@ namespace Thry
                     string propName = properties.GetArrayElementAtIndex(i).displayName;
                     if (!mat.HasProperty(propName))
                     {
-                        if (doPrint) Debug.Log(propName);
+                        if (list!=null) list.Add(propName);
                         count++;
                     }
                 }
@@ -1754,11 +1786,14 @@ namespace Thry
         }
         public static int ListUnusedProperties(CleanPropertyType type, params Material[] materials)
         {
-            return materials.Sum(m => CountUnusedProperties(m, new SerializedObject(m), type, true));
+            List<string> list = new List<string>();
+            int count = materials.Sum(m => CountUnusedProperties(m, new SerializedObject(m), type, list));
+            if(count > 0) ShaderEditor.Out($"Unbound properties of type {type}", list.Distinct().Select(s => $"↳{s}"));
+            return count;
         }
         public static int CountUnusedProperties(CleanPropertyType type, params Material[] materials)
         {
-            return materials.Sum(m => CountUnusedProperties(m, new SerializedObject(m), type, false));
+            return materials.Sum(m => CountUnusedProperties(m, new SerializedObject(m), type));
         }
 
         private static int RemoveUnusedProperties(Material mat, SerializedObject serObj, CleanPropertyType type)

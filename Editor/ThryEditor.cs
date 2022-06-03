@@ -582,57 +582,71 @@ namespace Thry
             MainGroup.FindUnusedTextures(unusedTextures, true);
             if (unboundTextures > 0 && !IsLockedMaterial)
             {
-                menu.AddItem(new GUIContent($"List {unboundTextures} unbound textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"Unbound Textures: {unboundTextures}/List in console"), false, delegate ()
                 {
                     MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
                 });
-                menu.AddItem(new GUIContent($"Remove {unboundTextures} unbound textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"Unbound Textures: {unboundTextures}/Remove"), false, delegate ()
                 {
                     MaterialCleaner.RemoveUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
                 });
             }
             else
             {
-                menu.AddDisabledItem(new GUIContent($"List 0 unbound textures"));
-                menu.AddDisabledItem(new GUIContent($"Remove 0 unbound textures"));
+                menu.AddDisabledItem(new GUIContent($"Unbound textures: 0"));
             }
             if (unusedTextures.Count > 0 && !IsLockedMaterial)
             {
-                menu.AddItem(new GUIContent($"List {unusedTextures.Count} unused textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"Unused Textures: {unusedTextures.Count}/List in console"), false, delegate ()
                 {
-                    Out("Unused textures", unusedTextures.Select(s => $"↳{s}").Aggregate((s1,s2) => s1+"\n"+s2));
+                    Out("Unused textures", unusedTextures.Select(s => $"↳{s}"));
                 });
-                menu.AddItem(new GUIContent($"Remove {unusedTextures.Count} unused textures"), false, delegate ()
+                menu.AddItem(new GUIContent($"Unused Textures: {unusedTextures.Count}/Remove"), false, delegate ()
                 {
                     foreach (string t in unusedTextures) if (PropertyDictionary.ContainsKey(t)) PropertyDictionary[t].MaterialProperty.textureValue = null;
                 });
             }
             else
             {
-                menu.AddDisabledItem(new GUIContent($"List 0 unused textures"));
-                menu.AddDisabledItem(new GUIContent($"Remove 0 unused textures"));
+                menu.AddDisabledItem(new GUIContent($"Unused textures: 0"));
             }
             if (unboundProperties > 0 && !IsLockedMaterial)
             {
-                menu.AddItem(new GUIContent($"Remove all {unboundProperties} unbound properties"), false, delegate ()
+                menu.AddItem(new GUIContent($"Unbound properties: {unboundProperties}/List in console"), false, delegate ()
+                {
+                    MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+                    MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Float, Materials);
+                    MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Color, Materials);
+                });
+                menu.AddItem(new GUIContent($"Unbound properties: {unboundProperties}/Remove"), false, delegate ()
                 {
                     MaterialCleaner.RemoveAllUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
                 });
             }
             else
             {
-                menu.AddDisabledItem(new GUIContent($"Remove all 0 unbound properties"));
+                menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
             menu.DropDown(position);
         }
 
-        static void Out(string s)
+        public static void Out(string s)
         {
             Debug.Log($"<color=#ff80ff>[Thry]</color> {s}");
         }
-        static void Out(string header, string text)
+        public static void Out(string header, params string[] lines)
         {
-            Debug.Log($"<color=#ff80ff>[Thry] {header}</color> \n{text}");
+            Debug.Log($"<color=#ff80ff>[Thry]</color> <b>{header}</b>\n{lines.Aggregate((s1, s2) => s1 + "\n" + s2)}");
+        }
+        public static void Out(string header, IEnumerable<string> lines)
+        {
+            if (lines.Count() == 0) Out(header);
+            else Debug.Log($"<color=#ff80ff>[Thry]</color> <b>{header}</b>\n{lines.Aggregate((s1, s2) => s1 + "\n" + s2)}");
+        }
+        public static void Out(string header, Color c, IEnumerable<string> lines)
+        {
+            if (lines.Count() == 0) Out(header);
+            else Debug.Log($"<color=#ff80ff>[Thry]</color> <b><color={ColorUtility.ToHtmlStringRGB(c)}>{header}</b></color> \n{lines.Aggregate((s1, s2) => s1 + "\n" + s2)}");
         }
 
         private void HandleEvents()
