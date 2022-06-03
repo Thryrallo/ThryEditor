@@ -1922,7 +1922,7 @@ namespace Thry
                             ShaderOptimizer.Lock(m,
                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
                                 applyShaderLater: true);
-                            s_shaderPropertyCombinations.Add(hash, m);
+                            s_shaderPropertyCombinations[hash] = m;
                         }
                     }
                     else if (lockState == 0)
@@ -1953,12 +1953,12 @@ namespace Thry
                         m.SetFloat(GetOptimizerPropertyName(m.shader), 1);
                     }
                 }
-                if(ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
-                {
-                    GUIUtility.ExitGUI();
-                }
             }
             AssetDatabase.Refresh();
+            if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
+            {
+                GUIUtility.ExitGUI();
+            }
             return true;
         }
 

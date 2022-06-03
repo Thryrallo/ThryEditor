@@ -1305,9 +1305,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
-                    Material[] materials = new Material[shaderOptimizer.targets.Length];
-                    for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
-                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
+                    ShaderOptimizer.SetLockedForAllMaterials(shaderOptimizer.targets.Select(t => t as Material), shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
                     RestoreChangeStack();
                 }
             }
@@ -1329,9 +1327,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
-                    Material[] materials = new Material[shaderOptimizer.targets.Length];
-                    for (int i = 0; i < materials.Length; i++) materials[i] = shaderOptimizer.targets[i] as Material;
-                    ShaderOptimizer.SetLockedForAllMaterials(materials, shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
+                    ShaderOptimizer.SetLockedForAllMaterials(shaderOptimizer.targets.Select(t => t as Material), shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
                     RestoreChangeStack();
                 }
             }
