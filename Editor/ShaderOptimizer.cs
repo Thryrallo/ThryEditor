@@ -1521,7 +1521,7 @@ namespace Thry
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
-                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved. Please select a shader manually.", "Ok")) { }
+                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) { }
                     Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
                     return UnlockSuccess.hasNoSavedShader;
                 }
@@ -1537,7 +1537,7 @@ namespace Thry
             {
                 if (material.shader.name.StartsWith("Hidden/"))
                 {
-                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved. Please select a shader manually.", "Ok")) { }
+                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) { }
                     Debug.LogError("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
                     return UnlockSuccess.couldNotFindOriginalShader;
                 }
