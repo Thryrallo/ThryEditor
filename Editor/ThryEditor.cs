@@ -533,6 +533,11 @@ namespace Thry
             if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
 
             GUILayout.FlexibleSpace();
+            Rect popupPosition;
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_tools, "Tools", 25, 25, out popupPosition))
+            {
+                PopupTools(popupPosition);
+            }
             ShaderTranslator.TranslationSelectionGUI(this);
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_thryIcon, "Thryrallo", 25, 25))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
@@ -566,6 +571,41 @@ namespace Thry
             if (GUILayout.Button("@UI Made by Thryrallo", Styles.made_by_style))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+        }
+
+        private void PopupTools(Rect position)
+        {
+            var menu = new GenericMenu();
+            int unusedTextures = MaterialCleaner.CountUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+            int unusedProperties = MaterialCleaner.CountAllUnusedProperties(Materials);
+            if (unusedTextures > 0 && !IsLockedMaterial)
+            {
+                menu.AddItem(new GUIContent($"List {unusedTextures} unused textures"), false, delegate ()
+                {
+                    MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+                });
+                menu.AddItem(new GUIContent($"Remove {unusedTextures} unused textures"), false, delegate ()
+                {
+                    MaterialCleaner.RemoveUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent($"List 0 unused textures"));
+                menu.AddDisabledItem(new GUIContent($"Remove 0 unused textures"));
+            }
+            if (unusedProperties > 0 && !IsLockedMaterial)
+            {
+                menu.AddItem(new GUIContent($"Remove all {unusedProperties} unused properties"), false, delegate ()
+                {
+                    MaterialCleaner.RemoveAllUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
+                });
+            }
+            else
+            {
+                menu.AddDisabledItem(new GUIContent($"Remove all 0 unused properties"));
+            }
+            menu.DropDown(position);
         }
 
         private void HandleEvents()
