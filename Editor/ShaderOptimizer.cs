@@ -341,6 +341,11 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "");
         }
 
+        public static bool IsAnimated(Material m, string prop)
+        {
+            return m.GetTag(prop + AnimatedTagSuffix, false, "0") != "0";
+        }
+
         public static string GetRenamedPropertySuffix(Material m)
         {
             string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
@@ -397,28 +402,12 @@ namespace Thry
 
             KeywordsUsedByPragmas.Clear();
 
-            Dictionary<string,bool> removeBetweenKeywords = new Dictionary<string,bool>();
             List<PropertyData> constantProps = new List<PropertyData>();
             List<RenamingProperty> animatedPropsToRename = new List<RenamingProperty>();
             List<RenamingProperty> animatedPropsToDuplicate = new List<RenamingProperty>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
-
-                if (prop.name.Contains("_commentIf"))
-                {
-                    if (Regex.IsMatch(prop.name, @".*_commentIfOne_(\d|\w)+") && prop.floatValue == 1)
-                    {
-                        string key = Regex.Match(prop.name, @"_commentIfOne_(\d|\w)+").Value.Replace("_commentIfOne_", "");
-                        removeBetweenKeywords.Add(key, false);
-                    }
-                    if (Regex.IsMatch(prop.name, @".*_commentIfZero_(\d|\w)+") && prop.floatValue == 0)
-                    {
-                        string key = Regex.Match(prop.name, @"_commentIfZero_(\d|\w)+").Value.Replace("_commentIfZero_", "");
-                        removeBetweenKeywords.Add(key, false);
-                    }
-                }
-
                 // Every property gets turned into a preprocessor variable
                 switch (prop.type)
                 {
@@ -569,7 +558,7 @@ namespace Thry
             // Parse shader and cginc files, also gets preprocessor macros
             List<ParsedShaderFile> shaderFiles = new List<ParsedShaderFile>();
             List<Macro> macros = new List<Macro>();
-            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material, removeBetweenKeywords))
+            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material))
                 return false;
 
             int commentKeywords = 0;
@@ -912,7 +901,7 @@ namespace Thry
         // Save each file as string[], parse each macro with //KSOEvaluateMacro
         // Only editing done is replacing #include "X" filepaths where necessary
         // most of these args could be private static members of the class
-        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros, Material material, Dictionary<string,bool> removeBetweenKeywords)
+        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros, Material material)
         {
             // Infinite recursion check
             if (filesParsed.Exists(x => x.filePath == filePath)) return true;
@@ -953,23 +942,48 @@ namespace Thry
 
             bool isCommentedOut = false;
 
-            int removedViaKeyword = 0;
+            int currentExcludeDepth = 0;
+            bool doExclude = false;
+            int excludeStartDepth = 0;
 
             for (int i=0; i<fileLines.Length; i++)
             {
                 string lineParsed = fileLines[i].TrimStart();
 
-                //Remove stuff between comment keywords
-                string trimmedForKeyword = lineParsed.TrimStart('/').TrimEnd();
-                if (removeBetweenKeywords.ContainsKey(trimmedForKeyword))
+                if(lineParsed.StartsWith("//", StringComparison.Ordinal))
                 {
-                    removeBetweenKeywords[trimmedForKeyword] = !removeBetweenKeywords[trimmedForKeyword];
-                    if (removeBetweenKeywords[trimmedForKeyword])
-                        removedViaKeyword++;
-                    else
-                        removedViaKeyword--;
+                    //Exclusion logic
+                    if(lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
+                    {
+                        var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
+                        if(condition.Test())
+                        {
+                            doExclude = true;
+                            excludeStartDepth = currentExcludeDepth;
+                        }
+                        currentExcludeDepth++;
+                    }
+                    else if(lineParsed.StartsWith("//endex", StringComparison.Ordinal))
+                    {
+                        if(currentExcludeDepth == 0)
+                        {
+                            Debug.LogError("[Shader Optimizer] Number of 'endex' statements does not match number of 'ifex' statements.");
+                        }
+                        else
+                        {
+                            currentExcludeDepth--;
+                            if(currentExcludeDepth == excludeStartDepth)
+                            {
+                                doExclude = false;
+                            }
+                        }
+                    }else
+                    {
+                        //Else is just a comment, ignore line
+                        continue;
+                    }
                 }
-                if (removedViaKeyword > 0) continue;
+                if (doExclude) continue;
 
                 //removes empty lines
                 if (lineParsed.Length == 0) continue;
@@ -982,10 +996,6 @@ namespace Thry
                 else if (lineParsed == "/*")
                 {
                     isCommentedOut = true;
-                    continue;
-                }
-                else if (lineParsed.StartsWith("//", StringComparison.Ordinal))
-                {
                     continue;
                 }
                 if (isCommentedOut) continue;
@@ -1080,7 +1090,7 @@ namespace Thry
                         {
                             includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
                         }
-                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, removeBetweenKeywords))
+                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material))
                             return false;
                         //Change include to be be ralative to only one directory up, because all files are moved into the same folder
                         fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());

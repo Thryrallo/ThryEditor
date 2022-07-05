@@ -1112,7 +1112,8 @@ namespace Thry
             PropGUI(prop, contentR, 0);
             if(ShaderEditor.Active.IsInAnimationMode)
                 MaterialEditor.PrepareMaterialPropertiesForAnimationMode(_otherMaterialProps, true);
-            for (int i = 0; i < _otherProperties.Length; i++){
+            for (int i = 0; i < _otherProperties.Length; i++)
+            {
                 PropGUI(_otherMaterialProps[i], contentR, i + 1);
             }
             EditorGUI.indentLevel = indentLevel;
