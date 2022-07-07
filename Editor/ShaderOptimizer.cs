@@ -977,6 +977,7 @@ namespace Thry
                                 doExclude = false;
                             }
                         }
+                        continue;
                     }else
                     {
                         //Else is just a comment, ignore line
