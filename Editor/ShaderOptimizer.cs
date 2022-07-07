@@ -385,19 +385,14 @@ namespace Thry
 
             // Get collection of all properties to replace
             // Simultaneously build a string of #defines for each CGPROGRAM
-            StringBuilder definesSB = new StringBuilder();
+            List<(string name,string value)> defines = new List<(string,string)>();
             // Append convention OPTIMIZER_ENABLED keyword
-            definesSB.Append(Environment.NewLine);
-            definesSB.Append("#define ");
-            definesSB.Append(OptimizerEnabledKeyword);
-            definesSB.Append(Environment.NewLine);
+            defines.Add((OptimizerEnabledKeyword,""));
             // Append all keywords active on the material
             foreach (string keyword in material.shaderKeywords)
             {
                 if (keyword == "") continue; // idk why but null keywords exist if _ keyword is used and not removed by the editor at some point
-                definesSB.Append("#define ");
-                definesSB.Append(keyword);
-                definesSB.Append(Environment.NewLine);
+                defines.Add((keyword,""));
             }
 
             KeywordsUsedByPragmas.Clear();
@@ -411,20 +406,10 @@ namespace Thry
                 // Every property gets turned into a preprocessor variable
                 switch (prop.type)
                 {
-                    case MaterialProperty.PropType.Float:
-                    case MaterialProperty.PropType.Range:
-                        definesSB.Append("#define PROP");
-                        definesSB.Append(prop.name.ToUpperInvariant());
-                        definesSB.Append(' ');
-                        definesSB.Append(prop.floatValue.ToString(CultureInfo.InvariantCulture));
-                        definesSB.Append(Environment.NewLine);
-                        break;
                     case MaterialProperty.PropType.Texture:
                         if (prop.textureValue != null)
                         {
-                            definesSB.Append("#define PROP");
-                            definesSB.Append(prop.name.ToUpperInvariant());
-                            definesSB.Append(Environment.NewLine);
+                            defines.Add(($"PROP{prop.name.ToUpperInvariant()}", ""));
                         }
                         break;
                 }
@@ -541,7 +526,6 @@ namespace Thry
                         break;
                 }
             }
-            string optimizerDefines = definesSB.ToString();
 
             // Get list of lightmode passes to delete
             List<string> disabledLightModes = new List<string>();
@@ -560,6 +544,16 @@ namespace Thry
             List<Macro> macros = new List<Macro>();
             if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material))
                 return false;
+
+            // Remove all defines where name if not in shader files
+            List<(string,string)> definesToRemove = new List<(string,string)>();
+            foreach((string name,string) def in defines)
+            {
+                if (shaderFiles.Any(x => x.lines.Any(l => l.Contains(def.name)) == false))
+                    definesToRemove.Add(def);
+            }
+            defines.RemoveAll(x => definesToRemove.Contains(x));
+            string optimizerDefines = defines.Select(m => $"\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
 
             int commentKeywords = 0;
 
@@ -967,7 +961,8 @@ namespace Thry
                     {
                         if(currentExcludeDepth == 0)
                         {
-                            Debug.LogError("[Shader Optimizer] Number of 'endex' statements does not match number of 'ifex' statements.");
+                            Debug.LogError("[Shader Optimizer] Number of 'endex' statements does not match number of 'ifex' statements."
+                                +$"\nError found in file '{filePath}' line {i+1}");
                         }
                         else
                         {
