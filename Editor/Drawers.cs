@@ -865,7 +865,11 @@ namespace Thry
             {
                 return EditorGUIUtility.singleLineHeight * 2.5f;
             }
-            if (hasKeyword) CheckKeyword(prop);
+            if (hasKeyword)
+            {
+                CheckKeyword(prop);
+                DrawingData.LastPropertyDoesntAllowAnimation = true;
+            } 
             return base.GetPropertyHeight(prop, label, editor);
         }
 
