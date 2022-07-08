@@ -442,24 +442,24 @@ namespace Thry
                 case DefineableConditionType.PROPERTY_BOOL:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    if (_compareType == CompareType.NONE) return _propertyObj.MaterialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return _propertyObj.MaterialProperty.floatValue == _floatValue;
-                    if (_compareType == CompareType.NOT_EQUAL) return _propertyObj.MaterialProperty.floatValue != _floatValue;
-                    if (_compareType == CompareType.SMALLER) return _propertyObj.MaterialProperty.floatValue < _floatValue;
-                    if (_compareType == CompareType.BIGGER) return _propertyObj.MaterialProperty.floatValue > _floatValue;
-                    if (_compareType == CompareType.BIGGER_EQ) return _propertyObj.MaterialProperty.floatValue >= _floatValue;
-                    if (_compareType == CompareType.SMALLER_EQ) return _propertyObj.MaterialProperty.floatValue <= _floatValue;
+                    if (_compareType == CompareType.NONE) return materialProperty.floatValue == 1;
+                    if (_compareType == CompareType.EQUAL) return materialProperty.floatValue == _floatValue;
+                    if (_compareType == CompareType.NOT_EQUAL) return materialProperty.floatValue != _floatValue;
+                    if (_compareType == CompareType.SMALLER) return materialProperty.floatValue < _floatValue;
+                    if (_compareType == CompareType.BIGGER) return materialProperty.floatValue > _floatValue;
+                    if (_compareType == CompareType.BIGGER_EQ) return materialProperty.floatValue >= _floatValue;
+                    if (_compareType == CompareType.SMALLER_EQ) return materialProperty.floatValue <= _floatValue;
                     break;
                 case DefineableConditionType.TEXTURE_SET:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    return _propertyObj.MaterialProperty.textureValue != null;
+                    return materialProperty.textureValue != null;
                 case DefineableConditionType.DROPDOWN:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    if (_compareType == CompareType.NONE) return _propertyObj.MaterialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return "" + _propertyObj.MaterialProperty.floatValue == _value;
-                    if (_compareType == CompareType.NOT_EQUAL) return "" + _propertyObj.MaterialProperty.floatValue != _value;
+                    if (_compareType == CompareType.NONE) return materialProperty.floatValue == 1;
+                    if (_compareType == CompareType.EQUAL) return "" + materialProperty.floatValue == _value;
+                    if (_compareType == CompareType.NOT_EQUAL) return "" + materialProperty.floatValue != _value;
                     break;
                 case DefineableConditionType.PROPERTY_IS_ANIMATED:
                     return ShaderOptimizer.IsAnimated(_materialInsteadOfEditor, _obj);

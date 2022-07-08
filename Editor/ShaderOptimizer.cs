@@ -1794,7 +1794,8 @@ namespace Thry
                 }
                 
 #endif
-                SetLockedForAllMaterials(materials, 1, showProgressbar: true, showDialog: PersistentData.Get<bool>("ShowLockInDialog", true), allowCancel: false);
+                if(SetLockedForAllMaterials(materials, 1, showProgressbar: true, showDialog: PersistentData.Get<bool>("ShowLockInDialog", true), allowCancel: false) == false)
+                    return false;
                 //returning true all the time, because build process cant be stopped it seems
                 return true;
             }
@@ -1967,6 +1968,9 @@ namespace Thry
                 {
                     Debug.LogError("Could not un-/lock material " + m.name);
                     Debug.LogError(e);
+                    EditorUtility.ClearProgressBar();
+                    AssetDatabase.StopAssetEditing();
+                    return false;
                 }
                 i++;
             }
