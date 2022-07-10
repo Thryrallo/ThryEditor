@@ -553,7 +553,9 @@ namespace Thry
                     definesToRemove.Add(def);
             }
             defines.RemoveAll(x => definesToRemove.Contains(x));
-            string optimizerDefines = defines.Select(m => $"\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
+            string optimizerDefines = "";
+            if(defines.Count > 0)
+                optimizerDefines = defines.Select(m => $"\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
 
             int commentKeywords = 0;
 
@@ -1966,8 +1968,15 @@ namespace Thry
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Could not un-/lock material " + m.name);
-                    Debug.LogError(e);
+                    string position = e.StackTrace.Split('\n').FirstOrDefault(l => l.Contains("ThryEditor"));
+                    if(position != null)
+                    {
+                        position = position.Split(new string[]{ "ThryEditor" }, StringSplitOptions.None).LastOrDefault();
+                        Debug.LogError("Could not un-/lock material " + m.name + " | Error thrown at " + position+ "\n"+e.StackTrace);
+                    }else
+                    {
+                        Debug.LogError("Could not un-/lock material " + m.name + "\n"+e.StackTrace);
+                    }
                     EditorUtility.ClearProgressBar();
                     AssetDatabase.StopAssetEditing();
                     return false;
