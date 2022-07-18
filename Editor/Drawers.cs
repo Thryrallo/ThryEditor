@@ -98,7 +98,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Init();
-            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth - position.x + 15, position.height);
+            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth + 15 - GuiHelper.GetSmallTextureVRAMWidth(prop), position.height);
 
             EditorGUI.BeginChangeCheck();
             curve = EditorGUI.CurveField(border_position, curve);
@@ -608,7 +608,7 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
                 Init(prop);
 
-            UpdateRects(position);
+            UpdateRects(position, prop);
             if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
             {
                 ShaderEditor.Input.Use();
@@ -621,9 +621,9 @@ namespace Thry
             GradientField();
         }
 
-        private void UpdateRects(Rect position)
+        private void UpdateRects(Rect position, MaterialProperty prop)
         {
-            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - position.x, position.height);
+            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - GuiHelper.GetSmallTextureVRAMWidth(prop), position.height);
             gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
         }
 

@@ -11,6 +11,7 @@ namespace Thry
 {
     public class GuiHelper
     {
+        public const float SMALL_TEXTURE_VRAM_DISPLAY_WIDTH = 80;
 
         public static void ConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
@@ -32,6 +33,12 @@ namespace Thry
             }
         }
 
+        public static float GetSmallTextureVRAMWidth(MaterialProperty textureProperty)
+        {
+            if (textureProperty.textureValue != null) return SMALL_TEXTURE_VRAM_DISPLAY_WIDTH;
+            return 0;
+        }
+
         public static void SmallTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, Action extraFoldoutGUI = null)
         {
             Rect thumbnailPos = position;
@@ -49,9 +56,9 @@ namespace Thry
             {
                 GUIContent content = new GUIContent(DrawingData.CurrentTextureProperty.VRAMString);
                 vramPos = thumbnailPos;
-                vramPos.x += thumbnailPos.width - 80;
-                vramPos.width = 80;
-                EditorGUI.LabelField(vramPos, content, Styles.label_align_right);
+                vramPos.x += thumbnailPos.width - SMALL_TEXTURE_VRAM_DISPLAY_WIDTH;
+                vramPos.width = SMALL_TEXTURE_VRAM_DISPLAY_WIDTH;
+                GUI.Label(vramPos, content, Styles.label_align_right);
             }
             //Prop right next to texture
             if (DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
@@ -70,11 +77,11 @@ namespace Thry
             {
                 //draw dropdown triangle
                 Rect trianglePos = thumbnailPos;
-                trianglePos.x += DrawingData.CurrentTextureProperty.XOffset * 15;
+                trianglePos.x += DrawingData.CurrentTextureProperty.XOffset * 15 - 2;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
-                if (GUI.Button(thumbnailPos, "", GUIStyle.none)) { }
+                if (GUI.Button(trianglePos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
-                    EditorStyles.foldout.Draw(thumbnailPos, false, false, DrawingData.CurrentTextureProperty.showFoldoutProperties, false);
+                    EditorStyles.foldout.Draw(trianglePos, false, false, DrawingData.CurrentTextureProperty.showFoldoutProperties, false);
 
                 if (DrawingData.IsEnabled)
                 {
