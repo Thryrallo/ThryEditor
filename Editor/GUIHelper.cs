@@ -37,22 +37,40 @@ namespace Thry
             Rect thumbnailPos = position;
             Rect foloutClickCheck = position;
             Rect tooltipRect = position;
-            thumbnailPos.x += hasFoldoutProperties ? 20 : 0;
+            if (hasFoldoutProperties)
+            {
+                thumbnailPos.x += 20;
+                thumbnailPos.width -= 20;
+            }
             editor.TexturePropertyMiniThumbnail(thumbnailPos, prop, label.text, label.tooltip);
+            //VRAM
+            Rect vramPos = Rect.zero;
+            if (DrawingData.CurrentTextureProperty.MaterialProperty.textureValue != null)
+            {
+                GUIContent content = new GUIContent(DrawingData.CurrentTextureProperty.VRAMString);
+                vramPos = thumbnailPos;
+                vramPos.x += thumbnailPos.width - 80;
+                vramPos.width = 80;
+                EditorGUI.LabelField(vramPos, content, Styles.label_align_right);
+            }
+            //Prop right next to texture
             if (DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
             {
                 ShaderProperty property = ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.Options.reference_property];
                 Rect r = position;
                 r.x += EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
+                r.width -= vramPos.width;
                 foloutClickCheck.width -= r.width;
                 property.Draw(new CRect(r), new GUIContent());
                 property.tooltip.ConditionalDraw(r);
             }
+            //Foldouts
             if (hasFoldoutProperties && DrawingData.CurrentTextureProperty != null)
             {
                 //draw dropdown triangle
-                thumbnailPos.x += DrawingData.CurrentTextureProperty.XOffset * 15;
+                Rect trianglePos = thumbnailPos;
+                trianglePos.x += DrawingData.CurrentTextureProperty.XOffset * 15;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
                 if (GUI.Button(thumbnailPos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
@@ -102,11 +120,14 @@ namespace Thry
 
         public static void BigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool scaleOffset)
         {
+            string text = label.text;
+            if(DrawingData.CurrentTextureProperty.MaterialProperty.textureValue != null)
+                text += $" ({DrawingData.CurrentTextureProperty.VRAMString})";
             Rect rect = GUILayoutUtility.GetRect(label, Styles.bigTextureStyle);
             float defaultLabelWidth = EditorGUIUtility.labelWidth;
             float defaultFieldWidth = EditorGUIUtility.fieldWidth;
             editor.SetDefaultGUIWidths();
-            editor.TextureProperty(position, prop, label.text, label.tooltip, scaleOffset);
+            editor.TextureProperty(position, prop, text, label.tooltip, scaleOffset);
             EditorGUIUtility.labelWidth = defaultLabelWidth;
             EditorGUIUtility.fieldWidth = defaultFieldWidth;
             Rect object_rect = new Rect(position);
@@ -140,6 +161,11 @@ namespace Thry
             {
                 border.height += 8;
                 border.height += editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.Options.reference_property].MaterialProperty);
+            }
+            if(DrawingData.CurrentTextureProperty.MaterialProperty != null)
+            {
+                border.height += 8;
+                border.height += EditorStyles.label.lineHeight;
             }
 
 
@@ -222,12 +248,14 @@ namespace Thry
                     }
                 }
 
-            //scale offset rect
+            //Change indent & label width
+            EditorGUI.indentLevel += 2;
+            float oldLabelWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 128;
 
+            //scale offset rect + foldout properties
             if (hasFoldoutProperties || DrawingData.CurrentTextureProperty.Options.reference_property != null)
             {
-                EditorGUI.indentLevel += 2;
-
                 if (DrawingData.CurrentTextureProperty.hasScaleOffset)
                 {
                     Rect scale_offset_rect = new Rect(position);
@@ -239,9 +267,6 @@ namespace Thry
 
                 //In case of locked material end disabled group here to allow editing of sub properties
                 if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
-
-                float oldLabelWidth = EditorGUIUtility.labelWidth;
-                EditorGUIUtility.labelWidth = 128;
 
                 PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
                 if (options.reference_property != null)
@@ -255,12 +280,20 @@ namespace Thry
                         ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
                         property.Draw(useEditorIndent: true);
                     }
-                EditorGUIUtility.labelWidth = oldLabelWidth;
-                EditorGUI.indentLevel -= 2;
 
                 //readd disabled group
                 if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
             }
+
+            //VRAM
+            if (DrawingData.CurrentTextureProperty.MaterialProperty.textureValue != null)
+            {
+                EditorGUILayout.LabelField("VRAM", DrawingData.CurrentTextureProperty.VRAMString);
+            }
+
+            //reset indent + label width
+            EditorGUI.indentLevel -= 2;
+            EditorGUIUtility.labelWidth = oldLabelWidth;
 
             Rect label_rect = new Rect(position);
             label_rect.x += 2;

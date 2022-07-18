@@ -400,6 +400,7 @@ namespace Thry
 
             if (EditorGUI.EndChangeCheck())
             {
+                OnPropertyValueChanged();
                 ExecuteOnValueActions(ShaderEditor.Active.Materials);
                 //Check if property is being animated
                 if (this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
@@ -422,6 +423,11 @@ namespace Thry
                 if ((ShaderEditor.Input.is_alt_down && Options.altClick != null)) Options.altClick.Perform(ShaderEditor.Active.Materials);
                 else if (Options.onClick != null) Options.onClick.Perform(ShaderEditor.Active.Materials);
             }
+        }
+
+        protected virtual void OnPropertyValueChanged()
+        {
+
         }
 
         private void DrawLockedAnimated()
@@ -768,12 +774,34 @@ namespace Thry
         public bool showFoldoutProperties = false;
         public bool hasFoldoutProperties = false;
         public bool hasScaleOffset = false;
+        public string VRAMString = "";
 
         public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, options, false, property_index)
         {
             doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
             this.hasFoldoutProperties = hasScaleOffset || DoReferencePropertiesExist;
+            UpdateVRAM();
+        }
+
+        void UpdateVRAM()
+        {
+            if (MaterialProperty.textureValue != null)
+            {
+                var details = TextureHelper.VRAM.CalcSize(MaterialProperty.textureValue);
+                //this.VRAMString = $"{TextureHelper.VRAM.ToByteString(details.size)} ({details.format})";
+                this.VRAMString = $"{TextureHelper.VRAM.ToByteString(details.size)}";
+            }
+            else
+            {
+                VRAMString = null;
+            }
+        }
+
+        protected override void OnPropertyValueChanged()
+        {
+            base.OnPropertyValueChanged();
+            UpdateVRAM();
         }
 
         public override void PreDraw()
