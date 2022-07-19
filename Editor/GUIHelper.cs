@@ -508,8 +508,8 @@ namespace Thry
         // Mimics the normal map import warning - written by Orels1
         static bool TextureImportWarningBox(string message){
             GUILayout.BeginVertical(new GUIStyle(EditorStyles.helpBox));
-            EditorGUILayout.LabelField(message, new GUIStyle(EditorStyles.label) {
-                fontSize = 9, wordWrap = true
+            GUILayout.Label(message, new GUIStyle(EditorStyles.label) {
+                fontSize = 10, wordWrap = true
             });
             EditorGUILayout.BeginHorizontal(new GUIStyle() {
                 alignment = TextAnchor.MiddleRight
@@ -524,17 +524,17 @@ namespace Thry
             GUILayout.EndVertical();
             return buttonPress;
         }
-        public static void sRGBWarning(MaterialProperty tex){
+
+        public static void ColorspaceWarning(MaterialProperty tex, bool shouldHaveSRGB){
             if (tex.textureValue){
-                string sRGBWarning = "This texture is marked as sRGB, but should not contain color information.";
                 string texPath = AssetDatabase.GetAssetPath(tex.textureValue);
                 TextureImporter texImporter;
                 var importer = TextureImporter.GetAtPath(texPath) as TextureImporter;
                 if (importer != null){
                     texImporter = (TextureImporter)importer;
-                    if (texImporter.sRGBTexture){
-                        if (TextureImportWarningBox(sRGBWarning)){
-                            texImporter.sRGBTexture = false;
+                    if (texImporter.sRGBTexture != shouldHaveSRGB){
+                        if (TextureImportWarningBox(shouldHaveSRGB?Locale.editor.Get("colorSpaceWarningSRGB"):Locale.editor.Get("colorSpaceWarningLinear"))){
+                            texImporter.sRGBTexture = shouldHaveSRGB;
                             texImporter.SaveAndReimport();
                         }
                     }

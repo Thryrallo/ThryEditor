@@ -624,6 +624,9 @@ namespace Thry
 
         public string keyword;
 
+        MaterialPropertyDrawer[] _customDecorators;
+        Rect[] _customDecoratorRects;
+
         public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(shaderEditor, propertyIdentifier, xOffset, displayName, tooltip)
         {
 
@@ -638,6 +641,12 @@ namespace Thry
             {
                 this.doCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
                 this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
+            }
+
+            if(DrawingData.LastPropertyDecorators.Count > 0)
+            {
+                _customDecorators = DrawingData.LastPropertyDecorators.ToArray();
+                _customDecoratorRects = new Rect[DrawingData.LastPropertyDecorators.Count];
             }
 
             this.doDrawTwoFields = options.reference_property != null;
@@ -696,6 +705,14 @@ namespace Thry
             if (!useEditorIndent)
                 EditorGUI.indentLevel = XOffset + 1;
 
+            if(_customDecorators != null && doCustomDrawLogic)
+            {
+                for(int i= 0;i<_customDecorators.Length;i++)
+                {
+                    _customDecoratorRects[i] = EditorGUILayout.GetControlRect(false, GUILayout.Height(_customDecorators[i].GetPropertyHeight(MaterialProperty, content.text, ActiveShaderEditor.Editor)));
+                }
+            }
+
             if (doCustomDrawLogic)
             {
                 DrawDefault();
@@ -730,6 +747,14 @@ namespace Thry
             else
             {
                 ActiveShaderEditor.Editor.ShaderProperty(this.MaterialProperty, content);
+            }
+
+            if(_customDecorators != null && doCustomDrawLogic)
+            {
+                for(int i= 0;i<_customDecorators.Length;i++)
+                {
+                    _customDecorators[i].OnGUI(_customDecoratorRects[i], MaterialProperty, content, ShaderEditor.Active.Editor);
+                }
             }
 
             EditorGUI.indentLevel = oldIndentLevel;

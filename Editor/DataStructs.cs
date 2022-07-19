@@ -67,7 +67,9 @@ namespace Thry
         public static bool LastPropertyDoesntAllowAnimation;
         public static DrawerType LastPropertyDrawerType;
         public static MaterialPropertyDrawer LastPropertyDrawer;
+        public static List<MaterialPropertyDrawer> LastPropertyDecorators = new List<MaterialPropertyDrawer>();
         public static bool IsEnabled = true;
+        public static bool IsCollectingProperties = false;
 
         public static ShaderPart LastInitiatedPart;
 
@@ -77,6 +79,15 @@ namespace Thry
             LastPropertyDoesntAllowAnimation = false;
             LastPropertyDrawer = null;
             LastPropertyDrawerType = DrawerType.None;
+            LastPropertyDecorators.Clear();
+        }
+
+        public static void RegisterDecorator(MaterialPropertyDrawer drawer)
+        {
+            if(IsCollectingProperties)
+            {
+                LastPropertyDecorators.Add(drawer);
+            }
         }
     }
 

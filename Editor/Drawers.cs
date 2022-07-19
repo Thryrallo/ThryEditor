@@ -758,6 +758,7 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
+            DrawingData.RegisterDecorator(this);
             return size + 6;
         }
 
@@ -1213,18 +1214,29 @@ namespace Thry
         }
     }
 
-    public class sRGBWarningDrawer : MaterialPropertyDrawer
+    public class sRGBWarningDecorator : MaterialPropertyDrawer
     {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        bool _isSRGB = true;
+
+        public sRGBWarningDecorator()
         {
-            GuiHelper.ConfigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
-            GuiHelper.sRGBWarning(prop);
+            _isSRGB = false;
         }
+
+		public sRGBWarningDecorator(string shouldHaveSRGB)
+		{
+			this._isSRGB = shouldHaveSRGB.ToLower() == "true";
+		}
+
+		public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+		{
+			GuiHelper.ColorspaceWarning(prop, _isSRGB);
+		}
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            DrawingData.LastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
+            DrawingData.RegisterDecorator(this);
+            return 0;
         }
     }
 
