@@ -1302,8 +1302,8 @@ namespace Thry
         {
             Material material = shaderOptimizer.targets[0] as Material;
             Shader shader = material.shader;
-            bool isLocked = shader.name.StartsWith("Hidden/") && 
-                (material.GetTag("OriginalShader",false,"") != "" || shader.GetPropertyDefaultFloatValue(shader.FindPropertyIndex(shaderOptimizer.name)) == 1);
+            bool isLocked = shader.name.StartsWith("Hidden/Locked/") || (shader.name.StartsWith("Hidden/") && 
+                (material.GetTag("OriginalShader",false,"") != "" && shader.GetPropertyDefaultFloatValue(shader.FindPropertyIndex(shaderOptimizer.name)) == 1));
             //this will make sure the button is unlocked if you manually swap to an unlocked shader
             //shaders that have the ability to be locked shouldnt really be hidden themself. at least it wouldnt make too much sense
             if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 1 && isLocked == false)
