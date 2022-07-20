@@ -114,13 +114,7 @@ namespace Thry
                 if(thry_message.text.Length > 0)
                 {
                     doDrawLine = true;
-                    GUIStyle style = new GUIStyle();
-                    style.richText = true;
-                    style.margin = new RectOffset(7, 0, 0, 0);
-                    style.wordWrap = true;
-                    if(thry_message.center_position)
-                        style.alignment = TextAnchor.MiddleCenter;
-                    GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), style);
+                    GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), thry_message.center_position?Styles.richtext_center: Styles.richtext);
                     Rect r = GUILayoutUtility.GetLastRect();
                     if (Event.current.type == EventType.MouseDown && r.Contains(Event.current.mousePosition))
                         thry_message.action.Perform(ShaderEditor.Active?.Materials);
@@ -129,7 +123,7 @@ namespace Thry
                 {
                     doDrawLine = true;
                     if(thry_message.center_position) GUILayout.Label(new GUIContent(thry_message.texture.loaded_texture, thry_message.hover), EditorStyles.centeredGreyMiniLabel, GUILayout.MaxHeight(thry_message.texture.height));
-                    else GUILayout.Label(new GUIContent(thry_message.texture.loaded_texture, thry_message.hover), EditorStyles.centeredGreyMiniLabel, GUILayout.MaxHeight(thry_message.texture.height));
+                    else GUILayout.Label(new GUIContent(thry_message.texture.loaded_texture, thry_message.hover), GUILayout.MaxHeight(thry_message.texture.height));
                     Rect r = GUILayoutUtility.GetLastRect();
                     if (Event.current.type == EventType.MouseDown && r.Contains(Event.current.mousePosition))
                         thry_message.action.Perform(ShaderEditor.Active?.Materials);

@@ -170,12 +170,12 @@ namespace Thry
             importer.SaveAndReimport();
         }
 
-        private Texture p_loaded_texture;
+        static Dictionary<string, Texture> s_loaded_textures = new Dictionary<string, Texture>();
         public Texture loaded_texture
         {
             get
             {
-                if (p_loaded_texture == null)
+                if(!s_loaded_textures.ContainsKey(name) || s_loaded_textures[name] == null)
                 {
                     if(IsUrl())
                     {
@@ -186,7 +186,7 @@ namespace Thry
                                 _isLoading = false;
                                 Texture2D tex = new Texture2D(1,1, TextureFormat.ARGB32, false);
                                 ImageConversion.LoadImage(tex, b, false);
-                                p_loaded_texture = tex;
+                                s_loaded_textures[name] = tex;
                             });
                             _isLoading = true;
                         }
@@ -194,12 +194,16 @@ namespace Thry
                     {
                         string path = FileHelper.FindFile(name, "texture");
                         if (path != null)
-                            p_loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                            s_loaded_textures[name] = AssetDatabase.LoadAssetAtPath<Texture>(path);
                         else
-                            p_loaded_texture = new Texture2D(1, 1);
-                        }
+                            s_loaded_textures[name] = new Texture2D(1, 1);
+                    }
+                    if(!s_loaded_textures.ContainsKey(name))
+                    {
+                        return null;
+                    }
                 }
-                return p_loaded_texture;
+                return s_loaded_textures[name];
             }
         }
 
