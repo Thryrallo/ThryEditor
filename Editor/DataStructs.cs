@@ -35,11 +35,8 @@ namespace Thry
 
     public class URL
     {
-        public const string MODULE_COLLECTION = "https://thryeditor.thryrallo.de/files/modules.json";
-        public const string SETTINGS_MESSAGE_URL = "http://thryeditor.thryrallo.de/message.json";
-
-        public const string DATA_SHARE_SEND = "http://thryeditor.thryrallo.de/send_analytics.php";
-        public const string DATA_SHARE_GET_MY_DATA = "https://thryeditor.thryrallo.de/get_my_data.php";
+        public const string MODULE_COLLECTION = "https://raw.githubusercontent.com/Thryrallo/ThryEditorStreamedResources/main/modules.json";
+        public const string SETTINGS_MESSAGE_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditorStreamedResources/main/Messages/settingsWindow.json";
         public const string COUNT_PROJECT = "http://thryeditor.thryrallo.de/count_project.php";
         public const string COUNT_USER = "http://thryeditor.thryrallo.de/count_user.php";
     }
@@ -140,13 +137,13 @@ namespace Thry
         public TextureData texture = null;
         public DefineableAction action = new DefineableAction();
         public string hover = "";
+        public bool center_position = false;
         public DefineableCondition condition_show = new DefineableCondition();
     }
 
     public class TextureData
     {
         public string name = null;
-
         public int width = 128;
         public int height = 128;
 
@@ -155,6 +152,8 @@ namespace Thry
         public int ansioLevel = 1;
         public FilterMode filterMode = FilterMode.Bilinear;
         public TextureWrapMode wrapMode = TextureWrapMode.Repeat;
+        public bool center_position = false;
+        bool _isLoading;
 
         public void ApplyModes(Texture texture)
         {
@@ -178,14 +177,47 @@ namespace Thry
             {
                 if (p_loaded_texture == null)
                 {
-                    string path = FileHelper.FindFile(name, "texture");
-                    if (path != null)
-                        p_loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
-                    else
-                        p_loaded_texture = new Texture2D(1, 1);
+                    if(IsUrl())
+                    {
+                        if(!_isLoading)
+                        {
+                            WebHelper.DownloadBytesASync(name, (byte[] b) =>
+                            {
+                                _isLoading = false;
+                                Texture2D tex = new Texture2D(1,1, TextureFormat.ARGB32, false);
+                                ImageConversion.LoadImage(tex, b, false);
+                                p_loaded_texture = tex;
+                            });
+                            _isLoading = true;
+                        }
+                    }else
+                    {
+                        string path = FileHelper.FindFile(name, "texture");
+                        if (path != null)
+                            p_loaded_texture = AssetDatabase.LoadAssetAtPath<Texture>(path);
+                        else
+                            p_loaded_texture = new Texture2D(1, 1);
+                        }
                 }
                 return p_loaded_texture;
             }
+        }
+
+        private static TextureData ParseForThryParser(string s)
+        {
+            if(s.StartsWith("{") == false)
+            {
+                return new TextureData()
+                {
+                    name = s
+                };
+            }
+            return Parser.ParseToObject<TextureData>(s);
+        }
+
+        bool IsUrl()
+        {
+            return name.StartsWith("http") && (name.EndsWith(".jpg") || name.EndsWith(".png"));
         }
     }
 
@@ -217,6 +249,7 @@ namespace Thry
         {
             return Parse(s);
         }
+
         // value,property1=value1,property2=value2
         public static PropertyValueAction Parse(string s)
         {
@@ -241,6 +274,7 @@ namespace Thry
         {
             return ParseToArray(s);
         }
+
         public static PropertyValueAction[] ParseToArray(string s)
         {
             //s = v,p1=v1,p2=v2;v3
