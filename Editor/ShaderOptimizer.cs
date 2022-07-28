@@ -47,7 +47,6 @@ using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 using VRC.SDK3.Avatars.Components;
 using System.Reflection;
 #endif
-// v9
 
 namespace Thry
 {
