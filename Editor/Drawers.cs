@@ -1190,11 +1190,7 @@ namespace Thry
 
     public class VectorLabelDrawer : MaterialPropertyDrawer
     {
-        string _labelX = "X";
-        string _labelY = "Y";
-        string _labelZ = "Z";
-        string _labelW = "W";
-        string[] _labelStrings = new string[4];
+        string[] _labelStrings = new string[4] {"X", "Y", "Z", "W"};
         int vectorChannels = 0;
 
         public VectorLabelDrawer(string labelX, string labelY)
@@ -1229,8 +1225,6 @@ namespace Thry
             Rect labelR     = new Rect(position.x,                position.y, position.width * 0.41f,        position.height);
             Rect contentR   = new Rect(position.x + labelR.width, position.y, position.width - labelR.width, position.height);
 
-            // float[] values = new float[] {prop.vectorValue.x, prop.vectorValue.y, prop.vectorValue.z, prop.vectorValue.w};
-            // GUIContent[] labels = new GUIContent[] { new GUIContent(_labelX), new GUIContent(_labelY), new GUIContent(_labelZ), new GUIContent(_labelW) }
             float[] values = new float[vectorChannels];
             GUIContent[] labels = new GUIContent[vectorChannels];
 
@@ -1245,7 +1239,20 @@ namespace Thry
 
             if (EditorGUI.EndChangeCheck())
             {
-                prop.vectorValue = new Vector4(values[0], values[1], values[2], values[3]);
+                switch(vectorChannels)
+                {
+                    case 2:
+                        prop.vectorValue = new Vector4(values[0], values[1], prop.vectorValue.z, prop.vectorValue.w);
+                        break;
+                    case 3:
+                        prop.vectorValue = new Vector4(values[0], values[1], values[2], prop.vectorValue.w);
+                        break;
+                    case 4:
+                        prop.vectorValue = new Vector4(values[0], values[1], values[2], values[3]);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
