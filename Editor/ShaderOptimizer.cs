@@ -554,7 +554,7 @@ namespace Thry
             defines.RemoveAll(x => definesToRemove.Contains(x));
             string optimizerDefines = "";
             if(defines.Count > 0)
-                optimizerDefines = defines.Select(m => $"\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
+                optimizerDefines = defines.Select(m => $"\r\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
 
             int commentKeywords = 0;
 
