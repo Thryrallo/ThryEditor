@@ -530,7 +530,10 @@ namespace Thry
                 DoShowSearchBar = !DoShowSearchBar;
                 if(!DoShowSearchBar) ClearSearch();
             }
-            Presets.PresetGUI(this);
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets" , 25, 25))
+            {
+                Presets.OpenPresetsMenu(GUILayoutUtility.GetLastRect(), this);
+            }
 
             //draw master label text after ui elements, so it can be positioned between
             if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
