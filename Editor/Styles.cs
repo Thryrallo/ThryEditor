@@ -13,14 +13,64 @@ namespace Thry
     {
         public static GUIStyle masterLabel { get; private set; } = new GUIStyle(GUI.skin.label) { richText = true, alignment = TextAnchor.MiddleCenter };
         public static GUIStyle EDITOR_LABEL_HEADER { get; private set; } = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
-        public static GUIStyle dropDownHeader { get; private set; } = new GUIStyle(new GUIStyle("ShurikenModuleTitle"))
+        public static GUIStyle dropDownHeader { get; private set; } = new GUIStyle(EditorStyles.toolbarButton)
         {
             font = new GUIStyle(EditorStyles.label).font,
             fontSize = GUI.skin.font.fontSize,
+            alignment = TextAnchor.MiddleLeft,
             border = new RectOffset(15, 7, 4, 4),
             fixedHeight = 22,
             contentOffset = new Vector2(20f, -2f)
         };
+
+        static Dictionary<Color, GUIStyle> m_colorDopdowns = new Dictionary<Color, GUIStyle>();
+        public static GUIStyle DropdownWithColor(Color color)
+        {
+            if (m_colorDopdowns.ContainsKey(color) == false)
+            {
+                Debug.Log(color);
+                GUIStyleState stateNormal = new GUIStyleState()
+                {
+                    background = TextureHelper.GetStaticColorTexture(color),
+                    textColor = dropDownHeader.normal.textColor
+                };
+                GUIStyleState statePressed = new GUIStyleState()
+                {
+                    background = TextureHelper.GetStaticColorTexture(color * 1.2f),
+                    textColor = dropDownHeader.normal.textColor
+                };
+                m_colorDopdowns[color] = new GUIStyle(dropDownHeader)
+                {
+                    normal = stateNormal,
+                    hover = statePressed
+                };
+            }
+            return m_colorDopdowns[color];
+        }
+
+        static Dictionary<Color, GUIStyle> m_backgroundRects = new Dictionary<Color, GUIStyle>();
+        public static GUIStyle BackgroundRectStyle(Color color)
+        {
+            if (m_backgroundRects.ContainsKey(color) == false)
+            {
+                if (color == COLOR_BACKGROUND_1)
+                {
+                    m_backgroundRects[color] = GUIStyle.none;
+                }
+                else
+                {
+                    GUIStyleState stateNormal = new GUIStyleState()
+                    {
+                        background = TextureHelper.GetStaticColorTexture(Color.Lerp(COLOR_BACKGROUND_1, color, 0.3f))
+                    };
+                    m_backgroundRects[color] = new GUIStyle()
+                    {
+                        normal = stateNormal
+                    };
+                }
+            }
+            return m_backgroundRects[color];
+        }
 
         public static Color COLOR_BG { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.4f, 0.4f, 0.4f) : new Color(0.8f, 0.8f, 0.8f);
         public static Color COLOR_FG { get; private set; } = (EditorGUIUtility.isProSkin) ? new Color(0.8f, 0.8f, 0.8f) : Color.black;
@@ -31,6 +81,8 @@ namespace Thry
         private static Color COLOR_ICON_ACTIVE_RED = Color.red;
         public static Color COLOR_BACKGROUND_1 = EditorGUIUtility.isProSkin ? new Color(0.27f, 0.27f, 0.27f) : new Color(0.65f, 0.65f, 0.65f);
         public static Color COLOR_BACKGROUND_2 = EditorGUIUtility.isProSkin ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.85f, 0.85f, 0.85f);
+
+
 
         public static GUIStyle dropDownHeaderLabel { get; private set; } = new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.MiddleCenter };
         public static GUIStyle label_align_right { get; private set; } = new GUIStyle(EditorStyles.label) { alignment = TextAnchor.UpperRight };

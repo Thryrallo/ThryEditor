@@ -129,6 +129,8 @@ namespace Thry
         public string file_name;
         public string remote_version_url;
         public string generic_string;
+        public string border_color;
+        public Color background_color = Styles.COLOR_BACKGROUND_1;
     }
 
     public class ButtonData

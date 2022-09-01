@@ -186,6 +186,12 @@ namespace Thry
             if (objtype.IsGenericType && objtype.GetGenericTypeDefinition() == typeof(Dictionary<,>)) return ConvertToDictionary(parsed,objtype);
             if (objtype.IsArray) return ConvertToArray(parsed, objtype);
             if (objtype.IsEnum) return ConvertToEnum(parsed, objtype);
+            if (objtype == typeof(Color) && parsed is string)
+            {
+                Color c;
+                if (ColorUtility.TryParseHtmlString(parsed as string, out c))
+                    return c;
+            }
             if (objtype.IsClass) return ConvertToObject(parsed, objtype);
             if (objtype.IsValueType && !objtype.IsEnum) return ConvertToObject(parsed, objtype);
             return null;

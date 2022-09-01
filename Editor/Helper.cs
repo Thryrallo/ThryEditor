@@ -472,6 +472,14 @@ namespace Thry
             return new Gradient();
         }
 
+        public static Texture2D GetStaticColorTexture(Color color)
+        {
+            Texture2D tex = new Texture2D(16, 16);
+            tex.SetPixels(Enumerable.Repeat(color, 16 * 16).ToArray());
+            tex.Apply();
+            return tex;
+        }
+
         private static Texture2D s_BackgroundTexture;
 
         public static Texture2D GetBackgroundTexture()

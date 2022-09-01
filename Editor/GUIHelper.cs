@@ -898,6 +898,10 @@ namespace Thry
             position.width -= p_xOffset_total - position.x;
             position.x = p_xOffset_total;
 
+            // Remove margins added by the Editor (https://docs.unity3d.com/ScriptReference/Editor.UseDefaultMargins.html)
+            //position.x -= EditorStyles.inspectorDefaultMargins.padding.left;
+            position.width += EditorStyles.inspectorDefaultMargins.padding.right + 1;
+
             DrawingData.LastGuiObjectHeaderRect = position;
 
             DrawBoxAndContent(position, e, label, options);
@@ -910,7 +914,7 @@ namespace Thry
         {
             if (options.reference_property != null && ShaderEditor.Active.PropertyDictionary.ContainsKey(options.reference_property))
             {
-                GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropDownHeader);
+                GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.DropdownWithColor(options.background_color));
                 DrawIcons(rect, options, e);
 
                 Rect togglePropertyRect = new Rect(rect);
@@ -929,7 +933,7 @@ namespace Thry
                 EditorGUIUtility.fieldWidth = fieldWidth;
             }else if(keyword != null)
             {
-                GUI.Box(rect, "     " + content.text, Styles.dropDownHeader);
+                GUI.Box(rect, "     " + content.text, Styles.DropdownWithColor(options.background_color));
                 DrawIcons(rect, options, e);
 
                 Rect togglePropertyRect = new Rect(rect);
@@ -945,7 +949,7 @@ namespace Thry
             }
             else
             {
-                GUI.Box(rect, content, Styles.dropDownHeader);
+                GUI.Box(rect, content, Styles.DropdownWithColor(options.background_color));
                 DrawIcons(rect, options, e);
             }
 

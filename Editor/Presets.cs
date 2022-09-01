@@ -31,30 +31,27 @@ namespace Thry.ThryEditor
         }
 
         private static PresetsPopupGUI window;
-        public static void PresetGUI(ShaderEditor shaderEditor)
+        public static void OpenPresetsMenu(ShaderEditor shaderEditor)
         {
-            if(GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets", 25, 25))
+            Event.current.Use();
+            if (Event.current.button == 0)
             {
-                Event.current.Use();
-                if (Event.current.button == 0)
-                {
-                    Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
-                    pos.x = Mathf.Min(EditorWindow.focusedWindow.position.x + EditorWindow.focusedWindow.position.width - 250, pos.x);
-                    pos.y = Mathf.Min(EditorWindow.focusedWindow.position.y + EditorWindow.focusedWindow.position.height - 200, pos.y);
+                Vector2 pos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+                pos.x = Mathf.Min(EditorWindow.focusedWindow.position.x + EditorWindow.focusedWindow.position.width - 250, pos.x);
+                pos.y = Mathf.Min(EditorWindow.focusedWindow.position.y + EditorWindow.focusedWindow.position.height - 200, pos.y);
 
-                    if (window != null)
-                        window.Close();
-                    window = ScriptableObject.CreateInstance<PresetsPopupGUI>();
-                    window.position = new Rect(pos.x, pos.y, 250, 200);
-                    string[] names = presetNames;
-                    window.Init(names, p_presetMaterials, shaderEditor);
-                    window.titleContent = new GUIContent("Preset List");
-                    window.ShowUtility();
-                }
-                else
-                {
-                    EditorUtility.DisplayCustomMenu(GUILayoutUtility.GetLastRect(), presetNames.Select(s => new GUIContent(s)).ToArray(), 0, ApplyQuickPreset, shaderEditor);
-                }
+                if (window != null)
+                    window.Close();
+                window = ScriptableObject.CreateInstance<PresetsPopupGUI>();
+                window.position = new Rect(pos.x, pos.y, 250, 200);
+                string[] names = presetNames;
+                window.Init(names, p_presetMaterials, shaderEditor);
+                window.titleContent = new GUIContent("Preset List");
+                window.ShowUtility();
+            }
+            else
+            {
+                EditorUtility.DisplayCustomMenu(GUILayoutUtility.GetLastRect(), presetNames.Select(s => new GUIContent(s)).ToArray(), 0, ApplyQuickPreset, shaderEditor);
             }
         }
 

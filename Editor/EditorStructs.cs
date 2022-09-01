@@ -466,14 +466,12 @@ namespace Thry
 
         }
 
-        public ShaderGroup(ShaderEditor shaderEditor, PropertyOptions options) : base(shaderEditor, null, 0, "", new PropertyOptions())
+        public ShaderGroup(ShaderEditor shaderEditor, PropertyOptions options) : base(shaderEditor, null, 0, "", options)
         {
-            this.Options = options;
         }
 
         public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, xOffset, displayName, options)
         {
-
         }
 
         public void addPart(ShaderPart part)
@@ -572,12 +570,14 @@ namespace Thry
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
             if (this.headerDrawer.IsExpanded)
             {
+                GUILayout.BeginVertical(Styles.BackgroundRectStyle(Options.background_color));
                 EditorGUILayout.Space();
                 EditorGUI.BeginDisabledGroup(headerDrawer.DisableContent);
                 foreach (ShaderPart part in parts)
                 {
                     part.Draw();
                 }
+                GUILayout.EndVertical();
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.Space();
             }

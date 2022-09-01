@@ -241,7 +241,7 @@ namespace Thry
                 //extract json data from display name
                 PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
 
-                int offset = options.offset + headerCount;
+                int offset = options.offset + headerCount - 1;
 
                 DrawingData.ResetLastDrawerData();
                 Editor.GetPropertyHeight(props[i]);
@@ -257,7 +257,7 @@ namespace Thry
                         break;
                     case ThryPropertyType.headerWithEnd:
                     case ThryPropertyType.legacy_header_start:
-                        offset = options.offset + ++headerCount;
+                        offset = options.offset + ++headerCount - 1;
                         break;
                     case ThryPropertyType.legacy_header_end:
                         headerStack.Pop();
@@ -382,6 +382,8 @@ namespace Thry
                 ShaderOptimizerProperty = PropertyDictionary[ShaderOptimizer.GetOptimizerPropertyName(Shader)];
                 if(ShaderOptimizerProperty != null) ShaderOptimizerProperty.ExemptFromLockedDisabling = true;
             }
+
+            Debug.Log(Parser.Serialize(Styles.dropDownHeader));
 
             _renderQueueProperty = new RenderQueueProperty(this);
             _vRCFallbackProperty = new VRCFallbackProperty(this);
@@ -530,7 +532,10 @@ namespace Thry
                 DoShowSearchBar = !DoShowSearchBar;
                 if(!DoShowSearchBar) ClearSearch();
             }
-            Presets.PresetGUI(this);
+            if (GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets", 25, 25))
+            {
+                Presets.OpenPresetsMenu(this);
+            }
 
             //draw master label text after ui elements, so it can be positioned between
             if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
