@@ -502,7 +502,7 @@ namespace Thry
                 case DefineableConditionType.TEXTURE_SET:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    return materialProperty.textureValue != null;
+                    return (materialProperty.textureValue == null) == (_compareType == CompareType.EQUAL);
                 case DefineableConditionType.DROPDOWN:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
@@ -518,7 +518,10 @@ namespace Thry
                     if(condition1!=null&&condition2!=null) return condition1.Test() && condition2.Test();
                     break;
                 case DefineableConditionType.OR:
-                    if (condition1 != null && condition2 != null) return condition1.Test() || condition2.Test();
+                    if(condition1 != null && condition2 != null) return condition1.Test() || condition2.Test();
+                    break;
+                case DefineableConditionType.NOT:
+                    if(condition1 != null) return !condition1.Test();
                     break;
             }
             
@@ -589,6 +592,13 @@ namespace Thry
 
             s = Strip(s);
 
+            if(s.StartsWith("!"))
+            {
+                con.type = DefineableConditionType.NOT;
+                con.condition1 = Parse(s.Substring(1), useThisMaterialInsteadOfOpenEditor);
+                return con;
+            }
+
             int depth = 0;
             for (int i = 0; i < s.Length - 1; i++)
             {
@@ -630,6 +640,10 @@ namespace Thry
                 {
                     con.type = DefineableConditionType.EDITOR_VERSION;
                     con.data = s.Replace("ThryEditor", "");
+                }else if(IsTextureNullComparission(s, useThisMaterialInsteadOfOpenEditor))
+                {
+                    con.type = DefineableConditionType.TEXTURE_SET;
+                    con.data = s.Replace("TEXTURE_SET", "");
                 }
                 return con;
             }
@@ -646,6 +660,26 @@ namespace Thry
                 return con;
             }
             return con;
+        }
+
+        static bool IsTextureNullComparission(string data, Material useThisMaterialInsteadOfOpenEditor = null)
+        {
+            // Check if property is a texture property && is checking for null
+            Material m = GetReferencedMaterial(useThisMaterialInsteadOfOpenEditor);
+            if( m == null) return false;
+            if(data.Length < 7) return false;
+            if(data.EndsWith("null") == false) return false;
+            string propertyName = data.Substring(0, data.Length - 6);
+            if(m.HasProperty(propertyName) == false) return false;
+            MaterialProperty p = MaterialEditor.GetMaterialProperty(new Material[]{m}, propertyName);
+            return p.type == MaterialProperty.PropType.Texture;
+        }
+
+        static Material GetReferencedMaterial(Material useThisMaterialInsteadOfOpenEditor = null)
+        {
+            if( useThisMaterialInsteadOfOpenEditor != null ) return useThisMaterialInsteadOfOpenEditor;
+            if( ShaderEditor.Active != null ) return ShaderEditor.Active.Materials[0];
+            return null;
         }
 
         private static string Strip(string s)
@@ -687,7 +721,8 @@ namespace Thry
         TEXTURE_SET,
         DROPDOWN,
         AND,
-        OR
+        OR,
+        NOT
     }
 
     #endregion
