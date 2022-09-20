@@ -21,10 +21,13 @@ namespace Thry.ThryEditor
             {
                 if (p_presetNames == null)
                 {
+                    // Get current time
+                    var time = System.DateTime.Now;
                     p_presetMaterials = AssetDatabase.FindAssets("t:material")
                         .Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)))
                         .Where(m => IsPreset(m)).ToArray();
                     p_presetNames = p_presetMaterials.Select(m => m.GetTag(TAG_PRESET_NAME,false,m.name)).Prepend("").ToArray();
+                    Debug.Log($"Presets: {p_presetNames.Length} presets found in {System.DateTime.Now - time}");
                 }
                 return p_presetNames;
             }

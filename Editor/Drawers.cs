@@ -587,26 +587,31 @@ namespace Thry
     public class GradientDrawer : MaterialPropertyDrawer
     {
         GradientData data;
-        bool is_init = false;
 
         Rect border_position;
         Rect gradient_position;
 
-        private void Init(MaterialProperty prop)
+        Dictionary<UnityEngine.Object, GradientData> _gradient_data = new Dictionary<UnityEngine.Object, GradientData>();
+
+        private void Init(MaterialProperty prop, bool replace = false)
         {
+            if(!replace && _gradient_data.ContainsKey(prop.targets[0]))
+            {
+                data = _gradient_data[prop.targets[0]];
+                return;
+            }
             data = new GradientData();
             data.PreviewTexture = prop.textureValue;
-            is_init = true;
+            _gradient_data[prop.targets[0]] = data;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            if (!is_init)
-                Init(prop);
+            Init(prop);
 
             EditorGUI.BeginChangeCheck();
             if (EditorGUI.EndChangeCheck())
-                Init(prop);
+                Init(prop, true);
 
             UpdateRects(position, prop);
             if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
