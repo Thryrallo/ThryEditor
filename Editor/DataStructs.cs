@@ -438,8 +438,8 @@ namespace Thry
                 _compareType = compareType;
 
                 string[] parts = Regex.Split(data, compareString);
-                _obj = parts[0];
-                _value = parts[parts.Length - 1];
+                _obj = parts[0].Trim();
+                _value = parts[parts.Length - 1].Trim();
 
                 _floatValue = Parser.ParseFloat(_value);
                 if (ShaderEditor.Active != null && ShaderEditor.Active.PropertyDictionary.ContainsKey(_obj))
