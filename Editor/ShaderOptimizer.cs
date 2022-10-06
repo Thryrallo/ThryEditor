@@ -974,7 +974,24 @@ namespace Thry
                             }
                         }
                         continue;
-                    }else
+                    }
+                    // Specifically requires no whitespace between // and KSOEvaluateMacro
+                    else if (lineParsed == "//KSOEvaluateMacro")
+                    {
+                        string macro = "";
+                        string lineTrimmed = null;
+                        do
+                        {
+                            i++;
+                            lineTrimmed = fileLines[i].TrimEnd();
+                            if (lineTrimmed.EndsWith("\\", StringComparison.Ordinal))
+                                macro += lineTrimmed.TrimEnd('\\') + Environment.NewLine; // keep new lines in macro to make output more readable
+                            else macro += lineTrimmed;
+                        } 
+                        while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
+                        macrosList.Add(macro);
+                    }
+                    else
                     {
                         //Else is just a comment, ignore line
                         continue;
@@ -1004,47 +1021,46 @@ namespace Thry
                     if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
-                        if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
+                        bool removeIfCondition = false;
+                        string keyword = "";
+
+                        if (!hasMultiple && lineParsed.Contains("defined"))
                         {
-                            string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
-                            bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && KeywordsUsedByPragmas.Contains(keyword);
-                            bool isRemoved = false;
-                            if (isIncluded && allowRemoveal)
-                            {
-                                if ((material.IsKeywordEnabled(keyword) == false))
-                                {
-                                    isIncluded = false;
-                                    isNotIncludedAtDepth = ifStacking;
-                                    isRemoved = true;
-                                }
-                            }
-                            ifStacking++;
-                            removeEndifStack.Push(isRemoved);
-                            if (isRemoved) continue;
+                            removeIfCondition = false;
+                            keyword = lineParsed.Replace("#if", "").TrimStart().Replace("defined", "").Trim(new char[] {'(', ')'}).Trim();
+                        }
+                        else if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
+                        {
+                            removeIfCondition = false;
+                            keyword = lineParsed.Substring("#ifdef".Length).Trim().Split(' ')[0];
                         }
                         else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
                         {
-                            string keyword = lineParsed.Substring(7).Trim().Split(' ')[0];
-                            bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false && KeywordsUsedByPragmas.Contains(keyword);
-                            bool isRemoved = false;
-                            if (isIncluded && allowRemoveal)
-                            {
-                                if (material.IsKeywordEnabled(keyword) == true)
-                                {
-                                    isIncluded = false;
-                                    isNotIncludedAtDepth = ifStacking;
-                                    isRemoved = true;
-                                }
-                            }
-                            ifStacking++;
-                            removeEndifStack.Push(isRemoved);
-                            if (isRemoved) continue;
+                            removeIfCondition = true;
+                            keyword = lineParsed.Substring("#ifndef".Length).Trim().Split(' ')[0];
                         }
                         else
                         {
                             ifStacking++;
                             removeEndifStack.Push(false);
+                            continue;
                         }
+
+                        // 
+                        bool allowRemoval = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && KeywordsUsedByPragmas.Contains(keyword);
+                        bool isRemoved = false;
+                        if (isIncluded && allowRemoval)
+                        {
+                            if (material.IsKeywordEnabled(keyword) == removeIfCondition)
+                            {
+                                isIncluded = false;
+                                isNotIncludedAtDepth = ifStacking;
+                                isRemoved = true;
+                            }
+                        }
+                        ifStacking++;
+                        removeEndifStack.Push(isRemoved);
+                        if (isRemoved) continue;
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
@@ -1067,8 +1083,14 @@ namespace Thry
                 //Remove pragmas
                 if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
                 {
-                    string keyword = lineParsed.Split(' ')[2];
-                    if (KeywordsUsedByPragmas.Contains(keyword) == false) KeywordsUsedByPragmas.Add(keyword);
+                    string trimmed = lineParsed.Replace("#pragma shader_feature_local", "").Replace("#pragma shader_feature", "").TrimStart();
+                    
+                    string[] keywords = trimmed.Split(' ');
+                    foreach (string keyword in keywords)
+                    {
+                        string kw = keyword.Trim();
+                        if (KeywordsUsedByPragmas.Contains(kw) == false) KeywordsUsedByPragmas.Add(kw);
+                    }
                     continue;
                 }
 
@@ -1093,22 +1115,6 @@ namespace Thry
                         fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
                     }
                 }
-                // Specifically requires no whitespace between // and KSOEvaluateMacro
-                else if (lineParsed == "//KSOEvaluateMacro")
-                {
-                    string macro = "";
-                    string lineTrimmed = null;
-                    do
-                    {
-                        i++;
-                        lineTrimmed = fileLines[i].TrimEnd();
-                        if (lineTrimmed.EndsWith("\\", StringComparison.Ordinal))
-                            macro += lineTrimmed.TrimEnd('\\') + Environment.NewLine; // keep new lines in macro to make output more readable
-                        else macro += lineTrimmed;
-                    } 
-                    while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
-                    macrosList.Add(macro);
-                }
 
                 includedLines.Add(fileLines[i]);
             }
@@ -1117,21 +1123,24 @@ namespace Thry
             // Revise this later to not do so many string ops
             foreach (string macroString in macrosList)
             {
-                string m = macroString;
+                string m = macroString.TrimStart();
                 Macro macro = new Macro();
-                m = m.TrimStart();
-                if (m[0] != '#') continue;
-                m = m.Remove(0, "#".Length).TrimStart();
-                if (!m.StartsWith("define", StringComparison.Ordinal)) continue;
-                m = m.Remove(0, "define".Length).TrimStart();
-                int firstParenthesis = m.IndexOf('(');
-                macro.name = m.Substring(0, firstParenthesis);
-                m = m.Remove(0, firstParenthesis + "(".Length);
-                int lastParenthesis = m.IndexOf(')');
-                string allArgs = m.Substring(0, lastParenthesis).Remove(' ').Remove('\t');
-                macro.args = allArgs.Split(',');
-                m = m.Remove(0, lastParenthesis + ")".Length);
-                macro.contents = m;
+
+                if (!m.StartsWith("#define", StringComparison.Ordinal)) continue;
+                m = m.Remove(0, "#define".Length).TrimStart();
+                
+                string allArgs = "";
+                if (m.Contains('('))
+                {
+                    macro.name = m.Split('(')[0];
+                    m = m.Remove(0, macro.name.Length + "(".Length);
+                    allArgs = m.Split(')')[0];
+                    allArgs = allArgs.Trim().Replace(" ","").Replace("\t","");
+                    macro.args = allArgs.Split(',');
+                    m = m.Remove(0, allArgs.Length + ")".Length).TrimStart();
+                    macro.contents = m;
+                }
+                else continue;
                 macros.Add(macro);
             }
 
@@ -1224,7 +1233,7 @@ namespace Thry
                 // Replace inline smapler states
                 else if (UseInlineSamplerStates && lineTrimmed.StartsWith("//KSOInlineSamplerState", StringComparison.Ordinal))
                 {
-                    string lineParsed = lineTrimmed.Remove(' ').Remove('\t');
+                    string lineParsed = lineTrimmed.Replace(" ","").Replace("\t","");
                     // Remove all whitespace
                     int firstParenthesis = lineParsed.IndexOf('(');
                     int lastParenthesis = lineParsed.IndexOf(')');
@@ -1351,7 +1360,7 @@ namespace Thry
                     if ((macroIndex = lines[i].IndexOf(macro.name + "(", StringComparison.Ordinal)) != -1)
                     {
                         // Macro exists on this line, make sure its not the definition
-                        string lineParsed = lineTrimmed.Remove(' ').Remove('\t');
+                        string lineParsed = lineTrimmed.Replace(" ","").Replace("\t","");
                         if (lineParsed.StartsWith("#define", StringComparison.Ordinal)) continue;
 
                         // parse args between first '(' and first ')'
