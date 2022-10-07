@@ -1449,9 +1449,9 @@ namespace Thry
                             case PropertyType.Float:
                                 // Special Handling for ints 
                                 if(constant.lastDeclorationType == "int")
-                                    sb.Append("int(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
+                                    sb.Append(constant.value.x.ToString("F0", CultureInfo.InvariantCulture));
                                 else
-                                    sb.Append("float(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
+                                    sb.Append(constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture));
                                 break;
                             case PropertyType.Vector:
                                 sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
