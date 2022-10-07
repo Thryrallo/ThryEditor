@@ -937,6 +937,10 @@ namespace Thry
             int ifStacking = 0;
             Stack<bool> removeEndifStack = new Stack<bool>();
 
+            // for debugging
+            List<string> compileDefinesList = new List<string>();
+            Stack<int> compileDefinesListIndexStack = new Stack<int>();
+
             bool isCommentedOut = false;
 
             int currentExcludeDepth = 0;
@@ -952,11 +956,13 @@ namespace Thry
                     //Exclusion logic
                     if(lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
                     {
-                        var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
-                        if(condition.Test())
-                        {
-                            doExclude = true;
-                            excludeStartDepth = currentExcludeDepth;
+                        if(!doExclude){ // If already excluding, only track depth
+                            var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
+                            if(condition.Test())
+                            {
+                                doExclude = true;
+                                excludeStartDepth = currentExcludeDepth;
+                            }
                         }
                         currentExcludeDepth++;
                     }
@@ -975,34 +981,13 @@ namespace Thry
                                 doExclude = false;
                             }
                         }
-                        continue;
                     }
-                    // Specifically requires no whitespace between // and KSOEvaluateMacro
-                    else if (lineParsed == "//KSOEvaluateMacro")
-                    {
-                        string macro = "";
-                        string lineTrimmed = null;
-                        do
-                        {
-                            i++;
-                            lineTrimmed = fileLines[i].TrimEnd();
-                            if (lineTrimmed.EndsWith("\\", StringComparison.Ordinal))
-                                macro += lineTrimmed.TrimEnd('\\') + Environment.NewLine; // keep new lines in macro to make output more readable
-                            else macro += lineTrimmed;
-                        } 
-                        while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
-                        macrosList.Add(macro);
-                    }
-                    else
-                    {
-                        //Else is just a comment, ignore line
-                        continue;
-                    }
+                    continue;
                 }
                 if (doExclude) continue;
 
                 //removes empty lines
-                if (lineParsed.Length == 0) continue;
+                if (string.IsNullOrEmpty(lineParsed)) continue;
                 //removes code that is commented
                 if (lineParsed== "*/")
                 {
@@ -1064,6 +1049,8 @@ namespace Thry
                             ifStacking++;
                             removeEndifStack.Push(false);
                         }
+                        compileDefinesListIndexStack.Push(compileDefinesList.Count);
+                        compileDefinesList.Add(lineParsed + " //" + (i+1));
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
@@ -1077,6 +1064,18 @@ namespace Thry
                         if (ifStacking == isNotIncludedAtDepth)
                         {
                             isIncluded = true;
+                        }
+                        // Next two code blocks are for debugging
+                        if(compileDefinesListIndexStack.Count > 0)
+                        {
+                            int index = compileDefinesListIndexStack.Pop();
+                            compileDefinesList[index] = compileDefinesList[index] + " => " + (i+1);
+                        }
+                        if(removeEndifStack.Count == 0)
+                        {
+                            Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
+                                +$"\nError found in file '{filePath}' line {i+1}. Current output copied to clipboard.");
+                            GUIUtility.systemCopyBuffer = string.Join(Environment.NewLine, includedLines);
                         }
                         if (removeEndifStack.Pop()) continue;
                     }
@@ -1677,6 +1676,33 @@ namespace Thry
         }
 
         #endregion
+
+        // ifex indenting
+        [MenuItem("Assets/Thry/Shaders/Ifex Indenting", false, 303)]
+        static void IfExIndenting()
+        {
+            Shader s = Selection.objects[0] as Shader;
+            if (s == null) return;
+            string path = AssetDatabase.GetAssetPath(s);
+            if(string.IsNullOrEmpty(path)) return;
+            // Load the shader file
+            string[] lines = File.ReadAllLines(path);
+            int indent = 0;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (line.Contains("//endex")) indent = Mathf.Max(0,indent - 1);
+                lines[i] = new string(' ', indent * 4) + line;
+                if (line.StartsWith("//ifex")) indent++;
+            }
+            GUIUtility.systemCopyBuffer = string.Join("\n", lines);
+        }
+
+        [MenuItem("Assets/Thry/Shaders/Ifex Indenting", true)]
+        static bool IfExIndentingValidator()
+        {
+            return Selection.objects.Length == 1 && Selection.objects[0] is Shader;
+        }
 
         //---GameObject + Children Locking
 
