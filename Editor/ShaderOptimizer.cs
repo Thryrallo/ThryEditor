@@ -937,10 +937,6 @@ namespace Thry
             int ifStacking = 0;
             Stack<bool> removeEndifStack = new Stack<bool>();
 
-            // for debugging
-            List<string> compileDefinesList = new List<string>();
-            Stack<int> compileDefinesListIndexStack = new Stack<int>();
-
             bool isCommentedOut = false;
 
             int currentExcludeDepth = 0;
@@ -981,6 +977,22 @@ namespace Thry
                                 doExclude = false;
                             }
                         }
+                    }
+                    // Specifically requires no whitespace between // and KSOEvaluateMacro
+                    else if (lineParsed == "//KSOEvaluateMacro")
+                    {
+                        string macro = "";
+                        string lineTrimmed = null;
+                        do
+                        {
+                            i++;
+                            lineTrimmed = fileLines[i].TrimEnd();
+                            if (lineTrimmed.EndsWith("\\", StringComparison.Ordinal))
+                                macro += lineTrimmed.TrimEnd('\\') + Environment.NewLine; // keep new lines in macro to make output more readable
+                            else macro += lineTrimmed;
+                        } 
+                        while (lineTrimmed.EndsWith("\\", StringComparison.Ordinal));
+                        macrosList.Add(macro);
                     }
                     continue;
                 }
@@ -1049,8 +1061,6 @@ namespace Thry
                             ifStacking++;
                             removeEndifStack.Push(false);
                         }
-                        compileDefinesListIndexStack.Push(compileDefinesList.Count);
-                        compileDefinesList.Add(lineParsed + " //" + (i+1));
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
@@ -1065,12 +1075,7 @@ namespace Thry
                         {
                             isIncluded = true;
                         }
-                        // Next two code blocks are for debugging
-                        if(compileDefinesListIndexStack.Count > 0)
-                        {
-                            int index = compileDefinesListIndexStack.Pop();
-                            compileDefinesList[index] = compileDefinesList[index] + " => " + (i+1);
-                        }
+                        // for debugging
                         if(removeEndifStack.Count == 0)
                         {
                             Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
