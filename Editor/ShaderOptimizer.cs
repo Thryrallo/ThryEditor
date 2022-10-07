@@ -211,6 +211,7 @@ namespace Thry
 
         public static readonly string[] ValidPropertyDataTypes = new string[]
         {
+            "int",
             "float",
             "float2",
             "float3",
@@ -265,6 +266,7 @@ namespace Thry
             public PropertyType type;
             public string name;
             public Vector4 value;
+            public string lastDeclorationType;
         }
 
         public class Macro
@@ -385,8 +387,6 @@ namespace Thry
             // Get collection of all properties to replace
             // Simultaneously build a string of #defines for each CGPROGRAM
             List<(string name,string value)> defines = new List<(string,string)>();
-            // Append convention OPTIMIZER_ENABLED keyword
-            defines.Add((OptimizerEnabledKeyword,""));
             // Append all keywords active on the material
             foreach (string keyword in material.shaderKeywords)
             {
@@ -552,6 +552,8 @@ namespace Thry
                     definesToRemove.Add(def);
             }
             defines.RemoveAll(x => definesToRemove.Contains(x));
+            // Append convention OPTIMIZER_ENABLED keyword
+            defines.Add((OptimizerEnabledKeyword,""));
             string optimizerDefines = "";
             if(defines.Count > 0)
                 optimizerDefines = defines.Select(m => $"\r\n #define {m.name} {m.value}").Aggregate((s1, s2) => s1 + s2);
@@ -1021,46 +1023,47 @@ namespace Thry
                     if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
-                        bool removeIfCondition = false;
-                        string keyword = "";
-
-                        if (!hasMultiple && lineParsed.Contains("defined"))
+                        if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
-                            removeIfCondition = false;
-                            keyword = lineParsed.Replace("#if", "").TrimStart().Replace("defined", "").Trim(new char[] {'(', ')'}).Trim();
-                        }
-                        else if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
-                        {
-                            removeIfCondition = false;
-                            keyword = lineParsed.Substring("#ifdef".Length).Trim().Split(' ')[0];
+                            string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
+                            bool allowRemoveal = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && KeywordsUsedByPragmas.Contains(keyword);
+                            bool isRemoved = false;
+                            if (isIncluded && allowRemoveal)
+                            {
+                                if ((material.IsKeywordEnabled(keyword) == false))
+                                {
+                                    isIncluded = false;
+                                    isNotIncludedAtDepth = ifStacking;
+                                    isRemoved = true;
+                                }
+                            }
+                            ifStacking++;
+                            removeEndifStack.Push(isRemoved);
+                            if (isRemoved) continue;
                         }
                         else if (!hasMultiple && lineParsed.StartsWith("#ifndef", StringComparison.Ordinal))
                         {
-                            removeIfCondition = true;
-                            keyword = lineParsed.Substring("#ifndef".Length).Trim().Split(' ')[0];
+                            string keyword = lineParsed.Substring(7).Trim().Split(' ')[0];
+                            bool allowRemoveal = DontRemoveIfBranchesKeywords.Contains(keyword) == false && KeywordsUsedByPragmas.Contains(keyword);
+                            bool isRemoved = false;
+                            if (isIncluded && allowRemoveal)
+                            {
+                                if (material.IsKeywordEnabled(keyword) == true)
+                                {
+                                    isIncluded = false;
+                                    isNotIncludedAtDepth = ifStacking;
+                                    isRemoved = true;
+                                }
+                            }
+                            ifStacking++;
+                            removeEndifStack.Push(isRemoved);
+                            if (isRemoved) continue;
                         }
                         else
                         {
                             ifStacking++;
                             removeEndifStack.Push(false);
-                            continue;
                         }
-
-                        // 
-                        bool allowRemoval = (DontRemoveIfBranchesKeywords.Contains(keyword) == false) && KeywordsUsedByPragmas.Contains(keyword);
-                        bool isRemoved = false;
-                        if (isIncluded && allowRemoval)
-                        {
-                            if (material.IsKeywordEnabled(keyword) == removeIfCondition)
-                            {
-                                isIncluded = false;
-                                isNotIncludedAtDepth = ifStacking;
-                                isRemoved = true;
-                            }
-                        }
-                        ifStacking++;
-                        removeEndifStack.Push(isRemoved);
-                        if (isRemoved) continue;
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
@@ -1431,6 +1434,7 @@ namespace Thry
                             string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
                             if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
                             {
+                                constant.lastDeclorationType = precedingText.TrimStart();
                                 declarationFound = true;
                                 continue;
                             }
@@ -1443,7 +1447,11 @@ namespace Thry
                         switch (constant.type)
                         {
                             case PropertyType.Float:
-                                sb.Append("float(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
+                                // Special Handling for ints 
+                                if(constant.lastDeclorationType == "int")
+                                    sb.Append("int(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
+                                else
+                                    sb.Append("float(" + constant.value.x.ToString(CultureInfo.InvariantCulture) + ")");
                                 break;
                             case PropertyType.Vector:
                                 sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
