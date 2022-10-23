@@ -694,6 +694,11 @@ namespace Thry
             else m.DisableKeyword(keyword);
         }
 
+        public void UpdateKeywordFromValue()
+        {
+            if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, MaterialProperty.floatValue == 1);
+        }
+
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             PreDraw();

@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -258,15 +259,18 @@ namespace Thry
         public static PropertyValueAction Parse(string s)
         {
             s = s.Trim();
-            string[] parts = s.Split(',');
-            if (parts.Length > 0)
+            string[] valueAndActions = s.Split(new string[]{"=>"}, System.StringSplitOptions.RemoveEmptyEntries);
+            if (valueAndActions.Length > 1)
             {
                 PropertyValueAction propaction = new PropertyValueAction();
-                propaction.value = parts[0];
+                propaction.value = valueAndActions[0];
                 List<DefineableAction> actions = new List<DefineableAction>();
-                for (int i = 1; i < parts.Length; i++)
+                string[] actionStrings = valueAndActions[1].Split(';');
+                for (int i = 0; i < actionStrings.Length; i++)
                 {
-                    actions.Add(DefineableAction.Parse(parts[i]));
+                    if(string.IsNullOrWhiteSpace(actionStrings[i]))
+                        continue;
+                    actions.Add(DefineableAction.Parse(actionStrings[i]));
                 }
                 propaction.actions = actions.ToArray();
                 return propaction;
@@ -281,10 +285,10 @@ namespace Thry
 
         public static PropertyValueAction[] ParseToArray(string s)
         {
-            //s = v,p1=v1,p2=v2;v3
+            //s := 0=>p1=v1;p2=v2;1=>p1=v3...
             List<PropertyValueAction> propactions = new List<PropertyValueAction>();
-            string[] parts = s.Split(';');
-            foreach (string p in parts)
+            string[] valueAndActionMatches = Regex.Matches(s, @"[^;]+=>.+?(?=(;[^;]+=>)|$)", RegexOptions.Multiline).Cast<Match>().Select(m => m.Value).ToArray();
+            foreach (string p in valueAndActionMatches)
             {
                 PropertyValueAction propertyValueAction = PropertyValueAction.Parse(p);
                 if (propertyValueAction != null)

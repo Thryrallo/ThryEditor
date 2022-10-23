@@ -791,10 +791,11 @@ namespace Thry
         public static void SetMaterialValue(string key, string value)
         {
             Material[] materials = ShaderEditor.Active.Materials;
-            MaterialProperty p = ShaderEditor.Active.GetMaterialProperty(key);
+            ShaderProperty p = ShaderEditor.Active.PropertyDictionary[key];
             if (p != null)
             {
-                MaterialHelper.SetMaterialPropertyValue(p, value);
+                MaterialHelper.SetMaterialPropertyValue(p.MaterialProperty, value);
+                p.UpdateKeywordFromValue();
             }
             else if (key == "render_queue")
             {
