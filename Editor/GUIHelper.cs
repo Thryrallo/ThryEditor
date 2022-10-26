@@ -215,7 +215,7 @@ namespace Thry
             }
             else if (prop.textureValue != null)
             {
-                GUI.DrawTexture(preview_rect, prop.textureValue);
+                EditorGUI.DrawPreviewTexture(preview_rect, prop.textureValue);
             }
             GUI.DrawTexture(preview_rect_border, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 3, 5);
 
