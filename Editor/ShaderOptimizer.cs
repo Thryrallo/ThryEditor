@@ -266,7 +266,7 @@ namespace Thry
             public PropertyType type;
             public string name;
             public Vector4 value;
-            public string lastDeclorationType;
+            public string lastDeclarationType;
         }
 
         public class Macro
@@ -1430,6 +1430,9 @@ namespace Thry
                         // Skip invalid matches (probably a subname of another symbol)
                         if (!(ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight)))
                             continue;
+                        // Skip inline comments
+                        if (charLeft == '*' && charRight == '*' && constantIndex >= 2 && lines[i][constantIndex - 2] == '/')
+                            continue;
                         
                         // Skip basic declarations of unity shader properties i.e. "uniform float4 _Color;"
                         if (!declarationFound)
@@ -1438,7 +1441,7 @@ namespace Thry
                             string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
                             if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
                             {
-                                constant.lastDeclorationType = precedingText.TrimStart();
+                                constant.lastDeclarationType = precedingText.TrimStart();
                                 declarationFound = true;
                                 continue;
                             }
@@ -1451,11 +1454,15 @@ namespace Thry
                         switch (constant.type)
                         {
                             case PropertyType.Float:
+                                string constantValue;
                                 // Special Handling for ints 
-                                if(constant.lastDeclorationType == "int")
-                                    sb.Append(constant.value.x.ToString("F0", CultureInfo.InvariantCulture));
+                                if(constant.lastDeclarationType == "int")
+                                    constantValue = constant.value.x.ToString("F0", CultureInfo.InvariantCulture);
                                 else
-                                    sb.Append(constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture));
+                                    constantValue = constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
+
+                                // Add comment with property name, for easier debug
+                                sb.Append($"({constantValue} /*{constant.name}*/)");
                                 break;
                             case PropertyType.Vector:
                                 sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
