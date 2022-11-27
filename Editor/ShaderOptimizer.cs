@@ -350,9 +350,14 @@ namespace Thry
         public static string GetRenamedPropertySuffix(Material m)
         {
             string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
-            if (Config.Singleton.allowCustomLockingRenaming)
-                return m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
-            return cleanedMaterialName;
+            return m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
+        }
+
+        public static bool HasCustomRenameSuffix(Material m)
+        {
+            string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
+            string suffix = m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
+            return suffix != cleanedMaterialName;
         }
 
         struct RenamingProperty

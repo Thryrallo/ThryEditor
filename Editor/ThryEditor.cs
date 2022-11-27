@@ -68,6 +68,7 @@ namespace Thry
         public bool IsInAnimationMode;
         public Renderer ActiveRenderer;
         public string RenamedPropertySuffix;
+        public bool HasCustomRenameSuffix;
         public Locale Locale;
         public ShaderTranslator SuggestedTranslationDefinition;
 
@@ -371,6 +372,7 @@ namespace Thry
             Shader = Materials[0].shader;
 
             RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
+            HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
 
             IsPresetEditor = Materials.Length == 1 && Presets.ArePreset(Materials);
 
