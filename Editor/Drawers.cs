@@ -346,8 +346,6 @@ namespace Thry
             EditorGUI.EndDisabledGroup();
         }
 
-        Texture test;
-
         PackerChannelConfig TexturePackerSlotGUI(PackerChannelConfig input, string label)
         {
             Rect totalRect = EditorGUILayout.GetControlRect(false);

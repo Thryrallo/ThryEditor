@@ -589,9 +589,9 @@ namespace Thry
                 }
                 //     MsgBox("Dimensions are "  Width  ","  Height)
                 Texture2D b = new Texture2D(Width, Height, TextureFormat.ARGB32, false);
-                for (int y = 0; y <= b.height - 1; y++)
+                for (int y = 0; y < b.height; y++)
                 {
-                    for (int x = 0; x <= b.width - 1; x++)
+                    for (int x = 0; x < b.width; x++)
                     {
 
                         if (PixelDepth == 32)
@@ -606,9 +606,7 @@ namespace Thry
                             blue /= 255;
                             red /= 255;
                             Color cl = new Color(blue, green, red, alpha);
-                            b.SetPixel(x, y, cl);
-
-
+                            b.SetPixel(x, b.height - y - 1, cl);
                         }
                         else
                         {
@@ -622,9 +620,7 @@ namespace Thry
                             blue = Mathf.Pow(blue / 255, 1 / 2.2f);
                             red = Mathf.Pow(red / 255, 1 / 2.2f);
                             Color cl = new Color(blue, green, red, 1);
-                            b.SetPixel(x, y, cl);
-
-
+                            b.SetPixel(x, b.height - y - 1, cl);
                         }
 
                     }
