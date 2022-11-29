@@ -347,15 +347,31 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "0") != "0";
         }
 
+        public static string GetCleanMaterialName(Material m)
+        {
+            string cleanedMaterialName = "";
+            var nameByteArray = System.Text.Encoding.UTF8.GetBytes(m.name.Trim());
+            for (var i = 0; i < nameByteArray.Length; i++)
+            {
+                if ((nameByteArray[i] >= 65 && nameByteArray[i] <= 122 && nameByteArray[i] != 91 && nameByteArray[i] != 92 && nameByteArray[i] != 93 && nameByteArray[i] != 94 && nameByteArray[i] != 96) || (nameByteArray[i] >= 48 && nameByteArray[i] <= 57)) // Alphanumeric + '_'
+                {
+                    cleanedMaterialName += System.Text.Encoding.UTF8.GetString(new byte[]{nameByteArray[i]});
+                } else {
+                    cleanedMaterialName += nameByteArray[i].ToString("X2");
+                }
+            }
+            return cleanedMaterialName;
+        }
+
+
         public static string GetRenamedPropertySuffix(Material m)
         {
-            string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
-            return m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
+            return m.GetTag("thry_rename_suffix", false, GetCleanMaterialName(m));
         }
 
         public static bool HasCustomRenameSuffix(Material m)
         {
-            string cleanedMaterialName = Regex.Replace(m.name.Trim(), @"[^0-9a-zA-Z_]+", string.Empty);
+            string cleanedMaterialName = GetCleanMaterialName(m);
             string suffix = m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
             return suffix != cleanedMaterialName;
         }
