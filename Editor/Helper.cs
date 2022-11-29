@@ -576,23 +576,32 @@ namespace Thry
                 byte ImageDescriptor = r.ReadByte();
                 if (ImageType == 0)
                 {
-                    Debug.Log("Unsupported TGA file! No image data");
+                    EditorUtility.DisplayDialog("Error", "Unsupported TGA file! No image data", "OK");
+                    Debug.LogError("Unsupported TGA file! No image data");
                 }
                 else if (ImageType == 3 | ImageType == 11)
                 {
-                    Debug.Log("Unsupported TGA file! Not truecolor");
+                    EditorUtility.DisplayDialog("Error", "Unsupported TGA file! 8-bit grayscale images are not supported", "OK");
+                    Debug.LogError("Unsupported TGA file! Not truecolor");
                 }
                 else if (ImageType == 9 | ImageType == 10)
                 {
-                    Debug.Log("Unsupported TGA file! Colormapped");
+                    EditorUtility.DisplayDialog("Error", "Unsupported TGA file! Run-length encoded images are not supported", "OK");
+                    Debug.LogError("Unsupported TGA file! Colormapped");
 
                 }
+                bool startsAtTop = (ImageDescriptor & 1 << 5) >> 5 == 1;
+                bool startsAtRight = (ImageDescriptor & 1 << 4) >> 4 == 1;
                 //     MsgBox("Dimensions are "  Width  ","  Height)
                 Texture2D b = new Texture2D(Width, Height, TextureFormat.ARGB32, false);
                 for (int y = 0; y < b.height; y++)
                 {
                     for (int x = 0; x < b.width; x++)
                     {
+                        int texX = x;
+                        int texY = y;
+                        if(startsAtRight) texX = b.width - x - 1;
+                        if(startsAtTop) texY = b.height - y - 1;
 
                         if (PixelDepth == 32)
                         {
@@ -606,7 +615,7 @@ namespace Thry
                             blue /= 255;
                             red /= 255;
                             Color cl = new Color(blue, green, red, alpha);
-                            b.SetPixel(x, b.height - y - 1, cl);
+                            b.SetPixel(texX, texY, cl);
                         }
                         else
                         {
@@ -620,7 +629,7 @@ namespace Thry
                             blue = Mathf.Pow(blue / 255, 1 / 2.2f);
                             red = Mathf.Pow(red / 255, 1 / 2.2f);
                             Color cl = new Color(blue, green, red, 1);
-                            b.SetPixel(x, b.height - y - 1, cl);
+                            b.SetPixel(texX, texY, cl);
                         }
 
                     }
