@@ -798,8 +798,7 @@ namespace Thry
         public static void SetMaterialValue(string key, string value)
         {
             Material[] materials = ShaderEditor.Active.Materials;
-            ShaderProperty p = ShaderEditor.Active.PropertyDictionary[key];
-            if (p != null)
+            if (ShaderEditor.Active.PropertyDictionary.TryGetValue(key, out ShaderProperty p))
             {
                 MaterialHelper.SetMaterialPropertyValue(p.MaterialProperty, value);
                 p.UpdateKeywordFromValue();
