@@ -353,7 +353,9 @@ namespace Thry
             var nameByteArray = System.Text.Encoding.UTF8.GetBytes(m.name.Trim());
             for (var i = 0; i < nameByteArray.Length; i++)
             {
-                if ((nameByteArray[i] >= 65 && nameByteArray[i] <= 122 && nameByteArray[i] != 91 && nameByteArray[i] != 92 && nameByteArray[i] != 93 && nameByteArray[i] != 94 && nameByteArray[i] != 96) || (nameByteArray[i] >= 48 && nameByteArray[i] <= 57)) // Alphanumeric + '_'
+                if ((nameByteArray[i] >= 65 && nameByteArray[i] <= 122 && nameByteArray[i] != 91 && nameByteArray[i] != 92 && nameByteArray[i] != 93 && nameByteArray[i] != 94 && nameByteArray[i] != 96) || // word characters
+                    (nameByteArray[i] >= 48 && nameByteArray[i] <= 57) || // numbers
+                    (nameByteArray[i] == 32)) // space
                 {
                     cleanedMaterialName += System.Text.Encoding.UTF8.GetString(new byte[]{nameByteArray[i]});
                 } else {
