@@ -350,12 +350,11 @@ namespace Thry
         public static string GetCleanMaterialName(Material m)
         {
             string cleanedMaterialName = "";
-            var nameByteArray = System.Text.Encoding.UTF8.GetBytes(m.name.Trim());
+            var nameByteArray = System.Text.Encoding.UTF8.GetBytes(m.name.Trim().Replace(" ", ""));
             for (var i = 0; i < nameByteArray.Length; i++)
             {
                 if ((nameByteArray[i] >= 65 && nameByteArray[i] <= 122 && nameByteArray[i] != 91 && nameByteArray[i] != 92 && nameByteArray[i] != 93 && nameByteArray[i] != 94 && nameByteArray[i] != 96) || // word characters
-                    (nameByteArray[i] >= 48 && nameByteArray[i] <= 57) || // numbers
-                    (nameByteArray[i] == 32)) // space
+                    (nameByteArray[i] >= 48 && nameByteArray[i] <= 57)) // numbers
                 {
                     cleanedMaterialName += System.Text.Encoding.UTF8.GetString(new byte[]{nameByteArray[i]});
                 } else {
