@@ -69,7 +69,7 @@ namespace Thry
         public Renderer ActiveRenderer;
         public string RenamedPropertySuffix;
         public bool HasCustomRenameSuffix;
-        public Locale Locale;
+        public Localization Locale;
         public ShaderTranslator SuggestedTranslationDefinition;
 
         //Shader Versioning
@@ -113,7 +113,7 @@ namespace Thry
             return labels;
         }
 
-        private PropertyOptions ExtractExtraOptionsFromDisplayName(ref string displayName)
+        public static PropertyOptions ExtractExtraOptionsFromDisplayName(ref string displayName)
         {
             if (displayName.Contains(EXTRA_OPTIONS_PREFIX))
             {
@@ -196,10 +196,11 @@ namespace Thry
             Locale = null;
             if (locales_property != null)
             {
-                string displayName = locales_property.displayName;
-                PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
-                Locale = new Locale(options.file_name);
-                Locale.selected_locale_index = (int)locales_property.floatValue;
+                string guid = locales_property.displayName;
+                Locale = Localization.Load(guid);
+            }else
+            {
+                Locale = ScriptableObject.CreateInstance<Localization>();
             }
         }
 
@@ -228,19 +229,10 @@ namespace Thry
                 //Load from label file
                 if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
 
-                //Check for locale
-                if (Locale != null)
-                {
-                    if (displayName.StartsWith("locale::", StringComparison.Ordinal))
-                    {
-                        if (Locale.Constains(displayName))
-                        {
-                            displayName = Locale.Get(displayName);
-                        }
-                    }
-                }
                 //extract json data from display name
                 PropertyOptions options = ExtractExtraOptionsFromDisplayName(ref displayName);
+
+                displayName = Locale.Get(props[i], displayName);
 
                 int offset = options.offset + headerCount;
 

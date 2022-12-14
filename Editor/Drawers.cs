@@ -1499,7 +1499,7 @@ namespace Thry
             if (shaderOptimizer.hasMixedValue)
             {
                 EditorGUI.BeginChangeCheck();
-                GUILayout.Button(Locale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                GUILayout.Button(DepricatedLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
@@ -1513,14 +1513,14 @@ namespace Thry
                 if (shaderOptimizer.floatValue == 0)
                 {
                     if (materialEditor.targets.Length == 1)
-                        GUILayout.Button(Locale.editor.Get("lockin_button_single"));
-                    else GUILayout.Button(Locale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                        GUILayout.Button(DepricatedLocale.editor.Get("lockin_button_single"));
+                    else GUILayout.Button(DepricatedLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
                 else
                 {
                     if (materialEditor.targets.Length == 1)
-                        GUILayout.Button(Locale.editor.Get("unlock_button_single"));
-                    else GUILayout.Button(Locale.editor.Get("unlock_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                        GUILayout.Button(DepricatedLocale.editor.Get("unlock_button_single"));
+                    else GUILayout.Button(DepricatedLocale.editor.Get("unlock_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
                 if (EditorGUI.EndChangeCheck())
                 {

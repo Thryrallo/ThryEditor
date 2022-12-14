@@ -1120,7 +1120,7 @@ namespace Thry
 
         public override void DrawDefault()
         {
-            GuiHelper.DrawLocaleSelection(this.Content, ActiveShaderEditor.Locale.available_locales, ActiveShaderEditor.Locale.selected_locale_index);
+            ShaderEditor.Active.Locale.DrawDropdown();    
         }
     }
 }
