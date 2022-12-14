@@ -1086,6 +1086,12 @@ namespace Thry
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
+                        if(removeEndifStack.Count == 0)
+                        {
+                            Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
+                                +$"\nError found in file '{filePath}' line {i+1}. Current output copied to clipboard.");
+                            GUIUtility.systemCopyBuffer = string.Join(Environment.NewLine, includedLines);
+                        }
                         if (isIncluded && removeEndifStack.Peek()) isIncluded = false;
                         if (!isIncluded && ifStacking - 1 == isNotIncludedAtDepth) isIncluded = true;
                         if (removeEndifStack.Peek()) continue;
