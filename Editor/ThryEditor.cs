@@ -200,7 +200,7 @@ namespace Thry
                 Locale = Localization.Load(guid);
             }else
             {
-                Locale = ScriptableObject.CreateInstance<Localization>();
+                Locale = Localization.Create();
             }
         }
 
