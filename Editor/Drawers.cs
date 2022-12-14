@@ -1536,6 +1536,8 @@ namespace Thry
                 ShaderEditor.Active.RenamedPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.RenamedPropertySuffix);
                 if (EditorGUI.EndChangeCheck())
                 {
+                    // Make sure suffix that is saved is valid
+                    ShaderEditor.Active.RenamedPropertySuffix = ShaderOptimizer.CleanStringForPropertyNames(ShaderEditor.Active.RenamedPropertySuffix.Replace(" ","_"));
                     foreach (Material m in ShaderEditor.Active.Materials)
                         m.SetOverrideTag("thry_rename_suffix", ShaderEditor.Active.RenamedPropertySuffix);
                     if (ShaderEditor.Active.RenamedPropertySuffix == "")

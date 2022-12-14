@@ -347,32 +347,35 @@ namespace Thry
             return m.GetTag(prop + AnimatedTagSuffix, false, "0") != "0";
         }
 
-        public static string GetCleanMaterialName(Material m)
+        public static string CleanStringForPropertyNames(string s)
         {
-            string cleanedMaterialName = "";
-            var nameByteArray = System.Text.Encoding.UTF8.GetBytes(m.name.Trim().Replace(" ", ""));
+            s = s.Trim().Replace(" ", "");
+            var nameByteArray = System.Text.Encoding.UTF8.GetBytes(s);
+            string cleaned = "";
             for (var i = 0; i < nameByteArray.Length; i++)
             {
                 if ((nameByteArray[i] >= 65 && nameByteArray[i] <= 122 && nameByteArray[i] != 91 && nameByteArray[i] != 92 && nameByteArray[i] != 93 && nameByteArray[i] != 94 && nameByteArray[i] != 96) || // word characters
                     (nameByteArray[i] >= 48 && nameByteArray[i] <= 57)) // numbers
                 {
-                    cleanedMaterialName += System.Text.Encoding.UTF8.GetString(new byte[]{nameByteArray[i]});
-                } else {
-                    cleanedMaterialName += nameByteArray[i].ToString("X2");
+                    cleaned += System.Text.Encoding.UTF8.GetString(new byte[] { nameByteArray[i] });
+                }
+                else
+                {
+                    cleaned += nameByteArray[i].ToString("X2");
                 }
             }
-            return cleanedMaterialName;
+            return cleaned;
         }
 
 
         public static string GetRenamedPropertySuffix(Material m)
         {
-            return m.GetTag("thry_rename_suffix", false, GetCleanMaterialName(m));
+            return CleanStringForPropertyNames(m.GetTag("thry_rename_suffix", false, m.name));
         }
 
         public static bool HasCustomRenameSuffix(Material m)
         {
-            string cleanedMaterialName = GetCleanMaterialName(m);
+            string cleanedMaterialName = CleanStringForPropertyNames(m.name);
             string suffix = m.GetTag("thry_rename_suffix", false, cleanedMaterialName);
             return suffix != cleanedMaterialName;
         }
