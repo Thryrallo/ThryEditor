@@ -204,6 +204,20 @@ namespace Thry
             }
         }
 
+        public void FakePartialInitilizationForLocaleGathering(Shader s)
+        {
+            Material material = new Material(s);
+            Materials = new Material[] { material };
+            Editor = MaterialEditor.CreateEditor(new UnityEngine.Object[] { material }) as MaterialEditor;
+            Properties = MaterialEditor.GetMaterialProperties(Materials);
+            RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
+            HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
+            ShaderEditor.Active = this;
+            CollectAllProperties();
+            UnityEngine.Object.DestroyImmediate(Editor);
+            UnityEngine.Object.DestroyImmediate(material);
+        }
+
         //finds all properties and headers and stores them in correct order
         private void CollectAllProperties()
         {
@@ -732,6 +746,8 @@ namespace Thry
             this._didSwapToShader = true;
             this._doReloadNextDraw = true;
             this.Repaint();
+            ThryWideEnumDrawer.Reload();
+            ThryRGBAPackerDrawer.Reload();
         }
 
         public static void ReloadActive()

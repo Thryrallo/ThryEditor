@@ -10,18 +10,18 @@ using UnityEngine;
 namespace Thry{
     public class Localization : ScriptableObject
     {
-        [SerializeField] Shader ValidateWithShader;
+        [SerializeField] Shader[] ValidateWithShaders;
         [SerializeField] string DefaultLanguage = "English";
         [SerializeField] string[] Languages = new string[0];
         [SerializeField]int SelectedLanguage = -1;
         [SerializeField]
-        string[] _keys;
+        string[] _keys = new string[0];
         [SerializeField]
-        string[] _values;
+        string[] _values = new string[0];
         [SerializeField]
-        string[] _defaultKeys;
+        string[] _defaultKeys = new string[0];
         [SerializeField]
-        string[] _defaultValues;
+        string[] _defaultValues = new string[0];
 
         Dictionary<string, string[]> _localizedStrings = new Dictionary<string, string[]>();
         Dictionary<string,string> _defaultKeyValues = new Dictionary<string,string>();
@@ -88,10 +88,16 @@ namespace Thry{
         public string Get(MaterialProperty prop, FieldInfo field, string defaultValue)
         {
             string id = prop.name + "." + field.DeclaringType + "." + field.Name;
+            return Get(id, defaultValue);
+        }
+
+        public string Get(string id, string defaultValue)
+        {
+            if(id == null) return defaultValue;
             if (_localizedStrings.ContainsKey(id))
             {
                 string[] ar = _localizedStrings[id];
-                if (ar.Length > SelectedLanguage)
+                if (ar.Length > SelectedLanguage && SelectedLanguage > -1)
                 {
                     return ar[SelectedLanguage] ?? defaultValue;
                 }
@@ -108,7 +114,8 @@ namespace Thry{
             {
                 System.Array.Resize(ref Languages, Languages.Length + 1);
                 Languages[Languages.Length - 1] = language;
-                foreach(string key in _localizedStrings.Keys)
+                string[] keys = _localizedStrings.Keys.ToArray();
+                foreach(string key in keys)
                 {
                     string[] ar = _localizedStrings[key];
                     System.Array.Resize(ref ar, ar.Length + 1);
@@ -162,16 +169,17 @@ namespace Thry{
                 Array.Copy(ar, 0, _values, i * Languages.Length, ar.Length);
             }
             EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
         }
 
         [MenuItem("Assets/Thry/Shaders/Create Locale File", false)]
         static void CreateLocale()
         {
             Localization locale = ScriptableObject.CreateInstance<Localization>();
-            Shader shader = Selection.activeObject as Shader;
-            string fileName = Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(shader));
-            string folderPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(shader));
-            locale.ValidateWithShader = shader;
+            Shader[] shaders = Selection.objects.Select(o => o as Shader).ToArray();
+            string fileName = Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(shaders[0]));
+            string folderPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(shaders[0]));
+            locale.ValidateWithShaders = shaders;
             AssetDatabase.CreateAsset(locale, folderPath + "/" + fileName + "_Locale.asset");
             AssetDatabase.SaveAssets();
         }
@@ -179,7 +187,7 @@ namespace Thry{
         [MenuItem("Assets/Thry/Shaders/Create Locale File", true)]
         static bool ValidateCreateLocale()
         {
-            return Selection.activeObject is Shader;
+            return Selection.objects.All(o => o is Shader);
         }
 
         [MenuItem("Assets/Thry/Shaders/Locale Property", false)]
@@ -202,7 +210,9 @@ namespace Thry{
         {
             List<(string key, string defaultValue)> _missingKeys = new List<(string key, string defaultValue)>();
             int _selectedLanguageIndex = 0;
-            string _search = "";
+            string _searchById = "";
+            string _searchByTranslation = "";
+            string[] _searchResults = new string[0];
 
             string _translateByValueIn = "";
             string _translateByValueOut = "";
@@ -268,7 +278,16 @@ namespace Thry{
                     locale.Save();
                 }
 
-                locale.ValidateWithShader = (Shader)EditorGUILayout.ObjectField("Validate With Shader", locale.ValidateWithShader, typeof(Shader), false);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("ValidateWithShaders"));
+                if(GUILayout.Button("Load Properties from Shaders"))
+                {
+                    // for each shader create a material & material editor so that the data is loaded into the localization object
+                    foreach(Shader s in locale.ValidateWithShaders)
+                    {
+                        ShaderEditor se = new ShaderEditor();
+                        se.FakePartialInitilizationForLocaleGathering(s);
+                    }
+                }
                 locale.DefaultLanguage = EditorGUILayout.TextField("Default Language", locale.DefaultLanguage);
 
                 EditorGUILayout.LabelField("Languages");
@@ -386,30 +405,41 @@ namespace Thry{
 
                 EditorGUILayout.Space(20);
                 EditorGUILayout.LabelField("Existing Entries", EditorStyles.boldLabel);
-                _search = EditorGUILayout.TextField("Search", _search);
-                EditorGUILayout.Space(5);
-                count = 0;
-                if(_search.Length > 0)
+                EditorGUI.BeginChangeCheck();
+                _searchById = EditorGUILayout.TextField("Search by id", _searchById);
+                _searchByTranslation = EditorGUILayout.TextField("Search by translation", _searchByTranslation);
+                if(EditorGUI.EndChangeCheck())
                 {
+                    List<string> res = new List<string>();
                     foreach (string key in locale._localizedStrings.Keys)
                     {
-                        if (count > 10)
+                        if(locale._localizedStrings[key][_selectedLanguageIndex].IndexOf(_searchByTranslation, StringComparison.OrdinalIgnoreCase) != -1
+                         && key.IndexOf(_searchById, StringComparison.OrdinalIgnoreCase) != -1)
+                        {
+                            res.Add(key);
+                        }
+                    }
+                    _searchResults = res.ToArray();
+                }
+                EditorGUILayout.Space(5);
+                if(_searchById.Length > 0 || _searchByTranslation.Length > 0)
+                {
+                    count = 0;
+                    foreach (string key in _searchResults)
+                    {
+                        if(count > 50)
                         {
                             EditorGUILayout.LabelField("...");
                             break;
                         }
-                        if (key.IndexOf(_search, StringComparison.OrdinalIgnoreCase) == -1)
-                        {
-                            continue;
-                        }
                         EditorGUILayout.BeginHorizontal();
-                        EditorGUI.BeginChangeCheck();
                         string value = EditorGUILayout.DelayedTextField(key, locale._localizedStrings[key][_selectedLanguageIndex]);
-                        if (EditorGUI.EndChangeCheck())
+                        if (GUILayout.Button("Remove", GUILayout.Width(65)))
                         {
-                            locale._localizedStrings[key][_selectedLanguageIndex] = value;
+                            locale._localizedStrings[key][_selectedLanguageIndex] = "";
                         }
                         EditorGUILayout.EndHorizontal();
+                        locale._localizedStrings[key][_selectedLanguageIndex] = value;
                         count++;
                     }
                 }
