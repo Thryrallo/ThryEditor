@@ -26,6 +26,7 @@ namespace Thry{
         Dictionary<string, string[]> _localizedStrings = new Dictionary<string, string[]>();
         Dictionary<string,string> _defaultKeyValues = new Dictionary<string,string>();
         string[] _allLanguages;
+        bool _isLoaded = false;
 
         // Use
         public static Localization Load(string guid)
@@ -49,6 +50,7 @@ namespace Thry{
                 Array.Copy(_values, i * Languages.Length , ar, 0, Languages.Length);
                 _localizedStrings[_keys[i]] = ar;
             }
+            _isLoaded = true;
         }
 
         public static Localization Create()
@@ -266,12 +268,23 @@ namespace Thry{
             private void OnEnable() 
             {
                 Localization locale = (Localization)target;
+                locale.Load();
+                UpdateData(locale);
+            }
+
+            private void Awake() {
+                Localization locale = (Localization)target;
+                locale.Load();
                 UpdateData(locale);
             }
 
             public override void OnInspectorGUI()
             {
                 Localization locale = (Localization)target;
+                if(!locale._isLoaded)
+                {
+                    UpdateData(locale);
+                }
 
                 if(GUILayout.Button("Save"))
                 {
@@ -413,6 +426,7 @@ namespace Thry{
                     List<string> res = new List<string>();
                     foreach (string key in locale._localizedStrings.Keys)
                     {
+                        if(locale._localizedStrings[key][_selectedLanguageIndex] == null) continue;
                         if(locale._localizedStrings[key][_selectedLanguageIndex].IndexOf(_searchByTranslation, StringComparison.OrdinalIgnoreCase) != -1
                          && key.IndexOf(_searchById, StringComparison.OrdinalIgnoreCase) != -1)
                         {

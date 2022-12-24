@@ -21,7 +21,7 @@ namespace Thry
 
         public const string PROPERTY_NAME_MASTER_LABEL = "shader_master_label";
         public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
-        public const string PROPERTY_NAME_LOCALE = "shader_properties_locale";
+        public const string PROPERTY_NAME_LOCALE = "shader_locale";
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
         public const string PROPERTY_NAME_EDITOR_DETECT = "shader_is_using_thry_editor";
