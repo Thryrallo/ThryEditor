@@ -533,7 +533,7 @@ namespace Thry
                 if (importer != null) {
                     texImporter = (TextureImporter)importer;
                     if (texImporter.sRGBTexture != shouldHaveSRGB) {
-                        if (TextureImportWarningBox(shouldHaveSRGB ? DepricatedLocale.editor.Get("colorSpaceWarningSRGB") : DepricatedLocale.editor.Get("colorSpaceWarningLinear"))) {
+                        if (TextureImportWarningBox(shouldHaveSRGB ? EditorLocale.editor.Get("colorSpaceWarningSRGB") : EditorLocale.editor.Get("colorSpaceWarningLinear"))) {
                             texImporter.sRGBTexture = shouldHaveSRGB;
                             texImporter.SaveAndReimport();
                         }

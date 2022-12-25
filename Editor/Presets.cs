@@ -66,10 +66,10 @@ namespace Thry.ThryEditor
         {
             if (shaderEditor.IsPresetEditor)
             {
-                EditorGUILayout.LabelField(DepricatedLocale.editor.Get("preset_material_notify"), Styles.greenStyle);
+                EditorGUILayout.LabelField(EditorLocale.editor.Get("preset_material_notify"), Styles.greenStyle);
                 string name = shaderEditor.Materials[0].GetTag(TAG_PRESET_NAME, false, "");
                 EditorGUI.BeginChangeCheck();
-                name = EditorGUILayout.TextField(DepricatedLocale.editor.Get("preset_name"), name);
+                name = EditorGUILayout.TextField(EditorLocale.editor.Get("preset_name"), name);
                 if (EditorGUI.EndChangeCheck())
                 {
                     shaderEditor.Materials[0].SetOverrideTag(TAG_PRESET_NAME, name);
@@ -78,7 +78,7 @@ namespace Thry.ThryEditor
             }
             if (appliedPresets.ContainsKey(shaderEditor.Materials[0]))
             {
-                if(GUILayout.Button(DepricatedLocale.editor.Get("preset_revert")+appliedPresets[shaderEditor.Materials[0]].Item1.name))
+                if(GUILayout.Button(EditorLocale.editor.Get("preset_revert")+appliedPresets[shaderEditor.Materials[0]].Item1.name))
                 {
                     Revert(shaderEditor);
                 }

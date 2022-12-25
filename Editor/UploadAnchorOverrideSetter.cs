@@ -14,11 +14,11 @@ namespace Pumkin.VRCCallbacks
     {
         public int callbackOrder => 0;
         
-        string DialogTitle => DepricatedLocale.editor.Get("autoAnchorDialog_Title");
-        string DialogMessage => DepricatedLocale.editor.Get("autoAnchorDialog_Text");
-        string DialogYes => DepricatedLocale.editor.Get("yes");
-        string DialogNo => DepricatedLocale.editor.Get("no");
-        string ErrorNotHumanoid => DepricatedLocale.editor.Get("autoAnchorError_NotHumanoid");
+        string DialogTitle => EditorLocale.editor.Get("autoAnchorDialog_Title");
+        string DialogMessage => EditorLocale.editor.Get("autoAnchorDialog_Text");
+        string DialogYes => EditorLocale.editor.Get("yes");
+        string DialogNo => EditorLocale.editor.Get("no");
+        string ErrorNotHumanoid => EditorLocale.editor.Get("autoAnchorError_NotHumanoid");
         
         bool Enabled
         {

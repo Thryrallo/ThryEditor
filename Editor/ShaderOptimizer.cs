@@ -1997,7 +1997,7 @@ namespace Thry
             //show popup dialog if defined
             if (showDialog && length > 0)
             {
-                if(EditorUtility.DisplayDialog("Locking Materials", DepricatedLocale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
+                if(EditorUtility.DisplayDialog("Locking Materials", EditorLocale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
                 {
                     Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo");
                 }
