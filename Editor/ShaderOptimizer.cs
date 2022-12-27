@@ -91,6 +91,7 @@ namespace Thry
         // e.g. if _Color exists and _ColorAnimated = 1, _Color will not be baked in
         public static readonly string AnimatedPropertySuffix = "Animated";
         public static readonly string AnimatedTagSuffix = "Animated";
+        public static readonly string ExemptFromLockingSuffix = "NL";
 
         // Currently, Material.SetShaderPassEnabled doesn't work on "ShadowCaster" lightmodes,
         // and doesn't let "ForwardAdd" lights get turned into vertex lights if "ForwardAdd" is simply disabled
@@ -393,6 +394,12 @@ namespace Thry
             }
         }
 
+        public static bool IsPropertyExcemptFromLocking(MaterialProperty prop)
+        {
+            // if not a texture, but has non-modifiable texture data flag, is used as indicator to prevent locking
+            return prop.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal) || (prop.type != MaterialProperty.PropType.Texture && prop.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData));
+        }
+
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
             // File filepaths and names
@@ -494,7 +501,7 @@ namespace Thry
                     continue;
                 }
 
-                if (prop.displayName.EndsWith("NL", StringComparison.Ordinal)) continue;
+                if (IsPropertyExcemptFromLocking(prop)) continue;
 
                 PropertyData propData;
                 switch(prop.type)

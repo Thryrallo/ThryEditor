@@ -130,6 +130,7 @@ namespace Thry
         public string file_name;
         public string remote_version_url;
         public string generic_string;
+        public bool never_lock;
     }
 
     public class ButtonData

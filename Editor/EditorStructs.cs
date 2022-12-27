@@ -164,6 +164,9 @@ namespace Thry
 
             if (prop == null)
                 return;
+
+            this.ExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
+            
             if (this is ShaderHeader == false)
             {
                 this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
