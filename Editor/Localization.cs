@@ -70,6 +70,8 @@ namespace Thry{
             if(EditorGUI.EndChangeCheck())
             {
                 ShaderEditor.Active.Reload();
+                EditorUtility.SetDirty(this);
+                AssetDatabase.SaveAssets();
             }
         }
 
