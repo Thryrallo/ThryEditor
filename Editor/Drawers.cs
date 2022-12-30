@@ -246,15 +246,18 @@ namespace Thry
             public Texture _previousTexture;
             public Texture2D _packedTexture;
 
-            public PackerChannelConfig _input_r;
-            public PackerChannelConfig _input_g;
-            public PackerChannelConfig _input_b;
-            public PackerChannelConfig _input_a;
+            public InlinePackerChannelConfig _input_r;
+            public InlinePackerChannelConfig _input_g;
+            public InlinePackerChannelConfig _input_b;
+            public InlinePackerChannelConfig _input_a;
 
             public bool _isInit;
             public bool _hasConfigChanged;
             public bool _hasTextureChanged;
             public long _lastConfirmTime;
+
+            public TexturePacker.Connection[] _connections;
+            public TexturePacker.TextureSource[] _sources;
         }
 
         Dictionary<UnityEngine.Object, ThryRGBAPackerData> materialPackerData = new Dictionary<UnityEngine.Object, ThryRGBAPackerData>();
@@ -332,15 +335,15 @@ namespace Thry
             if (_prop.textureValue != _current._packedTexture) _current._previousTexture = _prop.textureValue;
         }
 
-        bool DidTextureGetEdit(PackerChannelConfig data)
+        bool DidTextureGetEdit(InlinePackerChannelConfig data)
         {
-            if (data.Texture == null) return false;
-            string path = AssetDatabase.GetAssetPath(data.Texture);
+            if (data.TextureSource.Texture == null) return false;
+            string path = AssetDatabase.GetAssetPath(data.TextureSource.Texture);
             if (System.IO.File.Exists(path) == false) return false;
             long lastEditTime = Helper.DatetimeToUnixSeconds(System.IO.File.GetLastWriteTime(path));
-            bool hasBeenEdited = lastEditTime > _current._lastConfirmTime && lastEditTime != data.LastHandledTextureEditTime;
-            data.LastHandledTextureEditTime = lastEditTime;
-            if (hasBeenEdited) data.DoReloadUncompressedTexture = true;
+            bool hasBeenEdited = lastEditTime > _current._lastConfirmTime && lastEditTime != data.TextureSource.LastHandledTextureEditTime;
+            data.TextureSource.LastHandledTextureEditTime = lastEditTime;
+            if (hasBeenEdited) data.TextureSource.DoReloadUncompressedTexture = true;
             return hasBeenEdited;
         }
 
@@ -366,7 +369,7 @@ namespace Thry
             }
 
             Rect buttonRect = EditorGUI.IndentedRect(EditorGUILayout.GetControlRect());
-            buttonRect.width /= 2;
+            buttonRect.width /= 3;
             EditorGUI.BeginDisabledGroup(!_current._hasConfigChanged);
             if (GUI.Button(buttonRect, "Confirm Merge")) Confirm();
             buttonRect.x += buttonRect.width;
@@ -374,9 +377,11 @@ namespace Thry
             EditorGUI.BeginDisabledGroup(!_current._hasTextureChanged);
             if (GUI.Button(buttonRect, "Revert")) Revert();
             EditorGUI.EndDisabledGroup();
+            buttonRect.x += buttonRect.width;
+            if (GUI.Button(buttonRect, "Advanded")) OpenFullTexturePacker();
         }
 
-        PackerChannelConfig TexturePackerSlotGUI(PackerChannelConfig input, string label)
+        InlinePackerChannelConfig TexturePackerSlotGUI(InlinePackerChannelConfig input, string label)
         {
             Rect totalRect = EditorGUILayout.GetControlRect(false);
             totalRect = EditorGUI.IndentedRect(totalRect);
@@ -388,13 +393,18 @@ namespace Thry
             float texWidth = Math.Max(50, r.width - 130 - 30) - 5;
             r.x = totalRect.x;
             r.width = 30;
-            input.Texture = EditorGUI.ObjectField(r, input.Texture, typeof(Texture2D), false) as Texture2D;
+            EditorGUI.BeginChangeCheck();
+            Texture2D changed = EditorGUI.ObjectField(r, input.TextureSource.Texture, typeof(Texture2D), false) as Texture2D;
+            if(EditorGUI.EndChangeCheck())
+            {
+                input.TextureSource.SetTexture(changed);
+            }
 
             r.x += r.width + 5;
             r.width = texWidth - 5;
             EditorGUI.LabelField(r, label);
 
-            if (input.Texture == null)
+            if (input.TextureSource.Texture == null)
             {
                 r.width = 70;
                 r.x = totalRect.x + totalRect.width - r.width;
@@ -409,7 +419,7 @@ namespace Thry
                 r.width = 50;
                 r.x = totalRect.x + totalRect.width - r.width;
                 if(!_firstTextureIsRGB || input != _current._input_r)
-                    input.Channel = (TextureChannel)EditorGUI.EnumPopup(r, input.Channel);
+                    input.Channel = (TexturePacker.TextureChannelIn)EditorGUI.EnumPopup(r, input.Channel);
 
                 r.width = 20;
                 r.x -= r.width;
@@ -449,11 +459,11 @@ namespace Thry
             }
         }
 
-        void SaveForChannel(PackerChannelConfig input, string id, string channel)
+        void SaveForChannel(InlinePackerChannelConfig input, string id, string channel)
         {
             foreach (Material m in ShaderEditor.Active.Materials)
             {
-                if (input.Texture != null) m.SetOverrideTag(id + "_texPack_" + channel + "_guid", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(input.Texture)));
+                if (input.TextureSource.Texture != null) m.SetOverrideTag(id + "_texPack_" + channel + "_guid", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(input.TextureSource.Texture)));
                 else m.SetOverrideTag(id + "_texPack_" + channel + "_guid", "");
                 m.SetOverrideTag(id + "_texPack_" + channel + "_fallback", input.Fallback.ToString());
                 m.SetOverrideTag(id + "_texPack_" + channel + "_inverted", input.Invert.ToString());
@@ -461,69 +471,111 @@ namespace Thry
             }
         }
 
-        PackerChannelConfig LoadForChannel(Material m, string id, string channel)
+        InlinePackerChannelConfig LoadForChannel(Material m, string id, string channel)
         {
-            PackerChannelConfig packerChannelConfig = new PackerChannelConfig();
+            InlinePackerChannelConfig packerChannelConfig = new InlinePackerChannelConfig();
             packerChannelConfig.Fallback = float.Parse(m.GetTag(id + "_texPack_" + channel + "_fallback", false, "1"));
             packerChannelConfig.Invert = bool.Parse(m.GetTag(id + "_texPack_" + channel + "_inverted", false, "false"));
-            packerChannelConfig.Channel = (TextureChannel)int.Parse(m.GetTag(id + "_texPack_" + channel + "_channel", false, "4"));
+            packerChannelConfig.Channel = (TexturePacker.TextureChannelIn)int.Parse(m.GetTag(id + "_texPack_" + channel + "_channel", false, "4"));
             string guid = m.GetTag(id + "_texPack_" + channel + "_guid", false, "");
             if (string.IsNullOrEmpty(guid) == false)
             {
                 string p = AssetDatabase.GUIDToAssetPath(guid);
                 if (p != null)
-                    packerChannelConfig.Texture = AssetDatabase.LoadAssetAtPath<Texture2D>(p);
+                    packerChannelConfig.TextureSource.SetTexture(AssetDatabase.LoadAssetAtPath<Texture2D>(p));
             }
             return packerChannelConfig;
         }
 
         void Pack()
         {
-            int width = 16;
-            int height = 16;
-            //Find max size
-            _current._input_r.FindMaxSize(ref width, ref height);
-            _current._input_g.FindMaxSize(ref width, ref height);
-            _current._input_b.FindMaxSize(ref width, ref height);
-            _current._input_a.FindMaxSize(ref width, ref height);
-
-            RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
-            target.enableRandomWrite = true;
-            target.filterMode = GetFiltermode();
-            target.Create();
-
-            ComputeShader computeShader = AssetDatabase.FindAssets("ThryTexturePacker t:computeshader").
-                Select(g => AssetDatabase.GUIDToAssetPath(g)).Select(p => AssetDatabase.LoadAssetAtPath<ComputeShader>(p)).First();
-
-            computeShader.SetTexture(0, "Result", target);
-            computeShader.SetFloat("Width", width);
-            computeShader.SetFloat("Height", height);
-            computeShader.SetBool("TakeRGBFromRTexture", _firstTextureIsRGB);
-
-            _current._input_r.SetComputeShaderValues(computeShader, "R", width, height);
-            _current._input_g.SetComputeShaderValues(computeShader, "G", width, height);
-            _current._input_b.SetComputeShaderValues(computeShader, "B", width, height);
-            _current._input_a.SetComputeShaderValues(computeShader, "A", width, height);
-
-            computeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
-
-            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true, !_makeSRGB);
-            RenderTexture.active = target;
-            atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            atlas.Apply();
-
-            _current._packedTexture = atlas;
+            _current._packedTexture = TexturePacker.Pack(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _makeSRGB ? ColorSpace.Gamma : ColorSpace.Linear);
             _prop.textureValue = _current._packedTexture;
 
             _current._hasTextureChanged = true;
         }
 
+        TexturePacker.TextureSource[] GetTextureSources()
+        {
+            // build sources array
+            return new TexturePacker.TextureSource[4]{ 
+                _current._input_r.TextureSource, _current._input_g.TextureSource, _current._input_b.TextureSource, _current._input_a.TextureSource };
+        }
+
+        TexturePacker.OutputConfig[] GetOutputConfigs()
+        {
+            // Build OutputConfig Array
+            TexturePacker.OutputConfig[] outputConfigs = new TexturePacker.OutputConfig[4];
+            outputConfigs[0] = _current._input_r.ToOutputConfig();
+            outputConfigs[1] = _current._input_g.ToOutputConfig();
+            outputConfigs[2] = _current._input_b.ToOutputConfig();
+            outputConfigs[3] = _current._input_a.ToOutputConfig();
+            return outputConfigs;
+        }
+
+        TexturePacker.Connection[] GetConnections()
+        {
+            // Build connections array
+            TexturePacker.Connection[] connections = new TexturePacker.Connection[4];
+            if(_firstTextureIsRGB)
+            {
+                connections[0] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.R, TexturePacker.TextureChannelOut.R);
+                connections[1] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.G, TexturePacker.TextureChannelOut.G);
+                connections[2] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.B, TexturePacker.TextureChannelOut.B);
+                connections[3] = TexturePacker.Connection.CreateFull(1, TexturePacker.TextureChannelIn.A, TexturePacker.TextureChannelOut.A);
+            }else
+            {
+                connections[0] = TexturePacker.Connection.CreateFull(0, _current._input_r.Channel, TexturePacker.TextureChannelOut.R);
+                connections[1] = TexturePacker.Connection.CreateFull(1, _current._input_g.Channel, TexturePacker.TextureChannelOut.G);
+                connections[2] = TexturePacker.Connection.CreateFull(2, _current._input_b.Channel, TexturePacker.TextureChannelOut.B);
+                connections[3] = TexturePacker.Connection.CreateFull(3, _current._input_a.Channel, TexturePacker.TextureChannelOut.A);
+            }
+            return connections;
+        }
+
+        void OpenFullTexturePacker()
+        {
+            TexturePacker packer = TexturePacker.ShowWindow();
+            packer.InitilizeWithData(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _makeSRGB ? ColorSpace.Gamma : ColorSpace.Linear);
+            packer.OnChange += FullTexturePackerOnChange;
+            packer.OnSave += FullTexturePackerOnSave;
+        }
+
+        void FullTexturePackerOnSave(Texture2D tex)
+        {
+            _current._packedTexture = tex;
+            _prop.textureValue = _current._packedTexture;
+            _current._hasTextureChanged = false;
+        }
+
+        void FullTexturePackerOnChange(Texture2D tex, TexturePacker.TextureSource[] sources, TexturePacker.OutputConfig[] configs, TexturePacker.Connection[] connections)
+        {
+            _current._input_r.TextureSource = sources[0];
+            _current._input_g.TextureSource = sources[1];
+            _current._input_b.TextureSource = sources[2];
+            _current._input_a.TextureSource = sources[3];
+
+            _current._input_r.FromOutputConfig(configs[0]);
+            _current._input_g.FromOutputConfig(configs[1]);
+            _current._input_b.FromOutputConfig(configs[2]);
+            _current._input_a.FromOutputConfig(configs[3]);
+
+            _current._input_r.Channel = connections.Length > 0 ? connections[0].FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_g.Channel = connections.Length > 1 ? connections[1].FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_b.Channel = connections.Length > 2 ? connections[2].FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_a.Channel = connections.Length > 3 ? connections[3].FromChannel : TexturePacker.TextureChannelIn.Max;
+
+            _current._packedTexture = tex;
+            _prop.textureValue = _current._packedTexture;
+            _current._hasTextureChanged = true;
+        }
+
         FilterMode GetFiltermode()
         {
-            if (_current._input_r.Texture != null) return _current._input_r.Texture.filterMode;
-            if (_current._input_g.Texture != null) return _current._input_g.Texture.filterMode;
-            if (_current._input_b.Texture != null) return _current._input_b.Texture.filterMode;
-            if (_current._input_a.Texture != null) return _current._input_a.Texture.filterMode;
+            if (_current._input_r.GetTexture() != null) return _current._input_r.GetTexture().filterMode;
+            if (_current._input_g.GetTexture() != null) return _current._input_g.GetTexture().filterMode;
+            if (_current._input_b.GetTexture() != null) return _current._input_b.GetTexture().filterMode;
+            if (_current._input_a.GetTexture() != null) return _current._input_a.GetTexture().filterMode;
             return FilterMode.Bilinear;
         }
 
@@ -548,7 +600,6 @@ namespace Thry
         void Revert()
         {
             _prop.textureValue = _current._previousTexture;
-
             _current._hasTextureChanged = false;
         }
 
@@ -558,58 +609,34 @@ namespace Thry
             return base.GetPropertyHeight(prop, label, editor);
         }
 
-        class PackerChannelConfig
+        class InlinePackerChannelConfig
         {
-            public Texture2D Texture;
+            public TexturePacker.TextureSource TextureSource = new TexturePacker.TextureSource();
             public bool Invert;
             public float Fallback;
-            public TextureChannel Channel = TextureChannel.Max;
+            public TexturePacker.TextureChannelIn Channel = TexturePacker.TextureChannelIn.Max;
 
-            Texture2D _loadedUnityTexture;
-            Texture2D _loadedUncompressedTexture;
-            public long LastHandledTextureEditTime;
-            public bool DoReloadUncompressedTexture;
-
-            public void FindMaxSize(ref int width, ref int height)
+            public TexturePacker.OutputConfig ToOutputConfig()
             {
-                if (Texture == null) return;
-                if (_loadedUnityTexture != Texture || _loadedUncompressedTexture == null || DoReloadUncompressedTexture)
-                {
-                    string path = AssetDatabase.GetAssetPath(Texture);
-                    if(path.EndsWith(".png") || path.EndsWith(".jpg"))
-                    {
-                        _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height, TextureFormat.ARGB32, false, true);
-                        ImageConversion.LoadImage(_loadedUncompressedTexture, System.IO.File.ReadAllBytes(path));
-                    }else if (path.EndsWith(".tga"))
-                    {
-                        _loadedUncompressedTexture = TextureHelper.LoadTGA(path);
-                    }
-                    else
-                    {
-                        _loadedUncompressedTexture = Texture;
-                    }
-                }
-                _loadedUnityTexture = Texture;
-                width = Mathf.Max(width, _loadedUncompressedTexture.width);
-                height = Mathf.Max(height, _loadedUncompressedTexture.height);
+                TexturePacker.OutputConfig outputConfig = new TexturePacker.OutputConfig();
+                outputConfig.BlendMode = TexturePacker.BlendMode.Add;
+                outputConfig.Invert = Invert ? TexturePacker.InvertMode.Invert : TexturePacker.InvertMode.None;
+                outputConfig.Fallback = Fallback;
+                return outputConfig;
             }
 
-            public void SetComputeShaderValues(ComputeShader computeShader, string prefix, int maxWidth, int maxHeight)
+            public void FromOutputConfig(TexturePacker.OutputConfig config)
             {
-                //Always setting texture cause else null error, cant branch in shader (executes both sides always)
-                if(Texture == null) computeShader.SetTexture(0, prefix + "_Input", Texture2D.whiteTexture);
-                else computeShader.SetTexture(0, prefix + "_Input", _loadedUncompressedTexture);
-                computeShader.SetVector(prefix+"_Config", GetComputeShaderConfig(maxWidth, maxHeight));
+                Invert = config.Invert == TexturePacker.InvertMode.Invert;
+                Fallback = config.Fallback;
             }
 
-            public Vector4 GetComputeShaderConfig(int maxWidth, int maxHeight)
+            public Texture2D GetTexture()
             {
-                float hasTexture = Texture != null ? 1 : 0;
-                float billinearFiltering = (Texture != null && (maxWidth != _loadedUncompressedTexture.width || maxHeight != _loadedUncompressedTexture.height)) ? 1 : 0;
-                return new Vector4(hasTexture, Texture == null?Fallback: billinearFiltering, (int)Channel, Invert ? 1 : 0);
+                if (TextureSource == null) return null;
+                return TextureSource.Texture;
             }
         }
-        enum TextureChannel { R, G, B, A, Max }
     }
 
     public class GradientDrawer : MaterialPropertyDrawer
