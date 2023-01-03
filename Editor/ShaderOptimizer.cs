@@ -2282,7 +2282,7 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
 
             if (unlockedMaterialsByShader.Count == 0)
-                GUILayout.Label("All searched materials are locked.", Styles.greenStyle);
+                GUILayout.Label("No Locked materials found for search term.", Styles.greenStyle);
 
             foreach (KeyValuePair<Shader, List<Material>> shaderMaterials in unlockedMaterialsByShader)
             {
@@ -2338,7 +2338,7 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
 
             if (lockedMaterialsByShader.Count == 0)
-                GUILayout.Label("All searched materials are unlocked.", Styles.greenStyle);
+                GUILayout.Label("No Unlocked materials found for search term.", Styles.greenStyle);
 
             foreach (KeyValuePair<Shader, List<Material>> shaderMaterials in lockedMaterialsByShader)
             {
