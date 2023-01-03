@@ -2358,7 +2358,7 @@ namespace Thry
                         EditorGUILayout.BeginHorizontal();
                         EditorGUILayout.ObjectField(m, typeof(Material), false);
                         //EditorGUILayout.IntField(ShaderOptimizer.GetUsedTextureReferencesCount(m.shader));
-                        if (GUILayout.Button("Lock"))
+                        if (GUILayout.Button("Unlock"))
                             materialsToUnlock.Add(m);
 
                         EditorGUILayout.EndHorizontal();
