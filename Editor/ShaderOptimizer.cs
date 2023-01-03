@@ -2174,11 +2174,13 @@ namespace Thry
 
     public class UnlockedMaterialsList : EditorWindow
     {
+        private Vector2 scrollPosition = Vector2.zero;
 
         static Dictionary<Shader, List<Material>> unlockedMaterialsByShader = new Dictionary<Shader, List<Material>>();
         private void OnEnable()
         {
             UpdateList();
+            scrollPosition = Vector2.zero;
         }
 
         void UpdateList()
@@ -2214,6 +2216,7 @@ namespace Thry
             {
                 GUILayout.Label("All your materials are locked.", Styles.greenStyle);
             }
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             foreach (KeyValuePair<Shader, List<Material>> shaderMaterials in unlockedMaterialsByShader)
             {
                 EditorGUILayout.Space();
@@ -2237,6 +2240,7 @@ namespace Thry
                     shaderMaterials.Value.Remove(m);
             }
             EditorGUILayout.Space();
+            EditorGUILayout.EndScrollView();
             if (GUILayout.Button("Lock All"))
             {
                 ShaderOptimizer.SetLockedForAllMaterials(unlockedMaterialsByShader.Values.SelectMany(col => col), 1, true, false, true);
