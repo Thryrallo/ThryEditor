@@ -821,10 +821,10 @@ namespace Thry
             EditorWindow.GetWindow<EditorChanger>(false, "UI Changer", true);
         }
 
-        [MenuItem("Thry/Shader Optimizer/Unlocked Materials List", priority = 0)]
+        [MenuItem("Thry/Shader Optimizer/Materials List", priority = 0)]
         static void MenuShaderOptUnlockedMaterials()
         {
-            EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Unlocked Materials", true);
+            EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Materials", true);
         }
     }
 }
