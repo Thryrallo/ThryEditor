@@ -16,7 +16,7 @@ namespace Pumkin.VRCCallbacks
         
         string DialogTitle => EditorLocale.editor.Get("autoAnchorDialog_Title");
         string DialogMessage => EditorLocale.editor.Get("autoAnchorDialog_Text");
-        string DialogYes => EditorLocale.editor.Get("yes");
+        string DialogYes => String.Format("{0} ({1})", EditorLocale.editor.Get("yes"), EditorLocale.editor.Get("recommended"));
         string DialogNo => EditorLocale.editor.Get("no");
         string ErrorNotHumanoid => EditorLocale.editor.Get("autoAnchorError_NotHumanoid");
         
