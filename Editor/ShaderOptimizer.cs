@@ -1564,7 +1564,7 @@ namespace Thry
                 else material.SetFloat(GetOptimizerPropertyName(material.shader), 0);
             }
         }
-        private static bool GuessShader(Shader locked, out Shader shader)
+        public static bool GuessShader(Shader locked, out Shader shader)
         {
             string name = locked.name;
             name = Regex.Match(name.Substring(7), @".*(?=\/)").Value;

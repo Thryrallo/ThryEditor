@@ -8,11 +8,11 @@ namespace Pumkin.UploadCallbacks
 {
     public static class UploadAnchorOverrideSetter
     {
-        static string DialogTitle => Locale.editor.Get("autoAnchorDialog_Title");
-        static string DialogMessage => Locale.editor.Get("autoAnchorDialog_Text");
-        static string DialogYes => $"{Locale.editor.Get("yes")} ({Locale.editor.Get("recommended")})";
-        static string DialogNo => Locale.editor.Get("no");
-        static string ErrorNotHumanoid => Locale.editor.Get("autoAnchorError_NotHumanoid");
+        static string DialogTitle => EditorLocale.editor.Get("autoAnchorDialog_Title");
+        static string DialogMessage => EditorLocale.editor.Get("autoAnchorDialog_Text");
+        static string DialogYes => $"{EditorLocale.editor.Get("yes")} ({EditorLocale.editor.Get("recommended")})";
+        static string DialogNo => EditorLocale.editor.Get("no");
+        static string ErrorNotHumanoid => EditorLocale.editor.Get("autoAnchorError_NotHumanoid");
 
         static bool Enabled
         {
@@ -73,7 +73,7 @@ namespace Pumkin.UploadCallbacks
                 }
             }
 
-            anchorName = anchorObject ? anchorObject.name : "null";
+            anchorName = anchorObject != null ? anchorObject.name : "null";
             foreach(var render in renderersWithNoAnchors)
             {
                 if(render.probeAnchor != null)
