@@ -923,11 +923,13 @@ namespace Thry
 
         protected void SetKeyword(MaterialProperty prop, bool on)
         {
+            if(ShaderOptimizer.IsMaterialLocked(prop.targets[0] as Material)) return;
             SetKeywordInternal(prop, on, "_ON");
         }
 
         protected void CheckKeyword(MaterialProperty prop)
         {
+            if(ShaderOptimizer.IsMaterialLocked(prop.targets[0] as Material)) return;
             if (prop.hasMixedValue)
             {
                 foreach (Material m in prop.targets)
