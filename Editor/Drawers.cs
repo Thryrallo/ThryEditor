@@ -1658,7 +1658,7 @@ namespace Thry
         private GUIContent[] names;
         private readonly string[] defaultNames;
         private readonly float[] values;
-        private int _reloadCount;
+        private int _reloadCount = -1;
         private static int _reloadCountStatic;
 
         // internal Unity AssemblyHelper can't be accessed
@@ -1725,7 +1725,11 @@ namespace Thry
         public ThryWideEnumDrawer(string[] enumNames, float[] vals)
         {
             defaultNames = enumNames;
-            LoadNames();
+
+            // Init without Locale to prevent errors
+            names = new GUIContent[enumNames.Length];
+            for (int i = 0; i < enumNames.Length; ++i)
+                names[i] = new GUIContent(enumNames[i]);
 
             values = new float[vals.Length];
             for (int i = 0; i < vals.Length; ++i)
@@ -1740,7 +1744,6 @@ namespace Thry
                 names[i] = new GUIContent(ShaderEditor.Active.Locale.Get(defaultNames[i], defaultNames[i]));
             }
         }
-
         public static void Reload()
         {
             _reloadCountStatic++;

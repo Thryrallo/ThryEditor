@@ -458,6 +458,10 @@ namespace Thry{
                 EditorGUILayout.LabelField("Automatic Translation using Google", EditorStyles.boldLabel);
                 _autoTranslateLanguageShortCode = EditorGUILayout.TextField("Language Short Code", _autoTranslateLanguageShortCode);
                 EditorGUILayout.HelpBox("Short code must be valid short code. See https://cloud.google.com/translate/docs/languages for a list of valid short codes.", MessageType.Info);   
+                if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+                {
+                    Application.OpenURL("https://cloud.google.com/translate/docs/languages");
+                }
                 if(GUILayout.Button("Auto Translate"))
                 {
                     int _missingKeysCount = _missingKeys.Count;
