@@ -929,7 +929,7 @@ namespace Thry
 
         protected void CheckKeyword(MaterialProperty prop)
         {
-            if(ShaderOptimizer.IsMaterialLocked(prop.targets[0] as Material)) return;
+            if(ShaderEditor.Active != null && ShaderOptimizer.IsMaterialLocked(prop.targets[0] as Material)) return;
             if (prop.hasMixedValue)
             {
                 foreach (Material m in prop.targets)

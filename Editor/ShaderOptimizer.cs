@@ -1629,7 +1629,7 @@ namespace Thry
             material.shader = orignalShader;
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
-            material.shaderKeywords = material.GetTag("OriginalKeywords", false, "").Split(' ');
+            material.shaderKeywords = material.GetTag("OriginalKeywords", false, string.Join(" ", material.shaderKeywords)).Split(' ');
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
 
