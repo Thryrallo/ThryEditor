@@ -169,7 +169,6 @@ namespace Thry
             
             if (this is ShaderHeader == false)
             {
-                this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
                 bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.RenamedPropertySuffix) != null;
                 string tag = null;
                 //If prop is og, but is duplicated (locked) dont have it animateable
@@ -627,8 +626,11 @@ namespace Thry
 
         public string keyword;
 
-        MaterialPropertyDrawer[] _customDecorators;
-        Rect[] _customDecoratorRects;
+        protected MaterialPropertyDrawer[] _customDecorators;
+        protected Rect[] _customDecoratorRects;
+        protected bool _hasDrawer = false;
+
+        bool _needsDrawerInitlization = true;
 
         public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(shaderEditor, propertyIdentifier, xOffset, displayName, tooltip)
         {
@@ -639,18 +641,6 @@ namespace Thry
         {
             this.doCustomDrawLogic = false;
             this.doForceIntoOneLine = forceOneLine;
-
-            if (materialProperty.type == MaterialProperty.PropType.Vector && forceOneLine == false)
-            {
-                this.doCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
-                this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
-            }
-
-            if(DrawingData.LastPropertyDecorators.Count > 0)
-            {
-                _customDecorators = DrawingData.LastPropertyDecorators.ToArray();
-                _customDecoratorRects = new Rect[DrawingData.LastPropertyDecorators.Count];
-            }
 
             this.doDrawTwoFields = options.reference_property != null;
 
@@ -702,11 +692,41 @@ namespace Thry
             if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, MaterialProperty.floatValue == 1);
         }
 
+        // TODO : This new implementation for peoprty height during OnGUI breaks the Drawer based defining of headers etc.
+        // But it wasnt ever used anyways. The specific code to it needs to be removed in the future
+        void InitializeDrawers()
+        {
+            ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
+
+            this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
+            this._hasDrawer = DrawingData.LastPropertyUsedCustomDrawer;
+
+            if (MaterialProperty.type == MaterialProperty.PropType.Vector && doForceIntoOneLine == false)
+            {
+                this.doCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
+                this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
+            }
+            if(DrawingData.LastPropertyDecorators.Count > 0)
+            {
+                _customDecorators = DrawingData.LastPropertyDecorators.ToArray();
+                _customDecoratorRects = new Rect[DrawingData.LastPropertyDecorators.Count];
+            }
+
+            DrawingData.ResetLastDrawerData();
+        }
+
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
-            PreDraw();
             ActiveShaderEditor.CurrentProperty = this;
             this.MaterialProperty = ActiveShaderEditor.Properties[property_index];
+
+            if(_needsDrawerInitlization)
+            {
+                InitializeDrawers();
+                _needsDrawerInitlization = false;
+            }
+
+            PreDraw();
             if (ActiveShaderEditor.IsLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !ExemptFromLockedDisabling);
             int oldIndentLevel = EditorGUI.indentLevel;
@@ -840,6 +860,7 @@ namespace Thry
         public override void PreDraw()
         {
             DrawingData.CurrentTextureProperty = this;
+            this.doCustomDrawLogic = !this._hasDrawer;
         }
 
         public override void DrawDefault()

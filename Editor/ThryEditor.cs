@@ -251,7 +251,6 @@ namespace Thry
                 int offset = options.offset + headerCount;
 
                 DrawingData.ResetLastDrawerData();
-                Editor.GetPropertyHeight(props[i]);
 
                 ThryPropertyType type = GetPropertyType(props[i], options);
                 switch (type)
@@ -305,7 +304,7 @@ namespace Thry
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, !DrawingData.LastPropertyUsedCustomDrawer, i);
+                            NewProperty = new TextureProperty(this, props[i], displayName, offset, options, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, options, false, i);
                         break;
