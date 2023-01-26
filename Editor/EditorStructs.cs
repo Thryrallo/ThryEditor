@@ -696,6 +696,7 @@ namespace Thry
         // But it wasnt ever used anyways. The specific code to it needs to be removed in the future
         void InitializeDrawers()
         {
+            DrawingData.ResetLastDrawerData();
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
 
             this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
@@ -711,8 +712,6 @@ namespace Thry
                 _customDecorators = DrawingData.LastPropertyDecorators.ToArray();
                 _customDecoratorRects = new Rect[DrawingData.LastPropertyDecorators.Count];
             }
-
-            DrawingData.ResetLastDrawerData();
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
