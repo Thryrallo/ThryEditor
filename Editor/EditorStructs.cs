@@ -123,7 +123,6 @@ namespace Thry
         public MaterialProperty MaterialProperty;
         public string PropertyIdentifier;
         public System.Object PropertyData = null;
-        public PropertyOptions Options;
         public bool DoReferencePropertiesExist = false;
         public bool DoesReferencePropertyExist = false;
         public bool IsHidden = false;
@@ -137,29 +136,41 @@ namespace Thry
 
         public bool has_not_searchedFor = false; //used for property search
 
+        protected string _optionsRaw;
+        private PropertyOptions _options;
+        private bool _doOptionsNeedInitilization = true;
+        public PropertyOptions Options
+        {
+            get
+            {
+                if (_options == null)
+                {
+                    _options = PropertyOptions.Deserialize(_optionsRaw);
+                }
+                return _options;
+            }
+        }
+
         GenericMenu contextMenu;
 
-        public ShaderPart(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip)
+        public ShaderPart(string propertyIdentifier, int xOffset, string displayName, string tooltip, ShaderEditor shaderEditor)
         {
+            this._optionsRaw = null;
             this.ActiveShaderEditor = shaderEditor;
             this.PropertyIdentifier = propertyIdentifier;
             this.XOffset = xOffset;
-            this.Options = new PropertyOptions();
             this.Content = new GUIContent(displayName);
             this.tooltip = new BetterTooltips.Tooltip(tooltip);
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
         }
 
-        public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, PropertyOptions options)
+        public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, string optionsRaw)
         {
+            this._optionsRaw = optionsRaw;
             this.ActiveShaderEditor = shaderEditor;
             this.MaterialProperty = prop;
             this.XOffset = xOffset;
-            this.Options = options;
             this.Content = new GUIContent(displayName);
-            this.tooltip = new BetterTooltips.Tooltip(options.tooltip);
-            this.DoReferencePropertiesExist = options.reference_properties != null && options.reference_properties.Length > 0;
-            this.DoesReferencePropertyExist = options.reference_property != null;
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
 
             if (prop == null)
@@ -195,6 +206,13 @@ namespace Thry
             }
         }
 
+        protected virtual void InitOptions()
+        {
+            this.tooltip = new BetterTooltips.Tooltip(Options.tooltip);
+            this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
+            this.DoesReferencePropertyExist = Options.reference_property != null;
+        }
+
         public void SetReferenceProperty(string s)
         {
             Options.reference_property = s;
@@ -221,6 +239,12 @@ namespace Thry
         bool hasAddedDisabledGroup = false;
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
+            if(_doOptionsNeedInitilization)
+            {
+                InitOptions();
+                _doOptionsNeedInitilization = false;
+            }
+
             if (has_not_searchedFor)
                 return;
             if (DrawingData.IsEnabled && Options.condition_enable != null)
@@ -463,17 +487,17 @@ namespace Thry
     {
         public List<ShaderPart> parts = new List<ShaderPart>();
 
-        public ShaderGroup(ShaderEditor shaderEditor) : base(shaderEditor, null, 0, "", new PropertyOptions())
+        public ShaderGroup(ShaderEditor shaderEditor) : base(null, 0, "", null, shaderEditor)
         {
 
         }
 
-        public ShaderGroup(ShaderEditor shaderEditor, PropertyOptions options) : base(shaderEditor, null, 0, "", new PropertyOptions())
+        public ShaderGroup(ShaderEditor shaderEditor, string optionsRaw) : base(null, 0, "", null, shaderEditor)
         {
-            this.Options = options;
+            this._optionsRaw = optionsRaw;
         }
 
-        public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, xOffset, displayName, options)
+        public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, xOffset, displayName, optionsRaw)
         {
 
         }
@@ -542,7 +566,7 @@ namespace Thry
             this._headerDrawer = new ThryHeaderHandler();
         }
 
-        public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, materialEditor, displayName, xOffset, options)
+        public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw)
         {
             this._headerDrawer = new ThryHeaderHandler();
             this._headerDrawer.xOffset = xOffset;
@@ -620,19 +644,23 @@ namespace Thry
 
         bool _needsDrawerInitlization = true;
 
-        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(shaderEditor, propertyIdentifier, xOffset, displayName, tooltip)
+        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(propertyIdentifier, xOffset, displayName, tooltip, shaderEditor)
         {
 
         }
 
-        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, options)
+        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
         {
             this.doCustomDrawLogic = false;
             this.doForceIntoOneLine = forceOneLine;
 
-            this.doDrawTwoFields = options.reference_property != null;
-
             this.property_index = property_index;
+        }
+
+        protected override void InitOptions()
+        {
+            base.InitOptions();
+            this.doDrawTwoFields = Options.reference_property != null;
         }
 
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
@@ -813,13 +841,13 @@ namespace Thry
         public bool hasFoldoutProperties = false;
         public bool hasScaleOffset = false;
         public string VRAMString = "";
+        bool _isVRAMDirty = true;
 
-        public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, options, false, property_index)
+        public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, false, property_index)
         {
             doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
             this.hasFoldoutProperties = hasScaleOffset || DoReferencePropertiesExist;
-            UpdateVRAM();
         }
 
         void UpdateVRAM()
@@ -839,13 +867,18 @@ namespace Thry
         protected override void OnPropertyValueChanged()
         {
             base.OnPropertyValueChanged();
-            UpdateVRAM();
+            _isVRAMDirty = true;
         }
 
         public override void PreDraw()
         {
             DrawingData.CurrentTextureProperty = this;
             this.doCustomDrawLogic = !this._hasDrawer;
+            if (this._isVRAMDirty)
+            {
+                UpdateVRAM();
+                _isVRAMDirty = false;
+            }
         }
 
         public override void DrawDefault()
@@ -913,7 +946,7 @@ namespace Thry
 
     public class ShaderHeaderProperty : ShaderPart
     {
-        public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, options)
+        public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
         {
         }
 
@@ -1026,7 +1059,7 @@ namespace Thry
     }
     public class InstancingProperty : ShaderProperty
     {
-        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
+        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
         {
             doCustomDrawLogic = true;
         }
@@ -1038,7 +1071,7 @@ namespace Thry
     }
     public class GIProperty : ShaderProperty
     {
-        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
+        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
         {
             doCustomDrawLogic = true;
         }
@@ -1110,7 +1143,7 @@ namespace Thry
     }
     public class DSGIProperty : ShaderProperty
     {
-        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
+        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
         {
             doCustomDrawLogic = true;
         }
@@ -1122,7 +1155,7 @@ namespace Thry
     }
     public class LocaleProperty : ShaderProperty
     {
-        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, PropertyOptions options, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, options, forceOneLine, 0)
+        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
         {
             doCustomDrawLogic = true;
         }
