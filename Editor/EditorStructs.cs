@@ -177,33 +177,6 @@ namespace Thry
                 return;
 
             this.ExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
-            
-            if (this is ShaderHeader == false)
-            {
-                bool propHasDuplicate = shaderEditor.GetMaterialProperty(prop.name + "_" + shaderEditor.RenamedPropertySuffix) != null;
-                string tag = null;
-                //If prop is og, but is duplicated (locked) dont have it animateable
-                if (propHasDuplicate)
-                {
-                    this.IsAnimatable = false;
-                }
-                else
-                {
-                    //if prop is a duplicated or renamed get og property to check for animted status
-                    if (prop.name.Contains(shaderEditor.RenamedPropertySuffix))
-                    {
-                        string ogName = prop.name.Substring(0, prop.name.Length - shaderEditor.RenamedPropertySuffix.Length - 1);
-                        tag = ShaderOptimizer.GetAnimatedTag(MaterialProperty.targets[0] as Material, ogName);
-                    }
-                    else
-                    {
-                        tag = ShaderOptimizer.GetAnimatedTag(MaterialProperty);
-                    }
-                }
-                
-                this.IsAnimated = IsAnimatable && tag != "";
-                this.IsRenaming = IsAnimatable && tag == "2";
-            }
         }
 
         protected virtual void InitOptions()
@@ -725,6 +698,35 @@ namespace Thry
             {
                 _customDecorators = DrawingData.LastPropertyDecorators.ToArray();
                 _customDecoratorRects = new Rect[DrawingData.LastPropertyDecorators.Count];
+            }
+
+            // Animatable Stuff
+            if (this is ShaderHeader == false)
+            {
+                this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
+                bool propHasDuplicate = ShaderEditor.Active.GetMaterialProperty(MaterialProperty.name + "_" + ShaderEditor.Active.RenamedPropertySuffix) != null;
+                string tag = null;
+                //If prop is og, but is duplicated (locked) dont have it animateable
+                if (propHasDuplicate)
+                {
+                    this.IsAnimatable = false;
+                }
+                else
+                {
+                    //if prop is a duplicated or renamed get og property to check for animted status
+                    if (MaterialProperty.name.Contains(ShaderEditor.Active.RenamedPropertySuffix))
+                    {
+                        string ogName = MaterialProperty.name.Substring(0, MaterialProperty.name.Length - ShaderEditor.Active.RenamedPropertySuffix.Length - 1);
+                        tag = ShaderOptimizer.GetAnimatedTag(MaterialProperty.targets[0] as Material, ogName);
+                    }
+                    else
+                    {
+                        tag = ShaderOptimizer.GetAnimatedTag(MaterialProperty);
+                    }
+                }
+                
+                this.IsAnimated = IsAnimatable && tag != "";
+                this.IsRenaming = IsAnimatable && tag == "2";
             }
         }
 
