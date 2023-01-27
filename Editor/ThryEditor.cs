@@ -120,7 +120,7 @@ namespace Thry
                 string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
                 displayName = parts[0];
                 parts[1] = parts[1].Replace("''", "\"");
-                PropertyOptions options = Parser.ParseToObject<PropertyOptions>(parts[1]);
+                PropertyOptions options = Parser.Deserialize<PropertyOptions>(parts[1]);
                 if (options != null)
                 {
                     if (options.condition_showS != null)
@@ -139,16 +139,13 @@ namespace Thry
 
         private enum ThryPropertyType
         {
-            none, property, master_label, footer, header, headerWithEnd, legacy_header, legacy_header_end, legacy_header_start, group_start, group_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version
+            none, property, master_label, footer, legacy_header, legacy_header_end, legacy_header_start, group_start, group_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version
         }
 
         private ThryPropertyType GetPropertyType(MaterialProperty p, PropertyOptions options)
         {
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
-
-            if (DrawingData.LastPropertyDrawerType == DrawerType.Header)
-                return (DrawingData.LastPropertyDrawer as ThryHeaderDrawer).GetEndProperty() != null ? ThryPropertyType.headerWithEnd : ThryPropertyType.header;
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
@@ -255,13 +252,9 @@ namespace Thry
                 ThryPropertyType type = GetPropertyType(props[i], options);
                 switch (type)
                 {
-                    case ThryPropertyType.header:
-                        headerStack.Pop();
-                        break;
                     case ThryPropertyType.legacy_header:
                         headerStack.Pop();
                         break;
-                    case ThryPropertyType.headerWithEnd:
                     case ThryPropertyType.legacy_header_start:
                         offset = options.offset + ++headerCount;
                         break;
@@ -281,10 +274,8 @@ namespace Thry
                         _shaderHeader = new ShaderHeaderProperty(this, props[i], displayName, 0, options, false);
                         break;
                     case ThryPropertyType.footer:
-                        _footers.Add(new FooterButton(Parser.ParseToObject<ButtonData>(displayName)));
+                        _footers.Add(new FooterButton(Parser.Deserialize<ButtonData>(displayName)));
                         break;
-                    case ThryPropertyType.header:
-                    case ThryPropertyType.headerWithEnd:
                     case ThryPropertyType.legacy_header:
                     case ThryPropertyType.legacy_header_start:
                         ShaderHeader newHeader = new ShaderHeader(this, props[i], Editor, displayName, offset, options);

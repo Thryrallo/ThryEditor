@@ -1422,7 +1422,7 @@ namespace Thry
         protected virtual void Init(string s)
         {
             if(_isInit) return;
-            _buttonData = Parser.ParseToObject<ButtonData>(s);
+            _buttonData = Parser.Deserialize<ButtonData>(s);
             _isInit = true;
         }
 
@@ -1460,10 +1460,10 @@ namespace Thry
         protected override void Init(string s)
         {
             if(_isInit) return;
-            WebHelper.DownloadStringASync(s, (string data) =>
+            WebHelper.DownloadStringASync(s, (Action<string>)((string data) =>
             {
-                _buttonData = Parser.ParseToObject<ButtonData>(data);
-            });
+                _buttonData = Parser.Deserialize<ButtonData>(data);
+            }));
             _isInit = true;
         }
     }

@@ -535,33 +535,22 @@ namespace Thry
 
     public class ShaderHeader : ShaderGroup
     {
-        private ThryHeaderDrawer headerDrawer;
-        private bool isLegacy;
+        private ThryHeaderHandler _headerDrawer;
 
         public ShaderHeader(ShaderEditor shaderEditor) : base(shaderEditor)
         {
-            this.headerDrawer = new ThryHeaderDrawer();
+            this._headerDrawer = new ThryHeaderHandler();
         }
 
         public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, PropertyOptions options) : base(shaderEditor, prop, materialEditor, displayName, xOffset, options)
         {
-            if(DrawingData.LastPropertyDrawerType == DrawerType.Header)
-            {
-                //new header setup with drawer
-                this.headerDrawer = DrawingData.LastPropertyDrawer as ThryHeaderDrawer;
-            }
-            else
-            {
-                //legacy setup with HideInInspector
-                this.headerDrawer = new ThryHeaderDrawer();
-                isLegacy = true;
-            }
-            this.headerDrawer.xOffset = xOffset;
+            this._headerDrawer = new ThryHeaderHandler();
+            this._headerDrawer.xOffset = xOffset;
         }
 
         public string GetEndProperty()
         {
-            return headerDrawer.GetEndProperty();
+            return _headerDrawer.GetEndProperty();
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -569,13 +558,12 @@ namespace Thry
             ActiveShaderEditor.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
             Rect position = GUILayoutUtility.GetRect(content, Styles.dropDownHeader);
-            if (isLegacy) headerDrawer.OnGUI(position, this.MaterialProperty, content, ActiveShaderEditor.Editor);
-            else ActiveShaderEditor.Editor.ShaderProperty(position, this.MaterialProperty, content);
+            _headerDrawer.OnGUI(position, this.MaterialProperty, content, ActiveShaderEditor.Editor);
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
-            if (this.headerDrawer.IsExpanded)
+            if (this._headerDrawer.IsExpanded)
             {
                 EditorGUILayout.Space();
-                EditorGUI.BeginDisabledGroup(headerDrawer.DisableContent);
+                EditorGUI.BeginDisabledGroup(_headerDrawer.DisableContent);
                 foreach (ShaderPart part in parts)
                 {
                     part.Draw();
@@ -603,7 +591,7 @@ namespace Thry
             {
                 isEnabled &= Options.condition_enable.Test();
             }
-            isEnabled &= !headerDrawer.DisableContent;
+            isEnabled &= !_headerDrawer.DisableContent;
             foreach (ShaderPart p in (this as ShaderGroup).parts)
                 p.FindUnusedTextures(unusedList, isEnabled);
         }
@@ -692,8 +680,6 @@ namespace Thry
             if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, MaterialProperty.floatValue == 1);
         }
 
-        // TODO : This new implementation for peoprty height during OnGUI breaks the Drawer based defining of headers etc.
-        // But it wasnt ever used anyways. The specific code to it needs to be removed in the future
         void InitializeDrawers()
         {
             DrawingData.ResetLastDrawerData();

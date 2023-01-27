@@ -91,7 +91,7 @@ namespace Thry
 
     public enum DrawerType
     {
-        None, Header
+        None
     }
 
     public class GradientData
@@ -218,7 +218,7 @@ namespace Thry
                     name = s
                 };
             }
-            return Parser.ParseToObject<TextureData>(s);
+            return Parser.Deserialize<TextureData>(s);
         }
 
         bool IsUrl()
