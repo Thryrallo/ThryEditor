@@ -850,6 +850,7 @@ namespace Thry
 
         public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
         {
+            if (!source.HasProperty(p.name)) return;
             object prev = null;
             switch (p.type)
             {
