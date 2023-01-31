@@ -138,15 +138,23 @@ namespace Thry
                     isString = !isString;
                 if (!isString)
                 {
-                    if (i == end - 1 || (depth == 0 && input[i] == ',' && !escaped) || (!escaped && depth == 0 && input[i] == '}'))
+                    if ((depth == 0 && input[i] == ',' && !escaped) || (!escaped && depth == 0 && input[i] == '}'))
                     {
                         int seperatorIndex = input.IndexOf(':', variableStart, i - variableStart);
                         if (seperatorIndex == -1)
                             break;
                         string key = "" + ParseJsonPart(input, variableStart, seperatorIndex);
-                        object value = ParseJsonPart(input, seperatorIndex + 1, i == end - 1 ? i + 1 : i);
+                        object value = ParseJsonPart(input, seperatorIndex + 1, i);
                         variables.Add(key, value);
                         variableStart = i + 1;
+                    }else if(i == end - 1)
+                    {
+                        int seperatorIndex = input.IndexOf(':', variableStart, i - variableStart);
+                        if (seperatorIndex == -1)
+                            break;
+                        string key = "" + ParseJsonPart(input, variableStart, seperatorIndex);
+                        object value = ParseJsonPart(input, seperatorIndex + 1, i + 1);
+                        variables.Add(key, value);
                     }
                     else if ((input[i] == '{' || input[i] == '[') && !escaped)
                         depth++;
@@ -166,10 +174,13 @@ namespace Thry
             List<object> variables = new List<object>();
             for (int i = start; i < end; i++)
             {
-                if (i == end - 1 || (depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\')))
+                if(depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\'))
                 {
-                    variables.Add(ParseJsonPart(input, variableStart, i == end - 1 ? i + 1 : i));
+                    variables.Add(ParseJsonPart(input, variableStart, i));
                     variableStart = i + 1;
+                }else if(i == end - 1)
+                {
+                    variables.Add(ParseJsonPart(input, variableStart, i + 1));
                 }
                 else if (input[i] == '{' || input[i] == '[')
                     depth++;
