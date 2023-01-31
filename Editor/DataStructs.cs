@@ -135,17 +135,15 @@ namespace Thry
             if(s == null) return new PropertyOptions();
             s = s.Replace("''", "\"");
             PropertyOptions options = Parser.Deserialize<PropertyOptions>(s);
+            if (options == null) return new PropertyOptions();
             // The following could be removed since the parser can now handle it. leaving it in for now /shrug
-            if (options != null)
+            if (options.condition_showS != null)
             {
-                if (options.condition_showS != null)
-                {
-                    options.condition_show = DefineableCondition.Parse(options.condition_showS);
-                }
-                if (options.on_value != null)
-                {
-                    options.on_value_actions = PropertyValueAction.ParseToArray(options.on_value);
-                }
+                options.condition_show = DefineableCondition.Parse(options.condition_showS);
+            }
+            if (options.on_value != null)
+            {
+                options.on_value_actions = PropertyValueAction.ParseToArray(options.on_value);
             }
             return options;
         }
