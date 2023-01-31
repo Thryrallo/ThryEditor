@@ -381,7 +381,7 @@ namespace Thry
             if (GUI.Button(buttonRect, "Revert")) Revert();
             EditorGUI.EndDisabledGroup();
             buttonRect.x += buttonRect.width;
-            if (GUI.Button(buttonRect, "Advanded")) OpenFullTexturePacker();
+            if (GUI.Button(buttonRect, "Advanced")) OpenFullTexturePacker();
         }
 
         InlinePackerChannelConfig TexturePackerSlotGUI(InlinePackerChannelConfig input, string label)
