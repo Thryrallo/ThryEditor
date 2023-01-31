@@ -80,11 +80,13 @@ namespace Thry
         public string anchorOverrideObjectName = "AutoAnchorObject";
         public bool autoSetAnchorAskedOnce = false;
 
+        public bool prettyPrintConfigFiles = false;
+
         public string verion = VERSION;
 
         public Config Save()
         {
-            FileHelper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
+            FileHelper.WriteStringToFile(JsonUtility.ToJson(this, prettyPrintConfigFiles), PATH_CONFIG_FILE);
             return this;
         }
 
