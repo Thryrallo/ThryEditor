@@ -1760,13 +1760,7 @@ namespace Thry
             EditorGUI.showMixedValue = prop.hasMixedValue;
             EditorGUI.BeginChangeCheck();
             var value = prop.floatValue;
-            int selectedIndex = -1;
-            for (int i = 0; i < values.Length; i++)
-                if (values[i] == value)
-                {
-                    selectedIndex = i;
-                    break;
-                }
+            int selectedIndex = Array.IndexOf(values, value);
 
             if(_reloadCount != _reloadCountStatic)
             {

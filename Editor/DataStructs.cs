@@ -135,6 +135,7 @@ namespace Thry
             if(s == null) return new PropertyOptions();
             s = s.Replace("''", "\"");
             PropertyOptions options = Parser.Deserialize<PropertyOptions>(s);
+            // The following could be removed since the parser can now handle it. leaving it in for now /shrug
             if (options != null)
             {
                 if (options.condition_showS != null)
@@ -273,7 +274,7 @@ namespace Thry
                 (p.type == MaterialProperty.PropType.Texture && ((p.textureValue != null) == (value == "1"))) ||
                 (p.type == MaterialProperty.PropType.Texture && (p.textureValue != null && p.textureValue.name == value)) 
             )
-                {
+                {;
                 foreach (DefineableAction a in actions)
                     a.Perform(targets);
                 return true;

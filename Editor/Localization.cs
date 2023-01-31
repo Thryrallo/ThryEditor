@@ -27,13 +27,19 @@ namespace Thry{
         Dictionary<string,string> _defaultKeyValues = new Dictionary<string,string>();
         string[] _allLanguages;
         bool _isLoaded = false;
+        bool _couldNotLoad = false;
 
         // Use
         public static Localization Load(string guid)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             Localization l = AssetDatabase.LoadAssetAtPath<Localization>(path);
-            if(l == null) return ScriptableObject.CreateInstance<Localization>();
+            if(l == null)
+            {
+                l = ScriptableObject.CreateInstance<Localization>();
+                l._couldNotLoad = true;
+                return l;
+            }
             l.Load();
             return l;
         }
@@ -65,6 +71,11 @@ namespace Thry{
 
         public void DrawDropdown()
         {
+            if(_couldNotLoad)
+            {
+                EditorGUILayout.HelpBox("Could not load localization file", MessageType.Warning);
+                return;
+            }
             EditorGUI.BeginChangeCheck();
             SelectedLanguage = EditorGUILayout.Popup(SelectedLanguage + 1, _allLanguages) - 1;
             if(EditorGUI.EndChangeCheck())
