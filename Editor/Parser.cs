@@ -101,7 +101,7 @@ namespace Thry
                     return ParseObject(input, start, end);
                 }else
                 {
-                    Debug.LogWarning("Invalid json object: " + input);
+                    Debug.LogWarning("Invalid json object: " + input.Substring(rawStart, rawEnd - rawStart));
                     return null;
                 }
             }
