@@ -1439,239 +1439,26 @@ namespace Thry
         }
         //------------Track ShaderEditor shaders-------------------
 
-        public class ShaderEditorShader
+        // [MenuItem("Thry/Shader Editor/Test")]
+        // public static void Test()
+        // {
+        //     Shader shader = Shader.Find(".poiyomi/Poiyomi 8.1/Poiyomi Pro");
+        //     Debug.Log(IsShaderUsingThryEditor(shader));
+        // }
+
+        public static bool IsShaderUsingThryEditor(Shader shader)
         {
-            public string path;
-            public string name;
-            public string version;
-            public bool isUsingEditor;
+            return IsShaderUsingThryEditor(new Material(shader));
         }
-
-        private static List<ShaderEditorShader> shaders;
-        private static Dictionary<string, ShaderEditorShader> dictionary;
-        public static List<ShaderEditorShader> thry_editor_shaders
+        public static bool IsShaderUsingThryEditor(Material material)
         {
-            get
-            {
-                Init();
-                return shaders;
-            }
+            return IsShaderUsingThryEditor(MaterialEditor.CreateEditor(material) as MaterialEditor);
         }
-
-        private static void Init()
+        public static bool IsShaderUsingThryEditor(MaterialEditor materialEditor)
         {
-            if (shaders == null)
-                LoadShaderEditorShaders();
-        }
-
-        private static void Add(ShaderEditorShader s)
-        {
-            Init();
-            if (dictionary == null || s == null) return;
-            if (!dictionary.ContainsKey(s.name))
-            {
-                dictionary.Add(s.name, s);
-                shaders.Add(s);
-            }
-        }
-
-        private static void RemoveAt(int i)
-        {
-            Init();
-            if (dictionary == null || i >= shaders.Count() || shaders[i] == null) return;
-            if (dictionary.ContainsKey(shaders[i].name))
-            {
-                dictionary.Remove(shaders[i].name);
-                shaders.RemoveAt(i--);
-            }
-        }
-
-        public static string[] GetShaderEditorShaderNames()
-        {
-            string[] r = new string[thry_editor_shaders.Count];
-            for (int i = 0; i < r.Length; i++)
-                r[i] = thry_editor_shaders[i].name;
-            return r;
-        }
-
-        public static bool IsShaderUsingShaderEditor(Shader shader)
-        {
-            Init();
-            return dictionary.ContainsKey(shader.name);
-        }
-
-
-        private static void LoadShaderEditorShaders()
-        {
-            string data = FileHelper.ReadFileIntoString(PATH.THRY_EDITOR_SHADERS);
-            if (data != "")
-            {
-                shaders = Parser.Deserialize<List<ShaderEditorShader>>(data);
-                InitDictionary();
-            }
-            else
-            {
-                dictionary = new Dictionary<string, ShaderEditorShader>();
-                SearchAllShadersForShaderEditorUsage();
-            }
-            DeleteNull();
-        }
-
-        private static void InitDictionary()
-        {
-            dictionary = new Dictionary<string, ShaderEditorShader>();
-            foreach (ShaderEditorShader s in shaders)
-            {
-                if (s != null && s.name != null && dictionary.ContainsKey(s.name) == false)
-                    dictionary.Add(s.name, s);
-            }
-        }
-
-        public static void SearchAllShadersForShaderEditorUsage()
-        {
-            shaders = new List<ShaderEditorShader>();
-            string[] guids = AssetDatabase.FindAssets("t:shader");
-            foreach (string g in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(g);
-                TestShaderForShaderEditor(path);
-            }
-            Save();
-        }
-
-        private static void DeleteNull()
-        {
-            bool save = false;
-            int length = shaders.Count;
-            for (int i = 0; i < length; i++)
-            {
-                if (shaders[i] == null)
-                {
-                    RemoveAt(i--);
-                    length--;
-                    save = true;
-                }
-            }
-            if (save)
-                Save();
-        }
-
-        private static void Save()
-        {
-            FileHelper.WriteStringToFile(Parser.ObjectToString(shaders), PATH.THRY_EDITOR_SHADERS);
-        }
-
-        private static string GetActiveCustomEditorParagraph(string code)
-        {
-            Match match = Regex.Match(code, @"(^|\*\/)((.|\n)(?!(\/\*)))*CustomEditor\s*\""(\w|\d)*\""((.|\n)(?!(\/\*)))*");
-            if (match.Success) return match.Value;
-            return null;
-        }
-
-        private static bool ParagraphContainsActiveShaderEditorDefinition(string code)
-        {
-            Match match = Regex.Match(code, @"\n\s+CustomEditor\s+\""ShaderEditor\""");
-            return match.Success;
-        }
-
-        private static bool ShaderUsesShaderEditor(string code)
-        {
-            string activeCustomEditorParagraph = GetActiveCustomEditorParagraph(code);
-            if (activeCustomEditorParagraph == null)
-                return false;
-            return ParagraphContainsActiveShaderEditorDefinition(activeCustomEditorParagraph);
-        }
-
-        private static bool TestShaderForShaderEditor(string path)
-        {
-            string code = FileHelper.ReadFileIntoString(path);
-            if (ShaderUsesShaderEditor(code))
-            {
-                ShaderEditorShader shader = new ShaderEditorShader();
-                shader.path = path;
-                Match name_match = Regex.Match(code, @"(?<=[Ss]hader)\s*\""[^\""]+(?=\""\s*{)");
-                if (name_match.Success) shader.name = name_match.Value.TrimStart(new char[] { ' ', '"' });
-                Match master_label_match = Regex.Match(code, @"\[HideInInspector\]\s*shader_master_label\s*\(\s*\""[^\""]*(?=\"")");
-                if (master_label_match.Success) shader.version = GetVersionFromMasterLabel(master_label_match.Value);
-                Add(shader);
-                return true;
-            }
-            return false;
-        }
-
-        private static string GetVersionFromMasterLabel(string label)
-        {
-            Match match = Regex.Match(label, @"(?<=v|V)\d+(\.\d+)*");
-            if (!match.Success)
-                match = Regex.Match(label, @"\d+(\.\d+)+");
-            if (match.Success)
-                return match.Value;
-            return null;
-        }
-
-        public static void AssetsImported(string[] paths)
-        {
-            bool save = false;
-            foreach (string path in paths)
-            {
-                if (!path.EndsWith(".shader"))
-                    continue;
-                if (TestShaderForShaderEditor(path))
-                    save = true;
-            }
-            if (save)
-                Save();
-        }
-
-        public static void AssetsDeleted(string[] paths)
-        {
-            bool save = false;
-            foreach (string path in paths)
-            {
-                if (!path.EndsWith(".shader"))
-                    continue;
-                int length = thry_editor_shaders.Count;
-                for (int i = 0; i < length; i++)
-                {
-                    if (thry_editor_shaders[i] != null && thry_editor_shaders[i].path == path)
-                    {
-                        RemoveAt(i--);
-                        length--;
-                        save = true;
-                    }
-                }
-            }
-            if (save)
-                Save();
-        }
-
-        public static void AssetsMoved(string[] old_paths, string[] paths)
-        {
-            bool save = false;
-            for (int i = 0; i < paths.Length; i++)
-            {
-                if (!paths[i].EndsWith(".shader"))
-                    continue;
-                foreach (ShaderEditorShader s in thry_editor_shaders)
-                {
-                    if (s == null) continue;
-                    if (s.path == old_paths[i])
-                    {
-                        s.path = paths[i];
-                        save = true;
-                    }
-                }
-            }
-            if (save)
-                Save();
-        }
-
-        static Dictionary<Shader, bool> usingThryShaderEditor = new Dictionary<Shader, bool>();
-        public static bool IsShaderUsingThryShaderEditor(Shader shader)
-        {
-            if (usingThryShaderEditor.ContainsKey(shader)) return usingThryShaderEditor[shader];
-            usingThryShaderEditor[shader] = Enumerable.Range(0, shader.GetPropertyCount()).Any(i => shader.GetPropertyName(i) == ShaderEditor.PROPERTY_NAME_EDITOR_DETECT);
-            return usingThryShaderEditor[shader];
+            PropertyInfo shaderGUIProperty = typeof(MaterialEditor).GetProperty("customShaderGUI");
+            var gui = shaderGUIProperty.GetValue(materialEditor);
+            return gui.GetType() == typeof(ShaderEditor);
         }
 
         static MethodInfo getPropertyHandlerMethod;

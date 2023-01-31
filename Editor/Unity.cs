@@ -102,6 +102,16 @@ namespace Thry
             if (Directory.Exists(path)) return path;
             else return Path.GetDirectoryName(path);
         }
+        
+        public static void AddShaderPropertyToSourceCode(string path, string property, string value)
+        {
+            string shaderCode = FileHelper.ReadFileIntoString(path);
+            string pattern = @"Properties.*\n?\s*{";
+            RegexOptions options = RegexOptions.Multiline;
+            shaderCode = Regex.Replace(shaderCode, pattern, "Properties \r\n  {" + " \r\n      " + property + "=" + value, options);
+
+            FileHelper.WriteStringToFile(shaderCode, path);
+        }
     }
 
     public class UnityFixer
@@ -207,31 +217,16 @@ namespace Thry
     {
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            if (importedAssets.Length > 0)
-                AssetsImported(importedAssets);
             if (deletedAssets.Length > 0)
                 AssetsDeleted(deletedAssets);
-            if (movedAssets.Length > 0)
-                AssetsMoved(movedAssets, movedFromAssetPaths);
-        }
-
-        private static void AssetsImported(string[] assets)
-        {
-            ShaderHelper.AssetsImported(assets);
-        }
-
-        private static void AssetsMoved(string[] movedAssets, string[] movedFromAssetPaths)
-        {
-            ShaderHelper.AssetsMoved(movedFromAssetPaths, movedAssets);
         }
 
         private static void AssetsDeleted(string[] assets)
         {
-            ShaderHelper.AssetsDeleted(assets);
             UnityFixer.OnAssetDeleteCheckDrawingDLL(assets);
             if (CheckForEditorRemove(assets))
             {
-                Debug.Log("ShaderEditor is being deleted.");
+                Debug.Log("[Thry] ShaderEditor is being deleted.");
                 Config.Singleton.verion = "0";
                 Config.Singleton.Save();
                 ModuleHandler.OnEditorRemove();

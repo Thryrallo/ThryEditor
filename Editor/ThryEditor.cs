@@ -396,10 +396,13 @@ namespace Thry
         {
             if (Materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT) == false)
             {
-                EditorChanger.AddThryProperty(Materials[0].shader);
+                string path = AssetDatabase.GetAssetPath(Materials[0].shader);
+                UnityHelper.AddShaderPropertyToSourceCode(path, "[HideInInspector] shader_is_using_thry_editor(\"\", Float)", "0");
             }
             Materials[0].SetFloat(PROPERTY_NAME_EDITOR_DETECT, 69);
         }
+
+        
 
         public override void OnClosed(Material material)
         {
@@ -758,7 +761,7 @@ namespace Thry
         {
             IEnumerable<Material> materials = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.GUIDToAssetPath(g)).Where(p => string.IsNullOrEmpty(p) == false)
                 .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p)).Where(m => m != null && m.shader != null)
-                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false && ShaderHelper.IsShaderUsingThryShaderEditor(m.shader));
+                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false && ShaderHelper.IsShaderUsingThryEditor(m));
             float f = 0;
             int count = materials.Count();
             foreach(Material m in materials)
@@ -790,12 +793,6 @@ namespace Thry
         static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
         {
             ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
-        }
-
-        [MenuItem("Thry/ShaderUI/Use Thry Editor for other shaders", priority = 0)]
-        static void MenuShaderUIAddToShaders()
-        {
-            EditorWindow.GetWindow<EditorChanger>(false, "UI Changer", true);
         }
 
         [MenuItem("Thry/Shader Optimizer/Materials List", priority = 0)]
