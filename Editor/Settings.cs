@@ -153,9 +153,6 @@ namespace Thry
                 Toggle("autoSetAnchorOverride");
                 Dropdown("humanBoneAnchor");
                 Text("anchorOverrideObjectName");
-                EditorGUILayout.Space();
-                
-                Toggle("prettyPrintConfigFiles");
                 
                 EditorGUI.indentLevel -= 2;
             }
