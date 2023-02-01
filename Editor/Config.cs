@@ -84,7 +84,7 @@ namespace Thry
 
         public Config Save()
         {
-            FileHelper.WriteStringToFile(JsonUtility.ToJson(this), PATH_CONFIG_FILE);
+            FileHelper.WriteStringToFile(JsonUtility.ToJson(this, true), PATH_CONFIG_FILE);
             return this;
         }
 
