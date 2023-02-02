@@ -606,10 +606,12 @@ namespace Thry
             ComputeShader.SetFloat("Height", height);
 
             // Set Compute Shader Properties
-            SetComputeValues(sources, connections, outputConfigs[0], TextureChannelOut.R);
-            SetComputeValues(sources, connections, outputConfigs[1], TextureChannelOut.G);
-            SetComputeValues(sources, connections, outputConfigs[2], TextureChannelOut.B);
-            SetComputeValues(sources, connections, outputConfigs[3], TextureChannelOut.A);
+            int rCons = SetComputeValues(sources, connections, outputConfigs[0], TextureChannelOut.R);
+            int gCons = SetComputeValues(sources, connections, outputConfigs[1], TextureChannelOut.G);
+            int bCons = SetComputeValues(sources, connections, outputConfigs[2], TextureChannelOut.B);
+            int aCons = SetComputeValues(sources, connections, outputConfigs[3], TextureChannelOut.A);
+
+            bool hasTransparency = aCons > 0 || outputConfigs[3].Fallback < 1; 
 
             ComputeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
 
@@ -617,12 +619,13 @@ namespace Thry
             RenderTexture.active = target;
             atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.filterMode = targetFilterMode;
+            atlas.alphaIsTransparency = hasTransparency;
             atlas.Apply();
 
             return atlas;
         }
 
-        static void SetComputeValues(TextureSource[] sources, IEnumerable<Connection> allConnections, OutputConfig config, TextureChannelOut outChannel)
+        static int SetComputeValues(TextureSource[] sources, IEnumerable<Connection> allConnections, OutputConfig config, TextureChannelOut outChannel)
         {
             // Find all incoming connections
             Connection[] chnlConnections = allConnections.Where(c => c.ToChannel == outChannel && sources[c.FromTextureIndex].Texture != null).ToArray();
@@ -645,6 +648,8 @@ namespace Thry
             ComputeShader.SetInt(outChannel.ToString() + "_BlendMode", (int)config.BlendMode);
             ComputeShader.SetBool(outChannel.ToString() + "_Invert", config.Invert == InvertMode.Invert);
             ComputeShader.SetFloat(outChannel.ToString() + "_Fallback", config.Fallback);
+
+            return chnlConnections.Length;
         }
 
         void Save()
@@ -673,6 +678,7 @@ namespace Thry
             importer.crunchedCompression = true;
             importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
             importer.filterMode = _filterMode;
+            importer.alphaIsTransparency = _outputTexture.alphaIsTransparency;
             importer.SaveAndReimport();
 
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);

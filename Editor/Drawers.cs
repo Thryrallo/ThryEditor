@@ -593,6 +593,7 @@ namespace Thry
             importer.crunchedCompression = true;
             importer.sRGBTexture = _makeSRGB;
             importer.filterMode = GetFiltermode();
+            importer.alphaIsTransparency = _current._packedTexture.alphaIsTransparency;
             importer.SaveAndReimport();
 
             _current._hasConfigChanged = false;
