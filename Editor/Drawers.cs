@@ -535,7 +535,7 @@ namespace Thry
                 connections[0] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.R, TexturePacker.TextureChannelOut.R);
                 connections[1] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.G, TexturePacker.TextureChannelOut.G);
                 connections[2] = TexturePacker.Connection.CreateFull(0, TexturePacker.TextureChannelIn.B, TexturePacker.TextureChannelOut.B);
-                connections[3] = TexturePacker.Connection.CreateFull(1, TexturePacker.TextureChannelIn.A, TexturePacker.TextureChannelOut.A);
+                connections[3] = TexturePacker.Connection.CreateFull(1, _current._input_g.Channel       , TexturePacker.TextureChannelOut.A);
             }else
             {
                 connections[0] = TexturePacker.Connection.CreateFull(0, _current._input_r.Channel, TexturePacker.TextureChannelOut.R);

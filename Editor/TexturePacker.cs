@@ -106,6 +106,7 @@ namespace Thry
                         {
                             _loadedUncompressedTexture = Texture;
                         }
+                        DoReloadUncompressedTexture = false;
                         _loadedUnityTexture = Texture;
                     }
                     return _loadedUncompressedTexture;
