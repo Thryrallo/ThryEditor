@@ -757,6 +757,7 @@ namespace Thry
                     StreamWriter sw = new StreamWriter(newShaderDirectory + fileName);
                     sw.Write(output);
                     sw.Close();
+                    AssetDatabase.ImportAsset(newShaderDirectory + fileName);
                 }
                 catch (IOException e)
                 {
