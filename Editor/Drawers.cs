@@ -509,10 +509,20 @@ namespace Thry
         {
             // Build OutputConfig Array
             TexturePacker.OutputConfig[] outputConfigs = new TexturePacker.OutputConfig[4];
-            outputConfigs[0] = _current._input_r.ToOutputConfig();
-            outputConfigs[1] = _current._input_g.ToOutputConfig();
-            outputConfigs[2] = _current._input_b.ToOutputConfig();
-            outputConfigs[3] = _current._input_a.ToOutputConfig();
+            
+            if(_firstTextureIsRGB)
+            {
+                outputConfigs[0] = _current._input_r.ToOutputConfig();
+                outputConfigs[1] = _current._input_r.ToOutputConfig();
+                outputConfigs[2] = _current._input_r.ToOutputConfig();
+                outputConfigs[3] = _current._input_g.ToOutputConfig();
+            }else
+            {
+                outputConfigs[0] = _current._input_r.ToOutputConfig();
+                outputConfigs[1] = _current._input_g.ToOutputConfig();
+                outputConfigs[2] = _current._input_b.ToOutputConfig();
+                outputConfigs[3] = _current._input_a.ToOutputConfig();
+            }
             return outputConfigs;
         }
 
