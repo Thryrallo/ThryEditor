@@ -346,7 +346,7 @@ namespace Thry
             long lastEditTime = Helper.DatetimeToUnixSeconds(System.IO.File.GetLastWriteTime(path));
             bool hasBeenEdited = lastEditTime > _current._lastConfirmTime && lastEditTime != data.TextureSource.LastHandledTextureEditTime;
             data.TextureSource.LastHandledTextureEditTime = lastEditTime;
-            if (hasBeenEdited) data.TextureSource.DoReloadUncompressedTexture = true;
+            if (hasBeenEdited) TexturePacker.TextureSource.SetUncompressedTextureDirty(data.TextureSource.Texture);
             return hasBeenEdited;
         }
 

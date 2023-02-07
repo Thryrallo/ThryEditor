@@ -39,6 +39,15 @@ namespace Thry
         public enum BlendMode { Add, Multiply, Max, Min }
         public enum InvertMode { None, Invert}
         public enum SaveType { PNG, JPG }
+        public class ImageAdjust
+        {
+            public float Brightness = 1;
+            public float Hue = 0;
+            public float Saturation = 1;
+            public float Rotation = 0;
+            public Vector2 Scale = Vector2.one;
+            public bool ChangeCheck = false;
+        }
         static string GetTypeEnding(SaveType t)
         {
             switch (t)
@@ -63,10 +72,7 @@ namespace Thry
         public class TextureSource
         {
             public Texture2D Texture;
-            Texture2D _loadedUnityTexture;
-            Texture2D _loadedUncompressedTexture;
             public long LastHandledTextureEditTime;
-            public bool DoReloadUncompressedTexture;
             public FilterMode FilterMode;
 
             public TextureSource()
@@ -82,34 +88,46 @@ namespace Thry
             {
                 Texture = tex;
                 FilterMode = tex != null ? tex.filterMode : FilterMode.Bilinear;
-                DoReloadUncompressedTexture = true;
             }
 
+            public static void SetUncompressedTextureDirty(Texture2D tex)
+            {
+                if (_cachedUncompressedTextures.ContainsKey(tex))
+                {
+                    _cachedUncompressedTexturesNeedsReload[tex] = true;
+                }
+            }
+
+            static Dictionary<Texture2D, Texture2D> _cachedUncompressedTextures = new Dictionary<Texture2D, Texture2D>();
+            static Dictionary<Texture2D, bool> _cachedUncompressedTexturesNeedsReload = new Dictionary<Texture2D, bool>();
             public Texture2D UncompressedTexture
             {
                 get
                 {
-                    if (_loadedUnityTexture != Texture || _loadedUncompressedTexture == null || DoReloadUncompressedTexture)
+                    if(_cachedUncompressedTextures.ContainsKey(Texture) == false || _cachedUncompressedTexturesNeedsReload[Texture])
                     {
                         string path = AssetDatabase.GetAssetPath(Texture);
                         if(path.EndsWith(".png") || path.EndsWith(".jpg"))
                         {
-                            _loadedUncompressedTexture = new Texture2D(Texture.width, Texture.height, TextureFormat.ARGB32, false, true);
-                            ImageConversion.LoadImage(_loadedUncompressedTexture, System.IO.File.ReadAllBytes(path));
-                            _loadedUncompressedTexture.filterMode = Texture.filterMode;
+                            EditorUtility.DisplayProgressBar("Loading Raw PNG", "Loading " + path, 0.5f);
+                            Texture2D tex = new Texture2D(2,2, TextureFormat.RGBA32, false, true);
+                            tex.LoadImage(System.IO.File.ReadAllBytes(path));
+                            tex.filterMode = Texture.filterMode;
+                            _cachedUncompressedTextures[Texture] = tex;
+                            EditorUtility.ClearProgressBar();
                         }else if (path.EndsWith(".tga"))
                         {
-                            _loadedUncompressedTexture = TextureHelper.LoadTGA(path);
-                            _loadedUncompressedTexture.filterMode = Texture.filterMode;
+                            Texture2D tex = TextureHelper.LoadTGA(path, true);
+                            tex.filterMode = Texture.filterMode;
+                            _cachedUncompressedTextures[Texture] = tex;
                         }
                         else
                         {
-                            _loadedUncompressedTexture = Texture;
+                            _cachedUncompressedTextures[Texture] = Texture;
                         }
-                        DoReloadUncompressedTexture = false;
-                        _loadedUnityTexture = Texture;
+                        _cachedUncompressedTexturesNeedsReload[Texture] = false;
                     }
-                    return _loadedUncompressedTexture;
+                    return _cachedUncompressedTextures[Texture];
                 }
             }
 
@@ -164,11 +182,15 @@ namespace Thry
                 FromChannel = channel;
                 // check if done
                 if(ToChannel == TextureChannelOut.None) return;
-                // remove if already exists
-                int rm = packer._connections.RemoveAll(c => c.ToChannel == ToChannel && c.FromTextureIndex == FromTextureIndex && c.FromChannel == FromChannel);
-                // Add new connection if not removed
-                if(rm == 0) packer._connections.Add(this);
+                // check if already exists
+                if(packer._connections.Exists(c => c.ToChannel == ToChannel && c.FromTextureIndex == FromTextureIndex && c.FromChannel == FromChannel))
+                {
+                    packer._creatingConnection = null;
+                    return;
+                }
+                packer._connections.Add(this);
                 packer._creatingConnection = null;
+                packer._changeCheckForPacking = true;
             }
 
             public void SetTo(TextureChannelOut channel, TexturePacker packer)
@@ -176,19 +198,37 @@ namespace Thry
                 // cancle if selecting same channel
                 if (ToChannel == channel)
                 {
-                    packer._creatingConnection = null;
                     return;
                 }
                 // set
                 ToChannel = channel;
                 // check if done
                 if(FromTextureIndex == -1 || FromChannel == TextureChannelIn.None) return;
-                // remove if already exists
-                int rm = packer._connections.RemoveAll(c => c.ToChannel == ToChannel && c.FromTextureIndex == FromTextureIndex && c.FromChannel == FromChannel);
-                // Add new connection if not removed
-                if(rm == 0) packer._connections.Add(this);
+                // check if already exists
+                if(packer._connections.Exists(c => c.ToChannel == ToChannel && c.FromTextureIndex == FromTextureIndex && c.FromChannel == FromChannel))
+                {
+                    packer._creatingConnection = null;
+                    return;
+                }
+                packer._connections.Add(this);
                 packer._creatingConnection = null;
+                packer._changeCheckForPacking = true;
             }
+
+            Vector3 _bezierStart, _bezierEnd, _bezierStartTangent, _bezierEndTangent;
+
+            public void CalculateBezierPoints(Vector2[] positionsIn, Vector2[] positionsOut)
+            {
+                _bezierStart = positionsIn[FromTextureIndex * 5 + (int)FromChannel];
+                _bezierEnd = positionsOut[(int)ToChannel];
+                _bezierStartTangent = _bezierStart + Vector3.right * 50;
+                _bezierEndTangent = _bezierEnd + Vector3.left * 50;
+            }
+
+            public Vector3 BezierStart { get { return _bezierStart; } }
+            public Vector3 BezierEnd { get { return _bezierEnd; } }
+            public Vector3 BezierStartTangent { get { return _bezierStartTangent; } }
+            public Vector3 BezierEndTangent { get { return _bezierEndTangent; } }
         }
 #endregion
 
@@ -220,6 +260,8 @@ namespace Thry
         string _saveName;
         SaveType _saveType = SaveType.PNG;
         float _saveQuality = 1;
+
+        ImageAdjust _colorAdjust = new ImageAdjust();
 
         public Action<Texture2D> OnSave;
         public Action<Texture2D, TextureSource[], OutputConfig[], Connection[]> OnChange;
@@ -267,13 +309,16 @@ namespace Thry
             _connections = connections.ToList();
             _filterMode = filterMode;
             _colorSpace = colorSpace;
-            Pack();
+            // Reset Color Adjust
+            _colorAdjust = new ImageAdjust();
             DeterminePath();
             DetermineImportSettings(_textureSources[0]);
+            Pack();
         }
 
         void InitilizeWithOneTexture(Texture2D texture)
         {
+            _connections.Clear();
             _textureSources[0].SetTexture(texture);
             _textureSources[1].SetTexture(texture);
             _textureSources[2].SetTexture(texture);
@@ -283,22 +328,26 @@ namespace Thry
             _connections.Add(Connection.CreateFull(1, TextureChannelIn.G, TextureChannelOut.G));
             _connections.Add(Connection.CreateFull(2, TextureChannelIn.B, TextureChannelOut.B));
             _connections.Add(Connection.CreateFull(3, TextureChannelIn.A, TextureChannelOut.A));
-            Pack();
+            // Reset Color Adjust
+            _colorAdjust = new ImageAdjust();
             DeterminePath();
             DetermineImportSettings(_textureSources[0]);
+            Pack();
         }
 
         const int TOP_OFFSET = 50;
         const int INPUT_PADDING = 20;
         const int OUTPUT_HEIGHT = 300;
 
+        bool _changeCheckForPacking;
         private void OnGUI()
         {
             // Draw three texture slots on the left, a space in the middle, and one texutre slot on the right
             GUILayout.BeginVertical();
-            EditorGUI.BeginChangeCheck();
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace(); 
+
+            _changeCheckForPacking = false;
 
             GUILayout.BeginVertical();
             GUILayout.Space(TOP_OFFSET);
@@ -317,8 +366,27 @@ namespace Thry
             GUILayout.Space(TOP_OFFSET);
             GUILayout.Space((inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2);
             DrawOutput(_outputTexture, OUTPUT_HEIGHT);
+            EditorGUI.BeginChangeCheck();
             _colorSpace = (ColorSpace)EditorGUILayout.EnumPopup(_colorSpace);
             _filterMode = (FilterMode)EditorGUILayout.EnumPopup(_filterMode);
+            _changeCheckForPacking |= EditorGUI.EndChangeCheck();
+
+            // Make the sliders delayed, else the UX feels terrible
+            EditorGUI.BeginChangeCheck();
+            EventType eventTypeBeforerSliders  = Event.current.type;
+            _colorAdjust.Scale = EditorGUILayout.Vector2Field("Scale", _colorAdjust.Scale);
+            _colorAdjust.Rotation = EditorGUILayout.Slider("Rotation", _colorAdjust.Rotation, -180, 180);
+            _colorAdjust.Hue = EditorGUILayout.Slider("Hue", _colorAdjust.Hue, 0, 1);
+            _colorAdjust.Saturation = EditorGUILayout.Slider("Saturation", _colorAdjust.Saturation, 0, 3);
+            _colorAdjust.Brightness = EditorGUILayout.Slider("Brightness", _colorAdjust.Brightness, 0, 3);
+            _colorAdjust.ChangeCheck |= EditorGUI.EndChangeCheck();
+            if(_colorAdjust.ChangeCheck && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
+            {
+                _changeCheckForPacking = true;
+                _colorAdjust.ChangeCheck = false;
+                Repaint();
+            }
+
             GUILayout.EndVertical();
 
             GUILayout.FlexibleSpace(); 
@@ -330,7 +398,7 @@ namespace Thry
             {
                 DetermineImportSettings(_textureSources[0]); // Import Settings are based on the first texture
             }
-            if(EditorGUI.EndChangeCheck())
+            if(_changeCheckForPacking)
             {
                 Pack();
             }
@@ -338,6 +406,93 @@ namespace Thry
             GUILayout.Space(20);
             DrawSaveGUI();
             GUILayout.EndVertical();
+
+            HandleConnectionDeletion();
+            HandleConnectionCreationHandle();
+        }
+
+        void HandleConnectionDeletion()
+        {
+            if(Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Delete)
+            {
+                Connection toDelete = CheckIfConnectionClicked();
+                if(toDelete != null)
+                {
+                    _connections.Remove(toDelete);
+                    Pack();
+                    Repaint();
+                }
+            }
+        }
+
+        void HandleConnectionCreationHandle()
+        {
+            if(_creatingConnection != null)
+            {
+                // if user clicked anywhere on the screen, stop creating the connection
+                if(Event.current.type == EventType.MouseDown)
+                {
+                    _creatingConnection = null;
+                    return;
+                }
+
+                Vector2 bezierStart, bezierEnd, bezierStartTangent, bezierEndTangent;
+                Color color = Color.white;
+
+                bezierEnd = Event.current.mousePosition;
+
+                if(_creatingConnection.FromChannel != TextureChannelIn.None)
+                {
+                    bezierStart = _positionsChannelIn[_creatingConnection.FromTextureIndex * 5 + (int)_creatingConnection.FromChannel];
+                    bezierStartTangent = bezierStart + Vector2.right * 50;
+                    bezierEndTangent = bezierEnd + Vector2.left * 50;
+                    color = GetColor(_creatingConnection.FromChannel);
+                }
+                else
+                {
+                    bezierStart = _positionsChannelOut[(int)_creatingConnection.ToChannel];
+                    bezierStartTangent = bezierStart + Vector2.left * 50;
+                    bezierEndTangent = bezierEnd + Vector2.right * 50;
+                    color = GetColor(_creatingConnection.ToChannel);
+                }
+
+                Handles.DrawBezier(bezierStart, bezierEnd, bezierStartTangent, bezierEndTangent, color, null, 2);
+                Repaint();
+            }
+        }
+
+        Connection CheckIfConnectionClicked()
+        {
+            Vector2 mousePos = Event.current.mousePosition;
+            float minDistance = 50;
+            Connection closestConnection = null;
+            foreach(Connection c in _connections)
+            {
+                Vector3 from = c.BezierStart;
+                Vector3 to = c.BezierEnd;
+                float topY = Mathf.Max(from.y, to.y);
+                float bottomY = Mathf.Min(from.y, to.y);
+                float leftX = Mathf.Min(from.x, to.x);
+                float rightX = Mathf.Max(from.x, to.x);
+                // check if mouse is in the area of the bezier curve
+                if(mousePos.x > leftX && mousePos.x < rightX)
+                {
+                    if(mousePos.y > bottomY && mousePos.y < topY)
+                    {
+                        // check if mouse is close to the bezier curve
+                        float distance = HandleUtility.DistancePointBezier(mousePos, c.BezierStart, c.BezierEnd, c.BezierStartTangent, c.BezierEndTangent);
+                        if(distance < 50)
+                        {
+                            if(distance < minDistance)
+                            {
+                                minDistance = distance;
+                                closestConnection = c;
+                            }
+                        }
+                    }
+                }
+            }
+            return closestConnection;
         }
 
         void DrawSaveGUI()
@@ -408,11 +563,10 @@ namespace Thry
         void DrawConnections()
         {
             // Draw connections as lines
-            foreach (var connection in _connections)
+            foreach (Connection c in _connections)
             {
-                Vector3 from = _positionsChannelIn[connection.FromTextureIndex * 5 + (int)connection.FromChannel];
-                Vector3 to = _positionsChannelOut[(int)connection.ToChannel];
-                Handles.DrawBezier(from, to, from + Vector3.right * 50, to + Vector3.left * 50, GetColor(connection.FromChannel), null, 2);
+                c.CalculateBezierPoints(_positionsChannelIn, _positionsChannelOut);
+                Handles.DrawBezier(c.BezierStart, c.BezierEnd, c.BezierStartTangent, c.BezierEndTangent, GetColor(c.FromChannel), null, 2);
             }
         }
 
@@ -471,12 +625,12 @@ namespace Thry
             Rect blendmodeRect = new Rect(fallbackRect.x, fallbackRect.y, fallbackRect.width, fallbackRect.height / 2);
             Rect invertRect = new Rect(fallbackRect.x, fallbackRect.y + fallbackRect.height / 2, fallbackRect.width, fallbackRect.height / 2);
             
-            bool isSelected = _creatingConnection != null && _creatingConnection.ToChannel == channel;
-            if ((isSelected && GUI.Button(channelRect, "X")) || (!isSelected && GUI.Button(channelRect, channel.ToString())))
+            if (GUI.Button(channelRect, channel.ToString()))
             {
                 if (_creatingConnection != null) _creatingConnection.SetTo(channel, this);
                 else _creatingConnection = Connection.Create(channel);
             }
+            EditorGUI.BeginChangeCheck();
             if(DoFallback(channel))
             {
                 config.Fallback = EditorGUI.FloatField(fallbackRect, config.Fallback);
@@ -485,6 +639,7 @@ namespace Thry
                 config.BlendMode = (BlendMode)EditorGUI.EnumPopup(blendmodeRect, config.BlendMode);
                 config.Invert = (InvertMode)EditorGUI.EnumPopup(invertRect, config.Invert);
             }
+            _changeCheckForPacking |= EditorGUI.EndChangeCheck();
         }
 
         bool DrawInput(TextureSource texture, int index, int textureHeight = 100)
@@ -495,10 +650,12 @@ namespace Thry
 
             // Draw textrue & filtermode. Change filtermode if texture is changed
             EditorGUI.BeginChangeCheck();
+            EditorGUI.BeginChangeCheck();
             texture.Texture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.Texture, typeof(Texture2D), false);
             bool didTextureChange = EditorGUI.EndChangeCheck();
             if(didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
             texture.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, texture.FilterMode);
+            _changeCheckForPacking |= EditorGUI.EndChangeCheck();
 
             // draw 4 channl boxes on the right side
             int channelWidth = textureHeight / 5;
@@ -550,8 +707,7 @@ namespace Thry
 
         void DrawInputChannel(Rect position, int index, TextureChannelIn channel)
         {
-            bool isSelected = _creatingConnection != null && _creatingConnection.FromChannel == channel && _creatingConnection.FromTextureIndex == index;
-            if((isSelected && GUI.Button(position, "X")) || (!isSelected && GUI.Button(position, channel.ToString())))
+            if(GUI.Button(position, channel.ToString()))
             {
                 if (_creatingConnection == null) _creatingConnection = Connection.Create(index, channel);
                 else _creatingConnection.SetFrom(index, channel, this);
@@ -579,15 +735,27 @@ namespace Thry
             }
         }
 
+        Color GetColor(TextureChannelOut c)
+        {
+            switch (c)
+            {
+                case TextureChannelOut.R: return Color.red;
+                case TextureChannelOut.G: return Color.green;
+                case TextureChannelOut.B: return Color.blue;
+                case TextureChannelOut.A: return Color.white;
+                default: return Color.black;
+            }
+        }
+
         // Packing Logic
 
         void Pack()
         {
-            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace);
+            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _colorAdjust);
             if(OnChange != null) OnChange(_outputTexture, _textureSources, _outputConfigs, _connections.ToArray());
         }
 
-        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace)
+        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null)
         {
             int width = 16;
             int height = 16;
@@ -606,11 +774,20 @@ namespace Thry
             ComputeShader.SetFloat("Width", width);
             ComputeShader.SetFloat("Height", height);
 
+            if(colorAdjust == null) colorAdjust = new ImageAdjust();
+            ComputeShader.SetFloat("Rotation", colorAdjust.Rotation / 360f * 2f * Mathf.PI);
+            ComputeShader.SetVector("Scale", colorAdjust.Scale);
+            ComputeShader.SetFloat("Hue", colorAdjust.Hue);
+            ComputeShader.SetFloat("Saturation", colorAdjust.Saturation);
+            ComputeShader.SetFloat("Brightness", colorAdjust.Brightness);
+
+            bool repeatTextures = Math.Abs(colorAdjust.Scale.x) > 1 || Math.Abs(colorAdjust.Scale.y) > 1;
+
             // Set Compute Shader Properties
-            int rCons = SetComputeValues(sources, connections, outputConfigs[0], TextureChannelOut.R);
-            int gCons = SetComputeValues(sources, connections, outputConfigs[1], TextureChannelOut.G);
-            int bCons = SetComputeValues(sources, connections, outputConfigs[2], TextureChannelOut.B);
-            int aCons = SetComputeValues(sources, connections, outputConfigs[3], TextureChannelOut.A);
+            int rCons = SetComputeValues(sources, connections, outputConfigs[0], TextureChannelOut.R, repeatTextures);
+            int gCons = SetComputeValues(sources, connections, outputConfigs[1], TextureChannelOut.G, repeatTextures);
+            int bCons = SetComputeValues(sources, connections, outputConfigs[2], TextureChannelOut.B, repeatTextures);
+            int aCons = SetComputeValues(sources, connections, outputConfigs[3], TextureChannelOut.A, repeatTextures);
 
             bool hasTransparency = aCons > 0 || outputConfigs[3].Fallback < 1; 
 
@@ -626,7 +803,7 @@ namespace Thry
             return atlas;
         }
 
-        static int SetComputeValues(TextureSource[] sources, IEnumerable<Connection> allConnections, OutputConfig config, TextureChannelOut outChannel)
+        static int SetComputeValues(TextureSource[] sources, IEnumerable<Connection> allConnections, OutputConfig config, TextureChannelOut outChannel, bool repeatMode)
         {
             // Find all incoming connections
             Connection[] chnlConnections = allConnections.Where(c => c.ToChannel == outChannel && sources[c.FromTextureIndex].Texture != null).ToArray();
@@ -635,6 +812,9 @@ namespace Thry
             for(int i = 0; i < chnlConnections.Length; i++)
             {
                 TextureSource s = sources[chnlConnections[i].FromTextureIndex];
+                // set the sampler states correctly
+                s.UncompressedTexture.wrapMode = repeatMode ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+                s.UncompressedTexture.filterMode = s.FilterMode;
                 ComputeShader.SetTexture(0, outChannel.ToString() + "_Input_" + i, s.UncompressedTexture);
                 ComputeShader.SetInt(outChannel.ToString() + "_Channel_" + i, (int)chnlConnections[i].FromChannel);
                 ComputeShader.SetBool(outChannel.ToString() + "_IsBillinear_" + i, s.FilterMode != FilterMode.Point);

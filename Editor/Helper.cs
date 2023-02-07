@@ -558,7 +558,7 @@ namespace Thry
 
         //===============TGA Loader by aaro4130 https://forum.unity.com/threads/tga-loader-for-unity3d.172291/==============
 
-        public static Texture2D LoadTGA(string TGAFile)
+        public static Texture2D LoadTGA(string TGAFile, bool displayProgressbar = false)
         {
             using (BinaryReader r = new BinaryReader(File.Open(TGAFile, FileMode.Open)))
             {
@@ -594,47 +594,56 @@ namespace Thry
                 bool startsAtRight = (ImageDescriptor & 1 << 4) >> 4 == 1;
                 //     MsgBox("Dimensions are "  Width  ","  Height)
                 Texture2D b = new Texture2D(Width, Height, TextureFormat.ARGB32, false);
+                Color[] colors = new Color[Width * Height];
+                int texX = 0;
+                int texY = 0;
+                int index = 0;
+                float red = 0, green = 0, blue = 0, alpha = 0;
+                Byte[] bytes = r.ReadBytes((PixelDepth == 32 ? 4 : 3) * Width * Height);
+                
+                int byteIndex = 0;
                 for (int y = 0; y < b.height; y++)
                 {
+                    if(displayProgressbar && y % 50 == 0) EditorUtility.DisplayProgressBar("Loading Raw TGA", "Loading " + TGAFile, (float)y / b.height);
                     for (int x = 0; x < b.width; x++)
                     {
-                        int texX = x;
-                        int texY = y;
+                        texX = x;
+                        texY = y;
                         if(startsAtRight) texX = b.width - x - 1;
                         if(startsAtTop) texY = b.height - y - 1;
+                        index = texX + texY * b.width;
+
+                        blue = Convert.ToSingle(bytes[byteIndex++]);
+                        green = Convert.ToSingle(bytes[byteIndex++]);
+                        red = Convert.ToSingle(bytes[byteIndex++]);
+
+                        blue = Mathf.Pow(blue / 255, 0.45454545454f);
+                        green = Mathf.Pow(green / 255, 0.45454545454f);
+                        red = Mathf.Pow(red / 255, 0.45454545454f);
+
+                        // blue /= 255;
+                        // green /= 255;
+                        // red /= 255;
+
+                        colors[index].r = red;
+                        colors[index].g = green;
+                        colors[index].b = blue;
 
                         if (PixelDepth == 32)
                         {
-
-                            float red = Convert.ToSingle(r.ReadByte());
-                            float green = Convert.ToSingle(r.ReadByte());
-                            float blue = Convert.ToSingle(r.ReadByte());
-                            float alpha = Convert.ToSingle(r.ReadByte());
+                            alpha = Convert.ToSingle(bytes[byteIndex++]);
                             alpha /= 255;
-                            green /= 255;
-                            blue /= 255;
-                            red /= 255;
-                            Color cl = new Color(blue, green, red, alpha);
-                            b.SetPixel(texX, texY, cl);
+                            colors[index].a = alpha;
                         }
                         else
                         {
-
-                            float red = Convert.ToSingle(r.ReadByte());
-                            float green = Convert.ToSingle(r.ReadByte());
-                            float blue = Convert.ToSingle(r.ReadByte());
-
-
-                            green = Mathf.Pow(green / 255, 1 / 2.2f);
-                            blue = Mathf.Pow(blue / 255, 1 / 2.2f);
-                            red = Mathf.Pow(red / 255, 1 / 2.2f);
-                            Color cl = new Color(blue, green, red, 1);
-                            b.SetPixel(texX, texY, cl);
+                            colors[index].a = 1;
                         }
-
                     }
                 }
+                b.SetPixels(colors);
                 b.Apply();
+                if(displayProgressbar) EditorUtility.ClearProgressBar();
 
                 return b;
             }
