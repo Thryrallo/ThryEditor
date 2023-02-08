@@ -39,6 +39,8 @@ namespace Thry
         public enum BlendMode { Add, Multiply, Max, Min }
         public enum InvertMode { None, Invert}
         public enum SaveType { PNG, JPG }
+        public enum InputType { Texture, Gradient }
+        public enum GradientDirection { Horizontal, Vertical }
         public class ImageAdjust
         {
             public float Brightness = 1;
@@ -74,6 +76,29 @@ namespace Thry
             public Texture2D Texture;
             public long LastHandledTextureEditTime;
             public FilterMode FilterMode;
+            public Color Color;
+            public Gradient Gradient;
+            public GradientDirection GradientDirection;
+            public Texture2D GradientTexture;
+            public Texture2D TextureTexture;
+
+            InputType _inputType = InputType.Texture;
+            public InputType InputType
+            {
+                get
+                {
+                    return _inputType;
+                }
+                set
+                {
+                    if(_inputType != value)
+                    {
+                        _inputType = value;
+                        if(_inputType == InputType.Texture) Texture = TextureTexture;
+                        if(_inputType == InputType.Gradient) Texture = GradientTexture;
+                     }
+                }
+            }
 
             public TextureSource()
             {
@@ -312,7 +337,7 @@ namespace Thry
             // Reset Color Adjust
             _colorAdjust = new ImageAdjust();
             DeterminePath();
-            DetermineImportSettings(_textureSources[0]);
+            DetermineImportSettings();
             Pack();
         }
 
@@ -331,7 +356,7 @@ namespace Thry
             // Reset Color Adjust
             _colorAdjust = new ImageAdjust();
             DeterminePath();
-            DetermineImportSettings(_textureSources[0]);
+            DetermineImportSettings();
             Pack();
         }
 
@@ -351,13 +376,14 @@ namespace Thry
 
             GUILayout.BeginVertical();
             GUILayout.Space(TOP_OFFSET);
-            bool didFirstTexChange = DrawInput( _textureSources[0], 0);
+            bool didInputTexturesChange = false;
+            didInputTexturesChange |= DrawInput( _textureSources[0], 0);
             GUILayout.Space(INPUT_PADDING);
-            DrawInput( _textureSources[1], 1);
+            didInputTexturesChange |= DrawInput( _textureSources[1], 1);
             GUILayout.Space(INPUT_PADDING);
-            DrawInput( _textureSources[2], 2);
+            didInputTexturesChange |= DrawInput( _textureSources[2], 2);
             GUILayout.Space(INPUT_PADDING);
-            DrawInput( _textureSources[3], 3);
+            didInputTexturesChange |= DrawInput( _textureSources[3], 3);
             GUILayout.EndVertical();
             float inputHeight = 120 * 4 + INPUT_PADDING * 3 + TOP_OFFSET;
 
@@ -394,9 +420,9 @@ namespace Thry
 
             DrawConnections();
 
-            if(didFirstTexChange)
+            if(didInputTexturesChange)
             {
-                DetermineImportSettings(_textureSources[0]); // Import Settings are based on the first texture
+                DetermineImportSettings();
             }
             if(_changeCheckForPacking)
             {
@@ -413,7 +439,7 @@ namespace Thry
 
         void HandleConnectionDeletion()
         {
-            if(Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Delete)
+            if(Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Delete)
             {
                 Connection toDelete = CheckIfConnectionClicked();
                 if(toDelete != null)
@@ -540,6 +566,8 @@ namespace Thry
                 if(s.Texture != null)
                 {
                     string path = AssetDatabase.GetAssetPath(s.Texture);
+                    if(string.IsNullOrWhiteSpace(path))
+                        continue;
                     _saveFolder = Path.GetDirectoryName(path);
                     _saveName = Path.GetFileNameWithoutExtension(path) + "_packed";
                     break;
@@ -547,17 +575,33 @@ namespace Thry
             }
         }
 
-        void DetermineImportSettings(TextureSource s)
+        void DetermineImportSettings()
+        {
+            _colorSpace = ColorSpace.Gamma;
+            _filterMode = FilterMode.Bilinear;
+            foreach(TextureSource s in _textureSources)
+            {
+                if(DetermineImportSettings(s))
+                    break;
+            }
+        }
+
+        bool DetermineImportSettings(TextureSource s)
         {
             if(s.Texture != null)
             {
-                TextureImporter importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(s.Texture)) as TextureImporter;
+                string path = AssetDatabase.GetAssetPath(s.Texture);
+                if(path == null)
+                    return false;
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
                 if(importer != null)
                 {
                     _colorSpace = importer.sRGBTexture ? ColorSpace.Gamma : ColorSpace.Linear;
                     _filterMode = importer.filterMode;
+                    return true;
                 }
             }
+            return false;
         }
 
         void DrawConnections()
@@ -644,21 +688,56 @@ namespace Thry
 
         bool DrawInput(TextureSource texture, int index, int textureHeight = 100)
         {
-            Rect rect = GUILayoutUtility.GetRect(textureHeight, textureHeight + 20);
-            Rect textureRect = new Rect(rect.x, rect.y, textureHeight, textureHeight);
+            int channelWidth = textureHeight / 5;
+            Rect rect = GUILayoutUtility.GetRect(textureHeight, textureHeight + 40);
+            Rect typeRect = new Rect(rect.x, rect.y, textureHeight, 20);
+            Rect textureRect = new Rect(rect.x, rect.y + 20, textureHeight, textureHeight);
             Rect filterRect = new Rect(textureRect.x, textureRect.y + textureHeight, textureRect.width, 20);
+
+            Rect background = new Rect(rect.x - 5, rect.y - 5, rect.width + channelWidth + 40, rect.height + 10);
+            GUI.DrawTexture(background, Styles.rounded_texture, ScaleMode.StretchToFill, true, 0, Color.gray, 0, 0);
+            
 
             // Draw textrue & filtermode. Change filtermode if texture is changed
             EditorGUI.BeginChangeCheck();
-            EditorGUI.BeginChangeCheck();
-            texture.Texture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.Texture, typeof(Texture2D), false);
-            bool didTextureChange = EditorGUI.EndChangeCheck();
-            if(didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
-            texture.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, texture.FilterMode);
+            texture.InputType = (InputType)EditorGUI.EnumPopup(typeRect, texture.InputType);
+            bool didTextureChange = false;
+            switch(texture.InputType)
+            {
+                case InputType.Texture:
+                    EditorGUI.BeginChangeCheck();
+                    texture.Texture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.Texture, typeof(Texture2D), false);
+                    didTextureChange = EditorGUI.EndChangeCheck();
+                    if(didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
+                    texture.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, texture.FilterMode);
+                    break;
+                case InputType.Gradient:
+                    if(texture.GradientTexture == null) EditorGUI.DrawRect(textureRect, Color.black);
+                    else EditorGUI.DrawPreviewTexture(textureRect, texture.GradientTexture);
+                    if(Event.current.type == EventType.MouseDown && textureRect.Contains(Event.current.mousePosition))
+                    {
+                        if(texture.Gradient == null) texture.Gradient = new Gradient();
+                        GradientEditor2.Open(texture.Gradient, GetMaxTextureSize(_textureSources), false, (Gradient gradient, Texture2D tex) => {
+                            texture.Gradient = gradient;
+                            texture.GradientTexture = tex;
+                            texture.Texture = tex;
+                        });
+
+                    }
+                    EditorGUI.BeginChangeCheck();
+                    texture.GradientDirection = (GradientDirection)EditorGUI.EnumPopup(filterRect, texture.GradientDirection);
+                    if(EditorGUI.EndChangeCheck() && texture.Gradient != null)
+                    {
+                        Vector2Int size = GetMaxTextureSize(_textureSources);
+                        texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, size.x, size.y, texture.GradientDirection == GradientDirection.Vertical);
+                        texture.Texture = texture.GradientTexture;
+                    }
+                    break;
+            }
+            
             _changeCheckForPacking |= EditorGUI.EndChangeCheck();
 
             // draw 4 channl boxes on the right side
-            int channelWidth = textureHeight / 5;
             Rect rectR = new Rect(textureRect.x + textureRect.width, textureRect.y, channelWidth, channelWidth);
             Rect rectG = new Rect(textureRect.x + textureRect.width, textureRect.y + channelWidth, channelWidth, channelWidth);
             Rect rectB = new Rect(textureRect.x + textureRect.width, textureRect.y + channelWidth * 2, channelWidth, channelWidth);
@@ -686,11 +765,11 @@ namespace Thry
                 EditorGUI.DrawRect(rectMax, Color.black);
             }
             // Draw circle button bext to each channel box
-            Rect circleR = new Rect(rectR.x + rectR.width + 5, rectR.y + rectR.height / 2 - 10, 40, 20);
-            Rect circleG = new Rect(rectG.x + rectG.width + 5, rectG.y + rectG.height / 2 - 10, 40, 20);
-            Rect circleB = new Rect(rectB.x + rectB.width + 5, rectB.y + rectB.height / 2 - 10, 40, 20);
-            Rect circleA = new Rect(rectA.x + rectA.width + 5, rectA.y + rectA.height / 2 - 10, 40, 20);
-            Rect circleMax = new Rect(rectMax.x + rectMax.width + 5, rectMax.y + rectMax.height / 2 - 10, 40, 20);
+            Rect circleR = new Rect(rectR.x + rectR.width + 5, rectR.y + rectR.height / 2 - 10 + 1, 40, 18);
+            Rect circleG = new Rect(rectG.x + rectG.width + 5, rectG.y + rectG.height / 2 - 10 + 1, 40, 18);
+            Rect circleB = new Rect(rectB.x + rectB.width + 5, rectB.y + rectB.height / 2 - 10 + 1, 40, 18);
+            Rect circleA = new Rect(rectA.x + rectA.width + 5, rectA.y + rectA.height / 2 - 10 + 1, 40, 18);
+            Rect circleMax = new Rect(rectMax.x + rectMax.width + 5, rectMax.y + rectMax.height / 2 - 10, 40, 18);
             _positionsChannelIn[index * 5 + 0] = new Vector2(circleR.x + circleR.width, circleR.y + circleR.height / 2);
             _positionsChannelIn[index * 5 + 1] = new Vector2(circleG.x + circleG.width, circleG.y + circleG.height / 2);
             _positionsChannelIn[index * 5 + 2] = new Vector2(circleB.x + circleB.width, circleB.y + circleB.height / 2);
@@ -755,17 +834,24 @@ namespace Thry
             if(OnChange != null) OnChange(_outputTexture, _textureSources, _outputConfigs, _connections.ToArray());
         }
 
-        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null)
+        static Vector2Int GetMaxTextureSize(TextureSource[] sources)
         {
             int width = 16;
             int height = 16;
-            //Find max size
-            foreach(TextureSource source in sources)
+            foreach (TextureSource source in sources)
             {
                 source.FindMaxSize(ref width, ref height);
             }
+            return new Vector2Int(width, height);
+        }
 
-            RenderTexture target = new RenderTexture(width,height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null)
+        {
+            Vector2Int maxTextureSize = GetMaxTextureSize(sources);
+            int width = maxTextureSize.x;
+            int height = maxTextureSize.y;
+
+            RenderTexture target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
             target.filterMode = targetFilterMode;
             target.Create();
@@ -797,6 +883,7 @@ namespace Thry
             RenderTexture.active = target;
             atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.filterMode = targetFilterMode;
+            atlas.wrapMode = TextureWrapMode.Clamp;
             atlas.alphaIsTransparency = hasTransparency;
             atlas.Apply();
 
@@ -817,7 +904,6 @@ namespace Thry
                 s.UncompressedTexture.filterMode = s.FilterMode;
                 ComputeShader.SetTexture(0, outChannel.ToString() + "_Input_" + i, s.UncompressedTexture);
                 ComputeShader.SetInt(outChannel.ToString() + "_Channel_" + i, (int)chnlConnections[i].FromChannel);
-                ComputeShader.SetBool(outChannel.ToString() + "_IsBillinear_" + i, s.FilterMode != FilterMode.Point);
             }
             for(int i = chnlConnections.Length; i < 4; i++)
             {
