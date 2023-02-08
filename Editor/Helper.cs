@@ -1167,6 +1167,7 @@ namespace Thry
                 }
             }
             texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
             texture.Apply();
             return texture;
         }

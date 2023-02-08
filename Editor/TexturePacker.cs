@@ -862,6 +862,17 @@ namespace Thry
 
         void Pack()
         {
+            // Update all gradient textures (incase max size changed)
+            Vector2Int maxTextureSize = GetMaxTextureSize(_textureSources);
+            foreach (TextureSource source in _textureSources)
+            {
+                if (source.InputType == InputType.Gradient && source.GradientTexture != null && source.GradientTexture.width != maxTextureSize.x && source.GradientTexture.height != maxTextureSize.y)
+                {
+                    source.GradientTexture = Converter.GradientToTexture(source.Gradient, maxTextureSize.x, maxTextureSize.y, source.GradientDirection == GradientDirection.Vertical);
+                    source.Texture = source.GradientTexture;
+                }
+            }
+
             _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _colorAdjust);
             if(OnChange != null) OnChange(_outputTexture, _textureSources, _outputConfigs, _connections.ToArray());
         }
@@ -933,7 +944,7 @@ namespace Thry
                 TextureSource s = sources[chnlConnections[i].FromTextureIndex];
                 // set the sampler states correctly
                 s.UncompressedTexture.wrapMode = repeatMode ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-                s.UncompressedTexture.filterMode = s.FilterMode;
+                s.UncompressedTexture.filterMode = s.InputType == InputType.Gradient ? FilterMode.Bilinear : s.FilterMode;
                 ComputeShader.SetTexture(0, outChannel.ToString() + "_Input_" + i, s.UncompressedTexture);
                 ComputeShader.SetInt(outChannel.ToString() + "_Channel_" + i, (int)chnlConnections[i].FromChannel);
             }
