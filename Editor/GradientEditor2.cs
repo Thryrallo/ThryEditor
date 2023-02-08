@@ -65,7 +65,12 @@ namespace Thry
             {
                 _gradientEditor = GetGradientEditor(_gradient);
             }
-            GradientEditorGUI.Invoke(_gradientEditor, new object[] { new Rect(20, 20, position.width - 40, position.height - 40) });
+            GradientEditorGUI.Invoke(_gradientEditor, new object[] { new Rect(20, 20, position.width - 40, position.height - 90) });
+            Rect buttonRect = new Rect(40, position.height - 50, position.width - 80, 40);
+            if (GUI.Button(buttonRect, "Apply"))
+            {
+                Apply();
+            }
         }
 
         private void OnDestroy()

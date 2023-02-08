@@ -39,7 +39,7 @@ namespace Thry
         public enum BlendMode { Add, Multiply, Max, Min }
         public enum InvertMode { None, Invert}
         public enum SaveType { PNG, JPG }
-        public enum InputType { Texture, Gradient }
+        public enum InputType { Texture, Color, Gradient }
         public enum GradientDirection { Horizontal, Vertical }
         public class ImageAdjust
         {
@@ -392,6 +392,12 @@ namespace Thry
             GUILayout.Space(TOP_OFFSET);
             GUILayout.Space((inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2);
             DrawOutput(_outputTexture, OUTPUT_HEIGHT);
+
+            EditorGUILayout.Space(15);
+            Rect backgroundImageSettings = EditorGUILayout.BeginVertical();
+            backgroundImageSettings = new RectOffset(5, 5, 5, 5).Add(backgroundImageSettings);
+            GUI.DrawTexture(backgroundImageSettings, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Styles.COLOR_BACKGROUND_1, 0, 10);
+
             EditorGUI.BeginChangeCheck();
             _colorSpace = (ColorSpace)EditorGUILayout.EnumPopup(_colorSpace);
             _filterMode = (FilterMode)EditorGUILayout.EnumPopup(_filterMode);
@@ -410,8 +416,9 @@ namespace Thry
             {
                 _changeCheckForPacking = true;
                 _colorAdjust.ChangeCheck = false;
-                Repaint();
             }
+
+            GUILayout.EndVertical();
 
             GUILayout.EndVertical();
 
@@ -427,6 +434,7 @@ namespace Thry
             if(_changeCheckForPacking)
             {
                 Pack();
+                Repaint();
             }
 
             GUILayout.Space(20);
@@ -531,17 +539,21 @@ namespace Thry
                 DeterminePath();
             }
 
-            // show current path
-            GUILayout.BeginHorizontal();
+            Rect r = EditorGUILayout.BeginHorizontal();
+
+            Rect background = new Rect(r.x + r.width / 2 - 400, r.y - 5, 800, 50);
+            GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 10);
+
             GUILayout.FlexibleSpace();
+            // show current path
             GUILayout.Label("Save to: ");
             GUILayout.Label(_saveFolder + "\\");
-            _saveName = GUILayout.TextField(_saveName);
+            _saveName = GUILayout.TextField(_saveName, GUILayout.MinWidth(50));
             _saveType = (SaveType)EditorGUILayout.EnumPopup(_saveType, GUILayout.Width(70));
             GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
 
-            GUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             if(GUILayout.Button("Change Folder", GUILayout.Width(100)))
             {
@@ -556,7 +568,7 @@ namespace Thry
                 Save();
             }
             GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
         }
 
         void DeterminePath()
@@ -616,14 +628,30 @@ namespace Thry
 
         void DrawOutput(Texture2D texture, int height = 200)
         {
-            Rect rect = GUILayoutUtility.GetRect(height, height);
-            EditorGUI.DrawTextureTransparent(rect, texture != null ? texture : Texture2D.blackTexture, ScaleMode.ScaleToFit, 1);
-           // draw 4 channl boxes on the left side
             int channelWidth = height / 4;
+
+            Rect rect = GUILayoutUtility.GetRect(height, height);
+
+            // draw 4 channl boxes on the left side
             Rect rectR = new Rect(rect.x - channelWidth, rect.y, channelWidth, channelWidth);
             Rect rectG = new Rect(rect.x - channelWidth, rect.y + channelWidth, channelWidth, channelWidth);
             Rect rectB = new Rect(rect.x - channelWidth, rect.y + channelWidth * 2, channelWidth, channelWidth);
             Rect rectA = new Rect(rect.x - channelWidth, rect.y + channelWidth * 3, channelWidth, channelWidth);
+
+            // Draw circle button bext to each channel box
+            int buttonWidth = 80;
+            int buttonHeight = 40;
+            Rect buttonR = new Rect(rectR.x - buttonWidth - 5, rectR.y + rectR.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
+            Rect buttonG = new Rect(rectG.x - buttonWidth - 5, rectG.y + rectG.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
+            Rect buttonB = new Rect(rectB.x - buttonWidth - 5, rectB.y + rectB.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
+            Rect buttonA = new Rect(rectA.x - buttonWidth - 5, rectA.y + rectA.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
+
+            // Draw background
+            Rect background = new Rect(buttonR.x + 10, rect.y - 5, (rect.x + rect.width + 5) - (buttonR.x + 10), rect.height + 10);
+            GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Styles.COLOR_BACKGROUND_1, 0, 10);
+
+            EditorGUI.DrawTextureTransparent(rect, texture != null ? texture : Texture2D.blackTexture, ScaleMode.ScaleToFit, 1);
+           // draw 4 channl boxes on the left side
             if (texture != null)
             {
                 ChannelPreviewMaterial.SetTexture("_MainTex", texture);
@@ -644,12 +672,6 @@ namespace Thry
                 EditorGUI.DrawRect(rectA, Color.black);
             }
             // Draw circle button bext to each channel box
-            int buttonWidth = 80;
-            int buttonHeight = 40;
-            Rect buttonR = new Rect(rectR.x - buttonWidth - 5, rectR.y + rectR.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
-            Rect buttonG = new Rect(rectG.x - buttonWidth - 5, rectG.y + rectG.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
-            Rect buttonB = new Rect(rectB.x - buttonWidth - 5, rectB.y + rectB.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
-            Rect buttonA = new Rect(rectA.x - buttonWidth - 5, rectA.y + rectA.height / 2 - buttonHeight / 2, buttonWidth, buttonHeight);
             _positionsChannelOut[0] = new Vector2(buttonR.x, buttonR.y + buttonR.height / 2);
             _positionsChannelOut[1] = new Vector2(buttonG.x, buttonG.y + buttonG.height / 2);
             _positionsChannelOut[2] = new Vector2(buttonB.x, buttonB.y + buttonB.height / 2);
@@ -695,8 +717,7 @@ namespace Thry
             Rect filterRect = new Rect(textureRect.x, textureRect.y + textureHeight, textureRect.width, 20);
 
             Rect background = new Rect(rect.x - 5, rect.y - 5, rect.width + channelWidth + 40, rect.height + 10);
-            GUI.DrawTexture(background, Styles.rounded_texture, ScaleMode.StretchToFill, true, 0, Color.gray, 0, 0);
-            
+            GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Styles.COLOR_BACKGROUND_1, 0, 10);
 
             // Draw textrue & filtermode. Change filtermode if texture is changed
             EditorGUI.BeginChangeCheck();
@@ -717,10 +738,13 @@ namespace Thry
                     if(Event.current.type == EventType.MouseDown && textureRect.Contains(Event.current.mousePosition))
                     {
                         if(texture.Gradient == null) texture.Gradient = new Gradient();
-                        GradientEditor2.Open(texture.Gradient, GetMaxTextureSize(_textureSources), false, (Gradient gradient, Texture2D tex) => {
+                        GradientEditor2.Open(texture.Gradient, GetMaxTextureSize(_textureSources), texture.GradientDirection == GradientDirection.Vertical, (Gradient gradient, Texture2D tex) => {
                             texture.Gradient = gradient;
                             texture.GradientTexture = tex;
                             texture.Texture = tex;
+                            // Needs to call these itself because it's in a callback not the OnGUI method
+                            Pack();
+                            Repaint();
                         });
 
                     }
@@ -731,6 +755,14 @@ namespace Thry
                         Vector2Int size = GetMaxTextureSize(_textureSources);
                         texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, size.x, size.y, texture.GradientDirection == GradientDirection.Vertical);
                         texture.Texture = texture.GradientTexture;
+                    }
+                    break;
+                case InputType.Color:
+                    EditorGUI.BeginChangeCheck();
+                    texture.Color = EditorGUI.ColorField(textureRect, texture.Color);
+                    if(EditorGUI.EndChangeCheck())
+                    {
+                        texture.Texture = Converter.ColorToTexture(texture.Color, 16, 16);
                     }
                     break;
             }

@@ -1129,6 +1129,22 @@ namespace Thry
             return new Color(col1.r - col2.r, col1.g - col2.g, col1.b - col2.b);
         }
 
+        public static Texture2D ColorToTexture(Color color, int width, int height)
+        {
+            width = Mathf.Max(0, Mathf.Min(8192, width));
+            height = Mathf.Max(0, Mathf.Min(8192, height));
+            Texture2D texture = new Texture2D(width, height);
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    texture.SetPixel(x, y, color);
+                }
+            }
+            texture.Apply();
+            return texture;
+        }
+        
         public static Texture2D GradientToTexture(Gradient gradient, int width, int height, bool vertical = false)
         {
             width = Mathf.Max(0, Mathf.Min(8192, width));
