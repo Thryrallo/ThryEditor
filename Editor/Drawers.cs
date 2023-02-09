@@ -41,20 +41,6 @@ namespace Thry
         }
     }
 
-    public class BigTextureDrawer : MaterialPropertyDrawer
-    {
-        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
-        {
-            GuiHelper.BigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
-        }
-
-        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
-        {
-            DrawingData.LastPropertyUsedCustomDrawer = true;
-            return base.GetPropertyHeight(prop, label, editor);
-        }
-    }
-
     public class StylizedBigTextureDrawer : MaterialPropertyDrawer
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -682,17 +668,98 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
                 Init(prop, true);
 
-            UpdateRects(position, prop);
-            if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
+            if(Config.Singleton.default_texture_type == TextureDisplayType.small)
             {
-                ShaderEditor.Input.Use();
-                PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
-                GradientEditor.Open(data, prop, options.texture, options.force_texture_options, !options.force_texture_options);
+                UpdateRects(position, prop);
+                if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
+                    Open(prop);
+                GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
+                GradientField();
+            }else
+            {
+                position = new RectOffset(-30, 0, 0, 0).Add(position);
+                Rect top_bg_rect = new Rect(position);
+                Rect label_rect = new Rect(position);
+                Rect button_select = new Rect(position);
+                top_bg_rect = new RectOffset(0, 0, 0, 25).Add(top_bg_rect);
+                label_rect = new RectOffset(-5, 5, -3, 3).Add(label_rect);
+                button_select = new RectOffset((int)button_select.width - 120, 20, 2, 0).Remove(button_select);
+
+                GUILayoutUtility.GetRect(position.width, 30); // get space for gradient
+                border_position = new Rect(position.x, position.y + position.height, position.width, 30);
+                border_position = new RectOffset(3, 3, 0, 0).Remove(border_position);
+                gradient_position = new RectOffset(1, 1, 1, 1).Remove(border_position);
+                if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
+                    Open(prop);
+
+                GUI.DrawTexture(top_bg_rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
+
+                if(DrawingData.CurrentTextureProperty.hasScaleOffset || DrawingData.CurrentTextureProperty.Options.reference_properties != null)
+                {
+                    Rect extraPropsBackground = EditorGUILayout.BeginVertical();
+                    extraPropsBackground.x = position.x;
+                    extraPropsBackground.width = position.width;
+                    extraPropsBackground.y = extraPropsBackground.y - 25;
+                    extraPropsBackground.height = extraPropsBackground.height + 25;
+                    float propertyX = extraPropsBackground.x + 15;
+                    float propertyWidth = extraPropsBackground.width - 30;
+                    GUI.DrawTexture(extraPropsBackground, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
+                    Rect r;
+                    if(DrawingData.CurrentTextureProperty.hasScaleOffset)
+                    {
+                        r = GUILayoutUtility.GetRect(propertyWidth, 48);
+                        r.x = propertyX;
+                        r.y -= 8;
+                        r.width = propertyWidth;
+                        editor.TextureScaleOffsetProperty(r, prop);
+                    }
+                    if(DrawingData.CurrentTextureProperty.Options.reference_properties != null)
+                    {
+                        float labelWidth = EditorGUIUtility.labelWidth;
+                        EditorGUIUtility.labelWidth = 100;
+                        propertyX -= 30;
+                        foreach(string pName in DrawingData.CurrentTextureProperty.Options.reference_properties)
+                        {
+                            ShaderProperty property = ShaderEditor.Active.PropertyDictionary[pName];
+                            if(property != null)
+                            {
+                                r = GUILayoutUtility.GetRect(propertyWidth, editor.GetPropertyHeight(property.MaterialProperty, property.Content.text) + 3);
+                                r.x = propertyX;
+                                r.width = propertyWidth;
+                                property.Draw(new CRect(r));
+                            }
+                        }
+                        EditorGUIUtility.labelWidth = labelWidth;
+                    }
+                    EditorGUILayout.EndVertical();
+                }else
+                {
+                    GUILayoutUtility.GetRect(0, 5);
+                    Rect backgroundBottom = new RectOffset(3,3,-5,10).Add(border_position);
+                    GUI.DrawTexture(backgroundBottom, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
+                }
+
+                bool changed = GuiHelper.HandleTexturePicker(prop);
+                changed |= GuiHelper.AcceptDragAndDrop(border_position, prop);
+                if(changed)
+                    Init(prop, true);
+                if(GUI.Button(button_select, "Select", EditorStyles.miniButton))
+                {
+                    GuiHelper.OpenTexturePicker(prop);
+                }
+
+                GradientField();
+                GUI.Label(label_rect, label);
+
+                GUILayoutUtility.GetRect(0, 5);
             }
+        }
 
-            GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
-
-            GradientField();
+        private void Open(MaterialProperty prop)
+        {
+            ShaderEditor.Input.Use();
+            PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
+            GradientEditor.Open(data, prop, options.texture, options.force_texture_options, !options.force_texture_options);
         }
 
         private void UpdateRects(Rect position, MaterialProperty prop)
@@ -1779,13 +1846,10 @@ namespace Thry
                 LoadNames();
             }
 
-            float labelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 0f;
             var selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
             EditorGUI.showMixedValue = false;
             if (EditorGUI.EndChangeCheck())
                 prop.floatValue = values[selIndex];
-            EditorGUIUtility.labelWidth = labelWidth;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

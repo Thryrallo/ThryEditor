@@ -782,7 +782,14 @@ namespace Thry
             }
             else if (rect != null)
             {
-                ActiveShaderEditor.Editor.ShaderProperty(rect.r, this.MaterialProperty, content);
+                // Custom Drawing for Range, because it doesnt draw correctly if inside the big texture property
+                if(!_hasDrawer && MaterialProperty.type == MaterialProperty.PropType.Range)
+                {
+                    MaterialProperty.floatValue = EditorGUI.Slider(rect.r, content, MaterialProperty.floatValue, 0, MaterialProperty.rangeLimits.y);
+                }else
+                {
+                    ActiveShaderEditor.Editor.ShaderProperty(rect.r, this.MaterialProperty, content);
+                }
             }
             else
             {
