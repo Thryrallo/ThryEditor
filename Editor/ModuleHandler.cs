@@ -68,7 +68,6 @@ namespace Thry
                     var package = installedPackages.Result.FirstOrDefault(p => p.name == m.packageId);
                     m.IsInstalled = package != null;
                     if(m.IsInstalled) m.HasUpdate = package.versions.all.Length > 0 && package.versions.latest != package.version;
-                    Debug.Log(package.version);
                 }
                 foreach (Module m in module_collection.third_party)
                 {
