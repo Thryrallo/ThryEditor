@@ -204,8 +204,7 @@ namespace Thry
                     ModuleHandler.ForceReloadModules();
                 EditorGUILayout.EndHorizontal();
             }
-            bool disabled = ModuleHandler.GetFirstPartyModules().Any(m => m.is_being_installed_or_removed);
-            disabled |= ModuleHandler.GetThirdPartyModules().Any(m => m.is_being_installed_or_removed);
+            bool disabled = false;
             EditorGUI.BeginDisabledGroup(disabled);
             foreach (Module module in ModuleHandler.GetFirstPartyModules())
             {
@@ -221,42 +220,42 @@ namespace Thry
 
         private void ModuleUI(Module module)
         {
-            string text = "      " + module.available_module.name;
-            if (module.update_available)
+            string text = $"      {module.name} ({module.packageId})";
+            if (module.HasUpdate)
                 text = "                  " + text;
-            module.ui_expanded = Foldout(text, module.ui_expanded);
+            module.IsUIExpaned = Foldout(text, module.IsUIExpaned);
             Rect rect = GUILayoutUtility.GetLastRect();
             rect.x += 20;
             rect.y += 1;
             rect.width = 20;
             rect.height -= 4;
-
-            bool is_installed = module.installed_module != null;
-
-            EditorGUI.BeginDisabledGroup(!module.available_requirement_fullfilled);
+            
+            EditorGUI.BeginDisabledGroup(module.IsBeingModified);
             EditorGUI.BeginChangeCheck();
-            bool install = GUI.Toggle(rect, is_installed, "");
+            bool install = GUI.Toggle(rect, module.IsInstalled, "");
             if(EditorGUI.EndChangeCheck()){
-                ModuleHandler.InstallRemoveModule(module, install);
+                if (install)
+                    ModuleHandler.InstallModule(module);
+                else
+                    ModuleHandler.RemoveModule(module);
             }
-            if (module.update_available)
+            if (module.HasUpdate)
             {
                 rect.x += 20;
                 rect.width = 55;
                 GUIStyle style = new GUIStyle(EditorStyles.miniButton);
                 style.fixedHeight = 17;
-                if (GUI.Button(rect, "Update",style))
-                    ModuleHandler.UpdateModule(module);
+                if (GUI.Button(rect, "Update", style))
+                    ModuleHandler.InstallModule(module);
             }
+            EditorGUI.EndDisabledGroup();
             //add update notification
-            if (module.ui_expanded)
+            if (module.IsUIExpaned)
             {
                 EditorGUI.indentLevel += 1;
                 ModuleUIDetails(module);
                 EditorGUI.indentLevel -= 1;
             }
-
-            EditorGUI.EndDisabledGroup();
         }
 
         private void ModuleUIDetails(Module module)
@@ -264,18 +263,8 @@ namespace Thry
             float prev_label_width = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 130;
 
-            EditorGUILayout.HelpBox(module.available_module.description, MessageType.Info);
-            if (module.installed_module != null)
-                EditorGUILayout.LabelField("Installed Version: ", module.installed_module.version);
-            EditorGUILayout.LabelField("Available Version: ", module.available_module.version);
-            if (module.available_module.requirement != null)
-            {
-                if (module.available_requirement_fullfilled)
-                    EditorGUILayout.LabelField(EditorLocale.editor.Get("requirements") + ": ", module.available_module.requirement.ToString(), Styles.greenStyle);
-                else
-                    EditorGUILayout.LabelField(EditorLocale.editor.Get("requirements") + ": ", module.available_module.requirement.ToString(), Styles.redStyle);
-            }
-            EditorGUILayout.LabelField("Url: ", module.url);
+            EditorGUILayout.HelpBox(module.description, MessageType.Info);
+            EditorGUILayout.LabelField("Url: ", module.git);
             if (module.author != null)
                 EditorGUILayout.LabelField("Author: ", module.author);
 

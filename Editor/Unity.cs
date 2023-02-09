@@ -205,7 +205,6 @@ namespace Thry
             ShaderEditor.GetShaderEditorDirectoryPath();
 
             Config.OnCompile();
-            ModuleHandler.OnCompile();
             TrashHandler.EmptyThryTrash();
 
             UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
@@ -229,7 +228,6 @@ namespace Thry
                 Debug.Log("[Thry] ShaderEditor is being deleted.");
                 Config.Singleton.verion = "0";
                 Config.Singleton.Save();
-                ModuleHandler.OnEditorRemove();
             }
         }
 
