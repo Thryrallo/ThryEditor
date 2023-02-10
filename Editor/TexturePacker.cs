@@ -255,6 +255,11 @@ namespace Thry
             public Vector3 BezierStartTangent { get { return _bezierStartTangent; } }
             public Vector3 BezierEndTangent { get { return _bezierEndTangent; } }
         }
+        struct InteractionWithConnection
+        {
+            public Connection connection;
+            public float distanceX;
+        }
 #endregion
 
         const string CHANNEL_PREVIEW_SHADER = "Hidden/Thry/ChannelPreview";
@@ -319,6 +324,8 @@ namespace Thry
 
         Vector2[] _positionsChannelIn = new Vector2[20];
         Vector2[] _positionsChannelOut = new Vector2[4];
+        Rect[] _rectsChannelIn = new Rect[20];
+        Rect[] _rectsChannelOut = new Rect[4];
 
         public void InitilizeWithData(TextureSource[] sources, OutputConfig[] configs, IEnumerable<Connection> connections, FilterMode filterMode, ColorSpace colorSpace)
         {
@@ -441,31 +448,62 @@ namespace Thry
             DrawSaveGUI();
             GUILayout.EndVertical();
 
-            HandleConnectionDeletion();
-            HandleConnectionCreationHandle();
+            HandleConnectionEditing();
+            HandleConnectionCreation();
         }
 
-        void HandleConnectionDeletion()
+        void HandleConnectionEditing()
         {
-            if(Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Delete)
+            if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
             {
-                Connection toDelete = CheckIfConnectionClicked();
-                if(toDelete != null)
+                InteractionWithConnection toEdit = CheckIfConnectionClicked();
+                if(toEdit.connection != null)
                 {
-                    _connections.Remove(toDelete);
+                    _connections.Remove(toEdit.connection);
+                    // Remove the connection on one side
+                    if(toEdit.distanceX > 0.5)
+                        toEdit.connection.ToChannel = TextureChannelOut.None;
+                    else
+                        toEdit.connection.FromChannel = TextureChannelIn.None;
+                    _creatingConnection = toEdit.connection;
                     Pack();
                     Repaint();
                 }
             }
         }
 
-        void HandleConnectionCreationHandle()
+        void HandleConnectionCreation()
         {
             if(_creatingConnection != null)
             {
                 // if user clicked anywhere on the screen, stop creating the connection
-                if(Event.current.type == EventType.MouseDown)
+                if(Event.current.type == EventType.MouseUp)
                 {
+                    // Check if mouse position is over any input / output slot
+                    Vector2 mousePosition = Event.current.mousePosition;
+                    for(int t = 0; t < 4; t++)
+                    {
+                        for(int c = 0; c < 5; c++)
+                        {
+                            if(_rectsChannelIn[t * 5 + c].Contains(mousePosition))
+                            {
+                                _creatingConnection.SetFrom(t, (TextureChannelIn)c, this);
+                                Pack();
+                                Repaint();
+                                return;
+                            }
+                        }
+                    }
+                    for(int c = 0; c < 4; c++)
+                    {
+                        if(_rectsChannelOut[c].Contains(mousePosition))
+                        {
+                            _creatingConnection.SetTo((TextureChannelOut)c, this);
+                            Pack();
+                            Repaint();
+                            return;
+                        }
+                    }
                     _creatingConnection = null;
                     return;
                 }
@@ -495,11 +533,11 @@ namespace Thry
             }
         }
 
-        Connection CheckIfConnectionClicked()
+        InteractionWithConnection CheckIfConnectionClicked()
         {
             Vector2 mousePos = Event.current.mousePosition;
             float minDistance = 50;
-            Connection closestConnection = null;
+            InteractionWithConnection clickedConnection = new InteractionWithConnection();
             foreach(Connection c in _connections)
             {
                 Vector3 from = c.BezierStart;
@@ -520,13 +558,14 @@ namespace Thry
                             if(distance < minDistance)
                             {
                                 minDistance = distance;
-                                closestConnection = c;
+                                clickedConnection.connection = c;
+                                clickedConnection.distanceX = (mousePos.x - leftX) / (rightX - leftX);
                             }
                         }
                     }
                 }
             }
-            return closestConnection;
+            return clickedConnection;
         }
 
         void DrawSaveGUI()
@@ -676,6 +715,10 @@ namespace Thry
             _positionsChannelOut[1] = new Vector2(buttonG.x, buttonG.y + buttonG.height / 2);
             _positionsChannelOut[2] = new Vector2(buttonB.x, buttonB.y + buttonB.height / 2);
             _positionsChannelOut[3] = new Vector2(buttonA.x, buttonA.y + buttonA.height / 2);
+            _rectsChannelOut[0] = buttonR;
+            _rectsChannelOut[1] = buttonG;
+            _rectsChannelOut[2] = buttonB;
+            _rectsChannelOut[3] = buttonA;
             DrawOutputChannel(buttonR, TextureChannelOut.R, _outputConfigs[0]);
             DrawOutputChannel(buttonG, TextureChannelOut.G, _outputConfigs[1]);
             DrawOutputChannel(buttonB, TextureChannelOut.B, _outputConfigs[2]);
@@ -691,11 +734,14 @@ namespace Thry
             Rect blendmodeRect = new Rect(fallbackRect.x, fallbackRect.y, fallbackRect.width, fallbackRect.height / 2);
             Rect invertRect = new Rect(fallbackRect.x, fallbackRect.y + fallbackRect.height / 2, fallbackRect.width, fallbackRect.height / 2);
             
-            if (GUI.Button(channelRect, channel.ToString()))
+            if(Event.current.type == EventType.MouseDown && channelRect.Contains(Event.current.mousePosition))
             {
+                Event.current.Use();
                 if (_creatingConnection != null) _creatingConnection.SetTo(channel, this);
                 else _creatingConnection = Connection.Create(channel);
             }
+            GUI.Button(channelRect, channel.ToString());
+            
             EditorGUI.BeginChangeCheck();
             if(DoFallback(channel))
             {
@@ -807,6 +853,11 @@ namespace Thry
             _positionsChannelIn[index * 5 + 2] = new Vector2(circleB.x + circleB.width, circleB.y + circleB.height / 2);
             _positionsChannelIn[index * 5 + 3] = new Vector2(circleA.x + circleA.width, circleA.y + circleA.height / 2);
             _positionsChannelIn[index * 5 + 4] = new Vector2(circleMax.x + circleMax.width, circleMax.y + circleMax.height / 2);
+            _rectsChannelIn[index * 5 + 0] = circleR;
+            _rectsChannelIn[index * 5 + 1] = circleG;
+            _rectsChannelIn[index * 5 + 2] = circleB;
+            _rectsChannelIn[index * 5 + 3] = circleA;
+            _rectsChannelIn[index * 5 + 4] = circleMax;
             DrawInputChannel(circleR, index, TextureChannelIn.R);
             DrawInputChannel(circleG, index, TextureChannelIn.G);
             DrawInputChannel(circleB, index, TextureChannelIn.B);
@@ -818,11 +869,13 @@ namespace Thry
 
         void DrawInputChannel(Rect position, int index, TextureChannelIn channel)
         {
-            if(GUI.Button(position, channel.ToString()))
+            if(Event.current.type == EventType.MouseDown && position.Contains(Event.current.mousePosition))
             {
+                Event.current.Use();
                 if (_creatingConnection == null) _creatingConnection = Connection.Create(index, channel);
                 else _creatingConnection.SetFrom(index, channel, this);
             }
+            GUI.Button(position, channel.ToString());
         }
 
         
