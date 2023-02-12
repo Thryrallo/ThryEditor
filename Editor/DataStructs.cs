@@ -792,10 +792,12 @@ namespace Thry
 
     #region Module Data
 
-    public class Module
+    public class PackageInfo
     {
         // Lowercase because of json
+        public bool isUPM;
         public string packageId;
+        public string classname;
         public string git;
         public string author;
         public string name;

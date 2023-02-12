@@ -24,82 +24,138 @@ namespace Thry
 
     public class ModuleHandler
     {
-        private static List<Module> first_party_modules;
-        private static List<Module> third_party_modules;
+        private static List<PackageInfo> first_party_packages;
+        private static List<PackageInfo> third_party_packages;
         private static bool modules_are_being_loaded = false;
 
-        private class ModuleCollection
+        private class PackageCollection
         {
-            public List<Module> first_party = null;
-            public List<Module> third_party = null;
+            public List<PackageInfo> first_party = null;
+            public List<PackageInfo> third_party = null;
         }
 
-        public static List<Module> GetFirstPartyModules()
+        public static List<PackageInfo> GetFirstPartyModules()
         {
             if (!modules_are_being_loaded)
-                LoadModules();
-            return first_party_modules;
+                LoadPackages();
+            return first_party_packages;
         }
 
         public static void ForceReloadModules()
         {
-            LoadModules();
+            LoadPackages();
         }
 
-        public static List<Module> GetThirdPartyModules()
+        public static List<PackageInfo> GetThirdPartyModules()
         {
             if (!modules_are_being_loaded)
-                LoadModules();
-            return third_party_modules;
+                LoadPackages();
+            return third_party_packages;
         }
 
-        private static void LoadModules()
+        private static void LoadPackages()
         {
             modules_are_being_loaded = true;
             var installedPackages = Client.List(true);
             WebHelper.DownloadStringASync(URL.MODULE_COLLECTION, (string s) => {
-                first_party_modules = new List<Module>();
-                third_party_modules = new List<Module>();
-                ModuleCollection module_collection = Parser.Deserialize<ModuleCollection>(s);
+                first_party_packages = new List<PackageInfo>();
+                third_party_packages = new List<PackageInfo>();
+                PackageCollection module_collection = Parser.Deserialize<PackageCollection>(s);
                 while(installedPackages.IsCompleted == false)
                     Thread.Sleep(100);
-                foreach(Module m in module_collection.first_party)
-                {
-                    var package = installedPackages.Result.FirstOrDefault(p => p.name == m.packageId);
-                    m.IsInstalled = package != null;
-                    if(m.IsInstalled) m.HasUpdate = package.versions.all.Length > 0 && package.versions.latest != package.version;
-                }
-                foreach (Module m in module_collection.third_party)
-                {
-                    var package = installedPackages.Result.FirstOrDefault(p => p.name == m.packageId);
-                    m.IsInstalled = package != null;
-                    if(m.IsInstalled) m.HasUpdate = package.versions.all.Length > 0 && package.versions.latest != package.version;
-                }
-                first_party_modules = module_collection.first_party;
-                third_party_modules = module_collection.third_party;
+                module_collection.first_party.ForEach(m => LoadInfoForPackage(m, installedPackages));
+                module_collection.third_party.ForEach(m => LoadInfoForPackage(m, installedPackages));
+                first_party_packages = module_collection.first_party;
+                third_party_packages = module_collection.third_party;
                 UnityHelper.RepaintEditorWindow<Settings>();
             });
         }
 
-        static List<(Request request, Module module, bool isInstall)> s_requests = new List<(Request request, Module module, bool isInstall)>();
-        public static void InstallModule(Module module)
+        static void LoadInfoForPackage(PackageInfo p, ListRequest installedPackages)
         {
-            var request = Client.Add(module.git);
-            module.IsInstalled = true;
-            module.IsBeingModified = true;
-            s_requests.Add((request, module, true));
-            UnityHelper.RepaintEditorWindow<Settings>();
-            EditorApplication.update += CheckRequests;
+            if(p.isUPM)
+            {
+                var package = installedPackages.Result.FirstOrDefault(pac => pac.name == p.packageId);
+                p.IsInstalled = package != null;
+                if (p.IsInstalled) p.HasUpdate = package.versions.all.Length > 0 && package.versions.latest != package.version;
+            }else
+            {
+                p.IsInstalled = Helper.ClassWithNamespaceExists(p.classname);
+            }
         }
 
-        public static void RemoveModule(Module module)
+        static List<(Request request, PackageInfo module, bool isInstall)> s_requests = new List<(Request request, PackageInfo module, bool isInstall)>();
+        public static void InstallPackage(PackageInfo package)
         {
-            var request = Client.Remove(module.packageId);
-            module.IsInstalled = false;
-            module.IsBeingModified = true;
-            s_requests.Add((request, module, false));
-            UnityHelper.RepaintEditorWindow<Settings>();
-            EditorApplication.update += CheckRequests;
+            if(package.isUPM)
+            {
+                var request = Client.Add(package.git +".git");
+                package.IsInstalled = true;
+                package.IsBeingModified = true;
+                s_requests.Add((request, package, true));
+                UnityHelper.RepaintEditorWindow<Settings>();
+                EditorApplication.update += CheckRequests;
+            }else
+            {
+                package.IsBeingModified = true;
+                UnityHelper.RepaintEditorWindow<Settings>();
+                var parts = package.git.Split(new string[]{"/"}, StringSplitOptions.RemoveEmptyEntries);
+                var repo = parts[parts.Length - 2] + "/" + parts[parts.Length - 1];
+                InstallUnityPackageFromRelease(package, repo);
+            }
+            
+        }
+
+        static void InstallUnityPackageFromRelease(PackageInfo package, string repo)
+        {
+            WebHelper.DownloadStringASync($"https://api.github.com/repos/{repo}/releases/latest", (string s) =>
+            {
+                try
+                {
+                    Dictionary<object, object> dict = (Dictionary<object, object>)Parser.ParseJson(s);
+                    List<object> assets = (List<object>)dict["assets"];
+                    foreach(var asset in assets)
+                    {
+                        Dictionary<object, object> assetDict = (Dictionary<object, object>)asset;
+                        if(assetDict.ContainsKey("browser_download_url") && assetDict["browser_download_url"].ToString().EndsWith(".unitypackage"))
+                        {
+                            var url = assetDict["browser_download_url"].ToString();
+                            var filenname = url.Substring(url.LastIndexOf("/") + 1);
+                            var path = Path.Combine(Application.temporaryCachePath, filenname);
+                            Debug.Log("Downloading " + url);
+                            WebHelper.DownloadFileASync(url, path, (string path2) =>
+                            {
+                                AssetDatabase.ImportPackage(path2, false);
+                                package.IsInstalled = true;
+                                package.IsBeingModified = false;
+                                UnityHelper.RepaintEditorWindow<Settings>();
+                            });
+                            return;
+                        }
+                    }
+                    
+                }catch(Exception e)
+                {
+                    Debug.LogError("Error while downloading latest release of " + package.git + ".");
+                    Debug.LogError(e);
+                }
+            });
+        }
+
+        public static void RemovePackage(PackageInfo module)
+        {
+            if(module.isUPM)
+            {
+                var request = Client.Remove(module.packageId);
+                module.IsInstalled = false;
+                module.IsBeingModified = true;
+                s_requests.Add((request, module, false));
+                UnityHelper.RepaintEditorWindow<Settings>();
+                EditorApplication.update += CheckRequests;
+            }else
+            {
+                EditorUtility.DisplayDialog("Cannot remove module", "This module was installed as a unitypackage. Please remove it manually.", "Ok");
+            }
         }
 
         static void CheckRequests()

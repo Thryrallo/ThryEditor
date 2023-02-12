@@ -206,23 +206,26 @@ namespace Thry
             }
             bool disabled = false;
             EditorGUI.BeginDisabledGroup(disabled);
-            foreach (Module module in ModuleHandler.GetFirstPartyModules())
+            foreach (PackageInfo module in ModuleHandler.GetFirstPartyModules())
             {
-                ModuleUI(module);
+                PacakgeUI(module);
             }
             GUILayout.Label(EditorLocale.editor.Get("header_thrird_party"), EditorStyles.boldLabel);
-            foreach (Module module in ModuleHandler.GetThirdPartyModules())
+            foreach (PackageInfo module in ModuleHandler.GetThirdPartyModules())
             {
-                ModuleUI(module);
+                PacakgeUI(module);
             }
             EditorGUI.EndDisabledGroup();
         }
 
-        private void ModuleUI(Module module)
+        private void PacakgeUI(PackageInfo module)
         {
-            string text = $"      {module.name} ({module.packageId})";
+            string text = null;
+            if(module.isUPM) text = $"      {module.name} ({module.packageId})";
+            else text = $"      {module.name}";
             if (module.HasUpdate)
                 text = "                  " + text;
+
             module.IsUIExpaned = Foldout(text, module.IsUIExpaned);
             Rect rect = GUILayoutUtility.GetLastRect();
             rect.x += 20;
@@ -235,9 +238,9 @@ namespace Thry
             bool install = GUI.Toggle(rect, module.IsInstalled, "");
             if(EditorGUI.EndChangeCheck()){
                 if (install)
-                    ModuleHandler.InstallModule(module);
+                    ModuleHandler.InstallPackage(module);
                 else
-                    ModuleHandler.RemoveModule(module);
+                    ModuleHandler.RemovePackage(module);
             }
             if (module.HasUpdate)
             {
@@ -246,7 +249,7 @@ namespace Thry
                 GUIStyle style = new GUIStyle(EditorStyles.miniButton);
                 style.fixedHeight = 17;
                 if (GUI.Button(rect, "Update", style))
-                    ModuleHandler.InstallModule(module);
+                    ModuleHandler.InstallPackage(module);
             }
             EditorGUI.EndDisabledGroup();
             //add update notification
@@ -258,15 +261,29 @@ namespace Thry
             }
         }
 
-        private void ModuleUIDetails(Module module)
+        private void ModuleUIDetails(PackageInfo module)
         {
             float prev_label_width = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 130;
 
             EditorGUILayout.HelpBox(module.description, MessageType.Info);
             EditorGUILayout.LabelField("Url: ", module.git);
+            if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+            {
+                Event.current.Use();
+                Application.OpenURL(module.git);
+            }
             if (module.author != null)
                 EditorGUILayout.LabelField("Author: ", module.author);
+
+            if(!module.isUPM && module.IsInstalled)
+            {
+                if(GUILayout.Button("Force Update"))
+                {
+                    if(EditorUtility.DisplayDialog("Force Update", "This will import the newest unitypackage. In certain cases this will lead to errors and you will have to delete & reimport the package.", "Yes", "No"))
+                        ModuleHandler.InstallPackage(module);
+                }
+            }
 
             EditorGUIUtility.labelWidth = prev_label_width;
         }
