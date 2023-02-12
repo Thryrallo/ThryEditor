@@ -1,4 +1,4 @@
-﻿// Material/Shader Inspector for Unity 2017/2018
+// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
 using System;
@@ -24,8 +24,10 @@ namespace Thry
 
     public class ModuleHandler
     {
+        const string VPM_FILE = "Packages/vpm-manifest.json";
         private static PackageCollection s_packageCollection = new PackageCollection();
         private static bool s_modulesAreBeingLoaded = false;
+        private static int s_isVPMAvailable = -1;
 
         private class PackageCollection
         {
@@ -69,6 +71,18 @@ namespace Thry
             }
         }
 
+        public static bool IsVPMAvailable
+        {
+            get
+            {
+                if (s_isVPMAvailable == -1)
+                {
+                    s_isVPMAvailable = File.Exists(VPM_FILE) ? 1 : 0;
+                }
+                return s_isVPMAvailable == 1;
+            }
+        }
+
         private static void LoadPackages()
         {
             s_modulesAreBeingLoaded = true;
@@ -86,7 +100,7 @@ namespace Thry
 
         static void LoadInfoForPackage(PackageInfo p, ListRequest installedPackages)
         {
-            if(p.isUPM)
+            if(p.type != PackageType.UNITYPACKAGE)
             {
                 var package = installedPackages.Result.FirstOrDefault(pac => pac.name == p.packageId);
                 p.UnityPackageInfo = package;
@@ -102,13 +116,13 @@ namespace Thry
         static List<(Request request, PackageInfo package, bool isInstall)> s_requests = new List<(Request request, PackageInfo package, bool isInstall)>();
         public static void InstallPackage(PackageInfo package)
         {
-            if(package.isUPM && !package.upmInstallFromUnitypackage) InstallPackageInternal(package, package.git + ".git");
+            if(package.type != PackageType.UNITYPACKAGE && !package.upmInstallFromUnitypackage) InstallPackageInternal(package, package.git + ".git");
             else GetPackageUrlFromReleases(package, (string url) => InstallPackageInternal(package, url));
         }
 
         static void InstallPackageInternal(PackageInfo package, string url)
         {
-            if(package.isUPM && !package.upmInstallFromUnitypackage)
+            if(package.type != PackageType.UNITYPACKAGE && !package.upmInstallFromUnitypackage)
             {
                 Debug.Log("[UPM] Downloading & Installing " + url);
                 var request = Client.Add(url);
@@ -166,7 +180,7 @@ namespace Thry
 
         public static void RemovePackage(PackageInfo package)
         {
-            if(package.isUPM)
+            if(package.type != PackageType.UNITYPACKAGE)
             {
                 var request = Client.Remove(package.packageId);
                 package.IsInstalled = false;

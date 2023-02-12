@@ -221,45 +221,46 @@ namespace Thry
             EditorGUI.EndDisabledGroup();
         }
 
-        private void PackageUI(PackageInfo module)
+        private void PackageUI(PackageInfo package)
         {
             string text = null;
-            if(module.isUPM) text = $"      {module.name} ({module.packageId})";
-            else text = $"      {module.name}";
-            if (module.HasUpdate)
+            if(package.type == PackageType.UPM) text = $"      {package.name} (UPM: {package.packageId})";
+            else if(package.type == PackageType.VPM) text = $"      {package.name} (VPM: {package.packageId})";
+            else text = $"      {package.name}";
+            if (package.HasUpdate)
                 text = "                  " + text;
 
-            module.IsUIExpaned = Foldout(text, module.IsUIExpaned);
+            package.IsUIExpaned = Foldout(text, package.IsUIExpaned);
             Rect rect = GUILayoutUtility.GetLastRect();
             rect.x += 20;
             rect.y += 1;
             rect.width = 20;
             rect.height -= 4;
             
-            EditorGUI.BeginDisabledGroup(module.IsBeingModified);
+            EditorGUI.BeginDisabledGroup(package.IsBeingModified);
             EditorGUI.BeginChangeCheck();
-            bool install = GUI.Toggle(rect, module.IsInstalled, "");
+            bool install = GUI.Toggle(rect, package.IsInstalled, "");
             if(EditorGUI.EndChangeCheck()){
                 if (install)
-                    ModuleHandler.InstallPackage(module);
+                    ModuleHandler.InstallPackage(package);
                 else
-                    ModuleHandler.RemovePackage(module);
+                    ModuleHandler.RemovePackage(package);
             }
-            if (module.HasUpdate)
+            if (package.HasUpdate)
             {
                 rect.x += 20;
                 rect.width = 55;
                 GUIStyle style = new GUIStyle(EditorStyles.miniButton);
                 style.fixedHeight = 17;
                 if (GUI.Button(rect, "Update", style))
-                    ModuleHandler.InstallPackage(module);
+                    ModuleHandler.InstallPackage(package);
             }
             EditorGUI.EndDisabledGroup();
             //add update notification
-            if (module.IsUIExpaned)
+            if (package.IsUIExpaned)
             {
                 EditorGUI.indentLevel += 1;
-                ModuleUIDetails(module);
+                ModuleUIDetails(package);
                 EditorGUI.indentLevel -= 1;
             }
         }
@@ -269,7 +270,7 @@ namespace Thry
             float prev_label_width = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 130;
 
-            if(!package.isUPM && package.IsInstalled)
+            if(package.type == PackageType.UNITYPACKAGE && package.IsInstalled)
             {
                 if(GUILayout.Button("Force Update"))
                 {

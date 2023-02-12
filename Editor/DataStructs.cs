@@ -792,12 +792,18 @@ namespace Thry
 
     #region Module Data
 
+    public enum PackageType
+    {
+        UNITYPACKAGE, UPM, VPM
+    }
+
     public class PackageInfo
     {
         // Lowercase because of json
-        public bool isUPM;
+        public PackageType type;
         public bool upmInstallFromUnitypackage;
         public string packageId;
+        public string manifest;
         public string guid;
         public string unitypackageRegex;
         public string git;
