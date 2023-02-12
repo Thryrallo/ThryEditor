@@ -796,8 +796,10 @@ namespace Thry
     {
         // Lowercase because of json
         public bool isUPM;
+        public bool upmInstallFromUnitypackage;
         public string packageId;
-        public string classname;
+        public string guid;
+        public string unitypackageRegex;
         public string git;
         public string author;
         public string name;
@@ -806,6 +808,7 @@ namespace Thry
         public bool IsInstalled;
         public bool IsBeingModified;
         public bool HasUpdate;
+        public UnityEditor.PackageManager.PackageInfo UnityPackageInfo;
     }
 
     #endregion

@@ -76,20 +76,29 @@ namespace Thry
             if(p.isUPM)
             {
                 var package = installedPackages.Result.FirstOrDefault(pac => pac.name == p.packageId);
+                p.UnityPackageInfo = package;
                 p.IsInstalled = package != null;
                 if (p.IsInstalled) p.HasUpdate = package.versions.all.Length > 0 && package.versions.latest != package.version;
             }else
             {
-                p.IsInstalled = Helper.ClassWithNamespaceExists(p.classname);
+                string path = AssetDatabase.GUIDToAssetPath(p.guid);
+                p.IsInstalled = string.IsNullOrWhiteSpace(path) == false && (File.Exists(path) || Directory.Exists(path));
             }
         }
 
-        static List<(Request request, PackageInfo module, bool isInstall)> s_requests = new List<(Request request, PackageInfo module, bool isInstall)>();
+        static List<(Request request, PackageInfo package, bool isInstall)> s_requests = new List<(Request request, PackageInfo package, bool isInstall)>();
         public static void InstallPackage(PackageInfo package)
         {
-            if(package.isUPM)
+            if(package.isUPM && !package.upmInstallFromUnitypackage) InstallPackageInternal(package, package.git + ".git");
+            else GetPackageUrlFromReleases(package, (string url) => InstallPackageInternal(package, url));
+        }
+
+        static void InstallPackageInternal(PackageInfo package, string url)
+        {
+            if(package.isUPM && !package.upmInstallFromUnitypackage)
             {
-                var request = Client.Add(package.git +".git");
+                Debug.Log("[UPM] Downloading & Installing " + url);
+                var request = Client.Add(url);
                 package.IsInstalled = true;
                 package.IsBeingModified = true;
                 s_requests.Add((request, package, true));
@@ -97,40 +106,40 @@ namespace Thry
                 EditorApplication.update += CheckRequests;
             }else
             {
+                Debug.Log("[Unitypackage] Downloading & Installing " + url);
                 package.IsBeingModified = true;
                 UnityHelper.RepaintEditorWindow<Settings>();
-                var parts = package.git.Split(new string[]{"/"}, StringSplitOptions.RemoveEmptyEntries);
-                var repo = parts[parts.Length - 2] + "/" + parts[parts.Length - 1];
-                InstallUnityPackageFromRelease(package, repo);
+                var filenname = url.Substring(url.LastIndexOf("/") + 1);
+                var path = Path.Combine(Application.temporaryCachePath, filenname);
+                WebHelper.DownloadFileASync(url, path, (string path2) =>
+                {
+                    AssetDatabase.ImportPackage(path2, false);
+                    package.IsInstalled = true;
+                    package.IsBeingModified = false;
+                    UnityHelper.RepaintEditorWindow<Settings>();
+                });
             }
-            
         }
 
-        static void InstallUnityPackageFromRelease(PackageInfo package, string repo)
+        static void GetPackageUrlFromReleases(PackageInfo package, Action<string> callback)
         {
+            var parts = package.git.Split(new string[]{"/"}, StringSplitOptions.RemoveEmptyEntries);
+            var repo = parts[parts.Length - 2] + "/" + parts[parts.Length - 1];
             WebHelper.DownloadStringASync($"https://api.github.com/repos/{repo}/releases/latest", (string s) =>
             {
                 try
                 {
                     Dictionary<object, object> dict = (Dictionary<object, object>)Parser.ParseJson(s);
                     List<object> assets = (List<object>)dict["assets"];
+                    bool useRegex = string.IsNullOrWhiteSpace(package.unitypackageRegex) == false;
                     foreach(var asset in assets)
                     {
                         Dictionary<object, object> assetDict = (Dictionary<object, object>)asset;
-                        if(assetDict.ContainsKey("browser_download_url") && assetDict["browser_download_url"].ToString().EndsWith(".unitypackage"))
+                        if(assetDict.ContainsKey("browser_download_url") && assetDict["browser_download_url"].ToString().EndsWith(".unitypackage") &&
+                            (useRegex == false || Regex.Match(assetDict["browser_download_url"].ToString(), package.unitypackageRegex).Success))
                         {
                             var url = assetDict["browser_download_url"].ToString();
-                            var filenname = url.Substring(url.LastIndexOf("/") + 1);
-                            var path = Path.Combine(Application.temporaryCachePath, filenname);
-                            Debug.Log("Downloading " + url);
-                            WebHelper.DownloadFileASync(url, path, (string path2) =>
-                            {
-                                AssetDatabase.ImportPackage(path2, false);
-                                package.IsInstalled = true;
-                                package.IsBeingModified = false;
-                                UnityHelper.RepaintEditorWindow<Settings>();
-                            });
-                            return;
+                            callback(url);
                         }
                     }
                     
@@ -142,19 +151,27 @@ namespace Thry
             });
         }
 
-        public static void RemovePackage(PackageInfo module)
+        public static void RemovePackage(PackageInfo package)
         {
-            if(module.isUPM)
+            if(package.isUPM)
             {
-                var request = Client.Remove(module.packageId);
-                module.IsInstalled = false;
-                module.IsBeingModified = true;
-                s_requests.Add((request, module, false));
+                var request = Client.Remove(package.packageId);
+                package.IsInstalled = false;
+                package.IsBeingModified = true;
+                s_requests.Add((request, package, false));
                 UnityHelper.RepaintEditorWindow<Settings>();
                 EditorApplication.update += CheckRequests;
             }else
             {
-                EditorUtility.DisplayDialog("Cannot remove module", "This module was installed as a unitypackage. Please remove it manually.", "Ok");
+                string path = AssetDatabase.GUIDToAssetPath(package.guid);
+                if(EditorUtility.DisplayDialog("Remove module", "Do you want to delete the folder " + path + "?", "Yes", "No"))
+                {
+                    AssetDatabase.DeleteAsset(path);
+                    package.IsInstalled = false;
+                    package.IsBeingModified = false;
+                    AssetDatabase.Refresh();
+                    UnityHelper.RepaintEditorWindow<Settings>();
+                }
             }
         }
 
@@ -167,17 +184,26 @@ namespace Thry
                 {
                     if (request.request.Status == StatusCode.Success)
                     {
-                        request.module.IsBeingModified = false;
+                        request.package.IsBeingModified = false;
                         s_requests.RemoveAt(i);
                         i--;
                     }
                     else if (request.request.Status >= StatusCode.Failure)
                     {
-                        Debug.LogError(request.request.Error);
-                        request.module.IsBeingModified = false;
-                        request.module.IsInstalled = !request.isInstall;
                         s_requests.RemoveAt(i);
                         i--;
+                        // Try manually deleting the package
+                        if(!request.isInstall && request.package.UnityPackageInfo != null)
+                        {
+                            string path = request.package.UnityPackageInfo.assetPath;
+                            Debug.LogWarning($"[Package] UPM Removing failed, trying to delete the package manually from {path}.");
+                            AssetDatabase.DeleteAsset(path);
+                        }else
+                        {
+                            Debug.LogError(request.request.Error);
+                            request.package.IsBeingModified = false;
+                            request.package.IsInstalled = !request.isInstall;
+                        }
                     }
                     UnityHelper.RepaintEditorWindow<Settings>();
                 }

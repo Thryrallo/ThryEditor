@@ -266,6 +266,17 @@ namespace Thry
             float prev_label_width = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 130;
 
+            if(!module.isUPM && module.IsInstalled)
+            {
+                if(GUILayout.Button("Force Update"))
+                {
+                    // if(EditorUtility.DisplayDialog("Force Update", "This will import the newest unitypackage. In certain cases this will lead to errors and you will have to delete & reimport the package.", "Yes", "No"))
+                    //     ModuleHandler.InstallPackage(module);
+                    ModuleHandler.RemovePackage(module);
+                    ModuleHandler.InstallPackage(module);
+                }
+            }
+
             EditorGUILayout.HelpBox(module.description, MessageType.Info);
             EditorGUILayout.LabelField("Url: ", module.git);
             if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
@@ -275,15 +286,6 @@ namespace Thry
             }
             if (module.author != null)
                 EditorGUILayout.LabelField("Author: ", module.author);
-
-            if(!module.isUPM && module.IsInstalled)
-            {
-                if(GUILayout.Button("Force Update"))
-                {
-                    if(EditorUtility.DisplayDialog("Force Update", "This will import the newest unitypackage. In certain cases this will lead to errors and you will have to delete & reimport the package.", "Yes", "No"))
-                        ModuleHandler.InstallPackage(module);
-                }
-            }
 
             EditorGUIUtility.labelWidth = prev_label_width;
         }
