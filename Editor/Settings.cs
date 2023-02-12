@@ -44,6 +44,9 @@ namespace Thry
         
         public static ButtonData thry_message = null;
 
+        string _packageSearchTerm = "";
+        Vector2 _scrollPosition;
+
         //---------------------Stuff checkers and fixers-------------------
 
         public void Awake()
@@ -73,6 +76,7 @@ namespace Thry
             if (!is_init || moduleSettings==null) InitVariables();
             GUILayout.Label("ShaderUI v" + Config.Singleton.verion);
 
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             GUINotification();
             DrawHorizontalLine();
             GUIMessage();
@@ -85,6 +89,7 @@ namespace Thry
                 DrawHorizontalLine();
             }
             GUIModulesInstalation();
+            EditorGUILayout.EndScrollView();
         }
 
         //--------------------------GUI Helpers-----------------------------
@@ -195,9 +200,9 @@ namespace Thry
 
         private void GUIModulesInstalation()
         {
-            if (ModuleHandler.GetFirstPartyModules() == null)
+            if (ModuleHandler.FirstPartyPackages == null)
                 return;
-            if (ModuleHandler.GetFirstPartyModules().Count > 0) {
+            if (ModuleHandler.FirstPartyPackages.Count + ModuleHandler.CuratedPackages.Count + ModuleHandler.VRCPrefabsPackages.Count > 0) {
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label(EditorLocale.editor.Get("header_modules"), EditorStyles.boldLabel);
                 if (GUILayout.Button("Reload"))
@@ -206,19 +211,17 @@ namespace Thry
             }
             bool disabled = false;
             EditorGUI.BeginDisabledGroup(disabled);
-            foreach (PackageInfo module in ModuleHandler.GetFirstPartyModules())
-            {
-                PacakgeUI(module);
-            }
-            GUILayout.Label(EditorLocale.editor.Get("header_thrird_party"), EditorStyles.boldLabel);
-            foreach (PackageInfo module in ModuleHandler.GetThirdPartyModules())
-            {
-                PacakgeUI(module);
-            }
+            ModuleHandler.FirstPartyPackages.ForEach(p => PackageUI(p));
+            GUILayout.Label(EditorLocale.editor.Get("header_packages_curated"), EditorStyles.boldLabel);
+            ModuleHandler.CuratedPackages.ForEach(p => PackageUI(p));
+            GUILayout.Label(EditorLocale.editor.Get("header_packages_vrcprefabs"), EditorStyles.boldLabel);
+            _packageSearchTerm = EditorGUILayout.TextField("Search", _packageSearchTerm);
+            ModuleHandler.VRCPrefabsPackages.Where(p => p.name.IndexOf(_packageSearchTerm, StringComparison.OrdinalIgnoreCase) != -1).
+                ToList().ForEach(p => PackageUI(p));
             EditorGUI.EndDisabledGroup();
         }
 
-        private void PacakgeUI(PackageInfo module)
+        private void PackageUI(PackageInfo module)
         {
             string text = null;
             if(module.isUPM) text = $"      {module.name} ({module.packageId})";
@@ -261,31 +264,36 @@ namespace Thry
             }
         }
 
-        private void ModuleUIDetails(PackageInfo module)
+        private void ModuleUIDetails(PackageInfo package)
         {
             float prev_label_width = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 130;
 
-            if(!module.isUPM && module.IsInstalled)
+            if(!package.isUPM && package.IsInstalled)
             {
                 if(GUILayout.Button("Force Update"))
                 {
                     // if(EditorUtility.DisplayDialog("Force Update", "This will import the newest unitypackage. In certain cases this will lead to errors and you will have to delete & reimport the package.", "Yes", "No"))
                     //     ModuleHandler.InstallPackage(module);
-                    ModuleHandler.RemovePackage(module);
-                    ModuleHandler.InstallPackage(module);
+                    ModuleHandler.RemovePackage(package);
+                    ModuleHandler.InstallPackage(package);
                 }
             }
 
-            EditorGUILayout.HelpBox(module.description, MessageType.Info);
-            EditorGUILayout.LabelField("Url: ", module.git);
+            EditorGUILayout.HelpBox(package.description, MessageType.Info);
+            EditorGUILayout.LabelField("Url: ", package.git);
             if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
             {
                 Event.current.Use();
-                Application.OpenURL(module.git);
+                Application.OpenURL(package.git);
             }
-            if (module.author != null)
-                EditorGUILayout.LabelField("Author: ", module.author);
+            if (package.author != null)
+                EditorGUILayout.LabelField("Author: ", package.author);
+
+            if(package.IsInstalled)
+            {
+                EditorGUILayout.LabelField("Asset Path: ", AssetDatabase.GUIDToAssetPath(package.guid));
+            }
 
             EditorGUIUtility.labelWidth = prev_label_width;
         }

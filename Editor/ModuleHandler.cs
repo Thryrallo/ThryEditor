@@ -24,21 +24,14 @@ namespace Thry
 
     public class ModuleHandler
     {
-        private static List<PackageInfo> first_party_packages;
-        private static List<PackageInfo> third_party_packages;
-        private static bool modules_are_being_loaded = false;
+        private static PackageCollection s_packageCollection = new PackageCollection();
+        private static bool s_modulesAreBeingLoaded = false;
 
         private class PackageCollection
         {
-            public List<PackageInfo> first_party = null;
-            public List<PackageInfo> third_party = null;
-        }
-
-        public static List<PackageInfo> GetFirstPartyModules()
-        {
-            if (!modules_are_being_loaded)
-                LoadPackages();
-            return first_party_packages;
+            public List<PackageInfo> first_party = new List<PackageInfo>();
+            public List<PackageInfo> third_party_curated = new List<PackageInfo>();
+            public List<PackageInfo> third_party_vrcprefabs = new List<PackageInfo>();
         }
 
         public static void ForceReloadModules()
@@ -46,27 +39,47 @@ namespace Thry
             LoadPackages();
         }
 
-        public static List<PackageInfo> GetThirdPartyModules()
+        public static List<PackageInfo> FirstPartyPackages
         {
-            if (!modules_are_being_loaded)
-                LoadPackages();
-            return third_party_packages;
+            get
+            {
+                if (!s_modulesAreBeingLoaded)
+                    LoadPackages();
+                return s_packageCollection.first_party;
+            }
+        }
+
+        public static List<PackageInfo> CuratedPackages
+        {
+            get
+            {
+                if (!s_modulesAreBeingLoaded)
+                    LoadPackages();
+                return s_packageCollection.third_party_curated;
+            }
+        }
+
+        public static List<PackageInfo> VRCPrefabsPackages
+        {
+            get
+            {
+                if (!s_modulesAreBeingLoaded)
+                    LoadPackages();
+                return s_packageCollection.third_party_vrcprefabs;
+            }
         }
 
         private static void LoadPackages()
         {
-            modules_are_being_loaded = true;
+            s_modulesAreBeingLoaded = true;
             var installedPackages = Client.List(true);
             WebHelper.DownloadStringASync(URL.MODULE_COLLECTION, (string s) => {
-                first_party_packages = new List<PackageInfo>();
-                third_party_packages = new List<PackageInfo>();
-                PackageCollection module_collection = Parser.Deserialize<PackageCollection>(s);
+                s_packageCollection = Parser.Deserialize<PackageCollection>(s);
                 while(installedPackages.IsCompleted == false)
                     Thread.Sleep(100);
-                module_collection.first_party.ForEach(m => LoadInfoForPackage(m, installedPackages));
-                module_collection.third_party.ForEach(m => LoadInfoForPackage(m, installedPackages));
-                first_party_packages = module_collection.first_party;
-                third_party_packages = module_collection.third_party;
+                s_packageCollection.first_party.ForEach(m => LoadInfoForPackage(m, installedPackages));
+                s_packageCollection.third_party_curated.ForEach(m => LoadInfoForPackage(m, installedPackages));
+                s_packageCollection.third_party_vrcprefabs.ForEach(m => LoadInfoForPackage(m, installedPackages));
                 UnityHelper.RepaintEditorWindow<Settings>();
             });
         }
