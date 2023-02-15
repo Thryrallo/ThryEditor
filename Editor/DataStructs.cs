@@ -95,7 +95,7 @@ namespace Thry
 
     public enum TextureDisplayType
     {
-        small, big
+        small, big, big_basic
     }
 
     //--------------Shader Data Structs--------------------

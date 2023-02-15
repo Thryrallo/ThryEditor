@@ -23,6 +23,9 @@ namespace Thry
                 case TextureDisplayType.big:
                     StylizedBigTextureProperty(position, prop, label, editor, hasFoldoutProperties, skip_drag_and_drop_handling);
                     break;
+                case TextureDisplayType.big_basic:
+                    BigTexturePropertyBasic(position, prop, label, editor, hasFoldoutProperties, skip_drag_and_drop_handling);
+                    break;
             }
         }
 
@@ -277,6 +280,36 @@ namespace Thry
 
             DrawingData.LastGuiObjectRect = border;
             DrawingData.TooltipCheckRect = border;
+        }
+
+        public static void BigTexturePropertyBasic(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
+        {
+            string text = label.text;
+            //VRAM
+            if (DrawingData.CurrentTextureProperty.MaterialProperty.textureValue != null)
+            {
+                text += "   (VRAM: " + DrawingData.CurrentTextureProperty.VRAMString + ")";
+            }
+            GUILayoutUtility.GetRect(0, editor.GetPropertyHeight(prop) - EditorGUIUtility.singleLineHeight - 5);
+            editor.ShaderProperty(position, prop, text);
+            DrawingData.LastGuiObjectRect = position;
+            DrawingData.TooltipCheckRect = position;
+            
+            // Reference properties
+            EditorGUI.indentLevel += 1;
+            PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
+            if (options.reference_property != null)
+            {
+                ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
+                property.Draw(useEditorIndent: true);
+            }
+            if (options.reference_properties != null)
+                foreach (string r_property in options.reference_properties)
+                {
+                    ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
+                    property.Draw(useEditorIndent: true);
+                }
+            EditorGUI.indentLevel -= 1;
         }
 
         public static void OpenTexturePicker(MaterialProperty prop)
