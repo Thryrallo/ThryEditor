@@ -87,6 +87,20 @@ namespace Thry
         public bool IsDrawing { get; private set; } = false;
         public bool IsPresetEditor { get; private set; } = false;
 
+        public bool HasMixedCustomPropertySuffix
+        {
+            get
+            {
+                if (Materials.Length == 1) return false;
+                string suffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
+                for (int i = 1; i < Materials.Length; i++)
+                {
+                    if (suffix != ShaderOptimizer.GetRenamedPropertySuffix(Materials[i])) return true;
+                }
+                return false;
+            }
+        }
+
         //-------------Init functions--------------------
 
         private Dictionary<string, string> LoadDisplayNamesFromFile()

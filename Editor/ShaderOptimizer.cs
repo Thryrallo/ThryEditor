@@ -70,6 +70,9 @@ namespace Thry
     // and link that new shader to the material automatically
     public class ShaderOptimizer
     {
+        // Tags
+        public const string TAG_ORIGINAL_SHADER = "OriginalShader";
+        public const string TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER = "AllLockedGUIDS";
         //When locking don't include code from define blocks that are not enabled
         const bool REMOVE_UNUSED_IF_DEFS = true;
 
@@ -823,7 +826,7 @@ namespace Thry
             string animPropertySuffix = applyStruct.animPropertySuffix;
 
             // Write original shader to override tag
-            material.SetOverrideTag("OriginalShader", shader.name);
+            material.SetOverrideTag(TAG_ORIGINAL_SHADER, shader.name);
             // Write the new shader folder name in an override tag so it will be deleted
 
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
@@ -1590,7 +1593,7 @@ namespace Thry
         {
             Shader lockedShader = material.shader;
             // Revert to original shader
-            string originalShaderName = material.GetTag("OriginalShader", false, "");
+            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, "");
             Shader orignalShader = null;
             if (originalShaderName == "" && !GuessShader(lockedShader, out orignalShader))
             {
@@ -1627,16 +1630,28 @@ namespace Thry
             // So these are saved as temp values and reassigned after switching shaders
             string renderType = material.GetTag("RenderType", false, "");
             int renderQueue = material.renderQueue;
+            string unlockedMaterialGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
             material.shader = orignalShader;
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
             material.shaderKeywords = material.GetTag("OriginalKeywords", false, string.Join(" ", material.shaderKeywords)).Split(' ');
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
-
-            bool isOtherShaderUsingLockedShader = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).
-                Any(m => m.shader == lockedShader && m != material);
-            if (!isOtherShaderUsingLockedShader)
+            // But only if no other material is using the locked shader
+            string[] lockedMaterials = material.GetTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, false, "").Split(',');
+            string newTag = string.Join(",", lockedMaterials.Where(guid => guid != unlockedMaterialGUID).ToArray());
+            bool isOtherMaterialUsingLockedShader = false;
+            foreach(string guid in lockedMaterials)
+            {
+                if (string.IsNullOrWhiteSpace(guid)) continue;
+                Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
+                if (m != null)
+                {
+                    isOtherMaterialUsingLockedShader |= m.shader == lockedShader;
+                    m.SetOverrideTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, newTag);
+                }
+            }
+            if (!isOtherMaterialUsingLockedShader)
             {
                 string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
                 string lockedFolder = Path.GetDirectoryName(materialFilePath);
@@ -1989,7 +2004,7 @@ namespace Thry
             return SetLockedForAllMaterials(materials, lockState, showProgressbar, showDialog);
         }
 
-        static Dictionary<string, Material> s_shaderPropertyCombinations = new Dictionary<string, Material>();
+        static Dictionary<string, List<Material>> s_shaderPropertyCombinations = new Dictionary<string, List<Material>>();
         public static bool SetLockedForAllMaterials(IEnumerable<Material> materials, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true, MaterialProperty shaderOptimizer = null)
         {
             Helper.RegisterEditorUse();
@@ -2036,10 +2051,17 @@ namespace Thry
                     {
                         string hash = MaterialToShaderPropertyHash(m);
                         // Check that shader has already been created for this hash and still exists
-                        if (s_shaderPropertyCombinations.ContainsKey(hash) && Shader.Find(applyStructsLater[s_shaderPropertyCombinations[hash]].newShaderName) != null)
+                        // Or that the shader is being created for this has during this session
+                        Material reference = null;
+                        if(s_shaderPropertyCombinations.ContainsKey(hash))
+                        {
+
+                            reference = s_shaderPropertyCombinations[hash].FirstOrDefault(m2 => m2 != m && (materialsToChangeLock.Contains(m2) || Shader.Find(applyStructsLater[m2].newShaderName) != null));
+                        }
+                        if (reference != null)
                         {
                             // Reuse existing shader and struct
-                            ApplyStruct applyStruct = applyStructsLater[s_shaderPropertyCombinations[hash]];
+                            ApplyStruct applyStruct = applyStructsLater[reference];
                             applyStruct.material = m;
                             applyStructsLater[m] = applyStruct;
                             //Disable shader keywords
@@ -2053,8 +2075,14 @@ namespace Thry
                             ShaderOptimizer.Lock(m,
                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
                                 applyShaderLater: true);
-                            s_shaderPropertyCombinations[hash] = m;
+                            s_shaderPropertyCombinations[hash] = new List<Material>();
                         }
+                        // Add material to list of materials with same shader property hash
+                        s_shaderPropertyCombinations[hash].Add(m);
+                        // Update TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER of all materials with same shader property hash
+                        string tag = string.Join(",", s_shaderPropertyCombinations[hash].Select(m2 => AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m2))));
+                        foreach (Material m2 in s_shaderPropertyCombinations[hash])
+                            m2.SetOverrideTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, tag);
                     }
                     else if (lockState == 0)
                     {
@@ -2150,7 +2178,7 @@ namespace Thry
 
         public static bool IsMaterialLocked(Material material)
         {
-            return material.shader.name.StartsWith("Hidden/") && material.GetTag("OriginalShader", false, "") != "";
+            return material.shader.name.StartsWith("Hidden/") && material.GetTag(TAG_ORIGINAL_SHADER, false, "") != "";
         }
 
         private static Dictionary<Shader, int> shaderUsedTextureReferencesCount = new Dictionary<Shader, int>();
@@ -2237,7 +2265,7 @@ namespace Thry
 
             foreach (Material material in lockedMaterials)
             {
-                string originalShaderName = material.GetTag("OriginalShader", false, "");
+                string originalShaderName = material.GetTag(ShaderOptimizer.TAG_ORIGINAL_SHADER, false, "");
                 Shader originalShader = null;
                 if (originalShaderName == "" && originalShader == null) ShaderOptimizer.GuessShader(material.shader, out originalShader);
                 if (originalShader == null) originalShader = Shader.Find(originalShaderName);

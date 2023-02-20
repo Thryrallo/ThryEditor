@@ -100,6 +100,7 @@ namespace Thry
                         extraFoldoutGUI?.Invoke();
                         if (DrawingData.CurrentTextureProperty.hasScaleOffset)
                         {
+                            EditorGUI.showMixedValue = ShaderEditor.Active.Materials.Select(m => m.GetTextureScale(prop.name)).Distinct().Count() > 1 || ShaderEditor.Active.Materials.Select(m => m.GetTextureOffset(prop.name)).Distinct().Count() > 1;
                             ShaderEditor.Active.Editor.TextureScaleOffsetProperty(prop);
                             tooltipRect.height += GUILayoutUtility.GetLastRect().height;
                         }
@@ -235,6 +236,7 @@ namespace Thry
                 {
                     Rect scale_offset_rect = new RectOffset(30, 5, 37, 0).Remove(optionsSide);
                     scale_offset_rect.height = position.height;
+                    EditorGUI.showMixedValue = ShaderEditor.Active.Materials.Select(m => m.GetTextureScale(prop.name)).Distinct().Count() > 1 || ShaderEditor.Active.Materials.Select(m => m.GetTextureOffset(prop.name)).Distinct().Count() > 1;
                     editor.TextureScaleOffsetProperty(scale_offset_rect, prop);
                 }
 
@@ -291,7 +293,7 @@ namespace Thry
                 text += "   (VRAM: " + DrawingData.CurrentTextureProperty.VRAMString + ")";
             }
             GUILayoutUtility.GetRect(0, editor.GetPropertyHeight(prop) - EditorGUIUtility.singleLineHeight - 5);
-            editor.ShaderProperty(position, prop, text);
+            editor.TextureProperty(position, prop, text);
             DrawingData.LastGuiObjectRect = position;
             DrawingData.TooltipCheckRect = position;
             

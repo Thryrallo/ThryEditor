@@ -1673,6 +1673,7 @@ namespace Thry
             {
                 EditorGUI.BeginDisabledGroup(!Config.Singleton.allowCustomLockingRenaming || ShaderEditor.Active.IsLockedMaterial);
                 EditorGUI.BeginChangeCheck();
+                EditorGUI.showMixedValue = ShaderEditor.Active.HasMixedCustomPropertySuffix;
                 ShaderEditor.Active.RenamedPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.RenamedPropertySuffix);
                 if (EditorGUI.EndChangeCheck())
                 {
