@@ -11,6 +11,7 @@ float Hue;
 float Saturation;
 float Brightness;
 float2 Scale;
+float2 Offset;
 
 Texture2D<float4> R_Input_0;
 Texture2D<float4> R_Input_1;
@@ -156,7 +157,7 @@ float4 ApplyHSV(float4 pixel, float hue, float saturation, float value){
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-	float2 uv = float2(id.x / Width, id.y / Height);
+	float2 uv = float2(id.x / Width, id.y / Height)  + Offset;
 
 	// Rotate uv by Rotation around 0.5 0.5 and scale by Scale
 	float2 center = float2(0.5, 0.5);

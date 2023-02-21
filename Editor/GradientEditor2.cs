@@ -10,17 +10,23 @@ namespace Thry
     public class GradientEditor2 : EditorWindow
     {
         private Gradient _gradient;
+        private bool _allowSizeSelection;
+        private Vector2Int _textureSizeMin;
+        private Vector2Int _textureSizeMax;
         private Vector2Int _textureSize;
         private bool _makeTextureVertical;
         private Action<Gradient, Texture2D> _onGradientChanged;
         private object _gradientEditor;
         private object _gradientLibary;
 
-        public static void Open(Gradient gradient, Vector2Int textureSize, bool textureVertical, Action<Gradient, Texture2D> onGradientChanged)
+        public static void Open(Gradient gradient, Action<Gradient, Texture2D> onGradientChanged, bool textureVertical, bool allowSizeSelection, Vector2Int minTextureSize, Vector2Int maxTextureSize)
         {
             var window = GetWindow<GradientEditor2>();
             window._gradient = gradient;
-            window._textureSize = textureSize;
+            window._allowSizeSelection = allowSizeSelection;
+            window._textureSizeMin = minTextureSize;
+            window._textureSizeMax = maxTextureSize;
+            window._textureSize = minTextureSize;
             window._makeTextureVertical = textureVertical;
             window._onGradientChanged = onGradientChanged;
             window.titleContent = new GUIContent("Gradient Editor");
@@ -108,15 +114,24 @@ namespace Thry
         {
             if(_gradientEditor == null) _gradientEditor = GetGradientEditor(_gradient);
             if(_gradientLibary == null) _gradientLibary = GetGradientLibary(PresetHasBeenSelected);
+
+            int settingsHeight = 70;
+            if(_allowSizeSelection) settingsHeight += 50;
             
-            Rect mainUIRect = new Rect(20, 20, position.width - 40, position.height - 90);
+            Rect mainUIRect = new Rect(20, 20, position.width - 40, position.height - settingsHeight);
             Rect gradientRect = new Rect(mainUIRect.x, mainUIRect.y, mainUIRect.width, mainUIRect.height * 0.6f);
             Rect presetRect = new Rect(mainUIRect.x, gradientRect.yMax + 10, mainUIRect.width, mainUIRect.height * 0.4f - 10);
 
             GradientEditorGUI.Invoke(_gradientEditor, new object[] { gradientRect });
             PresetLibraryOnGUI.Invoke(_gradientLibary, new object[] { presetRect, _gradient });
 
-            Rect buttonRect = new Rect(40, position.height - 50, position.width - 80, 40);
+            Rect settingsRect = new Rect(20, position.height - settingsHeight, position.width - 40, settingsHeight);
+            Rect buttonRect = new Rect(settingsRect.x + 20, settingsRect.yMax - 40, settingsRect.width - 20, 30);
+            if(_allowSizeSelection)
+            {
+                Rect sizeRect = new Rect(settingsRect.x + 20, settingsRect.y + 30, settingsRect.width - 20, 30);
+                _textureSize = EditorGUI.Vector2IntField(sizeRect, "Texture Size", _textureSize);
+            }
             if (GUI.Button(buttonRect, "Apply"))
             {
                 Apply();

@@ -14,6 +14,7 @@ namespace Thry
         public static TexturePacker ShowWindow()
         {
             TexturePacker packer = (TexturePacker)GetWindow(typeof(TexturePacker));
+            packer.minSize = new Vector2(850, 750);
             packer.titleContent = new GUIContent("Thry Texture Packer");
             packer.OnSave = null; // clear save callback
             packer.OnChange = null; // clear save callback
@@ -41,6 +42,7 @@ namespace Thry
         public enum SaveType { PNG, JPG }
         public enum InputType { Texture, Color, Gradient }
         public enum GradientDirection { Horizontal, Vertical }
+        [Serializable]
         public class ImageAdjust
         {
             public float Brightness = 1;
@@ -48,7 +50,9 @@ namespace Thry
             public float Saturation = 1;
             public float Rotation = 0;
             public Vector2 Scale = Vector2.one;
+            public Vector2 Offset = Vector2Int.zero;
             public bool ChangeCheck = false;
+            public Vector2Int Resolution = new Vector2Int(16, 16);
         }
         static string GetTypeEnding(SaveType t)
         {
@@ -59,6 +63,7 @@ namespace Thry
                 default: return ".png";
             }
         }
+        [Serializable]
         public class  OutputConfig
         {
             public BlendMode BlendMode;
@@ -71,6 +76,7 @@ namespace Thry
             }
         }
 
+        [Serializable]
         public class TextureSource
         {
             public Texture2D Texture;
@@ -164,6 +170,7 @@ namespace Thry
             }
         }
 
+        [Serializable]
         public class Connection
         {
             public int FromTextureIndex = -1;
@@ -280,6 +287,7 @@ namespace Thry
         };
         
 
+        TexturePackerConfig _config;
         List<Connection> _connections = new List<Connection>();
         Connection _creatingConnection;
         Texture2D _outputTexture;
@@ -291,7 +299,7 @@ namespace Thry
         SaveType _saveType = SaveType.PNG;
         float _saveQuality = 1;
 
-        ImageAdjust _colorAdjust = new ImageAdjust();
+        ImageAdjust _imageAdjust = new ImageAdjust();
 
         public Action<Texture2D> OnSave;
         public Action<Texture2D, TextureSource[], OutputConfig[], Connection[]> OnChange;
@@ -342,7 +350,7 @@ namespace Thry
             _filterMode = filterMode;
             _colorSpace = colorSpace;
             // Reset Color Adjust
-            _colorAdjust = new ImageAdjust();
+            _imageAdjust = new ImageAdjust();
             DeterminePath();
             DetermineImportSettings();
             Pack();
@@ -361,7 +369,7 @@ namespace Thry
             _connections.Add(Connection.CreateFull(2, TextureChannelIn.B, TextureChannelOut.B));
             _connections.Add(Connection.CreateFull(3, TextureChannelIn.A, TextureChannelOut.A));
             // Reset Color Adjust
-            _colorAdjust = new ImageAdjust();
+            _imageAdjust = new ImageAdjust();
             DeterminePath();
             DetermineImportSettings();
             Pack();
@@ -374,6 +382,7 @@ namespace Thry
         bool _changeCheckForPacking;
         private void OnGUI()
         {
+            DrawConfigGUI();
             // Draw three texture slots on the left, a space in the middle, and one texutre slot on the right
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
@@ -413,16 +422,21 @@ namespace Thry
             // Make the sliders delayed, else the UX feels terrible
             EditorGUI.BeginChangeCheck();
             EventType eventTypeBeforerSliders  = Event.current.type;
-            _colorAdjust.Scale = EditorGUILayout.Vector2Field("Scale", _colorAdjust.Scale);
-            _colorAdjust.Rotation = EditorGUILayout.Slider("Rotation", _colorAdjust.Rotation, -180, 180);
-            _colorAdjust.Hue = EditorGUILayout.Slider("Hue", _colorAdjust.Hue, 0, 1);
-            _colorAdjust.Saturation = EditorGUILayout.Slider("Saturation", _colorAdjust.Saturation, 0, 3);
-            _colorAdjust.Brightness = EditorGUILayout.Slider("Brightness", _colorAdjust.Brightness, 0, 3);
-            _colorAdjust.ChangeCheck |= EditorGUI.EndChangeCheck();
-            if(_colorAdjust.ChangeCheck && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
+            bool wasWide = EditorGUIUtility.wideMode;
+            EditorGUIUtility.wideMode = true;
+            _imageAdjust.Resolution = EditorGUILayout.Vector2IntField("Resolution", _imageAdjust.Resolution);
+            _imageAdjust.Scale = EditorGUILayout.Vector2Field("Scale", _imageAdjust.Scale);
+            _imageAdjust.Offset = EditorGUILayout.Vector2Field("Offset", _imageAdjust.Offset);
+            _imageAdjust.Rotation = EditorGUILayout.Slider("Rotation", _imageAdjust.Rotation, -180, 180);
+            _imageAdjust.Hue = EditorGUILayout.Slider("Hue", _imageAdjust.Hue, 0, 1);
+            _imageAdjust.Saturation = EditorGUILayout.Slider("Saturation", _imageAdjust.Saturation, 0, 3);
+            _imageAdjust.Brightness = EditorGUILayout.Slider("Brightness", _imageAdjust.Brightness, 0, 3);
+            _imageAdjust.ChangeCheck |= EditorGUI.EndChangeCheck();
+            EditorGUIUtility.wideMode = wasWide;
+            if(_imageAdjust.ChangeCheck && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
             {
                 _changeCheckForPacking = true;
-                _colorAdjust.ChangeCheck = false;
+                _imageAdjust.ChangeCheck = false;
             }
 
             GUILayout.EndVertical();
@@ -474,7 +488,8 @@ namespace Thry
 
         void HandleConnectionCreation()
         {
-            if(_creatingConnection != null)
+            // Connections are not nullable anymore, since they are serialized
+            if(_creatingConnection != null && (_creatingConnection.FromChannel != TextureChannelIn.None || _creatingConnection.ToChannel != TextureChannelOut.None))
             {
                 // if user clicked anywhere on the screen, stop creating the connection
                 if(Event.current.type == EventType.MouseUp)
@@ -566,6 +581,32 @@ namespace Thry
                 }
             }
             return clickedConnection;
+        }
+
+        void DrawConfigGUI()
+        {
+            Rect bg = new Rect(position.width / 2 - 150, 10, 300, 30);
+            Rect rObjField = new RectOffset(5, 5, 5, 5).Remove(bg);
+            GUI.DrawTexture(bg, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 10);
+
+            if(_config == null)
+            {
+                rObjField = new RectOffset(0, 100, 0, 0).Remove(rObjField);
+                Rect rButton = new Rect(rObjField.x + rObjField.width + 5, rObjField.y, 95, rObjField.height);
+                if(GUI.Button(rButton, "New config"))
+                {
+                    CreateConfig();
+                }
+            }
+
+            EditorGUI.BeginChangeCheck();
+            _config = (TexturePackerConfig)EditorGUI.ObjectField(rObjField, _config, typeof(TexturePackerConfig), false);
+            if(EditorGUI.EndChangeCheck())
+            {
+                LoadConfig();
+                Pack();
+                Repaint();
+            }
         }
 
         void DrawSaveGUI()
@@ -776,6 +817,7 @@ namespace Thry
                     texture.Texture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.Texture, typeof(Texture2D), false);
                     didTextureChange = EditorGUI.EndChangeCheck();
                     if(didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
+                    if(didTextureChange) DetermineOutputResolution(_textureSources, _imageAdjust);
                     texture.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, texture.FilterMode);
                     break;
                 case InputType.Gradient:
@@ -784,22 +826,21 @@ namespace Thry
                     if(Event.current.type == EventType.MouseDown && textureRect.Contains(Event.current.mousePosition))
                     {
                         if(texture.Gradient == null) texture.Gradient = new Gradient();
-                        GradientEditor2.Open(texture.Gradient, GetMaxTextureSize(_textureSources), texture.GradientDirection == GradientDirection.Vertical, (Gradient gradient, Texture2D tex) => {
+                        GradientEditor2.Open(texture.Gradient, (Gradient gradient, Texture2D tex) => {
                             texture.Gradient = gradient;
                             texture.GradientTexture = tex;
                             texture.Texture = tex;
                             // Needs to call these itself because it's in a callback not the OnGUI method
                             Pack();
                             Repaint();
-                        });
+                        }, texture.GradientDirection == GradientDirection.Vertical, false, _imageAdjust.Resolution, new Vector2Int(4096, 4096));
 
                     }
                     EditorGUI.BeginChangeCheck();
                     texture.GradientDirection = (GradientDirection)EditorGUI.EnumPopup(filterRect, texture.GradientDirection);
                     if(EditorGUI.EndChangeCheck() && texture.Gradient != null)
                     {
-                        Vector2Int size = GetMaxTextureSize(_textureSources);
-                        texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, size.x, size.y, texture.GradientDirection == GradientDirection.Vertical);
+                        texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, _imageAdjust.Resolution.x, _imageAdjust.Resolution.y, texture.GradientDirection == GradientDirection.Vertical);
                         texture.Texture = texture.GradientTexture;
                     }
                     break;
@@ -915,22 +956,23 @@ namespace Thry
 
         void Pack()
         {
+            SaveConfig();
             // Update all gradient textures (incase max size changed)
-            Vector2Int maxTextureSize = GetMaxTextureSize(_textureSources);
+            Vector2Int gradientSize = _imageAdjust.Resolution;
             foreach (TextureSource source in _textureSources)
             {
-                if (source.InputType == InputType.Gradient && source.GradientTexture != null && source.GradientTexture.width != maxTextureSize.x && source.GradientTexture.height != maxTextureSize.y)
+                if (source.InputType == InputType.Gradient && source.GradientTexture != null && source.GradientTexture.width != gradientSize.x && source.GradientTexture.height != gradientSize.y)
                 {
-                    source.GradientTexture = Converter.GradientToTexture(source.Gradient, maxTextureSize.x, maxTextureSize.y, source.GradientDirection == GradientDirection.Vertical);
+                    source.GradientTexture = Converter.GradientToTexture(source.Gradient, gradientSize.x, gradientSize.y, source.GradientDirection == GradientDirection.Vertical);
                     source.Texture = source.GradientTexture;
                 }
             }
 
-            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _colorAdjust);
+            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _imageAdjust);
             if(OnChange != null) OnChange(_outputTexture, _textureSources, _outputConfigs, _connections.ToArray());
         }
 
-        static Vector2Int GetMaxTextureSize(TextureSource[] sources)
+        static void DetermineOutputResolution(TextureSource[] sources, ImageAdjust colorAdjust)
         {
             int width = 16;
             int height = 16;
@@ -938,14 +980,19 @@ namespace Thry
             {
                 source.FindMaxSize(ref width, ref height);
             }
-            return new Vector2Int(width, height);
+            // round up to nearest power of 2
+            width = Mathf.NextPowerOfTwo(width);
+            height = Mathf.NextPowerOfTwo(height);
+            // clamp to max size of 4096
+            width = Mathf.Clamp(width, 16, 4096);
+            height = Mathf.Clamp(height, 16, 4096);
+            colorAdjust.Resolution = new Vector2Int(width, height);
         }
 
         public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null)
         {
-            Vector2Int maxTextureSize = GetMaxTextureSize(sources);
-            int width = maxTextureSize.x;
-            int height = maxTextureSize.y;
+            int width = colorAdjust.Resolution.x;
+            int height = colorAdjust.Resolution.y;
 
             RenderTexture target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
@@ -959,6 +1006,7 @@ namespace Thry
             if(colorAdjust == null) colorAdjust = new ImageAdjust();
             ComputeShader.SetFloat("Rotation", colorAdjust.Rotation / 360f * 2f * Mathf.PI);
             ComputeShader.SetVector("Scale", colorAdjust.Scale);
+            ComputeShader.SetVector("Offset", colorAdjust.Offset);
             ComputeShader.SetFloat("Hue", colorAdjust.Hue);
             ComputeShader.SetFloat("Saturation", colorAdjust.Saturation);
             ComputeShader.SetFloat("Brightness", colorAdjust.Brightness);
@@ -1046,6 +1094,54 @@ namespace Thry
 
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if(OnSave != null) OnSave(tex);
+        }
+
+        void CreateConfig()
+        {
+            string path = EditorUtility.SaveFilePanelInProject("Save Texture Packer Config", "TexturePackerConfig", "asset", "Save Texture Packer Config", _saveFolder);
+            if (path.Length != 0)
+            {
+                _config = ScriptableObject.CreateInstance<TexturePackerConfig>();
+                AssetDatabase.CreateAsset(_config, path);
+                SaveConfig();
+            }
+        }
+
+        void SaveConfig()
+        {
+            if (_config == null) return;
+            _config.Sources = _textureSources;
+            _config.Connections = _connections.ToArray();
+            _config.OutputConfigs = _outputConfigs;
+            _config.SaveFolder = _saveFolder;
+            _config.SaveName = _saveName;
+            _config.SaveType = _saveType;
+            _config.SaveQuality = _saveQuality;
+            _config.ColorSpace = _colorSpace;
+            _config.FilterMode = _filterMode;
+            _config.ImageAdjust = _imageAdjust;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        void LoadConfig()
+        {
+            if(_config == null) return;
+            _textureSources = _config.Sources;
+            _connections = _config.Connections.ToList();
+            _outputConfigs = _config.OutputConfigs;
+            _saveFolder = _config.SaveFolder;
+            _saveName = _config.SaveName;
+            _saveType = _config.SaveType;
+            _saveQuality = _config.SaveQuality;
+            _colorSpace = _config.ColorSpace;
+            _filterMode = _config.FilterMode;
+            _imageAdjust = _config.ImageAdjust;
+            // Expand sources to 4
+            _textureSources = _textureSources.Concat(Enumerable.Repeat(new TextureSource(), 4 - _textureSources.Length)).ToArray();
+            // Expand output configs to 4
+            _outputConfigs = _outputConfigs.Concat(Enumerable.Repeat(new OutputConfig(), 4 - _outputConfigs.Length)).ToArray();
+
         }
     }
 }
