@@ -816,6 +816,10 @@ namespace Thry
             return LockApplyShader(applyStruct);
         }
 
+        public static void ApplyMaterialPropertyDrawersPatch(Material material) {}
+        static MethodInfo ApplyMaterialPropertyDrawersOriginalMethodInfo = typeof(MaterialEditor).GetMethod("ApplyMaterialPropertyDrawers", new Type[] {typeof(Material)});
+        static MethodInfo ApplyMaterialPropertyDrawersPatchMethodInfo = typeof(ShaderOptimizer).GetMethod(nameof(ApplyMaterialPropertyDrawersPatch), BindingFlags.Public | BindingFlags.Static);
+
         private static bool LockApplyShader(ApplyStruct applyStruct)
         {
             Material material = applyStruct.material;
@@ -841,7 +845,9 @@ namespace Thry
                 Debug.LogError("[Shader Optimizer] Generated shader " + newShaderName + " could not be found");
                 return false;
             }
+            MaterialHelper.TryDetourFromTo(ApplyMaterialPropertyDrawersOriginalMethodInfo, ApplyMaterialPropertyDrawersPatchMethodInfo);
             material.shader = newShader;
+            MaterialHelper.RestoreDetour(ApplyMaterialPropertyDrawersOriginalMethodInfo);
             //ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
@@ -1631,7 +1637,9 @@ namespace Thry
             string renderType = material.GetTag("RenderType", false, "");
             int renderQueue = material.renderQueue;
             string unlockedMaterialGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
+            MaterialHelper.TryDetourFromTo(ApplyMaterialPropertyDrawersOriginalMethodInfo, ApplyMaterialPropertyDrawersPatchMethodInfo);
             material.shader = orignalShader;
+            MaterialHelper.RestoreDetour(ApplyMaterialPropertyDrawersOriginalMethodInfo);
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
             material.shaderKeywords = material.GetTag("OriginalKeywords", false, string.Join(" ", material.shaderKeywords)).Split(' ');
