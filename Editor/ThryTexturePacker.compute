@@ -174,3 +174,81 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	pixel = ApplyHSV(pixel, Hue, Saturation, Brightness);
 	Result[id.xy] = pixel;
 }
+
+
+#pragma kernel CS_Kernel
+
+Texture2D<float4> Kernel_Input;
+float4 Kernel_X[25];
+float4 Kernel_Y[25];
+bool Kernel_Grayscale;
+bool Kernel_TwoPass;
+float4 Kernel_Channels;
+
+[numthreads(8, 8, 1)]
+void CS_Kernel(uint3 id : SV_DispatchThreadID)
+{
+	float4 pixel_x = float4(0, 0, 0, 0);
+	float4 pixel_y = float4(0, 0, 0, 0);
+	
+	for (int x = -2; x <= 2; x++)
+	{
+		for (int y = -2; y <= 2; y++)
+		{
+			float4 p = Kernel_Input.Load(int3(id.xy + int2(x,y), 0));
+			[branch]
+			if(Kernel_Grayscale)
+			{
+				float gray = dot(p.rgb, float3(0.2126, 0.7152, 0.0722));
+				pixel_x += float4(gray * Kernel_X[x + 2 + (y + 2) * 5].x, 0, 0, 0);
+				[branch]
+				if(Kernel_TwoPass)
+				{
+					pixel_y += float4(gray * Kernel_Y[x + 2 + (y + 2) * 5].x, 0, 0, 0);
+				}
+			}else
+			{
+				pixel_x += p * Kernel_X[x + 2 + (y + 2) * 5].x;
+				[branch]
+				if(Kernel_TwoPass)
+				{
+					pixel_y += p * Kernel_Y[x + 2 + (y + 2) * 5].x;
+				}
+			}
+		}
+	}
+
+	float4 color = Kernel_Input.Load(int3(id.xy, 0));
+	float4 res = color;
+	[branch]
+	if(Kernel_Grayscale)
+	{
+		color = float4(dot(color.rgb, float3(0.2126, 0.7152, 0.0722)), 0, 0, color.a);
+		[branch]
+		if(Kernel_TwoPass)
+		{
+			res = sqrt((pixel_x * pixel_x + pixel_y * pixel_y)).x;
+		}
+		else
+		{
+			res = pixel_x.x;
+		}
+	}else
+	{
+		[branch]
+		if(Kernel_TwoPass)
+		{
+			res = sqrt((pixel_x * pixel_x + pixel_y * pixel_y));
+		}
+		else
+		{
+			res = pixel_x;
+		}
+	}
+	color.r = lerp(color.r, res.r, Kernel_Channels.x);
+	color.g = lerp(color.g, res.g, Kernel_Channels.y);
+	color.b = lerp(color.b, res.b, Kernel_Channels.z);
+	color.a = lerp(color.a, res.a, Kernel_Channels.w);
+	Result[id.xy] = color;
+	
+}

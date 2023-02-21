@@ -17,5 +17,12 @@ namespace Thry
         public ImageAdjust ImageAdjust;
         public string SaveFolder;
         public string SaveName;
+
+        public KernelPreset KernelPreset;
+        public float[] KernelX;
+        public float[] KernelY;
+        public float KernelStrength;
+        public int KernelLoops;
+        public bool[] KernelChannels;
     }
 }

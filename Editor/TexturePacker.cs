@@ -14,7 +14,7 @@ namespace Thry
         public static TexturePacker ShowWindow()
         {
             TexturePacker packer = (TexturePacker)GetWindow(typeof(TexturePacker));
-            packer.minSize = new Vector2(850, 750);
+            packer.minSize = new Vector2(850, 770);
             packer.titleContent = new GUIContent("Thry Texture Packer");
             packer.OnSave = null; // clear save callback
             packer.OnChange = null; // clear save callback
@@ -42,6 +42,7 @@ namespace Thry
         public enum SaveType { PNG, JPG }
         public enum InputType { Texture, Color, Gradient }
         public enum GradientDirection { Horizontal, Vertical }
+        public enum KernelPreset { None, Custom, EdgeDetection, Sharpen, GaussianBlur3x3, GaussianBlur5x5 }
         [Serializable]
         public class ImageAdjust
         {
@@ -285,6 +286,8 @@ namespace Thry
             new OutputConfig(0),
             new OutputConfig(1),
         };
+
+        Vector2 _scrollPosition;
         
 
         TexturePackerConfig _config;
@@ -298,6 +301,16 @@ namespace Thry
         string _saveName;
         SaveType _saveType = SaveType.PNG;
         float _saveQuality = 1;
+
+        KernelPreset _kernelPreset = KernelPreset.None;
+        bool _kernelEditHorizontal = true;
+        float[] _kernel_x = GetKernelPreset(KernelPreset.None, true);
+        float[] _kernel_y = GetKernelPreset(KernelPreset.None, false);
+        int _kernel_loops = 1;
+        float _kernel_strength = 1;
+        bool _kernel_twoPass;
+        bool _kernel_grayScale;
+        bool[] _kernel_channels = new bool[4] { true, true, true, true };
 
         ImageAdjust _imageAdjust = new ImageAdjust();
 
@@ -382,6 +395,8 @@ namespace Thry
         bool _changeCheckForPacking;
         private void OnGUI()
         {
+            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
+
             DrawConfigGUI();
             // Draw three texture slots on the left, a space in the middle, and one texutre slot on the right
             GUILayout.BeginVertical();
@@ -404,9 +419,9 @@ namespace Thry
             float inputHeight = 120 * 4 + INPUT_PADDING * 3 + TOP_OFFSET;
 
             GUILayout.Space(400);
-            GUILayout.BeginVertical();
-            GUILayout.Space(TOP_OFFSET);
-            GUILayout.Space((inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2);
+            Rect rect_outputAndSettings = EditorGUILayout.BeginVertical();
+            float output_y_offset = TOP_OFFSET + (inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2;
+            GUILayout.Space(output_y_offset);
             DrawOutput(_outputTexture, OUTPUT_HEIGHT);
 
             EditorGUILayout.Space(15);
@@ -439,9 +454,11 @@ namespace Thry
                 _imageAdjust.ChangeCheck = false;
             }
 
-            GUILayout.EndVertical();
+            DrawKernelGUI();
 
-            GUILayout.EndVertical();
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndVertical();
 
             GUILayout.FlexibleSpace(); 
             GUILayout.EndHorizontal();
@@ -464,6 +481,8 @@ namespace Thry
 
             HandleConnectionEditing();
             HandleConnectionCreation();
+
+            GUILayout.EndScrollView();
         }
 
         void HandleConnectionEditing()
@@ -606,6 +625,76 @@ namespace Thry
                 LoadConfig();
                 Pack();
                 Repaint();
+            }
+        }
+
+        void DrawKernelGUI()
+        {
+            Rect r_enum = EditorGUILayout.GetControlRect(false, 20);
+
+            EditorGUI.BeginChangeCheck();
+            _kernelPreset = (KernelPreset)EditorGUI.EnumPopup(r_enum, "Kernel Filter", _kernelPreset);
+            if(EditorGUI.EndChangeCheck())
+            {
+                _kernel_x = _kernelPreset == KernelPreset.Custom ? _kernel_x : GetKernelPreset(_kernelPreset, true);
+                _kernel_y = _kernelPreset == KernelPreset.Custom ? _kernel_y : GetKernelPreset(_kernelPreset, false);
+                KernelPresetSetValues(_kernelPreset);
+                Pack();
+                Repaint();
+            }
+            
+            this.minSize = new Vector2(850, _kernelPreset == KernelPreset.None ? 770 : 770 + 250);
+
+            if(_kernelPreset != KernelPreset.None)
+            {
+                EventType eventTypeBeforerSliders = Event.current.type;
+                _kernel_loops = EditorGUILayout.IntSlider("Loops", _kernel_loops, 1, 25);
+                _kernel_strength = EditorGUILayout.Slider("Strength", _kernel_strength, 0, 1);
+                _kernel_twoPass = EditorGUILayout.Toggle("Two Pass", _kernel_twoPass);
+                _kernel_grayScale = EditorGUILayout.Toggle("Gray Scale", _kernel_grayScale);
+                Rect r_channels = EditorGUILayout.GetControlRect(false, 20);
+                r_channels.width /= 4;
+                float prevLabelWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 10;
+                _kernel_channels[0] = EditorGUI.Toggle(r_channels, "R", _kernel_channels[0]);
+                r_channels.x += r_channels.width;
+                _kernel_channels[1] = EditorGUI.Toggle(r_channels, "G", _kernel_channels[1]);
+                r_channels.x += r_channels.width;
+                _kernel_channels[2] = EditorGUI.Toggle(r_channels, "B", _kernel_channels[2]);
+                r_channels.x += r_channels.width;
+                _kernel_channels[3] = EditorGUI.Toggle(r_channels, "A", _kernel_channels[3]);
+                EditorGUIUtility.labelWidth = prevLabelWidth;
+                if(Event.current.type == EventType.Used && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
+                {
+                    Pack();
+                    Repaint();
+                }
+
+                if(_kernel_twoPass)
+                {
+                    Rect r_buttons = EditorGUILayout.GetControlRect(false, 20);
+                    if(GUI.Button( new Rect(r_buttons.x, r_buttons.y, r_buttons.width / 2, r_buttons.height), "X")) _kernelEditHorizontal = true;
+                    if(GUI.Button( new Rect(r_buttons.x + r_buttons.width / 2, r_buttons.y, r_buttons.width / 2, r_buttons.height), "Y")) _kernelEditHorizontal = false;
+                }
+
+                Rect r = EditorGUILayout.GetControlRect(false, 130);
+                EditorGUI.BeginChangeCheck();
+                // draw 5x5 matrix inside the r_kernelX rect
+                for(int x = 0; x < 5; x++)
+                {
+                    for(int y = 0; y < 5; y++)
+                    {
+                        Rect r_cell = new Rect(r.x + x * r.width / 5, r.y + y * r.height / 5, r.width / 5, r.height / 5);
+                        if(_kernelEditHorizontal || !_kernel_twoPass) _kernel_x[x + y * 5] = EditorGUI.DelayedFloatField(r_cell, _kernel_x[x + y * 5]);
+                        else _kernel_y[x + y * 5] = EditorGUI.DelayedFloatField(r_cell, _kernel_y[x + y * 5]);
+                    }
+                }
+                if(EditorGUI.EndChangeCheck())
+                {
+                    _kernelPreset = KernelPreset.Custom;
+                    Pack();
+                    Repaint();
+                }
             }
         }
 
@@ -968,7 +1057,7 @@ namespace Thry
                 }
             }
 
-            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _imageAdjust);
+            _outputTexture = Pack(_textureSources, _outputConfigs, _connections, _filterMode, _colorSpace, _imageAdjust, _kernel_x, _kernel_y, _kernel_loops, _kernel_strength, _kernel_twoPass, _kernel_grayScale, _kernel_channels);
             if(OnChange != null) OnChange(_outputTexture, _textureSources, _outputConfigs, _connections.ToArray());
         }
 
@@ -989,7 +1078,8 @@ namespace Thry
             colorAdjust.Resolution = new Vector2Int(width, height);
         }
 
-        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null)
+        public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null,
+            float[] kernelX = null, float[] kernelY = null, int kernelLoops = 1, float kernelStrength = 1, bool kernelTwoPass = false, bool kernelGrayscale = false, bool[] kernelChannels = null)
         {
             int width = colorAdjust.Resolution.x;
             int height = colorAdjust.Resolution.y;
@@ -1022,6 +1112,38 @@ namespace Thry
             bool hasTransparency = aCons > 0 || outputConfigs[3].Fallback < 1; 
 
             ComputeShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
+
+            if(kernelX != null && kernelY != null)
+            {
+                // Settings Vector4s instead of floats because the SetFloats function is broken
+                float[] kernelNone = GetKernelPreset(KernelPreset.None, false);
+                ComputeShader.SetVectorArray("Kernel_X", kernelX.Select((f,i) => new Vector4(Mathf.Lerp(kernelNone[i], f, kernelStrength), 0, 0, 0)).ToArray());
+                ComputeShader.SetVectorArray("Kernel_Y", kernelY.Select((f,i) => new Vector4(Mathf.Lerp(kernelNone[i], f, kernelStrength), 0, 0, 0)).ToArray());
+                ComputeShader.SetBool("Kernel_Grayscale", kernelGrayscale);
+                ComputeShader.SetBool("Kernel_TwoPass", kernelTwoPass);
+                ComputeShader.SetVector("Kernel_Channels", new Vector4(kernelChannels[0] ? 1 : 0, kernelChannels[1] ? 1 : 0, kernelChannels[2] ? 1 : 0, kernelChannels[3] ? 1 : 0));
+
+                // define the opposite way, because each loop flips it
+                RenderTexture filterTarget = target;
+
+                RenderTexture filterInput = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+                filterInput.enableRandomWrite = true;
+                filterInput.filterMode = targetFilterMode;
+                filterInput.Create();
+
+                for(int i = 0; i < kernelLoops; i++)
+                {
+                    RenderTexture temp = filterInput;
+                    filterInput = filterTarget;
+                    filterTarget = temp;
+
+                    ComputeShader.SetTexture(1, "Kernel_Input", filterInput);
+                    ComputeShader.SetTexture(1, "Result", filterTarget);
+                    ComputeShader.Dispatch(1, width / 8 + 1, height / 8 + 1, 1);
+                }
+
+                target = filterTarget;
+            }
 
             Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true, targetColorSpace == ColorSpace.Linear);
             RenderTexture.active = target;
@@ -1063,6 +1185,39 @@ namespace Thry
             return chnlConnections.Length;
         }
 
+#region  Kernel
+
+        
+        static float[] GetKernelPreset(KernelPreset preset, bool isXKernel)
+        {
+            // return a 5x5 kernel. always 25 values
+            switch(preset)
+            {
+                case KernelPreset.Sharpen: return new float[]{ 0,0,0,0,0, 0,0,-0.5f, 0,0, 0,-0.5f, 3, -0.5f, 0, 0,0, -0.5f, 0,0, 0,0,0,0,0 };
+                case KernelPreset.EdgeDetection:
+                    if (isXKernel) return new float[]{ 0,0,0,0,0, 0,-1,0,1,0, 0,-2,0,2,0, 0,-1,0,1,0, 0,0,0,0,0 };
+                    else return new float[]{ 0,0,0,0,0, 0,-1,-2,-1,0, 0,0,0,0,0, 0,1,2,1,0, 0,0,0,0,0 };
+                case KernelPreset.GaussianBlur3x3: return new float[]{ 0,0,0,0,0, 0,0.0625f,0.125f,0.0625f,0, 0,0.125f,0.25f,0.125f,0, 0,0.0625f,0.125f,0.0625f,0, 0,0,0,0,0 };
+                case KernelPreset.GaussianBlur5x5: return new float[]{ 0.003f, 0.0133f, 0.0219f, 0.0133f, 0.003f, 0.0133f, 0.0596f, 0.0983f, 0.0596f, 0.0133f, 0.0219f, 0.0983f, 0.1621f, 0.0983f, 0.0219f, 0.0133f, 0.0596f, 0.0983f, 0.0596f, 0.0133f, 0.003f, 0.0133f, 0.0219f, 0.0133f, 0.003f };
+            }
+            return new float[]{ 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0 };
+        }
+
+        void KernelPresetSetValues(KernelPreset preset)
+        {
+            _kernel_loops = 1;
+            _kernel_strength = 1;
+            _kernel_twoPass = false;
+            _kernel_grayScale = false;
+            _kernel_channels = new bool[]{ true, true, true, true };
+            if(preset == KernelPreset.GaussianBlur3x3 || preset == KernelPreset.GaussianBlur5x5) _kernel_loops = 10;
+            if(preset == KernelPreset.EdgeDetection) _kernel_twoPass = true;
+            if(preset == KernelPreset.EdgeDetection) _kernel_channels = new bool[]{ true, true, true, false };
+        }
+
+# endregion
+
+#region Save
         void Save()
         {
             if (_outputTexture == null) return;
@@ -1120,6 +1275,14 @@ namespace Thry
             _config.ColorSpace = _colorSpace;
             _config.FilterMode = _filterMode;
             _config.ImageAdjust = _imageAdjust;
+
+            _config.KernelPreset = _kernelPreset;
+            _config.KernelX = _kernel_x;
+            _config.KernelY = _kernel_y;
+            _config.KernelLoops = _kernel_loops;
+            _config.KernelStrength = _kernel_strength;
+            _config.KernelChannels = _kernel_channels;
+            EditorUtility.SetDirty(_config);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -1137,11 +1300,20 @@ namespace Thry
             _colorSpace = _config.ColorSpace;
             _filterMode = _config.FilterMode;
             _imageAdjust = _config.ImageAdjust;
+
+            _kernelPreset = _config.KernelPreset;
+            _kernel_x = _config.KernelX;
+            _kernel_y = _config.KernelY;
+            _kernel_loops = _config.KernelLoops;
+            _kernel_strength = _config.KernelStrength;
+            _kernel_channels = _config.KernelChannels;
             // Expand sources to 4
             _textureSources = _textureSources.Concat(Enumerable.Repeat(new TextureSource(), 4 - _textureSources.Length)).ToArray();
             // Expand output configs to 4
             _outputConfigs = _outputConfigs.Concat(Enumerable.Repeat(new OutputConfig(), 4 - _outputConfigs.Length)).ToArray();
 
         }
+
+#endregion
     }
 }
