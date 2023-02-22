@@ -113,7 +113,22 @@ namespace Thry
             }
         }
 
-        static List<(Request request, PackageInfo package, bool isInstall)> s_requests = new List<(Request request, PackageInfo package, bool isInstall)>();
+        enum RequestType
+        {
+            INSTALL,
+            UNINSTALL,
+            EMBED
+        }
+
+        struct UPMRequest
+        {
+            public RequestType Type;
+            public Request Request;
+            public PackageInfo Package;
+        }
+
+        static List<UPMRequest> s_requests = new List<UPMRequest>();
+        static List<PackageInfo> s_packagesToEmbed = new List<PackageInfo>();
         public static void InstallPackage(PackageInfo package)
         {
             if(package.type != PackageType.UNITYPACKAGE && !package.upmInstallFromUnitypackage) InstallPackageInternal(package, package.git + ".git");
@@ -128,7 +143,12 @@ namespace Thry
                 var request = Client.Add(url);
                 package.IsInstalled = true;
                 package.IsBeingModified = true;
-                s_requests.Add((request, package, true));
+                UPMRequest upmRequest = new UPMRequest();
+                upmRequest.Type = RequestType.INSTALL;
+                upmRequest.Request = request;
+                upmRequest.Package = package;
+                s_requests.Add(upmRequest);
+                PlayerPrefs.SetString("ThryUPMEmbed", package.packageId);
                 UnityHelper.RepaintEditorWindow<Settings>();
                 EditorApplication.update += CheckRequests;
             }else
@@ -185,9 +205,19 @@ namespace Thry
                 var request = Client.Remove(package.packageId);
                 package.IsInstalled = false;
                 package.IsBeingModified = true;
-                s_requests.Add((request, package, false));
+                UPMRequest upmRequest = new UPMRequest();
+                upmRequest.Type = RequestType.UNINSTALL;
+                upmRequest.Request = request;
+                upmRequest.Package = package;
                 UnityHelper.RepaintEditorWindow<Settings>();
                 EditorApplication.update += CheckRequests;
+                // Deleting Manually because Client.Remove does not work on embedded packages
+                if(package.UnityPackageInfo.assetPath.StartsWith("Packages/"))
+                {
+                    DeleteUPMManually(package);
+                    package.IsInstalled = false;
+                    package.IsBeingModified = false;
+                }
             }else
             {
                 string path = AssetDatabase.GUIDToAssetPath(package.guid);
@@ -202,34 +232,66 @@ namespace Thry
             }
         }
 
+        [InitializeOnLoadMethod]
+        static void TryEmbeddingUPM()
+        {
+            string id = PlayerPrefs.GetString("ThryUPMEmbed", "");
+            if(string.IsNullOrWhiteSpace(id) == false)
+            {
+                Client.Embed(id);
+                PlayerPrefs.SetString("ThryUPMEmbed", "");
+            }
+        }
+
+        static bool DeleteUPMManually(PackageInfo package)
+        {
+            if(package.UnityPackageInfo == null) return false;
+            string path = package.UnityPackageInfo.assetPath;
+            Debug.Log($"[Package] Deleting the package manually from {path}.");
+            AssetDatabase.DeleteAsset(path);
+            return true;
+        }
+
         static void CheckRequests()
         {
             for (int i = 0; i < s_requests.Count; i++)
             {
-                var request = s_requests[i];
-                if (request.request.IsCompleted)
+                UPMRequest request = s_requests[i];
+                if (request.Request.IsCompleted)
                 {
-                    if (request.request.Status == StatusCode.Success)
+                    if (request.Request.Status == StatusCode.Success)
                     {
-                        request.package.IsBeingModified = false;
+                        request.Package.IsBeingModified = false;
                         s_requests.RemoveAt(i);
                         i--;
+                        if(request.Type == RequestType.INSTALL)
+                        {
+                            Debug.Log("[Package] Installed '" + request.Package.packageId);
+                        }
+                        else if(request.Type == RequestType.UNINSTALL)
+                        {
+                            Debug.Log("[Package] Uninstalled '" + request.Package.packageId);
+                        }
+                        else if(request.Type == RequestType.EMBED)
+                        {
+                            Debug.Log("[Package] Embeded '" + request.Package.packageId);
+                        }
                     }
-                    else if (request.request.Status >= StatusCode.Failure)
+                    else if (request.Request.Status >= StatusCode.Failure)
                     {
                         s_requests.RemoveAt(i);
                         i--;
                         // Try manually deleting the package
-                        if(!request.isInstall && request.package.UnityPackageInfo != null)
+                        if(request.Type == RequestType.UNINSTALL && request.Package.UnityPackageInfo != null)
                         {
-                            string path = request.package.UnityPackageInfo.assetPath;
+                            string path = request.Package.UnityPackageInfo.assetPath;
                             Debug.LogWarning($"[Package] UPM Removing failed, trying to delete the package manually from {path}.");
                             AssetDatabase.DeleteAsset(path);
-                        }else
+                        }else if(request.Type == RequestType.INSTALL || request.Type == RequestType.UNINSTALL)
                         {
-                            Debug.LogError(request.request.Error);
-                            request.package.IsBeingModified = false;
-                            request.package.IsInstalled = !request.isInstall;
+                            Debug.LogError(request.Request.Error);
+                            request.Package.IsBeingModified = false;
+                            request.Package.IsInstalled = request.Type != RequestType.INSTALL;
                         }
                     }
                     UnityHelper.RepaintEditorWindow<Settings>();
