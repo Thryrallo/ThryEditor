@@ -233,6 +233,8 @@ namespace Thry
             int headerCount = 0;
             DrawingData.IsCollectingProperties = true;
 
+            List<string> duplicateProperties = new List<string>(); // for debugging
+
             for (int i = 0; i < props.Length; i++)
             {
                 string displayName = props[i].displayName;
@@ -325,7 +327,7 @@ namespace Thry
                     newPart = NewProperty;
                     if (PropertyDictionary.ContainsKey(props[i].name))
                     {
-                        EditorUtility.DisplayDialog("Error", "Property with name " + props[i].name + " already exists. Please rename one of them.", "Ok");
+                        duplicateProperties.Add(props[i].name);
                         continue;
                     }
                     PropertyDictionary.Add(props[i].name, NewProperty);
@@ -343,6 +345,9 @@ namespace Thry
                     ShaderParts.Add(newPart);
                 }
             }
+
+            if(duplicateProperties.Count > 0)
+                Debug.Log($"[Thry] Duplicate Properties in {Materials[0].shader.name}: {string.Join(", ", duplicateProperties.ToArray())}");
 
             DrawingData.IsCollectingProperties = false;
         }

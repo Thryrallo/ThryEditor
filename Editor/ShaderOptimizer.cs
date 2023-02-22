@@ -595,7 +595,7 @@ namespace Thry
 
             int commentKeywords = 0;
 
-            Dictionary<string,PropertyData> constantPropsDictionary = constantProps.ToDictionary(x => x.name);
+            Dictionary<string,PropertyData> constantPropsDictionary = constantProps.GroupBy(x => x.name).Select(g => g.First()).ToDictionary(x => x.name);
             Macro[] macrosArray = macros.ToArray();
 
             List<GrabPassReplacement> grabPassVariables = new List<GrabPassReplacement>();
