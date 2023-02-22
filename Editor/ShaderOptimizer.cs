@@ -595,6 +595,9 @@ namespace Thry
 
             int commentKeywords = 0;
 
+            Dictionary<string,PropertyData> constantPropsDictionary = constantProps.ToDictionary(x => x.name);
+            Macro[] macrosArray = macros.ToArray();
+
             List<GrabPassReplacement> grabPassVariables = new List<GrabPassReplacement>();
             // Loop back through and do macros, props, and all other things line by line as to save string ops
             // Will still be a massive n2 operation from each line * each property
@@ -682,7 +685,7 @@ namespace Thry
                             for (int j=i+1; j<psf.lines.Length;j++)
                                 if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
                                 {
-                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantProps, macros, grabPassVariables);
+                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
@@ -693,7 +696,7 @@ namespace Thry
                             for (int j=i+1; j<psf.lines.Length;j++)
                                 if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
                                 {
-                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantProps, macros, grabPassVariables);
+                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
@@ -739,7 +742,7 @@ namespace Thry
                     }
                 }
                 else // CGINC file
-                    ReplaceShaderValues(material, psf.lines, 0, psf.lines.Length, props, constantProps, macros, grabPassVariables);
+                    ReplaceShaderValues(material, psf.lines, 0, psf.lines.Length, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
 
                 // Recombine file lines into a single string
                 int totalLen = psf.lines.Length*2; // extra space for newline chars
@@ -1224,7 +1227,7 @@ namespace Thry
         // For each constantProp, pattern match and find each instance of the property that isn't a declaration
         // most of these args could be private static members of the class
         private static void ReplaceShaderValues(Material material, string[] lines, int startLine, int endLine, 
-        MaterialProperty[] props, List<PropertyData> constants, List<Macro> macros, List<GrabPassReplacement> grabPassVariables)
+        MaterialProperty[] props, Dictionary<string,PropertyData> constants, Macro[] macros, GrabPassReplacement[] grabPassVariables)
         {
             List <TextureProperty> uniqueSampledTextures = new List<TextureProperty>();
 
@@ -1232,6 +1235,9 @@ namespace Thry
             for (int i=startLine;i<endLine;i++)
             {
                 string lineTrimmed = lines[i].TrimStart();
+                // tokenize line
+                string[] tokens = lineTrimmed.Split(' ', '\t', '(', ')', '+', '-', '*', '/', '.', ',', ';', '=');
+            
                 if (lineTrimmed.StartsWith("#pragma geometry", StringComparison.Ordinal))
                 {
                     if (!UseGeometry)
@@ -1461,69 +1467,74 @@ namespace Thry
                         lines[i] = sb.ToString();
                     }
                 }
-                // then replace properties
-                foreach (PropertyData constant in constants)
+
+                foreach(string token in tokens)
                 {
-                    int constantIndex;
-                    int lastIndex = 0;
-                    bool declarationFound = false;
-                    while ((constantIndex = lines[i].IndexOf(constant.name, lastIndex, StringComparison.Ordinal)) != -1)
+                    if(constants.ContainsKey(token))
                     {
-                        lastIndex = constantIndex+1;
-                        char charLeft = ' ';
-                        if (constantIndex-1 >= 0)
-                            charLeft = lines[i][constantIndex-1];
-                        char charRight = ' ';
-                        if (constantIndex + constant.name.Length < lines[i].Length)
-                            charRight = lines[i][constantIndex + constant.name.Length];
-                        // Skip invalid matches (probably a subname of another symbol)
-                        if (!(ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight)))
-                            continue;
-                        // Skip inline comments
-                        if (charLeft == '*' && charRight == '*' && constantIndex >= 2 && lines[i][constantIndex - 2] == '/')
-                            continue;
-                        
-                        // Skip basic declarations of unity shader properties i.e. "uniform float4 _Color;"
-                        if (!declarationFound)
+                        PropertyData constant = constants[token];
+
+                        int constantIndex;
+                        int lastIndex = 0;
+                        bool declarationFound = false;
+                        while ((constantIndex = lines[i].IndexOf(constant.name, lastIndex, StringComparison.Ordinal)) != -1)
                         {
-                            string precedingText = lines[i].Substring(0, constantIndex-1).TrimEnd(); // whitespace removed string immediately to the left should be float or float4
-                            string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
-                            if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
-                            {
-                                constant.lastDeclarationType = precedingText.TrimStart();
-                                declarationFound = true;
+                            lastIndex = constantIndex+1;
+                            char charLeft = ' ';
+                            if (constantIndex-1 >= 0)
+                                charLeft = lines[i][constantIndex-1];
+                            char charRight = ' ';
+                            if (constantIndex + constant.name.Length < lines[i].Length)
+                                charRight = lines[i][constantIndex + constant.name.Length];
+                            // Skip invalid matches (probably a subname of another symbol)
+                            if (!(ValidSeparators.Contains(charLeft) && ValidSeparators.Contains(charRight)))
                                 continue;
+                            // Skip inline comments
+                            if (charLeft == '*' && charRight == '*' && constantIndex >= 2 && lines[i][constantIndex - 2] == '/')
+                                continue;
+                            
+                            // Skip basic declarations of unity shader properties i.e. "uniform float4 _Color;"
+                            if (!declarationFound)
+                            {
+                                string precedingText = lines[i].Substring(0, constantIndex-1).TrimEnd(); // whitespace removed string immediately to the left should be float or float4
+                                string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
+                                if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
+                                {
+                                    constant.lastDeclarationType = precedingText.TrimStart();
+                                    declarationFound = true;
+                                    continue;
+                                }
                             }
+
+                            // Replace with constant!
+                            // This could technically be more efficient by being outside the IndexOf loop
+                            StringBuilder sb = new StringBuilder(lines[i].Length * 2);
+                            sb.Append(lines[i], 0, constantIndex);
+                            switch (constant.type)
+                            {
+                                case PropertyType.Float:
+                                    string constantValue;
+                                    // Special Handling for ints 
+                                    if(constant.lastDeclarationType == "int")
+                                        constantValue = constant.value.x.ToString("F0", CultureInfo.InvariantCulture);
+                                    else
+                                        constantValue = constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
+
+                                    // Add comment with property name, for easier debug
+                                    sb.Append($"({constantValue} /*{constant.name}*/)");
+                                    break;
+                                case PropertyType.Vector:
+                                    sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
+                                                    +constant.value.y.ToString(CultureInfo.InvariantCulture)+","
+                                                    +constant.value.z.ToString(CultureInfo.InvariantCulture)+","
+                                                    +constant.value.w.ToString(CultureInfo.InvariantCulture)+")");
+                                    break;
+                            }
+                            sb.Append(lines[i], constantIndex+constant.name.Length, lines[i].Length-constantIndex-constant.name.Length);
+                            lines[i] = sb.ToString();
+
+                            // Check for Unity branches on previous line here?
                         }
-
-                        // Replace with constant!
-                        // This could technically be more efficient by being outside the IndexOf loop
-                        StringBuilder sb = new StringBuilder(lines[i].Length * 2);
-                        sb.Append(lines[i], 0, constantIndex);
-                        switch (constant.type)
-                        {
-                            case PropertyType.Float:
-                                string constantValue;
-                                // Special Handling for ints 
-                                if(constant.lastDeclarationType == "int")
-                                    constantValue = constant.value.x.ToString("F0", CultureInfo.InvariantCulture);
-                                else
-                                    constantValue = constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
-
-                                // Add comment with property name, for easier debug
-                                sb.Append($"({constantValue} /*{constant.name}*/)");
-                                break;
-                            case PropertyType.Vector:
-                                sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
-                                                   +constant.value.y.ToString(CultureInfo.InvariantCulture)+","
-                                                   +constant.value.z.ToString(CultureInfo.InvariantCulture)+","
-                                                   +constant.value.w.ToString(CultureInfo.InvariantCulture)+")");
-                                break;
-                        }
-                        sb.Append(lines[i], constantIndex+constant.name.Length, lines[i].Length-constantIndex-constant.name.Length);
-                        lines[i] = sb.ToString();
-
-                        // Check for Unity branches on previous line here?
                     }
                 }
 
@@ -2099,6 +2110,7 @@ namespace Thry
                 }
                 catch (Exception e)
                 {
+                    Debug.Log(e);
                     string position = e.StackTrace.Split('\n').FirstOrDefault(l => l.Contains("ThryEditor"));
                     if(position != null)
                     {
