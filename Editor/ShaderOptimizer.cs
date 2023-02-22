@@ -1236,7 +1236,7 @@ namespace Thry
             {
                 string lineTrimmed = lines[i].TrimStart();
                 // tokenize line
-                string[] tokens = lineTrimmed.Split(' ', '\t', '(', ')', '+', '-', '*', '/', '.', ',', ';', '=');
+                string[] tokens = lineTrimmed.Split(new char[]{' ', '\t', '(', ')', '+', '-', '*', '/', '.', ',', ';', '=', '!'}, StringSplitOptions.RemoveEmptyEntries);
             
                 if (lineTrimmed.StartsWith("#pragma geometry", StringComparison.Ordinal))
                 {

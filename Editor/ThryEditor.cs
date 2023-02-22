@@ -324,7 +324,10 @@ namespace Thry
                 {
                     newPart = NewProperty;
                     if (PropertyDictionary.ContainsKey(props[i].name))
+                    {
+                        EditorUtility.DisplayDialog("Error", "Property with name " + props[i].name + " already exists. Please rename one of them.", "Ok");
                         continue;
+                    }
                     PropertyDictionary.Add(props[i].name, NewProperty);
                     if (type != ThryPropertyType.none)
                         headerStack.Peek().addPart(NewProperty);
