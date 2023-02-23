@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.PackageManager;
 using UnityEngine;
 
 namespace Thry
@@ -25,14 +26,14 @@ namespace Thry
         public static void firstTimePopup()
         {
             Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
-            window.isFirstPopop = true;
+            window._isFirstPopop = true;
             window.Show();
         }
 
         public static void updatedPopup(int compare)
         {
             Settings window = (Settings)EditorWindow.GetWindow(typeof(Settings));
-            window.updatedVersion = compare;
+            window._updatedVersion = compare;
             window.Show();
         }
 
@@ -44,15 +45,14 @@ namespace Thry
 
         public ModuleSettings[] moduleSettings;
 
-        private bool isFirstPopop = false;
-        private int updatedVersion = 0;
+        private bool _isFirstPopop = false;
+        private int _updatedVersion = 0;
 
-        private bool is_init = false;
+        private bool _is_init = false;
+        private bool _isInstallingVAI = false;
+        Vector2 _scrollPosition;
         
         public static ButtonData thry_message = null;
-
-        string _packageSearchTerm = "";
-        Vector2 _scrollPosition;
 
         //---------------------Stuff checkers and fixers-------------------
 
@@ -71,7 +71,7 @@ namespace Thry
                 moduleSettings[i++] = (ModuleSettings)Activator.CreateInstance(classtype);
             }
 
-            is_init = true;
+            _is_init = true;
 
             if (thry_message == null)
                 WebHelper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, (Action<string>)delegate (string s) { thry_message = Parser.Deserialize<ButtonData>(s); });
@@ -80,7 +80,7 @@ namespace Thry
         //------------------Main GUI
         void OnGUI()
         {
-            if (!is_init || moduleSettings==null) InitVariables();
+            if (!_is_init || moduleSettings==null) InitVariables();
             GUILayout.Label("ShaderUI v" + Config.Singleton.verion);
 
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
@@ -95,7 +95,7 @@ namespace Thry
                 s.Draw();
                 DrawHorizontalLine();
             }
-            GUIModulesInstalation();
+            GUIVRChatAssetInstaller();
             EditorGUILayout.EndScrollView();
         }
 
@@ -110,11 +110,11 @@ namespace Thry
 
         private void GUINotification()
         {
-            if (isFirstPopop)
+            if (_isFirstPopop)
                 GUILayout.Label(" " + EditorLocale.editor.Get("first_install_message"), Styles.greenStyle);
-            else if (updatedVersion == -1)
+            else if (_updatedVersion == -1)
                 GUILayout.Label(" " + EditorLocale.editor.Get("update_message"), Styles.greenStyle);
-            else if (updatedVersion == 1)
+            else if (_updatedVersion == 1)
                 GUILayout.Label(" " + EditorLocale.editor.Get("downgrade_message"), Styles.orangeStyle);
         }
 
@@ -205,105 +205,27 @@ namespace Thry
             }
         }
 
-        private void GUIModulesInstalation()
+        private void GUIVRChatAssetInstaller()
         {
-            if (ModuleHandler.FirstPartyPackages == null)
-                return;
-            if (ModuleHandler.FirstPartyPackages.Count + ModuleHandler.CuratedPackages.Count + ModuleHandler.VRCPrefabsPackages.Count > 0) {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label(EditorLocale.editor.Get("header_modules"), EditorStyles.boldLabel);
-                if (GUILayout.Button("Reload"))
-                    ModuleHandler.ForceReloadModules();
-                EditorGUILayout.EndHorizontal();
-            }
-            bool disabled = false;
-            EditorGUI.BeginDisabledGroup(disabled);
-            ModuleHandler.FirstPartyPackages.ForEach(p => PackageUI(p));
-            GUILayout.Label(EditorLocale.editor.Get("header_packages_curated"), EditorStyles.boldLabel);
-            ModuleHandler.CuratedPackages.ForEach(p => PackageUI(p));
-            GUILayout.Label(EditorLocale.editor.Get("header_packages_vrcprefabs"), EditorStyles.boldLabel);
-            _packageSearchTerm = EditorGUILayout.TextField("Search", _packageSearchTerm);
-            ModuleHandler.VRCPrefabsPackages.Where(p => p.name.IndexOf(_packageSearchTerm, StringComparison.OrdinalIgnoreCase) != -1).
-                ToList().ForEach(p => PackageUI(p));
-            EditorGUI.EndDisabledGroup();
-        }
-
-        private void PackageUI(PackageInfo package)
-        {
-            string text = null;
-            if(package.type == PackageType.UPM) text = $"      {package.name} (UPM: {package.packageId})";
-            else if(package.type == PackageType.VPM) text = $"      {package.name} (VPM: {package.packageId})";
-            else text = $"      {package.name}";
-            if (package.HasUpdate)
-                text = "                  " + text;
-
-            package.IsUIExpaned = Foldout(text, package.IsUIExpaned);
-            Rect rect = GUILayoutUtility.GetLastRect();
-            rect.x += 20;
-            rect.y += 1;
-            rect.width = 20;
-            rect.height -= 4;
-            
-            EditorGUI.BeginDisabledGroup(package.IsBeingModified);
-            EditorGUI.BeginChangeCheck();
-            bool install = GUI.Toggle(rect, package.IsInstalled, "");
-            if(EditorGUI.EndChangeCheck()){
-                if (install)
-                    ModuleHandler.InstallPackage(package);
-                else
-                    ModuleHandler.RemovePackage(package);
-            }
-            if (package.HasUpdate)
+            // check if Thry.VRChatAssetInstaller.VAI_UI exists
+            Type vai_ui = Helper.FindTypeByFullName("Thry.VRChatAssetInstaller.VAI_UI");
+            if(vai_ui != null)
             {
-                rect.x += 20;
-                rect.width = 55;
-                GUIStyle style = new GUIStyle(EditorStyles.miniButton);
-                style.fixedHeight = 17;
-                if (GUI.Button(rect, "Update", style))
-                    ModuleHandler.InstallPackage(package);
-            }
-            EditorGUI.EndDisabledGroup();
-            //add update notification
-            if (package.IsUIExpaned)
-            {
-                EditorGUI.indentLevel += 1;
-                ModuleUIDetails(package);
-                EditorGUI.indentLevel -= 1;
-            }
-        }
-
-        private void ModuleUIDetails(PackageInfo package)
-        {
-            float prev_label_width = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 130;
-
-            if(package.type == PackageType.UNITYPACKAGE && package.IsInstalled)
-            {
-                if(GUILayout.Button("Force Update"))
+                if(GUILayout.Button("Open VRChat Asset Installer"))
                 {
-                    // if(EditorUtility.DisplayDialog("Force Update", "This will import the newest unitypackage. In certain cases this will lead to errors and you will have to delete & reimport the package.", "Yes", "No"))
-                    //     ModuleHandler.InstallPackage(module);
-                    ModuleHandler.RemovePackage(package);
-                    ModuleHandler.InstallPackage(package);
+                    vai_ui.GetMethod("ShowWindow").Invoke(null, null);
                 }
-            }
-
-            EditorGUILayout.HelpBox(package.description, MessageType.Info);
-            EditorGUILayout.LabelField("Url: ", package.git);
-            if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+            }else
             {
-                Event.current.Use();
-                Application.OpenURL(package.git);
+                EditorGUILayout.HelpBox("VRChat Asset Installer is an external asset that allows you to easily find and install assets for VRChat into your project. It has various community prefabs and tools availabe for one click installation. It is not an alternative to VCC, but an addition as it uses unitypackages and UPM instead of VPM.", MessageType.Info);
+                EditorGUI.BeginDisabledGroup(_isInstallingVAI);
+                if(GUILayout.Button("Install VRChat Asset Installer"))
+                {
+                    _isInstallingVAI = true;
+                    Client.Add("https://github.com/Thryrallo/VRChat-Assets-Installer.git");
+                }
+                EditorGUI.EndDisabledGroup();
             }
-            if (package.author != null)
-                EditorGUILayout.LabelField("Author: ", package.author);
-
-            if(package.IsInstalled)
-            {
-                EditorGUILayout.LabelField("Asset Path: ", AssetDatabase.GUIDToAssetPath(package.guid));
-            }
-
-            EditorGUIUtility.labelWidth = prev_label_width;
         }
 
         private static void Text(string configField, bool createHorizontal = true)
