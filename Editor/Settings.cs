@@ -12,6 +12,13 @@ using UnityEngine;
 
 namespace Thry
 {
+    public abstract class ModuleSettings
+    {
+        public const string MODULES_CONFIG = "Thry/modules_config";
+
+        public abstract void Draw();
+    }
+
     public class Settings : EditorWindow
     {
 

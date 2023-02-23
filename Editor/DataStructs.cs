@@ -789,33 +789,4 @@ namespace Thry
     }
 
     #endregion
-
-    #region Module Data
-
-    public enum PackageType
-    {
-        UNITYPACKAGE, UPM, VPM
-    }
-
-    public class PackageInfo
-    {
-        // Lowercase because of json
-        public PackageType type;
-        public bool upmInstallFromUnitypackage;
-        public string packageId;
-        public string manifest;
-        public string guid;
-        public string unitypackageRegex;
-        public string git;
-        public string author;
-        public string name;
-        public string description;
-        public bool IsUIExpaned = false;
-        public bool IsInstalled;
-        public bool IsBeingModified;
-        public bool HasUpdate;
-        public UnityEditor.PackageManager.PackageInfo UnityPackageInfo;
-    }
-
-    #endregion
 }
