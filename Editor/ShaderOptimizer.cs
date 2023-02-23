@@ -33,6 +33,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using Object = UnityEngine.Object;
+using System.Reflection;
 #if VRC_SDK_VRCSDK3
 using VRC.SDKBase;
 #endif
@@ -45,7 +46,6 @@ using VRC.SDKBase.Editor.BuildPipeline;
 #if VRC_SDK_VRCSDK3 && !UDON
 using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 using VRC.SDK3.Avatars.Components;
-using System.Reflection;
 #endif
 
 namespace Thry
