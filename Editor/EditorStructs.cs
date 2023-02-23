@@ -853,6 +853,11 @@ namespace Thry
         {
             doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
+        }
+
+        protected override void InitOptions()
+        {
+            base.InitOptions();
             this.hasFoldoutProperties = hasScaleOffset || DoReferencePropertiesExist;
         }
 
@@ -861,7 +866,6 @@ namespace Thry
             if (MaterialProperty.textureValue != null)
             {
                 var details = TextureHelper.VRAM.CalcSize(MaterialProperty.textureValue);
-                //this.VRAMString = $"{TextureHelper.VRAM.ToByteString(details.size)} ({details.format})";
                 this.VRAMString = $"{TextureHelper.VRAM.ToByteString(details.size)}";
             }
             else
