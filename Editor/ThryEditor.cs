@@ -781,18 +781,51 @@ namespace Thry
         [MenuItem("Thry/Shader Tools/Fix Keywords (Very Slow)", priority = -20)]
         static void FixKeywords()
         {
-            IEnumerable<Material> materials = AssetDatabase.FindAssets("t:material").Select(g => AssetDatabase.GUIDToAssetPath(g)).Where(p => string.IsNullOrEmpty(p) == false)
-                .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p)).Where(m => m != null && m.shader != null)
-                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false && ShaderHelper.IsShaderUsingThryEditor(m));
             float f = 0;
-            int count = materials.Count();
+            IEnumerable<Material> allMaterials = AssetDatabase.FindAssets("t:material")
+                .Select(g => AssetDatabase.GUIDToAssetPath(g))
+                .Where(p => string.IsNullOrEmpty(p) == false)
+                .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p))
+                .Where(m => m != null && m.shader != null)
+                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false);
+            // Process Shaders
+            EditorUtility.DisplayProgressBar("Fixing Keywords", "Processing Shaders", 0);
+            IEnumerable<Material> uniqueShadersMaterials = allMaterials.GroupBy(m => m.shader).Select(g => g.First());
+            IEnumerable<Shader> shadersWithThryEditor = uniqueShadersMaterials.Where(m => ShaderHelper.IsShaderUsingThryEditor(m)).Select(m => m.shader);
+            Dictionary<Shader, List<(string prop, string keyword)>> propertiesWithKeywords = new Dictionary<Shader, List<(string prop, string keyword)>>();
+            int count = shadersWithThryEditor.Count();
+            foreach (Shader s in shadersWithThryEditor)
+            {
+                EditorUtility.DisplayProgressBar("Fixing Keywords", "Processing Shaders", f++ / count);
+                List<(string prop, string keyword)> propertiesWithKeywordsForShader = new List<(string prop, string keyword)>();
+                for (int i = 0; i < s.GetPropertyCount(); i++)
+                {
+                    if (s.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Float)
+                    {
+                        string prop = s.GetPropertyName(i);
+                        string keyword = null;
+                        ShaderHelper.GetTogglePropertyDrawer(s, prop, out keyword);
+                        if(string.IsNullOrWhiteSpace(keyword) == false)
+                            propertiesWithKeywordsForShader.Add((prop, keyword));
+                    }
+                }
+                propertiesWithKeywords.Add(s, propertiesWithKeywordsForShader);
+            }
+            // Find Materials
+            IEnumerable<Material> materials = allMaterials.Where(m => propertiesWithKeywords.ContainsKey(m.shader));
+            // Set Keywords
+            f = 0;
+            count = materials.Count();
             foreach(Material m in materials)
             {
-                for(int i= 0;i< m.shader.GetPropertyCount(); i++){
-                    if (m.shader.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Float)
-                    {
-                        ShaderHelper.EnableDisableKeywordsBasedOnTheirFloatValue(new Material[] { m }, m.shader, m.shader.GetPropertyName(i));
-                    }
+                Material[] mats = new Material[] { m };
+                List<(string prop, string keyword)> propertiesWithKeywordsForShader = propertiesWithKeywords[m.shader];
+                foreach((string prop, string keyword) in propertiesWithKeywordsForShader)
+                {
+                    if (m.GetFloat(prop) == 1)
+                        m.EnableKeyword(keyword);
+                    else
+                        m.DisableKeyword(keyword);
                 }
                 EditorUtility.DisplayProgressBar("Fixing Keywords", m.name, f++ / count);
             }

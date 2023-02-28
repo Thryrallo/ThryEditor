@@ -1577,7 +1577,8 @@ namespace Thry
         {
             PropertyInfo shaderGUIProperty = typeof(MaterialEditor).GetProperty("customShaderGUI");
             var gui = shaderGUIProperty.GetValue(materialEditor);
-            return gui.GetType() == typeof(ShaderEditor);
+            // gui is null for some shaders. I think it has to do with packages maybe
+            return (gui != null) && gui.GetType() == typeof(ShaderEditor);
         }
 
         static MethodInfo getPropertyHandlerMethod;
@@ -1599,36 +1600,55 @@ namespace Thry
 
         public static void EnableDisableKeywordsBasedOnTheirFloatValue(IEnumerable<Material> targets, Shader shader, string propertyName)
         {
-            InitKeywordDrawerMethods();
-            //Handle keywords
-            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { shader, propertyName });
-            //if has custom drawer
-            if (propertyHandler != null)
+            string keyword = null;
+            object propertyDrawer = GetTogglePropertyDrawer(shader, propertyName, out keyword);    
+            if(string.IsNullOrWhiteSpace(keyword) == false)
             {
-                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
-                //if custom drawer exists
-                if (propertyDrawer != null)
+                foreach (Material m in targets)
                 {
-                    // if is keyword drawer make sure all materials have the keyworkd enabled / disabled depending on their value
-                    string keyword = null;
-                    if (propertyDrawer.GetType() == typeof(ThryToggleDrawer)){
-                        keyword = (string)keyWordFieldThry.GetValue(propertyDrawer);
-                    }else if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
-                    {
-                        keyword = (string)keyWordFieldUnityDefault.GetValue(propertyDrawer);
-                    }                    if(keyword != null) {
-                        foreach (Material m in targets)
-                        {
-                            if (m.GetFloat(propertyName) == 1)
-                                m.EnableKeyword(keyword);
-                            else
-                                m.DisableKeyword(keyword);
-                        }
-                    }
+                    if (m.GetFloat(propertyName) == 1)
+                        m.EnableKeyword(keyword);
+                    else
+                        m.DisableKeyword(keyword);
                 }
             }
         }
 
+        public static object GetTogglePropertyDrawer(Shader shader, string propertyName, out string keyword)
+        {
+            object propertyDrawer = GetMaterialPropertyDrawer(shader, propertyName);
+            if (propertyDrawer != null)
+            {
+                // distinguish between thry and unity default toggle drawer
+                if (propertyDrawer.GetType() == typeof(ThryToggleDrawer))
+                {
+                    keyword = (string)keyWordFieldThry.GetValue(propertyDrawer);
+                    return propertyDrawer;
+                }
+                else if (propertyDrawer.GetType().ToString() == "UnityEditor.MaterialToggleDrawer")
+                {
+                    keyword = (string)keyWordFieldUnityDefault.GetValue(propertyDrawer);
+                    return propertyDrawer;
+                }
+            }
+            keyword = null;
+            return null;
+        }
+
+        public static object GetMaterialPropertyDrawer(Shader shader, string propertyName)
+        {
+            InitKeywordDrawerMethods();
+            object propertyHandler = getPropertyHandlerMethod.Invoke(null, new object[] { shader, propertyName });
+            if (propertyHandler != null)
+            {
+                object propertyDrawer = drawerProperty.GetValue(propertyHandler, null);
+                if (propertyDrawer != null)
+                {
+                    return propertyDrawer;
+                }
+            }
+            return null;
+        }
     }
 
     public class StringHelper
