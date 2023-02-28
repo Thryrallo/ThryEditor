@@ -346,8 +346,8 @@ namespace Thry
                 }
             }
 
-            if(duplicateProperties.Count > 0)
-                Debug.Log($"[Thry] Duplicate Properties in {Materials[0].shader.name}: {string.Join(", ", duplicateProperties.ToArray())}");
+            // if(duplicateProperties.Count > 0)
+            //     Debug.Log($"[Thry] Duplicate Properties in {Materials[0].shader.name}: {string.Join(", ", duplicateProperties.ToArray())}");
 
             DrawingData.IsCollectingProperties = false;
         }
