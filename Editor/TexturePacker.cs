@@ -10,7 +10,7 @@ namespace Thry
 {
     public class TexturePacker : EditorWindow
     {
-        [MenuItem("Thry/Texture Packer")]
+        [MenuItem("Thry/Texture Packer", priority = 100)]
         public static TexturePacker ShowWindow()
         {
             TexturePacker packer = (TexturePacker)GetWindow(typeof(TexturePacker));

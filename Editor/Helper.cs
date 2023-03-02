@@ -250,6 +250,88 @@ namespace Thry
             }
             return d[n, m];
         }
+
+        // Start of Detour methods
+        // Modified from: https://github.com/apkd/UnityStaticBatchingSortingPatch/blob/e83bed8cf31fc98097586c4e47af77fa79d9bed5/StaticBatchingSortingPatch.cs
+        // Modified by Behemoth/hill
+        static Dictionary<MethodInfo, byte[]> s_patchedData = new Dictionary<MethodInfo, byte[]>();
+        public static unsafe void TryDetourFromTo(MethodInfo src, MethodInfo dst)
+        {
+            try
+            {
+                if (IntPtr.Size == sizeof(Int64))
+                {
+                    // 64-bit systems use 64-bit absolute address and jumps
+                    // 12 byte destructive
+
+                    // Get function pointers
+                    long Source_Base        = src     .MethodHandle.GetFunctionPointer().ToInt64();
+                    long Destination_Base   = dst.MethodHandle.GetFunctionPointer().ToInt64();
+
+                    // Backup Source Data
+                    IntPtr Source_IntPtr    = src.MethodHandle.GetFunctionPointer();
+                    var backup = new byte[0xC];
+                    Marshal.Copy(Source_IntPtr, backup, 0, 0xC);
+                    s_patchedData.Add(src, backup);
+
+                    // Native source address
+                    byte* Pointer_Raw_Source = (byte*)Source_Base;
+
+                    // Pointer to insert jump address into native code
+                    long* Pointer_Raw_Address = (long*)( Pointer_Raw_Source + 0x02 );
+
+                    // Insert 64-bit absolute jump into native code (address in rax)
+                    // mov rax, immediate64
+                    // jmp [rax]
+                    *( Pointer_Raw_Source + 0x00 ) = 0x48;
+                    *( Pointer_Raw_Source + 0x01 ) = 0xB8;
+                    *Pointer_Raw_Address           = Destination_Base; // ( Pointer_Raw_Source + 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 )
+                    *( Pointer_Raw_Source + 0x0A ) = 0xFF;
+                    *( Pointer_Raw_Source + 0x0B ) = 0xE0;
+                }
+                else
+                {
+                    // 32-bit systems use 32-bit relative offset and jump
+                    // 5 byte destructive
+
+                    // Get function pointers
+                    int Source_Base        = src     .MethodHandle.GetFunctionPointer().ToInt32();
+                    int Destination_Base   = dst.MethodHandle.GetFunctionPointer().ToInt32();
+
+                    // Backup Source Data
+                    IntPtr Source_IntPtr    = src.MethodHandle.GetFunctionPointer();
+                    var backup = new byte[0x5];
+                    Marshal.Copy(Source_IntPtr, backup, 0, 0x5);
+                    s_patchedData.Add(src, backup);
+
+                    // Native source address
+                    byte* Pointer_Raw_Source = (byte*)Source_Base;
+
+                    // Pointer to insert jump address into native code
+                    int* Pointer_Raw_Address = (int*)( Pointer_Raw_Source + 1 );
+
+                    // Jump offset (less instruction size)
+                    int offset = ( Destination_Base - Source_Base ) - 5;
+
+                    // Insert 32-bit relative jump into native code
+                    *Pointer_Raw_Source = 0xE9;
+                    *Pointer_Raw_Address = offset;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Unable to detour: {src?.Name ?? "UnknownSrc"} -> {dst?.Name ?? "UnknownDst"}\n{ex}");
+                throw;
+            }
+        }
+        
+        public static unsafe void RestoreDetour(MethodInfo src) {
+            var Source_IntPtr = src.MethodHandle.GetFunctionPointer();
+            var backup = s_patchedData[src];
+            Marshal.Copy(backup, 0, Source_IntPtr, backup.Length);
+            s_patchedData.Remove(src);
+        }
+        // End of Detour Methods
     }
 
     public class PersistentData
@@ -915,87 +997,6 @@ namespace Thry
         {
             CopyMaterialValueFromProperty(MaterialEditor.GetMaterialProperty(new Material[] { target }, source.name), source);
         }
-        // Start of Detour methods
-        // Modified from: https://github.com/apkd/UnityStaticBatchingSortingPatch/blob/e83bed8cf31fc98097586c4e47af77fa79d9bed5/StaticBatchingSortingPatch.cs
-        // Modified by Behemoth/hill
-        static Dictionary<MethodInfo, byte[]> s_patchedData = new Dictionary<MethodInfo, byte[]>();
-        public static unsafe void TryDetourFromTo(MethodInfo src, MethodInfo dst)
-        {
-            try
-            {
-                if (IntPtr.Size == sizeof(Int64))
-                {
-                    // 64-bit systems use 64-bit absolute address and jumps
-                    // 12 byte destructive
-
-                    // Get function pointers
-                    long Source_Base        = src     .MethodHandle.GetFunctionPointer().ToInt64();
-                    long Destination_Base   = dst.MethodHandle.GetFunctionPointer().ToInt64();
-
-                    // Backup Source Data
-                    IntPtr Source_IntPtr    = src.MethodHandle.GetFunctionPointer();
-                    var backup = new byte[0xC];
-                    Marshal.Copy(Source_IntPtr, backup, 0, 0xC);
-                    s_patchedData.Add(src, backup);
-
-                    // Native source address
-                    byte* Pointer_Raw_Source = (byte*)Source_Base;
-
-                    // Pointer to insert jump address into native code
-                    long* Pointer_Raw_Address = (long*)( Pointer_Raw_Source + 0x02 );
-
-                    // Insert 64-bit absolute jump into native code (address in rax)
-                    // mov rax, immediate64
-                    // jmp [rax]
-                    *( Pointer_Raw_Source + 0x00 ) = 0x48;
-                    *( Pointer_Raw_Source + 0x01 ) = 0xB8;
-                    *Pointer_Raw_Address           = Destination_Base; // ( Pointer_Raw_Source + 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 )
-                    *( Pointer_Raw_Source + 0x0A ) = 0xFF;
-                    *( Pointer_Raw_Source + 0x0B ) = 0xE0;
-                }
-                else
-                {
-                    // 32-bit systems use 32-bit relative offset and jump
-                    // 5 byte destructive
-
-                    // Get function pointers
-                    int Source_Base        = src     .MethodHandle.GetFunctionPointer().ToInt32();
-                    int Destination_Base   = dst.MethodHandle.GetFunctionPointer().ToInt32();
-
-                    // Backup Source Data
-                    IntPtr Source_IntPtr    = src.MethodHandle.GetFunctionPointer();
-                    var backup = new byte[0x5];
-                    Marshal.Copy(Source_IntPtr, backup, 0, 0x5);
-                    s_patchedData.Add(src, backup);
-
-                    // Native source address
-                    byte* Pointer_Raw_Source = (byte*)Source_Base;
-
-                    // Pointer to insert jump address into native code
-                    int* Pointer_Raw_Address = (int*)( Pointer_Raw_Source + 1 );
-
-                    // Jump offset (less instruction size)
-                    int offset = ( Destination_Base - Source_Base ) - 5;
-
-                    // Insert 32-bit relative jump into native code
-                    *Pointer_Raw_Source = 0xE9;
-                    *Pointer_Raw_Address = offset;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Unable to detour: {src?.Name ?? "UnknownSrc"} -> {dst?.Name ?? "UnknownDst"}\n{ex}");
-                throw;
-            }
-        }
-        
-        public static unsafe void RestoreDetour(MethodInfo src) {
-            var Source_IntPtr = src.MethodHandle.GetFunctionPointer();
-            var backup = s_patchedData[src];
-            Marshal.Copy(backup, 0, Source_IntPtr, backup.Length);
-            s_patchedData.Remove(src);
-        }
-        // End of Detour Methods
     }
 
     public class ColorHelper
