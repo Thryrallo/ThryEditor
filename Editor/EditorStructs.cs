@@ -958,6 +958,20 @@ namespace Thry
     {
         public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
         {
+            // guid is defined as <guid:x*>
+            if(displayName.Contains("<guid="))
+            {
+                int start = displayName.IndexOf("<guid=");
+                int end = displayName.IndexOf(">", start);
+                string guid = displayName.Substring(start + 6, end - start - 6);
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string replacement = "";
+                if (path != null && System.IO.File.Exists(path))
+                {
+                    replacement = System.IO.File.ReadAllText(path);
+                }
+                Content.text = displayName.Replace($"<guid={guid}>", replacement);
+            }
         }
 
         public override void HandleRightClickToggles(bool isInHeader)
