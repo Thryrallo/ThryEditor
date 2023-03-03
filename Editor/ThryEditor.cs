@@ -71,6 +71,7 @@ namespace Thry
         public bool HasCustomRenameSuffix;
         public Localization Locale;
         public ShaderTranslator SuggestedTranslationDefinition;
+        private string _duplicatePropertyNamesString = null;
 
         //Shader Versioning
         private Version _shaderVersionLocal;
@@ -346,8 +347,8 @@ namespace Thry
                 }
             }
 
-            // if(duplicateProperties.Count > 0)
-            //     Debug.Log($"[Thry] Duplicate Properties in {Materials[0].shader.name}: {string.Join(", ", duplicateProperties.ToArray())}");
+            if(duplicateProperties.Count > 0 && Config.Singleton.enableDeveloperMode)
+                _duplicatePropertyNamesString = string.Join(", ", duplicateProperties.ToArray());
 
             DrawingData.IsCollectingProperties = false;
         }
@@ -474,6 +475,7 @@ namespace Thry
             Active = this;
 
             GUIManualReloadButton();
+            GUIDevloperMode();
             GUIShaderVersioning();
 
             GUITopBar();
@@ -507,6 +509,18 @@ namespace Thry
                 if(GUILayout.Button("Manual Reload"))
                 {
                     this.Reload();
+                }
+            }
+        }
+
+        private void GUIDevloperMode()
+        {
+            if (Config.Singleton.enableDeveloperMode)
+            {
+                // Show duplicate property names
+                if(_duplicatePropertyNamesString != null)
+                {
+                    EditorGUILayout.HelpBox("Duplicate Property Names:" + _duplicatePropertyNamesString, MessageType.Warning);
                 }
             }
         }
@@ -854,6 +868,30 @@ namespace Thry
         static void MenuShaderOptUnlockedMaterials()
         {
             EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Materials", true);
+        }
+
+        [MenuItem("Assets/Thry/Materials/Cleaner/List Unbound Properties", priority = 303)]
+        static void AssetsCleanMaterials_ListUnboundProperties()
+        {
+            IEnumerable<Material> materials = Selection.objects.Where(o => o is Material).Select(o => o as Material);
+            foreach (Material m in materials)
+            {
+                Debug.Log("_______Unbound Properties for " + m.name + "_______");
+                MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, m);
+                MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Color, m);
+                MaterialCleaner.ListUnusedProperties(MaterialCleaner.CleanPropertyType.Float, m);
+            }
+        }
+
+        [MenuItem("Assets/Thry/Materials/Cleaner/Remove Unbound Textures", priority = 303)]
+        static void AssetsCleanMaterials_CleanUnboundTextures()
+        {
+            IEnumerable<Material> materials = Selection.objects.Where(o => o is Material).Select(o => o as Material);
+            foreach (Material m in materials)
+            {
+                Debug.Log("_______Removing Unbound Textures for " + m.name + "_______");
+                MaterialCleaner.RemoveAllUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, m);
+            }
         }
     }
 }

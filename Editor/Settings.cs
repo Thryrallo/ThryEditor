@@ -81,7 +81,7 @@ namespace Thry
         void OnGUI()
         {
             if (!_is_init || moduleSettings==null) InitVariables();
-            GUILayout.Label("ShaderUI v" + Config.Singleton.verion);
+            GUILayout.Label("ThryEditor v" + Config.Singleton.verion);
 
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             GUINotification();
@@ -145,29 +145,30 @@ namespace Thry
             }
         }
 
-        bool is_editor_expanded = true;
         private void GUIEditor()
         {
-            is_editor_expanded = Foldout(EditorLocale.editor.Get("header_editor"), is_editor_expanded);
-            if (is_editor_expanded)
-            {
-                EditorGUI.indentLevel += 2;
-                Dropdown("default_texture_type");
-                Toggle("showRenderQueue");
-                Toggle("showManualReloadButton");
+            EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("shader_ui_design_header"), EditorStyles.boldLabel);
+            Dropdown("default_texture_type");
+            Toggle("showRenderQueue");
 
-                EditorGUILayout.Space();
-                Toggle("autoMarkPropertiesAnimated");
-                Toggle("allowCustomLockingRenaming");
-                GUIGradients();
-                EditorGUILayout.Space();
+            EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("shader_ui_features_header"), EditorStyles.boldLabel);
+            EditorGUILayout.Space();
+            Toggle("autoMarkPropertiesAnimated");
+            Toggle("allowCustomLockingRenaming");
+            GUIGradients();
 
-                Toggle("autoSetAnchorOverride");
-                Dropdown("humanBoneAnchor");
-                Text("anchorOverrideObjectName");
-                
-                EditorGUI.indentLevel -= 2;
-            }
+            EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("avatar_fixes_header"), EditorStyles.boldLabel);
+            Toggle("autoSetAnchorOverride");
+            Dropdown("humanBoneAnchor");
+            Text("anchorOverrideObjectName");
+
+            EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("developer_header"), EditorStyles.boldLabel);
+            Toggle("showManualReloadButton");
+            Toggle("enableDeveloperMode");
         }
 
         private static void GUIGradients()
