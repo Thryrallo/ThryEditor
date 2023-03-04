@@ -252,6 +252,7 @@ namespace Thry
                     property.Draw(new CRect(r));
                 }
                 if (options.reference_properties != null)
+                {
                     i = 0;
                     foreach (string r_property in options.reference_properties)
                     {
@@ -260,6 +261,7 @@ namespace Thry
                         r.width = optionsSide.width - 20;
                         property.Draw(new CRect(r));
                     }
+                }
 
                 //readd disabled group
                 if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
