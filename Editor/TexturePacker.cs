@@ -1081,8 +1081,14 @@ namespace Thry
         public static Texture2D Pack(TextureSource[] sources, OutputConfig[] outputConfigs, IEnumerable<Connection> connections, FilterMode targetFilterMode, ColorSpace targetColorSpace, ImageAdjust colorAdjust = null,
             float[] kernelX = null, float[] kernelY = null, int kernelLoops = 1, float kernelStrength = 1, bool kernelTwoPass = false, bool kernelGrayscale = false, bool[] kernelChannels = null)
         {
+            if(colorAdjust == null)
+            {
+                colorAdjust = new ImageAdjust();
+                DetermineOutputResolution(sources, colorAdjust);
+            }
             int width = colorAdjust.Resolution.x;
             int height = colorAdjust.Resolution.y;
+            
 
             RenderTexture target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
@@ -1093,7 +1099,6 @@ namespace Thry
             ComputeShader.SetFloat("Width", width);
             ComputeShader.SetFloat("Height", height);
 
-            if(colorAdjust == null) colorAdjust = new ImageAdjust();
             ComputeShader.SetFloat("Rotation", colorAdjust.Rotation / 360f * 2f * Mathf.PI);
             ComputeShader.SetVector("Scale", colorAdjust.Scale);
             ComputeShader.SetVector("Offset", colorAdjust.Offset);
