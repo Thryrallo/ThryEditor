@@ -76,7 +76,14 @@ namespace Thry.ThryEditor
                 s_presetGuids[p_presetNames[i]] = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(presetMaterials[i]));
             }
             // Save cache
-            File.WriteAllText(FILE_NAME_CACHE, string.Join("\n", p_presetNames.Select(n => $"{n};{s_presetGuids[n]}")));
+            Save();
+        }
+
+        static void Save()
+        {
+            // Save cache
+            FileHelper.CreateFileWithDirectories(FILE_NAME_CACHE);
+            File.WriteAllText(FILE_NAME_CACHE, string.Join("\n", s_presetGuids.Select(kvp => $"{kvp.Key};{kvp.Value}")));
         }
         
         // On Asset Delete remove presets from cache
@@ -140,7 +147,7 @@ namespace Thry.ThryEditor
             s_presetGuids[presetName] = presetGuid;
             s_presetMaterials[presetName] = material;
             // Save cache
-            File.WriteAllText(FILE_NAME_CACHE, string.Join("\n", s_presetGuids.Select(kvp => $"{kvp.Key};{kvp.Value}")));
+            Save();
         }
 
         static void RemovePreset(Material material)
@@ -152,7 +159,7 @@ namespace Thry.ThryEditor
             s_presetGuids.Remove(presetName);
             s_presetMaterials.Remove(presetName);
             // Save cache
-            File.WriteAllText(FILE_NAME_CACHE, string.Join("\n", s_presetGuids.Select(kvp => $"{kvp.Key};{kvp.Value}")));
+            Save();
         }
 
         static void RemovePreset(string name)
@@ -165,7 +172,7 @@ namespace Thry.ThryEditor
             s_presetGuids.Remove(presetName);
             s_presetMaterials.Remove(presetName);
             // Save cache
-            File.WriteAllText(FILE_NAME_CACHE, string.Join("\n", s_presetGuids.Select(kvp => $"{kvp.Key};{kvp.Value}")));
+            Save();
         }
 
         public static Material GetPresetMaterial(string presetName)
