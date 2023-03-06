@@ -2040,10 +2040,19 @@ namespace Thry
             //first the shaders are created. compiling is suppressed with start asset editing
             AssetDatabase.StartAssetEditing();
 
+            bool seekedIsLocked = lockState == 1;
+
             //Get cleaned materia list
-            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null &&
-                string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
-                && IsShaderUsingThryOptimizer(m.shader) && m.GetFloat(GetOptimizerPropertyName(m.shader)) != lockState).Distinct();
+            // The GetPropertyDefaultFloatValue is changed from 0 to 1 when the shader is locked in
+            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null 
+                && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false 
+                && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
+                && IsShaderUsingThryOptimizer(m.shader)
+                &&  (   m.shader.name.StartsWith("Hidden/Locked/")
+                    || (m.shader.name.StartsWith("Hidden/") && m.GetTag("OriginalShader",false,"") != "" 
+                        && m.shader.GetPropertyDefaultFloatValue(m.shader.FindPropertyIndex(GetOptimizerPropertyName(m.shader))) == 1)
+                    ) != seekedIsLocked)
+                .Distinct();
 
             float i = 0;
             float length = materialsToChangeLock.Count();
