@@ -10,11 +10,14 @@ namespace Thry
 {
     public class TexturePacker : EditorWindow
     {
+        const int MIN_WIDTH = 850;
+        const int MIN_HEIGHT = 790;
+
         [MenuItem("Thry/Texture Packer", priority = 100)]
         public static TexturePacker ShowWindow()
         {
             TexturePacker packer = (TexturePacker)GetWindow(typeof(TexturePacker));
-            packer.minSize = new Vector2(850, 770);
+            packer.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
             packer.titleContent = new GUIContent("Thry Texture Packer");
             packer.OnSave = null; // clear save callback
             packer.OnChange = null; // clear save callback
@@ -311,6 +314,7 @@ namespace Thry
         bool _kernel_twoPass;
         bool _kernel_grayScale;
         bool[] _kernel_channels = new bool[4] { true, true, true, true };
+        bool[] _channel_export = new bool[4] { true, true, true, true };
 
         ImageAdjust _imageAdjust = new ImageAdjust();
 
@@ -364,7 +368,7 @@ namespace Thry
             _colorSpace = colorSpace;
             // Reset Color Adjust
             _imageAdjust = new ImageAdjust();
-            DeterminePath();
+            DeterminePathAndFileNameIfEmpty(true);
             DetermineImportSettings();
             Pack();
         }
@@ -383,8 +387,9 @@ namespace Thry
             _connections.Add(Connection.CreateFull(3, TextureChannelIn.A, TextureChannelOut.A));
             // Reset Color Adjust
             _imageAdjust = new ImageAdjust();
-            DeterminePath();
+            DeterminePathAndFileNameIfEmpty(true);
             DetermineImportSettings();
+            DetermineOutputResolution(_textureSources, _imageAdjust);
             Pack();
         }
 
@@ -643,7 +648,7 @@ namespace Thry
                 Repaint();
             }
             
-            this.minSize = new Vector2(850, _kernelPreset == KernelPreset.None ? 770 : 770 + 250);
+            this.minSize = new Vector2(MIN_WIDTH, _kernelPreset == KernelPreset.None ? MIN_HEIGHT : MIN_HEIGHT + 250);
 
             if(_kernelPreset != KernelPreset.None)
             {
@@ -703,14 +708,14 @@ namespace Thry
             // Saving information
             // folder selection
             // determine folder & filename from asset name if not set
-            if(string.IsNullOrEmpty(_saveFolder) || string.IsNullOrEmpty(_saveName))
+            if(string.IsNullOrEmpty(_saveFolder))
             {
-                DeterminePath();
+                DeterminePathAndFileNameIfEmpty();
             }
 
             Rect r = EditorGUILayout.BeginHorizontal();
 
-            Rect background = new Rect(r.x + r.width / 2 - 400, r.y - 5, 800, 50);
+            Rect background = new Rect(r.x + r.width / 2 - 400, r.y - 5, 800, 77);
             GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 10);
 
             GUILayout.FlexibleSpace();
@@ -729,6 +734,8 @@ namespace Thry
                 string path = EditorUtility.OpenFolderPanel("Select folder", _saveFolder, "");
                 if (!string.IsNullOrEmpty(path))
                 {
+                    // Make path relative to Assets folder
+                    path = path.Replace(Application.dataPath, "Assets");
                     _saveFolder = path;
                 }
             }
@@ -738,9 +745,27 @@ namespace Thry
             }
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            _channel_export[0] = GUILayout.Toggle(_channel_export[0], "R", GUILayout.Width(26));
+            _channel_export[1] = GUILayout.Toggle(_channel_export[1], "G", GUILayout.Width(26));
+            _channel_export[2] = GUILayout.Toggle(_channel_export[2], "B", GUILayout.Width(26));
+            _channel_export[3] = GUILayout.Toggle(_channel_export[3], "A", GUILayout.Width(26));
+            if(GUILayout.Button("Export Channels", GUILayout.Width(130)))
+            {
+                ExportChannels(false);
+            }
+            if(GUILayout.Button("Export Channels (B&W)", GUILayout.Width(150)))
+            {
+                ExportChannels(true);
+            }
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
         }
 
-        void DeterminePath()
+        void DeterminePathAndFileNameIfEmpty(bool forceOverwrite = false)
         {
             foreach(TextureSource s in _textureSources)
             {
@@ -749,8 +774,10 @@ namespace Thry
                     string path = AssetDatabase.GetAssetPath(s.Texture);
                     if(string.IsNullOrWhiteSpace(path))
                         continue;
-                    _saveFolder = Path.GetDirectoryName(path);
-                    _saveName = Path.GetFileNameWithoutExtension(path) + "_packed";
+                    if(string.IsNullOrWhiteSpace(_saveFolder) || forceOverwrite)
+                        _saveFolder = Path.GetDirectoryName(path);
+                    if(string.IsNullOrWhiteSpace(_saveName) || forceOverwrite)
+                        _saveName = Path.GetFileNameWithoutExtension(path) + "_packed";
                     break;
                 }
             }
@@ -1222,10 +1249,77 @@ namespace Thry
 
 # endregion
 
+# region Channel Unpacker
+
+
+
+        void ExportChannel(RenderTexture renderTex, Vector4 lerpR, Vector4 lerpG, Vector4 lerpB, Vector4 lerpA , string namePostfix)
+        {
+            ComputeShader.SetVector("Channels_Strength_R", lerpR);
+            ComputeShader.SetVector("Channels_Strength_G", lerpG);
+            ComputeShader.SetVector("Channels_Strength_B", lerpB);
+            ComputeShader.SetVector("Channels_Strength_A", lerpA);
+            ComputeShader.Dispatch(2, _outputTexture.width / 8, _outputTexture.height / 8, 1);
+
+            Texture2D tex = new Texture2D(renderTex.width, renderTex.height, TextureFormat.RGBA32, true, _colorSpace == ColorSpace.Linear);
+            RenderTexture.active = renderTex;
+            tex.ReadPixels(new Rect(0, 0, renderTex.width, renderTex.height), 0, 0);
+            tex.filterMode = renderTex.filterMode;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.alphaIsTransparency = false;
+            tex.Apply();
+
+            Save(tex, _saveFolder, _saveName + namePostfix);
+        }
+
+        void ExportChannels(bool exportAsBlackAndWhite)
+        {
+            Pack();
+            DeterminePathAndFileNameIfEmpty();
+
+            RenderTexture target = new RenderTexture(_outputTexture.width, _outputTexture.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            target.enableRandomWrite = true;
+            target.filterMode = _outputTexture.filterMode;
+            target.Create();
+            ComputeShader.SetTexture(2, "Unpacker_Input", _outputTexture);
+            ComputeShader.SetTexture(2, "Result", target);
+
+            Vector4 r = new Vector4(1, 0, 0, 0);
+            Vector4 g = new Vector4(0, 1, 0, 0);
+            Vector4 b = new Vector4(0, 0, 1, 0);
+            Vector4 a = new Vector4(0, 0, 0, 1);
+            Vector4 none = new Vector4(0, 0, 0, 0);
+            if(exportAsBlackAndWhite)
+            {
+                if(_channel_export[0])
+                    ExportChannel(target, r, r, r, none, "_R");
+                if(_channel_export[1])
+                    ExportChannel(target, g, g, g, none, "_G");
+                if(_channel_export[2])
+                    ExportChannel(target, b, b, b, none, "_B");
+                if(_channel_export[3])
+                    ExportChannel(target, a, a, a, none, "_A");
+            }
+            else
+            {
+                if(_channel_export[0])
+                    ExportChannel(target, r, none, none, none, "_R");
+                if(_channel_export[1])
+                    ExportChannel(target, none, g, none, none, "_G");
+                if(_channel_export[2])
+                    ExportChannel(target, none, none, b, none, "_B");
+                if(_channel_export[3])
+                    ExportChannel(target, none, none, none, a, "_A");
+            }
+        }
+
+# endregion
+
 #region Save
         void Save()
         {
             if (_outputTexture == null) return;
+            DeterminePathAndFileNameIfEmpty();
             string path = _saveFolder + "/" + _saveName + GetTypeEnding(_saveType);
             byte[] bytes = null;
             if(File.Exists(path))
@@ -1254,6 +1348,35 @@ namespace Thry
 
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if(OnSave != null) OnSave(tex);
+        }
+        
+        void Save(Texture2D texture, string folder, string name)
+        {
+            string path = folder + "/" + name + GetTypeEnding(_saveType);
+            byte[] bytes = null;
+            if(File.Exists(path))
+            {
+                // open dialog
+                if (!EditorUtility.DisplayDialog("File already exists", "Do you want to overwrite the file?", "Yes", "No"))
+                {
+                    return;
+                }
+            }
+            switch (_saveType)
+            {
+                case SaveType.PNG: bytes = texture.EncodeToPNG(); break;
+                case SaveType.JPG: bytes = texture.EncodeToJPG((int)_saveQuality); break;
+            }
+            System.IO.File.WriteAllBytes(path, bytes);
+            AssetDatabase.Refresh();
+
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            importer.streamingMipmaps = true;
+            importer.crunchedCompression = true;
+            importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
+            importer.filterMode = _filterMode;
+            importer.alphaIsTransparency = texture.alphaIsTransparency;
+            importer.SaveAndReimport();
         }
 
         void CreateConfig()

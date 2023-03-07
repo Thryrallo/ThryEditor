@@ -40,7 +40,7 @@ namespace Thry.ThryEditor
                         CreatePresetCache();
                     }
                     // Log time
-                    Debug.Log($"Presets: {p_presetNames.Length} presets found in {System.DateTime.Now - time}");
+                    // Debug.Log($"Presets: {p_presetNames.Length} presets found in {System.DateTime.Now - time}");
                 }
                 return p_presetNames;
             }

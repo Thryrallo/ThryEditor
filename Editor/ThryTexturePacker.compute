@@ -252,3 +252,35 @@ void CS_Kernel(uint3 id : SV_DispatchThreadID)
 	Result[id.xy] = color;
 	
 }
+
+#pragma kernel CS_ChannelLerper
+
+Texture2D<float4> Unpacker_Input;
+float4 Channels_Strength_R;
+float4 Channels_Strength_G;
+float4 Channels_Strength_B;
+float4 Channels_Strength_A;
+
+[numthreads(8, 8, 1)]
+void CS_ChannelLerper(uint3 id : SV_DispatchThreadID)
+{
+	float4 color = Unpacker_Input.Load(int3(id.xy, 0));
+	float4 res = color;
+	res.r = lerp(0, color.r, Channels_Strength_R.x) 
+		+ lerp(0, color.g, Channels_Strength_R.y) 
+		+ lerp(0, color.b, Channels_Strength_R.z) 
+		+ lerp(0, color.a, Channels_Strength_R.w);
+	res.g = lerp(0, color.r, Channels_Strength_G.x)
+		+ lerp(0, color.g, Channels_Strength_G.y)
+		+ lerp(0, color.b, Channels_Strength_G.z)
+		+ lerp(0, color.a, Channels_Strength_G.w);
+	res.b = lerp(0, color.r, Channels_Strength_B.x)
+		+ lerp(0, color.g, Channels_Strength_B.y)
+		+ lerp(0, color.b, Channels_Strength_B.z)
+		+ lerp(0, color.a, Channels_Strength_B.w);
+	res.a = lerp(0, color.r, Channels_Strength_A.x)
+		+ lerp(0, color.g, Channels_Strength_A.y)
+		+ lerp(0, color.b, Channels_Strength_A.z)
+		+ lerp(0, color.a, Channels_Strength_A.w);
+	Result[id.xy] = res;
+}
