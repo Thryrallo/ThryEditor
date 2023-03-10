@@ -166,6 +166,9 @@ namespace Thry
             Text("anchorOverrideObjectName");
 
             EditorGUILayout.Space();
+            Toggle("forceAsyncCompilationPreview");
+
+            EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("developer_header"), EditorStyles.boldLabel);
             Toggle("showManualReloadButton");
             Toggle("enableDeveloperMode");

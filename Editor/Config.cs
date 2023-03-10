@@ -80,6 +80,7 @@ namespace Thry
         public string anchorOverrideObjectName = "AutoAnchorObject";
         public bool autoSetAnchorAskedOnce = false;
         public bool enableDeveloperMode = false;
+        public bool forceAsyncCompilationPreview = true;
 
         public string verion = VERSION;
 
