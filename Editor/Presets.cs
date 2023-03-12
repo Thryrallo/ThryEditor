@@ -29,12 +29,23 @@ namespace Thry.ThryEditor
                     // Check if cache exists
                     if(File.Exists(FILE_NAME_CACHE))
                     {
-                        // Load from cache
-                        string[][] lines = File.ReadAllText(FILE_NAME_CACHE).Split('\n').Select(s => s.Split(';')).ToArray();
-                        // Split into lines
-                        s_presetGuids = lines.Select(l => (l[0], l[1])).ToDictionary(t => t.Item1, t => t.Item2);
-                        p_presetNames = lines.Select(l => l[0]).Prepend("").ToArray();
-                        s_presetMaterials = new Dictionary<string, Material>();
+                        string raw = File.ReadAllText(FILE_NAME_CACHE);
+                        // If file is empty (no presets), create empty, parsing would throw error
+                        if(string.IsNullOrWhiteSpace(raw))
+                        {
+                            s_presetGuids = new Dictionary<string, string>();
+                            p_presetNames = new string[0];
+                            s_presetMaterials = new Dictionary<string, Material>();
+                        }
+                        else
+                        {
+                            // Load from cache
+                            string[][] lines = raw.Split('\n').Select(s => s.Split(';')).ToArray();
+                            // Split into lines
+                            s_presetGuids = lines.Select(l => (l[0], l[1])).ToDictionary(t => t.Item1, t => t.Item2);
+                            p_presetNames = lines.Select(l => l[0]).Prepend("").ToArray();
+                            s_presetMaterials = new Dictionary<string, Material>();
+                        }
                     }else
                     {
                         CreatePresetCache();
