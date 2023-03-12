@@ -2005,7 +2005,7 @@ namespace Thry
 
             private static void ResetWarning()
             {
-                if(SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, true))
+                if(SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
                 {
                     Debug.LogError($"[Shader Optimizer] Unlocked shaders were removed from build. Materials will be pink. Use Thry -> Lock All on hierarchy items to ensure materials are locked.");
                     SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, false);
