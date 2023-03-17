@@ -2197,6 +2197,7 @@ namespace Thry
             //now all new shaders are applied. this has to happen after unity compiled the shaders
             if (lockState == 1)
             {
+                AssetDatabase.Refresh();
                 //Apply new shaders
                 foreach (Material m in materialsToChangeLock)
                 {
