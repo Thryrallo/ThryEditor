@@ -209,15 +209,16 @@ namespace Thry
             }
         }
 
+        static Type s_vrchatAssetInstallerUIType {get; set;} = Helper.FindTypeByFullName("Thry.VRChatAssetInstaller.VAI_UI");
+
         private void GUIVRChatAssetInstaller()
         {
             // check if Thry.VRChatAssetInstaller.VAI_UI exists
-            Type vai_ui = Helper.FindTypeByFullName("Thry.VRChatAssetInstaller.VAI_UI");
-            if(vai_ui != null)
+            if(s_vrchatAssetInstallerUIType != null)
             {
                 if(GUILayout.Button("Open VRChat Asset Installer"))
                 {
-                    vai_ui.GetMethod("ShowWindow").Invoke(null, null);
+                    s_vrchatAssetInstallerUIType.GetMethod("ShowWindow").Invoke(null, null);
                 }
             }else
             {
