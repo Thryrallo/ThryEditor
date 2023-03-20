@@ -1340,10 +1340,29 @@ namespace Thry
 
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
-            importer.crunchedCompression = true;
             importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
             importer.filterMode = _filterMode;
             importer.alphaIsTransparency = _outputTexture.alphaIsTransparency;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            TextureImporterFormat overwriteFormat = importer.DoesSourceTextureHaveAlpha() ? 
+                Config.Singleton.texturePackerCompressionWithAlphaOverwrite : Config.Singleton.texturePackerCompressionNoAlphaOverwrite;
+            if(overwriteFormat != TextureImporterFormat.Automatic)
+            {
+                importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
+                {
+                    name = "PC",
+                    overridden = true,
+                    maxTextureSize = 2048,
+                    format = overwriteFormat
+                });
+            }else
+            {
+                importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
+                {
+                    name = "PC",
+                    overridden = false,
+                });
+            }
             importer.SaveAndReimport();
 
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
@@ -1372,10 +1391,29 @@ namespace Thry
 
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
-            importer.crunchedCompression = true;
             importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
             importer.filterMode = _filterMode;
             importer.alphaIsTransparency = texture.alphaIsTransparency;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            TextureImporterFormat overwriteFormat = importer.DoesSourceTextureHaveAlpha() ? 
+                Config.Singleton.texturePackerCompressionWithAlphaOverwrite : Config.Singleton.texturePackerCompressionNoAlphaOverwrite;
+            if(overwriteFormat != TextureImporterFormat.Automatic)
+            {
+                importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
+                {
+                    name = "PC",
+                    overridden = true,
+                    maxTextureSize = 2048,
+                    format = overwriteFormat
+                });
+            }else
+            {
+                importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
+                {
+                    name = "PC",
+                    overridden = false,
+                });
+            }
             importer.SaveAndReimport();
         }
 

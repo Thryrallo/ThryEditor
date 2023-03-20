@@ -166,6 +166,13 @@ namespace Thry
             Text("anchorOverrideObjectName");
 
             EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("textures_header"), EditorStyles.boldLabel);
+            Dropdown("texturePackerCompressionWithAlphaOverwrite");
+            Dropdown("texturePackerCompressionNoAlphaOverwrite");
+            Dropdown("gradientEditorCompressionOverwrite");
+
+            EditorGUILayout.Space();
+            GUILayout.Label(EditorLocale.editor.Get("technical_header"), EditorStyles.boldLabel);
             Toggle("forceAsyncCompilationPreview");
 
             EditorGUILayout.Space();
