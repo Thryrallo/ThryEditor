@@ -1969,6 +1969,50 @@ namespace Thry
         }
 #endif
 
+        const string DidStripUnlockedShadersSessionStateKey = "ShaderOptimizerDidStripUnlockedShaders";
+        public class StripUnlockedShadersFromBuild : UnityEditor.Build.IPreprocessShaders
+        {
+            // Thanks to z3y for this function
+            public int callbackOrder => 4;
+
+            public void OnProcessShader(Shader shader, UnityEditor.Rendering.ShaderSnippetData snippet, IList<UnityEditor.Rendering.ShaderCompilerData> data)
+            {
+                // Strip if the shader should be optimized (has the optimizer property) but isn't (name doesn't start with Hidden/Locked/)
+                bool shouldStrip = shader.FindPropertyIndex("_ShaderOptimizerEnabled") >= 0 && !shader.name.StartsWith("Hidden/Locked/");
+
+                if (shouldStrip)
+                {
+                    // Try to warn the user if there's an unlocked shader
+                    if (!SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
+                    {
+                        EditorUtility.DisplayDialog("Shader Optimizer: Unlocked Shader", "An Unlocked shader was found, and will not be included in the build (this will cause pink materials).\nThis shouldn't happen. Make sure all lockable materials are Locked, and try again.\nIf it happens again, please report the issue via GitHub or Discord!", "OK");
+                        SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, true);
+                    }
+
+                    data.Clear();
+                }
+            }
+        }
+
+        [InitializeOnLoad]
+        public static class ResetStrippedShaderWarning
+        {
+            static ResetStrippedShaderWarning()
+            {
+                EditorApplication.update -= ResetWarning;
+                EditorApplication.update += ResetWarning;
+            }
+
+            private static void ResetWarning()
+            {
+                if(SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
+                {
+                    Debug.LogError($"[Shader Optimizer] Unlocked shaders were removed from build. Materials will be pink. Use Thry -> Lock All on hierarchy items to ensure materials are locked.");
+                    SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, false);
+                }
+            }
+        }
+
         static string MaterialToShaderPropertyHash(Material m)
         {
             StringBuilder stringBuilder = new StringBuilder(m.shader.name);
