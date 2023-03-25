@@ -1315,8 +1315,16 @@ namespace Thry
         {
             contentRect.x += contentRect.width * index;
             contentRect.width -= 5;
-            if (_displayAsToggles) prop.floatValue = EditorGUI.Toggle(contentRect, prop.floatValue == 1) ? 1 : 0;
-            else prop.floatValue = EditorGUI.FloatField(contentRect, prop.floatValue);
+
+            float val = prop.floatValue;
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            EditorGUI.BeginChangeCheck();
+            if (_displayAsToggles) val = EditorGUI.Toggle(contentRect, val == 1) ? 1 : 0;
+            else val = EditorGUI.FloatField(contentRect, val);
+            if (EditorGUI.EndChangeCheck())
+            {
+                prop.floatValue = val;
+            }
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
