@@ -40,7 +40,7 @@ namespace Pumkin.UploadCallbacks
 
         public static bool ShouldSkipAvatar(GameObject avatar)
         {
-            return avatar.transform.Find(SkipAvatarObjectName);
+            return avatar.GetComponentsInChildren<Transform>(true).Any(t => t.name == SkipAvatarObjectName);
         }
 
         public static void SetAnchorOverrides(GameObject avatarGameObject)
