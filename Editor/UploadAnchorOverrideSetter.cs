@@ -9,6 +9,8 @@ namespace Pumkin.UploadCallbacks
 {
     public static class UploadAnchorOverrideSetter
     {
+        const string SkipAvatarObjectName = "AutoAnchorDisabled";
+
         static readonly Type[] RendererTypesToCheck =
         {
             typeof(SkinnedMeshRenderer),
@@ -38,6 +40,9 @@ namespace Pumkin.UploadCallbacks
 
         public static void SetAnchorOverrides(GameObject avatarGameObject)
         {
+            if(avatarGameObject.transform.Find(SkipAvatarObjectName))
+                return;
+            
             Renderer[] renderersWithNoAnchors = null;
             if(!AskedOnce) // If we haven't already asked, only display dialog once a renderer with no anchors is found
             {
