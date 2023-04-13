@@ -38,11 +38,13 @@ namespace Pumkin.UploadCallbacks
         static HumanBodyBones HumanBoneAnchor => Config.Singleton.humanBoneAnchor;
         static string AnchorName => Config.Singleton.anchorOverrideObjectName;
 
+        public static bool ShouldSkipAvatar(GameObject avatar)
+        {
+            return avatar.transform.Find(SkipAvatarObjectName);
+        }
+
         public static void SetAnchorOverrides(GameObject avatarGameObject)
         {
-            if(avatarGameObject.transform.Find(SkipAvatarObjectName))
-                return;
-            
             Renderer[] renderersWithNoAnchors = null;
             if(!AskedOnce) // If we haven't already asked, only display dialog once a renderer with no anchors is found
             {
