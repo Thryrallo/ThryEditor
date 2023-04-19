@@ -122,6 +122,7 @@ namespace Thry
         public string remote_version_url;
         public string generic_string;
         public bool never_lock;
+        public bool draw_border;
 
         public static PropertyOptions Deserialize(string s)
         {

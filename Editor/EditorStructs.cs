@@ -500,9 +500,28 @@ namespace Thry
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
+            if(Options.draw_border)
+            {
+                bool has_header = string.IsNullOrWhiteSpace(this.Content.text) == false;
+                Rect border = EditorGUILayout.BeginVertical();
+                GUILayoutUtility.GetRect(0, 5 + (has_header ? 20 : 0));
+                border = new RectOffset(EditorGUI.indentLevel * -15 - 40, 3, -2, -2).Add(border);
+                GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
+                if(has_header)
+                {
+                    Rect header = new Rect(border.x, border.y, border.width, 22);
+                    GUI.DrawTexture(header, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 10);
+                    GUI.Label(new RectOffset(16,0,0,0).Remove(header), this.Content, EditorStyles.boldLabel);
+                }
+            }
             foreach (ShaderPart part in parts)
             {
                 part.Draw();
+            }
+            if (Options.draw_border)
+            {
+                GUILayoutUtility.GetRect(0, 5);
+                EditorGUILayout.EndVertical();
             }
         }
 

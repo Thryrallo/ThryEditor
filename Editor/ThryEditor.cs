@@ -287,7 +287,7 @@ namespace Thry
                         newPart = newHeader;
                         break;
                     case ThryPropertyType.group_start:
-                        ShaderGroup new_group = new ShaderGroup(this, optionsRaw);
+                        ShaderGroup new_group = new ShaderGroup(this, props[i], Editor, displayName, offset, optionsRaw);
                         headerStack.Peek().addPart(new_group);
                         headerStack.Push(new_group);
                         newPart = new_group;
