@@ -2099,7 +2099,7 @@ namespace Thry
                 .Distinct();
 
             // Make sure keywords are set correctly for materials to be locked. If unlocking, do this after the shaders are unlocked
-            if(isLocking)
+            if(isLocking && Config.Singleton.fixKeywordsWhenLocking)
                 ShaderEditor.FixKeywords(materialsToChangeLock);
 
             float i = 0;
@@ -2197,7 +2197,7 @@ namespace Thry
             EditorUtility.ClearProgressBar();
 
             // In case any keywords were messed up in the material following unlock, fix them now
-            if (!isLocking)
+            if (!isLocking && Config.Singleton.fixKeywordsWhenLocking)
                 ShaderEditor.FixKeywords(materialsToChangeLock);
 
             AssetDatabase.StopAssetEditing();
@@ -2219,7 +2219,9 @@ namespace Thry
             AssetDatabase.Refresh();
 
             // Make sure things get saved after a cycle. This prevents thumbnails from getting stuck
-            EditorApplication.update += QueueSaveAfterLockUnlock;
+            if(Config.Singleton.saveAfterLockUnlock)
+                EditorApplication.update += QueueSaveAfterLockUnlock;
+
             if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
             {
                 GUIUtility.ExitGUI();

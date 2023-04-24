@@ -84,6 +84,8 @@ namespace Thry
         public bool autoSetAnchorAskedOnce = false;
         public bool enableDeveloperMode = false;
         public bool forceAsyncCompilationPreview = true;
+        public bool fixKeywordsWhenLocking = true;
+        public bool saveAfterLockUnlock = true;
 
         public string verion = VERSION;
 
