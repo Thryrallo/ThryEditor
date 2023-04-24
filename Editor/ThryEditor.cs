@@ -802,7 +802,10 @@ namespace Thry
             EditorUtility.DisplayProgressBar("Validating Keywords", "Processing Shaders", 0);
             IEnumerable<Material> uniqueShadersMaterials = materialsToFix.GroupBy(m => m.shader).Select(g => g.First());
             IEnumerable<Shader> shadersWithThryEditor = uniqueShadersMaterials.Where(m => ShaderHelper.IsShaderUsingThryEditor(m)).Select(m => m.shader);
-            
+            // Clear cache every time if in developer mode, so that changes aren't missed
+            if(Config.Singleton.enableDeveloperMode)
+                PropertyKeywordsByShader.Clear();
+
             float f = 0;
             int count = shadersWithThryEditor.Count();
             

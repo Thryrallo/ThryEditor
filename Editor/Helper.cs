@@ -1609,6 +1609,10 @@ namespace Thry
         // Logic Adapted from unity's reference implementation
         internal static List<string> GetKeywordsFromShaderProperty(Shader shader, string propertyName)
         {
+            // Clear cache every time if in developer mode, so that changes aren't missed
+            if(Config.Singleton.enableDeveloperMode)
+                shaderPropertyKeywordCache.Clear();
+
             if(shaderPropertyKeywordCache.ContainsKey(shader))
             {
                 if(shaderPropertyKeywordCache[shader].ContainsKey(propertyName))
