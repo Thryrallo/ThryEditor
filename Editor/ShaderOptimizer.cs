@@ -2217,11 +2217,30 @@ namespace Thry
                 }
             }
             AssetDatabase.Refresh();
+
+            // Make sure things get saved after a cycle. This prevents thumbnails from getting stuck
+            EditorApplication.update += QueueSaveAfterLockUnlock;
             if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
             {
                 GUIUtility.ExitGUI();
             }
             return true;
+        }
+
+        // This is just a wrapper so that it waits a cycle before saving
+        static void QueueSaveAfterLockUnlock()
+        {
+            EditorApplication.update -= QueueSaveAfterLockUnlock;
+            EditorApplication.update += SaveAfterLockUnlock;
+        }
+
+        static void SaveAfterLockUnlock()
+        {
+            if (ShaderUtil.anythingCompiling)
+                return;
+
+            EditorApplication.update -= SaveAfterLockUnlock;
+            AssetDatabase.SaveAssets();
         }
 
         public static string GetOptimizerPropertyName(Shader shader)
