@@ -1605,6 +1605,7 @@ namespace Thry
         }
 
         // Logic Adapted from unity's reference implementation
+        /// <summary> Returns a list of keywords for a given shader property. </summary>
         internal static List<string> GetKeywordsFromShaderProperty(Shader shader, string propertyName)
         {
             List<string> keywords = new List<string>();
@@ -1656,6 +1657,7 @@ namespace Thry
         }
 
         // Logic from Unity defaults
+        /// <summary> Gets a formatted Keyword name from a shader property name and a keyword name. </summary>
         private static string GetUnityKeywordName(string propertyName, string keywordName) => $"{propertyName}_{keywordName}".Replace(' ', '_').ToUpperInvariant();
     }
 

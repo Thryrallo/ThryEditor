@@ -796,12 +796,14 @@ namespace Thry
         // Cache property->keyword lookup for performance
         static Dictionary<Shader, List<(string prop, List<string> keywords)>> PropertyKeywordsByShader = new Dictionary<Shader, List<(string prop, List<string> keywords)>>();
 
+        /// <summary> Iterate through all materials to ensure keywords list matches properties. </summary>
         public static void FixKeywords(IEnumerable<Material> materialsToFix)
         {
             // Process Shaders
             EditorUtility.DisplayProgressBar("Validating Keywords", "Processing Shaders", 0);
             IEnumerable<Material> uniqueShadersMaterials = materialsToFix.GroupBy(m => m.shader).Select(g => g.First());
             IEnumerable<Shader> shadersWithThryEditor = uniqueShadersMaterials.Where(m => ShaderHelper.IsShaderUsingThryEditor(m)).Select(m => m.shader);
+
             // Clear cache every time if in developer mode, so that changes aren't missed
             if(Config.Singleton.enableDeveloperMode)
                 PropertyKeywordsByShader.Clear();
@@ -814,7 +816,6 @@ namespace Thry
                 EditorUtility.DisplayProgressBar("Validating Keywords", $"Processing Shader: {s.name}", f++ / count);
                 if(!PropertyKeywordsByShader.ContainsKey(s))
                     PropertyKeywordsByShader[s] = ShaderHelper.GetPropertyKeywordsForShader(s);
-
             }
             // Find Materials
             IEnumerable<Material> materials = materialsToFix.Where(m => PropertyKeywordsByShader.ContainsKey(m.shader));
@@ -855,6 +856,7 @@ namespace Thry
             EditorUtility.ClearProgressBar();
         }
 
+        /// <summary> Iterate through all materials with FixKeywords. </summary>
         [MenuItem("Thry/Shader Tools/Fix Keywords for All Materials (Slow)", priority = -20)]
         static void FixAllKeywords()
         {
