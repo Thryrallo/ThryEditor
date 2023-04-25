@@ -800,7 +800,6 @@ namespace Thry
         public static void FixKeywords(IEnumerable<Material> materialsToFix)
         {
             // Process Shaders
-            EditorUtility.DisplayProgressBar("Validating Keywords", "Processing Shaders", 0);
             IEnumerable<Material> uniqueShadersMaterials = materialsToFix.GroupBy(m => m.shader).Select(g => g.First());
             IEnumerable<Shader> shadersWithThryEditor = uniqueShadersMaterials.Where(m => ShaderHelper.IsShaderUsingThryEditor(m)).Select(m => m.shader);
 
@@ -810,10 +809,12 @@ namespace Thry
 
             float f = 0;
             int count = shadersWithThryEditor.Count();
-            
+
+            if(count > 1) EditorUtility.DisplayProgressBar("Validating Keywords", "Processing Shaders", 0);
+
             foreach (Shader s in shadersWithThryEditor)
             {
-                EditorUtility.DisplayProgressBar("Validating Keywords", $"Processing Shader: {s.name}", f++ / count);
+                if(count > 1) EditorUtility.DisplayProgressBar("Validating Keywords", $"Processing Shader: {s.name}", f++ / count);
                 if(!PropertyKeywordsByShader.ContainsKey(s))
                     PropertyKeywordsByShader[s] = ShaderHelper.GetPropertyKeywordsForShader(s);
             }
@@ -825,7 +826,7 @@ namespace Thry
             // Set Keywords
             foreach(Material m in materials)
             {
-                EditorUtility.DisplayProgressBar("Validating Keywords", $"Validating Material: {m.name}", f++ / count);
+                if(count > 1) EditorUtility.DisplayProgressBar("Validating Keywords", $"Validating Material: {m.name}", f++ / count);
 
                 List<string> keywordsInMaterial = m.shaderKeywords.ToList();
 
@@ -862,7 +863,7 @@ namespace Thry
                 foreach(string keyword in keywordsInMaterial)
                     m.DisableKeyword(keyword);
             }
-            EditorUtility.ClearProgressBar();
+            if(count > 1) EditorUtility.ClearProgressBar();
         }
 
         /// <summary> Iterate through all materials with FixKeywords. </summary>
