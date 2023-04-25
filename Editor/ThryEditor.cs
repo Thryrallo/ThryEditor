@@ -436,6 +436,7 @@ namespace Thry
             base.AssignNewShaderToMaterial(material, oldShader, newShader);
             material.renderQueue = previousQueue;
             SuggestedTranslationDefinition = ShaderTranslator.CheckForExistingTranslationFile(oldShader, newShader);
+            FixKeywords(new Material[] { material });
             _doReloadNextDraw = true;
             _didSwapToShader = true;
         }
