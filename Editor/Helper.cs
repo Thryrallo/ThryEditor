@@ -1604,25 +1604,9 @@ namespace Thry
             return list;
         }
 
-        static Dictionary<Shader, Dictionary<string, List<string>>> shaderPropertyKeywordCache = new Dictionary<Shader, Dictionary<string, List<string>>>();
-
         // Logic Adapted from unity's reference implementation
         internal static List<string> GetKeywordsFromShaderProperty(Shader shader, string propertyName)
         {
-            // Clear cache every time if in developer mode, so that changes aren't missed
-            if(Config.Singleton.enableDeveloperMode)
-                shaderPropertyKeywordCache.Clear();
-
-            if(shaderPropertyKeywordCache.ContainsKey(shader))
-            {
-                if(shaderPropertyKeywordCache[shader].ContainsKey(propertyName))
-                    return shaderPropertyKeywordCache[shader][propertyName];
-                else
-                    shaderPropertyKeywordCache[shader][propertyName] = new List<string>();
-            }
-            else
-                shaderPropertyKeywordCache[shader] = new Dictionary<string, List<string>>();                
-
             List<string> keywords = new List<string>();
             if (string.IsNullOrEmpty(propertyName)) 
                 return keywords;
@@ -1668,7 +1652,6 @@ namespace Thry
                     }
                 }
             }
-            shaderPropertyKeywordCache[shader][propertyName] = keywords;
             return keywords;
         }
 
