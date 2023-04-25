@@ -826,6 +826,9 @@ namespace Thry
             foreach(Material m in materials)
             {
                 EditorUtility.DisplayProgressBar("Validating Keywords", $"Validating Material: {m.name}", f++ / count);
+
+                List<string> keywordsInMaterial = m.shaderKeywords.ToList();
+
                 foreach((string prop, List<string> keywords) in PropertyKeywordsByShader[m.shader])
                 {
                     switch(keywords.Count)
@@ -833,17 +836,19 @@ namespace Thry
                         case 0:
                             break;
                         case 1:
-                            if(!string.IsNullOrEmpty(keywords[0]))
-                            {
-                                if(m.GetFloat(prop) == 1)
-                                    m.EnableKeyword(keywords[0]);
-                                else
-                                    m.DisableKeyword(keywords[0]);
-                            }
+                            string keyword = keywords[0];
+                            keywordsInMaterial.Remove(keyword);
+                            float onValue = keyword.EndsWith("_OFF") ? 0 : 1; // ToggleOff handling
+
+                            if(m.GetFloat(prop) == onValue)
+                                m.EnableKeyword(keyword);
+                            else
+                                m.DisableKeyword(keyword);
                             break;
-                        default:
+                        default: // KeywordEnum
                             for (int i = 0; i < keywords.Count; i++)
                             {
+                                keywordsInMaterial.Remove(keywords[i]);
                                 if (m.GetFloat(prop) == i)
                                     m.EnableKeyword(keywords[i]);
                                 else
@@ -852,6 +857,10 @@ namespace Thry
                             break;
                     }
                 }
+
+                // Disable any remaining keywords
+                foreach(string keyword in keywordsInMaterial)
+                    m.DisableKeyword(keyword);
             }
             EditorUtility.ClearProgressBar();
         }

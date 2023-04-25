@@ -1629,12 +1629,23 @@ namespace Thry
                     string className = regexMatch.Groups[1].Value;
                     args = regexMatch.Groups[2].Value.Trim();
 
-                    if(className == "Toggle")
+                    if(className == "Toggle") // Unity Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)] and toggles PropertyName
                     {
-                        keywords.Add(args);
+                        if(string.IsNullOrEmpty(args))
+                            keywords.Add(GetUnityKeywordName(propertyName, "ON"));
+                        else
+                            keywords.Add(args);
                         break;
                     }
-                    else if(className == "ThryToggle")
+                    else if(className == "ToggleOff") // Unity ToggleOff drawer, toggles a keyword off directly if provided as [Toggle(KEYWORD)]
+                    {
+                        if(string.IsNullOrEmpty(args))
+                            keywords.Add(GetUnityKeywordName(propertyName, "OFF"));
+                        else
+                            keywords.Add(args);
+                        break;
+                    }
+                    else if(className == "ThryToggle") // Unity Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)]
                     {
                         if(args != "false")
                             keywords.Add(args);
