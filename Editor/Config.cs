@@ -83,6 +83,7 @@ namespace Thry
         public string anchorOverrideObjectName = "AutoAnchorObject";
         public bool autoSetAnchorAskedOnce = false;
         public bool enableDeveloperMode = false;
+        public bool disableUnlockedShaderStrippingOnBuild = false;
         public bool forceAsyncCompilationPreview = true;
         public bool fixKeywordsWhenLocking = true;
         public bool saveAfterLockUnlock = true;

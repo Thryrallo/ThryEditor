@@ -181,6 +181,10 @@ namespace Thry
             GUILayout.Label(EditorLocale.editor.Get("developer_header"), EditorStyles.boldLabel);
             Toggle("showManualReloadButton");
             Toggle("enableDeveloperMode");
+            if(Config.Singleton.enableDeveloperMode)
+            {
+                Toggle("disableUnlockedShaderStrippingOnBuild");
+            }
         }
 
         private static void GUIGradients()
