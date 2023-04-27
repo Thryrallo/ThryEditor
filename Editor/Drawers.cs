@@ -1863,4 +1863,113 @@ namespace Thry
             return -2;
         }
     }
+
+    public class ThryDecalPositioningDecorator : MaterialPropertyDrawer
+    {
+        string _texturePropertyName;
+        string _positionPropertyName;
+        string _rotationPropertyName;
+        string _scalePropertyName;
+        string _offsetPropertyName;
+        DecalSceneTool _sceneTool;
+        DecalTool _tool;
+
+        public ThryDecalPositioningDecorator(string textureProp, string positionProp, string rotationProp, string scaleProp, string offsetProp)
+        {
+            _texturePropertyName = textureProp;
+            _positionPropertyName = positionProp;
+            _rotationPropertyName = rotationProp;
+            _offsetPropertyName = offsetProp;
+            _scalePropertyName = scaleProp;
+        }
+
+        DecalSceneTool SceneTool
+        {
+            get
+            {
+                if(_sceneTool == null || !_sceneTool.IsValid(
+                    Selection.activeTransform.GetComponent<Renderer>(),
+                    ShaderEditor.Active.Materials[0]))
+                {
+                    _sceneTool = DecalSceneTool.Create(
+                        Selection.activeTransform.GetComponent<Renderer>(),
+                        ShaderEditor.Active.Materials[0],
+                        ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
+                }
+                return _sceneTool;
+            }
+        }
+
+        public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            position = new RectOffset(0, 0, 0, 3).Remove(EditorGUI.IndentedRect(position));
+            bool isInScene = Selection.activeTransform != null && Selection.activeTransform.GetComponent<Renderer>() != null;
+            if(isInScene)
+            {
+                position.width /= 3;
+                ButtonGUI(position);
+                position.x += position.width;
+                ButtonRaycast(position);
+                position.x += position.width;
+                ButtonSceneTools(position);
+            }else
+            {
+                ButtonGUI(position);
+            }
+        }
+
+        void ButtonGUI(Rect r)
+        {
+            if(GUI.Button(r, "Open Positioning Tool"))
+            {
+                _tool = DecalTool.OpenDecalTool(ShaderEditor.Active.Materials[0]);
+            }
+            // This is done because the tool didnt want to update if the data was changed from the outside
+            if(_tool != null)
+            {
+                _tool.SetMaterialProperties(
+                    ShaderEditor.Active.PropertyDictionary[_texturePropertyName].MaterialProperty,
+                    ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
+                    ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
+                    ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
+                    ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
+            }
+        }
+
+        void ButtonRaycast(Rect r)
+        {
+            if (GUI.Button(r, "Raycast"))
+            {
+                if(SceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
+                    SceneTool.Deactivate();
+                else
+                    SceneTool.StartRaycastMode();
+            }
+            if(SceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
+                GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, new Color(0.5f, 0.5f, 0.5f, 0.5f), 0, 3);
+        }
+
+        void ButtonSceneTools(Rect r)
+        {
+            if (GUI.Button(r, "Scene Tools"))
+            {
+                if(SceneTool.GetMode() == DecalSceneTool.Mode.Handles)
+                    SceneTool.Deactivate();
+                else
+                    SceneTool.StartHandleMode();
+            }
+            if(SceneTool.GetMode() == DecalSceneTool.Mode.Handles)
+                GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, new Color(0.5f, 0.5f, 0.5f, 0.5f), 0, 3);
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.LastPropertyUsedCustomDrawer = true;
+            DrawingData.LastPropertyDoesntAllowAnimation = true;
+            return EditorGUIUtility.singleLineHeight + 6;
+        }
+    }
 }

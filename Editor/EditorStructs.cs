@@ -506,12 +506,12 @@ namespace Thry
                 Rect border = EditorGUILayout.BeginVertical();
                 GUILayoutUtility.GetRect(0, 5 + (has_header ? 20 : 0));
                 border = new RectOffset(EditorGUI.indentLevel * -15 - 40, 3, -2, -2).Add(border);
-                GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
+                Vector4 borderWidths = new Vector4(3, (has_header ? 22 : 3), 3, 3);
+                GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, borderWidths, 10);
                 if(has_header)
                 {
-                    Rect header = new Rect(border.x, border.y, border.width, 22);
-                    GUI.DrawTexture(header, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 0, 10);
-                    GUI.Label(new RectOffset(16,0,0,0).Remove(header), this.Content, EditorStyles.boldLabel);
+                    Rect header = new Rect(border.x + 16, border.y, border.width - 16, 22);
+                    GUI.Label(header, this.Content, EditorStyles.boldLabel);
                 }
             }
             foreach (ShaderPart part in parts)
