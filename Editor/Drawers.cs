@@ -1891,7 +1891,7 @@ namespace Thry
             _sceneTool = DecalSceneTool.Create(
                 Selection.activeTransform.GetComponent<Renderer>(),
                 ShaderEditor.Active.Materials[0],
-                (int)ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty.floatValue,
+                (int)ShaderEditor.Active.PropertyDictionary[_uvIndexPropertyName].MaterialProperty.floatValue,
                 ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
                 ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
                 ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,

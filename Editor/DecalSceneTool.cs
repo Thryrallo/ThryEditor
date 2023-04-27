@@ -215,7 +215,7 @@ namespace Thry
             {
                 gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, _pivotUp);
 
             if(Tools.pivotRotation == PivotRotation.Local)
             {
@@ -242,7 +242,7 @@ namespace Thry
             {
                 gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, _pivotUp);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
             Quaternion moved = Handles.RotationHandle(rotation, _pivotPoint);
@@ -263,7 +263,7 @@ namespace Thry
             {
                 gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, _pivotUp);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
             if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -290,7 +290,7 @@ namespace Thry
             {
                 _pivotNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(_pivotNormal, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(_pivotNormal, _pivotUp);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
             if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -316,12 +316,14 @@ namespace Thry
 
         Vector3 _pivotPoint;
         Vector3 _pivotNormal;
+        Vector3 _pivotUp;
         void GetPivot()
         {
             _pivotPoint = Vector3.zero;
             _pivotNormal = Vector3.zero;
 
             Vector2 uv = _propPosition.vectorValue;
+            Vector2 uvUp = uv + Vector2.up * 0.0001f;
             // uv position to world position using renderer mesh
             for(int i=0; i<_worldTriangles.Length;i++)
             {
@@ -335,10 +337,15 @@ namespace Thry
                 if(a2 < 0) continue;
                 float a3 = TriangleArea(uvTriangle[0], uvTriangle[1], uv) / a;
                 if(a3 < 0) continue;
+                // get a1, a2, a3 of uv up
+                float a1Up = TriangleArea(uvTriangle[1], uvTriangle[2], uvUp) / a;
+                float a2Up = TriangleArea(uvTriangle[2], uvTriangle[0], uvUp) / a;
+                float a3Up = TriangleArea(uvTriangle[0], uvTriangle[1], uvUp) / a;
                 // point inside the triangle - find mesh position by interpolation
                 Vector3[] triangle = _worldTriangles[i];
                 _pivotPoint = triangle[0] * a1 + triangle[1] * a2 + triangle[2] * a3;
                 _pivotNormal = Vector3.Cross(triangle[1] - triangle[0], triangle[2] - triangle[0]).normalized;
+                _pivotUp = (triangle[0] * a1Up + triangle[1] * a2Up + triangle[2] * a3Up - _pivotPoint).normalized;
                 return;
             }
         }
