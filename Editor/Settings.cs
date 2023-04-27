@@ -174,6 +174,8 @@ namespace Thry
             EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("technical_header"), EditorStyles.boldLabel);
             Toggle("forceAsyncCompilationPreview");
+            Toggle("saveAfterLockUnlock");
+            Toggle("fixKeywordsWhenLocking");
 
             EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("developer_header"), EditorStyles.boldLabel);
