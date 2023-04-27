@@ -218,6 +218,11 @@ namespace Thry
             return 0;
         }
 
+        public static float Mod(float a, float b)
+        {
+            return a - b * Mathf.Floor(a / b);
+        }
+
         // This code is an implementation of the pseudocode from the Wikipedia,
         // showing a naive implementation.
         // You should research an algorithm with better space complexity.

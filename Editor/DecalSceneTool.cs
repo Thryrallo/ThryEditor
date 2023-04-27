@@ -243,7 +243,7 @@ namespace Thry
             {
                 Quaternion delta = Quaternion.Inverse(rotation) * moved;
                 float deltaAngle = delta.eulerAngles.z;
-                _propRotation.floatValue -= deltaAngle;
+                DecalTool.SetClampedRotation(_propRotation, _propRotation.floatValue - deltaAngle);
             }
         }
 

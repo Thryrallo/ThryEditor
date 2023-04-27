@@ -111,7 +111,7 @@ namespace Thry
                 Vector2 vecInital = _initalMouseUV - pivotUV;
                 Vector2 vecLast = mouseUV - pivotUV;
                 float angle = Vector2.SignedAngle(vecInital, vecLast);
-                _propRotation.floatValue = _initialRotation - angle;
+                SetClampedRotation(_propRotation, _initialRotation - angle);
                 this.Repaint();
             }
             // Scale
@@ -161,6 +161,13 @@ namespace Thry
             uv = new Vector2((uv.x - decalCenter.x) * cs - (uv.y - decalCenter.y) * sn + decalCenter.x, (uv.x - decalCenter.x) * sn + (uv.y - decalCenter.y) * cs + decalCenter.y);
             uv = Remap(uv, new Vector2(0, 0) - scale / 2 + position + new Vector2(scaleOffset.x, scaleOffset.z), scale / 2 + position + new Vector2(scaleOffset.y,scaleOffset.w), Vector2.zero, Vector2.one);
             return uv;
+        }
+
+        public static void SetClampedRotation(MaterialProperty property, float value)
+        {
+            Vector2 limits = property.rangeLimits;
+            value = Helper.Mod(value - limits.x, limits.y - limits.x) + limits.x;
+            property.floatValue = value;
         }
     }
 }
