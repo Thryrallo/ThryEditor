@@ -9,6 +9,7 @@
         _Scale("Scale", Vector) = (1,1,0,0)
         _Offset("Scale Offset", Vector) = (0,0,0,0)
         _DecalTex("Decal Texture", 2D) = "white" {}
+        _UVChannel("UV Channel", Int) = 0
     }
     SubShader
     {
@@ -30,7 +31,10 @@
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
+                float2 uv0 : TEXCOORD0;
+                float2 uv1 : TEXCOORD1;
+                float2 uv2 : TEXCOORD2;
+                float2 uv3 : TEXCOORD3;
             };
 
             struct v2f
@@ -50,6 +54,7 @@
             float _Rotation;
             float4 _Scale;
             float4 _Offset;
+            int _UVChannel;
 
             float2 remap(float2 x, float2 minOld, float2 maxOld, float2 minNew = 0, float2 maxNew = 1)
             {
@@ -72,7 +77,7 @@
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = decalUV(v.uv, _Position.xy, _Rotation, 0, _Scale.xy, _Offset, 0);
+                o.uv = decalUV(v.uv0, _Position.xy, _Rotation, 0, _Scale.xy, _Offset, 0);
                 return o;
             }
 

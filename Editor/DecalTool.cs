@@ -11,6 +11,7 @@ namespace Thry
         private MaterialProperty _propRotation;
         private MaterialProperty _propScale;
         private MaterialProperty _propOffset;
+        private MaterialProperty _propUVChannel;
         private Material _material;
         private Material _gizmoMaterial;
 
@@ -23,12 +24,13 @@ namespace Thry
             return window;
         }
 
-        public void SetMaterialProperties(MaterialProperty decalProp, MaterialProperty positionProp, MaterialProperty rotationProp, MaterialProperty scaleProp, MaterialProperty offsetProp)
+        public void SetMaterialProperties(MaterialProperty decalProp, MaterialProperty uvProp, MaterialProperty positionProp, MaterialProperty rotationProp, MaterialProperty scaleProp, MaterialProperty offsetProp)
         {
             _propPosition = positionProp;
             _propRotation = rotationProp;
             _propScale = scaleProp;
             _propOffset = offsetProp;
+            _propUVChannel = uvProp;
             _gizmoMaterial.SetTexture("_DecalTex", decalProp.textureValue);
             this.Repaint();
         }
@@ -46,6 +48,7 @@ namespace Thry
             _gizmoMaterial.SetVector("_Scale", _propScale.vectorValue);
             _gizmoMaterial.SetFloat("_Rotation", _propRotation.floatValue);
             _gizmoMaterial.SetVector("_Offset", _propOffset.vectorValue);
+            _gizmoMaterial.SetFloat("_UVChannel", _propUVChannel.floatValue);
             EditorGUI.DrawPreviewTexture(new Rect(0, 0, position.width, position.height), Texture2D.whiteTexture, _gizmoMaterial);
         }
 

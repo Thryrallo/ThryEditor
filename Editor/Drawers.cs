@@ -1867,6 +1867,7 @@ namespace Thry
     public class ThryDecalPositioningDecorator : MaterialPropertyDrawer
     {
         string _texturePropertyName;
+        string _uvIndexPropertyName;
         string _positionPropertyName;
         string _rotationPropertyName;
         string _scalePropertyName;
@@ -1874,32 +1875,35 @@ namespace Thry
         DecalSceneTool _sceneTool;
         DecalTool _tool;
 
-        public ThryDecalPositioningDecorator(string textureProp, string positionProp, string rotationProp, string scaleProp, string offsetProp)
+        public ThryDecalPositioningDecorator(string textureProp, string uvIndexPropertyName, string positionProp, string rotationProp, string scaleProp, string offsetProp)
         {
             _texturePropertyName = textureProp;
+            _uvIndexPropertyName = uvIndexPropertyName;
             _positionPropertyName = positionProp;
             _rotationPropertyName = rotationProp;
             _offsetPropertyName = offsetProp;
             _scalePropertyName = scaleProp;
         }
 
-        DecalSceneTool SceneTool
+        void CreateSceneTool()
         {
-            get
+            DiscardSceneTool();
+            _sceneTool = DecalSceneTool.Create(
+                Selection.activeTransform.GetComponent<Renderer>(),
+                ShaderEditor.Active.Materials[0],
+                (int)ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty.floatValue,
+                ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
+                ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
+                ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
+                ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
+        }
+
+        void DiscardSceneTool()
+        {
+            if(_sceneTool != null)
             {
-                if(_sceneTool == null || !_sceneTool.IsValid(
-                    Selection.activeTransform.GetComponent<Renderer>(),
-                    ShaderEditor.Active.Materials[0]))
-                {
-                    _sceneTool = DecalSceneTool.Create(
-                        Selection.activeTransform.GetComponent<Renderer>(),
-                        ShaderEditor.Active.Materials[0],
-                        ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
-                        ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
-                        ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
-                        ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
-                }
-                return _sceneTool;
+                _sceneTool.Deactivate();
+                _sceneTool = null;
             }
         }
 
@@ -1915,6 +1919,14 @@ namespace Thry
                 ButtonRaycast(position);
                 position.x += position.width;
                 ButtonSceneTools(position);
+                if(_sceneTool != null)
+                {
+                    _sceneTool.SetMaterialProperties(
+                        ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
+                        ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
+                }
             }else
             {
                 ButtonGUI(position);
@@ -1932,6 +1944,7 @@ namespace Thry
             {
                 _tool.SetMaterialProperties(
                     ShaderEditor.Active.PropertyDictionary[_texturePropertyName].MaterialProperty,
+                    ShaderEditor.Active.PropertyDictionary[_uvIndexPropertyName].MaterialProperty,
                     ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
                     ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
                     ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
@@ -1943,12 +1956,17 @@ namespace Thry
         {
             if (GUI.Button(r, "Raycast"))
             {
-                if(SceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
-                    SceneTool.Deactivate();
+                if(_sceneTool != null && _sceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
+                {
+                    DiscardSceneTool();
+                }
                 else
-                    SceneTool.StartRaycastMode();
+                {
+                    CreateSceneTool();
+                    _sceneTool.StartRaycastMode();
+                }
             }
-            if(SceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
+            if(_sceneTool != null && _sceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
                 GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, new Color(0.5f, 0.5f, 0.5f, 0.5f), 0, 3);
         }
 
@@ -1956,12 +1974,17 @@ namespace Thry
         {
             if (GUI.Button(r, "Scene Tools"))
             {
-                if(SceneTool.GetMode() == DecalSceneTool.Mode.Handles)
-                    SceneTool.Deactivate();
+                if(_sceneTool != null && _sceneTool.GetMode() == DecalSceneTool.Mode.Handles)
+                {
+                    DiscardSceneTool();
+                }
                 else
-                    SceneTool.StartHandleMode();
+                {
+                    CreateSceneTool();
+                    _sceneTool.StartHandleMode();
+                }
             }
-            if(SceneTool.GetMode() == DecalSceneTool.Mode.Handles)
+            if(_sceneTool != null && _sceneTool.GetMode() == DecalSceneTool.Mode.Handles)
                 GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, new Color(0.5f, 0.5f, 0.5f, 0.5f), 0, 3);
         }
 

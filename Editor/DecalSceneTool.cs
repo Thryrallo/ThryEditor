@@ -13,6 +13,7 @@ namespace Thry
         private MaterialProperty _propOffset;
         private Material _material;
         private Renderer _renderer;
+        private int _uvIndex;
         private Mesh _mesh;
         private Vector2[][] _uvTriangles;
         private Vector3[][] _worldTriangles;
@@ -33,10 +34,11 @@ namespace Thry
 
         private DecalSceneTool() {}
 
-        public static DecalSceneTool Create(Renderer renderer, Material m, MaterialProperty propPosition, MaterialProperty propRotation, MaterialProperty propScale, MaterialProperty propOffset)
+        public static DecalSceneTool Create(Renderer renderer, Material m, int uvIndex, MaterialProperty propPosition, MaterialProperty propRotation, MaterialProperty propScale, MaterialProperty propOffset)
         {
             var tool = new DecalSceneTool();
             tool._material = m;
+            tool._uvIndex = uvIndex;
             tool._propPosition = propPosition;
             tool._propRotation = propRotation;
             tool._propScale = propScale;
@@ -46,9 +48,12 @@ namespace Thry
             return tool;
         }
 
-        public bool IsValid(Renderer renderer, Material m)
+        public void SetMaterialProperties(MaterialProperty propPosition, MaterialProperty propRotation, MaterialProperty propScale, MaterialProperty propOffset)
         {
-            return _renderer == renderer && _material == m;
+            _propPosition = propPosition;
+            _propRotation = propRotation;
+            _propScale = propScale;
+            _propOffset = propOffset;
         }
 
         public void StartRaycastMode()
@@ -101,8 +106,15 @@ namespace Thry
             _uvTriangles = new Vector2[_mesh.triangles.Length / 3][];
             _worldTriangles = new Vector3[_mesh.triangles.Length / 3][];
             int[] triangles = _mesh.triangles;
-            Vector2[] uvs = _mesh.uv;
+            Vector2[] uvs;
+            if(_uvIndex == 1) uvs = _mesh.uv2;
+            else if(_uvIndex == 2) uvs = _mesh.uv3;
+            else if(_uvIndex == 3) uvs = _mesh.uv4;
+            else uvs = _mesh.uv;
             Vector3[] vertices = _mesh.vertices;
+            Transform root = _renderer.transform;
+            Vector3 inverseScale = new Vector3(1.0f / root.lossyScale.x, 1.0f / root.lossyScale.y, 1.0f / root.lossyScale.z);
+            bool isSMR = _renderer is SkinnedMeshRenderer;
             for(int i = 0; i < triangles.Length; i += 3)
             {
                 // if(i%100 == 0) EditorUtility.DisplayProgressBar("Decal Tool", "Loading Mesh...", (float)i / triangles.Length);
@@ -111,7 +123,11 @@ namespace Thry
                 for(int j = 0; j < 3; j++)
                 {
                     _uvTriangles[i / 3][j] = uvs[triangles[i + j]];
-                    _worldTriangles[i / 3][j] = vertices[triangles[i + j]];
+                    if(isSMR)
+                        _worldTriangles[i / 3][j] = root.TransformPoint(Vector3.Scale(vertices[triangles[i + j]], inverseScale));
+                    else
+                        _worldTriangles[i / 3][j] = root.TransformPoint(vertices[triangles[i + j]]);
+                    // _worldTriangles[i / 3][j] = vertices[triangles[i + j]];
                 }
             }
             // EditorUtility.ClearProgressBar();
@@ -138,9 +154,6 @@ namespace Thry
             }
 
             Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            Vector3 point = _renderer.transform.InverseTransformPoint(ray.origin);
-            Vector3 normal = _renderer.transform.InverseTransformDirection(ray.direction);
-            ray = new Ray(point, normal);
 
             Vector2 uv = _propPosition.vectorValue;
             if(RaycastToClosestUV(ray, ref uv))
@@ -197,27 +210,23 @@ namespace Thry
         void PositionMode(SceneView sceneView)
         {
             GetPivot();
-            Vector3 pivotWorld = _renderer.transform.TransformPoint(_pivotPoint);
-            Vector3 pivotNormalWorld = _renderer.transform.TransformDirection(_pivotNormal);
-
-            if(Vector3.Dot(sceneView.camera.transform.forward, pivotNormalWorld) < 0)
+            Vector3 gizmoNormal = _pivotNormal;
+            if(Vector3.Dot(sceneView.camera.transform.forward, _pivotNormal) < 0)
             {
-                pivotNormalWorld = -pivotNormalWorld;
+                gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(pivotNormalWorld, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
 
             if(Tools.pivotRotation == PivotRotation.Local)
             {
                 rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
             }
             
-            Vector3 moved = Handles.PositionHandle(pivotWorld, rotation);
-            if(moved != pivotWorld)
+            Vector3 moved = Handles.PositionHandle(_pivotPoint, rotation);
+            if(moved != _pivotPoint)
             {
-                Vector3 local = _renderer.transform.InverseTransformPoint(moved);
-                Vector3 normal = _renderer.transform.InverseTransformDirection(pivotNormalWorld);
                 Vector2 uv = _propPosition.vectorValue;
-                Ray ray = new Ray(local - normal * 0.1f, normal);
+                Ray ray = new Ray(moved - _pivotNormal * 0.1f, _pivotNormal);
                 if(RaycastToClosestUV(ray, ref uv))
                 {
                     _propPosition.vectorValue = uv;
@@ -228,17 +237,15 @@ namespace Thry
         void RotationMode(SceneView sceneView)
         {
             GetPivot();
-            Vector3 pivotWorld = _renderer.transform.TransformPoint(_pivotPoint);
-            Vector3 pivotNormalWorld = _renderer.transform.TransformDirection(_pivotNormal);
-
-            if(Vector3.Dot(sceneView.camera.transform.forward, pivotNormalWorld) < 0)
+            Vector3 gizmoNormal = _pivotNormal;
+            if(Vector3.Dot(sceneView.camera.transform.forward, _pivotNormal) < 0)
             {
-                pivotNormalWorld = -pivotNormalWorld;
+                gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(pivotNormalWorld, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
-            Quaternion moved = Handles.RotationHandle(rotation, pivotWorld);
+            Quaternion moved = Handles.RotationHandle(rotation, _pivotPoint);
             if(moved != rotation)
             {
                 Quaternion delta = Quaternion.Inverse(rotation) * moved;
@@ -251,14 +258,12 @@ namespace Thry
         void ScaleMode(SceneView sceneView)
         {
             GetPivot();
-            Vector3 pivotWorld = _renderer.transform.TransformPoint(_pivotPoint);
-            Vector3 pivotNormalWorld = _renderer.transform.TransformDirection(_pivotNormal);
-
-            if(Vector3.Dot(sceneView.camera.transform.forward, pivotNormalWorld) < 0)
+            Vector3 gizmoNormal = _pivotNormal;
+            if(Vector3.Dot(sceneView.camera.transform.forward, _pivotNormal) < 0)
             {
-                pivotNormalWorld = -pivotNormalWorld;
+                gizmoNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(pivotNormalWorld, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(gizmoNormal, Vector3.up);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
             if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -266,7 +271,7 @@ namespace Thry
                 _initalScale = _propScale.vectorValue;
             }
 
-            Vector3 moved = Handles.ScaleHandle(Vector3.one, pivotWorld, rotation, HandleUtility.GetHandleSize(pivotWorld));
+            Vector3 moved = Handles.ScaleHandle(Vector3.one, _pivotPoint, rotation, HandleUtility.GetHandleSize(_pivotPoint));
             if(moved != Vector3.one)
             {
                 Vector4 scale = _initalScale;
@@ -280,14 +285,12 @@ namespace Thry
         void OffsetMode(SceneView sceneView)
         {
             GetPivot();
-            Vector3 pivotWorld = _renderer.transform.TransformPoint(_pivotPoint);
-            Vector3 pivotNormalWorld = _renderer.transform.TransformDirection(_pivotNormal);
-
-            if(Vector3.Dot(sceneView.camera.transform.forward, pivotNormalWorld) < 0)
+            Vector3 normal = _pivotNormal;
+            if(Vector3.Dot(sceneView.camera.transform.forward, _pivotNormal) < 0)
             {
-                pivotNormalWorld = -pivotNormalWorld;
+                _pivotNormal = -_pivotNormal;
             }
-            Quaternion rotation = Quaternion.LookRotation(pivotNormalWorld, Vector3.up);
+            Quaternion rotation = Quaternion.LookRotation(_pivotNormal, Vector3.up);
             rotation *= Quaternion.Euler(0, 0, -_propRotation.floatValue);
 
             if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -295,11 +298,11 @@ namespace Thry
                 _initalOffset = _propOffset.vectorValue;
             }
 
-            float size = HandleUtility.GetHandleSize(pivotWorld);
-            float left = Handles.ScaleValueHandle(1, pivotWorld + rotation * Vector3.left * size, rotation * Quaternion.Euler(0, -90, 0), size * 5, Handles.ArrowHandleCap, 0);
-            float right = Handles.ScaleValueHandle(1, pivotWorld + rotation * Vector3.right * size, rotation * Quaternion.Euler(0, 90, 0), size * 5, Handles.ArrowHandleCap, 0);
-            float down = Handles.ScaleValueHandle(1, pivotWorld + rotation * Vector3.down * size, rotation * Quaternion.Euler(90, 0, 0), size * 5, Handles.ArrowHandleCap, 0);
-            float up = Handles.ScaleValueHandle(1, pivotWorld + rotation * Vector3.up * size, rotation * Quaternion.Euler(-90, 0, 0), size * 5, Handles.ArrowHandleCap, 0);
+            float size = HandleUtility.GetHandleSize(_pivotPoint);
+            float left = Handles.ScaleValueHandle(1, _pivotPoint + rotation * Vector3.left * size, rotation * Quaternion.Euler(0, -90, 0), size * 5, Handles.ArrowHandleCap, 0);
+            float right = Handles.ScaleValueHandle(1, _pivotPoint + rotation * Vector3.right * size, rotation * Quaternion.Euler(0, 90, 0), size * 5, Handles.ArrowHandleCap, 0);
+            float down = Handles.ScaleValueHandle(1, _pivotPoint + rotation * Vector3.down * size, rotation * Quaternion.Euler(90, 0, 0), size * 5, Handles.ArrowHandleCap, 0);
+            float up = Handles.ScaleValueHandle(1, _pivotPoint + rotation * Vector3.up * size, rotation * Quaternion.Euler(-90, 0, 0), size * 5, Handles.ArrowHandleCap, 0);
             if(left != 1 || right != 1 || down != 1 || up != 1)
             {
                 Vector4 offset = _initalOffset;
