@@ -1977,6 +1977,10 @@ namespace Thry
 
             public void OnProcessShader(Shader shader, UnityEditor.Rendering.ShaderSnippetData snippet, IList<UnityEditor.Rendering.ShaderCompilerData> data)
             {
+                // Don't strip if the user disabled it (developer mode only)
+                if(Config.Singleton.enableDeveloperMode && Config.Singleton.disableUnlockedShaderStrippingOnBuild)
+                    return;
+
                 // Strip if the shader should be optimized (has the optimizer property) but isn't (name doesn't start with Hidden/Locked/)
                 bool shouldStrip = shader.FindPropertyIndex("_ShaderOptimizerEnabled") >= 0 && !shader.name.StartsWith("Hidden/Locked/");
 
@@ -1985,7 +1989,11 @@ namespace Thry
                     // Try to warn the user if there's an unlocked shader
                     if (!SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
                     {
-                        EditorUtility.DisplayDialog("Shader Optimizer: Unlocked Shader", "An Unlocked shader was found, and will not be included in the build (this will cause pink materials).\nThis shouldn't happen. Make sure all lockable materials are Locked, and try again.\nIf it happens again, please report the issue via GitHub or Discord!", "OK");
+                        EditorUtility.DisplayDialog("Shader Optimizer: Unlocked Shader", 
+                            "An Unlocked shader was found, and will not be included in the build (this will cause pink materials).\n" + 
+                            "This shouldn't happen. Make sure all lockable materials are Locked, and try again.\n" +
+                            "If it happens again, please report the issue via GitHub or Discord!"
+                            , "OK");
                         SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, true);
                     }
 
