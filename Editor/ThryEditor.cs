@@ -840,9 +840,8 @@ namespace Thry
                         case 1:
                             string keyword = keywords[0];
                             keywordsInMaterial.Remove(keyword);
-                            float onValue = keyword.EndsWith("_OFF") ? 0 : 1; // ToggleOff handling
 
-                            if(m.GetFloat(prop) == onValue)
+                            if(m.GetFloat(prop) == 1)
                                 m.EnableKeyword(keyword);
                             else
                                 m.DisableKeyword(keyword);

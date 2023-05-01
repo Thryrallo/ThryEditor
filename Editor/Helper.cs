@@ -1627,13 +1627,21 @@ namespace Thry
 
             foreach (string attribute in attributes)
             {
-                string args = string.Empty;
-                Match regexMatch = Regex.Match(attribute, @"(\w+)\s*\((.*)\)");
+                string args = "";
+                // Regex based on Unity's reference implementation: Match a string of the form Keyword(Argument) and capture its components
+                //   (\w+)    - Match a word (keyword name)
+                //   \s*\(\s* - Match an opening parenthesis, allowing whitespace before and after
+                //   ([^)]*)  - Match any number of characters that are not a closing parenthesis, and capture them into a group
+                //   \s*\)    - Match a closing parenthesis, allowing whitespace before and after
+                const string propertyDrawerRegex = @"(\w+)\s*\(\s*([^)]*)\s*\)";
+
+                Match regexMatch = Regex.Match(attribute, propertyDrawerRegex);
                 if (regexMatch.Success)
                 {
                     string className = regexMatch.Groups[1].Value;
                     args = regexMatch.Groups[2].Value.Trim();
 
+                    // Note that we don't handle ToggleOff as it would require extra logic to differentiate
                     if(className == "Toggle") // Unity Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)] and toggles PropertyName
                     {
                         if(string.IsNullOrEmpty(args))
@@ -1642,22 +1650,14 @@ namespace Thry
                             keywords.Add(args);
                         break;
                     }
-                    else if(className == "ToggleOff") // Unity ToggleOff drawer, toggles a keyword off directly if provided as [Toggle(KEYWORD)]
-                    {
-                        if(string.IsNullOrEmpty(args))
-                            keywords.Add(GetUnityKeywordName(propertyName, "OFF"));
-                        else
-                            keywords.Add(args);
-                        break;
-                    }
-                    else if(className == "ThryToggle") // Unity Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)]
+                    else if(className == "ThryToggle") // Thry Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)]
                     {
                         if(args != "false")
                             keywords.Add(args);
 
                         break;
                     }
-                    else if(className == "KeywordEnum")
+                    else if(className == "KeywordEnum") // Keyword enum, enables one keyword out of a list of keywords provided as [KeywordEnum(KEYWORD1,KEYWORD2,KEYWORD3)]
                     {
                         string[] enumArgs = args.Split(',');
                         foreach(var enumArg in enumArgs)
