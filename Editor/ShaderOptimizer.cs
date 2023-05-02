@@ -417,10 +417,10 @@ namespace Thry
             // unity path stuff (https://docs.unity3d.com/Manual/SpecialFolders.html)
             // ~ & . hides the folder in the editor and unity will not be able to find the shader
             string subfoldername = material.name;
-            if(subfoldername.StartsWith("."))
+            while(subfoldername.StartsWith("."))
                 subfoldername = subfoldername.TrimStart('.') + "_dot_";
-            if(subfoldername.StartsWith("~"))
-                subfoldername = subfoldername.TrimStart('~') + "_tilde_";
+            while(subfoldername.EndsWith("~"))
+                subfoldername = subfoldername.TrimEnd('~') + "_tilde_";
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + subfoldername + "/";
             
 
