@@ -414,7 +414,15 @@ namespace Thry
             string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid;
             string shaderOptimizerButtonDrawerName = $"[{nameof(ThryShaderOptimizerLockButtonDrawer).Replace("Drawer", "")}]";
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
-            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "/";
+            // unity path stuff (https://docs.unity3d.com/Manual/SpecialFolders.html)
+            // ~ & . hides the folder in the editor and unity will not be able to find the shader
+            string subfoldername = material.name;
+            if(subfoldername.StartsWith("."))
+                subfoldername = subfoldername.TrimStart('.') + "_dot_";
+            if(subfoldername.StartsWith("~"))
+                subfoldername = subfoldername.TrimStart('~') + "_tilde_";
+            string newShaderDirectory = materialFolder + "/OptimizedShaders/" + subfoldername + "/";
+            
 
             // suffix for animated properties when renaming is enabled
             string animPropertySuffix = GetRenamedPropertySuffix(material);
