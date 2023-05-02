@@ -422,6 +422,12 @@ namespace Thry
             while(subfoldername.EndsWith("~"))
                 subfoldername = subfoldername.Substring(0, subfoldername.Length - 1) + "_tilde_";
             string newShaderDirectory = materialFolder + "/OptimizedShaders/" + subfoldername + "/";
+
+            // if directory already exists swap to using the guid
+            if (Directory.Exists(newShaderDirectory))
+            {
+                newShaderDirectory = materialFolder + "/OptimizedShaders/" + guid + "/";
+            }
             
 
             // suffix for animated properties when renaming is enabled
