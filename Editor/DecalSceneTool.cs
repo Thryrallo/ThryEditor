@@ -225,7 +225,7 @@ namespace Thry
             Vector3 moved = Handles.PositionHandle(_pivotPoint, rotation);
             if(moved != _pivotPoint)
             {
-                Vector2 uv = _propPosition.vectorValue;
+                Vector2 uv = Vector2.zero;
                 Ray ray = new Ray(moved - _pivotNormal * 0.1f, _pivotNormal);
                 if(RaycastToClosestUV(ray, ref uv))
                 {
@@ -352,6 +352,10 @@ namespace Thry
 
         bool RaycastToClosestUV(Ray ray, ref Vector2 uv)
         {
+            Vector4 scaleOffset = _propOffset.vectorValue;
+            scaleOffset = new Vector4(-scaleOffset.x, scaleOffset.y, -scaleOffset.z, scaleOffset.w);
+            Vector2 centerOffset = new Vector2((scaleOffset.x + scaleOffset.y)/2, (scaleOffset.z + scaleOffset.w)/2);
+
             float minDistance = float.MaxValue;
             for(int i=0; i<_worldTriangles.Length;i++)
             {
@@ -377,6 +381,7 @@ namespace Thry
                         // point inside the triangle - find uv by interpolation
                         Vector2[] uvTriangle = _uvTriangles[i];
                         uv = uvTriangle[0] * a1 + uvTriangle[1] * a2 + uvTriangle[2] * a3;
+                        uv = uv - centerOffset;
                     }
                 }
             }
