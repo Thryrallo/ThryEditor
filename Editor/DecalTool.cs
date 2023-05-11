@@ -157,7 +157,8 @@ namespace Thry
         static Vector2 DecalUV(Vector2 uv, Vector2 position, float rotation, Vector2 scale, Vector4 scaleOffset)
         {
             scaleOffset = new Vector4(-scaleOffset.x, scaleOffset.y, -scaleOffset.z, scaleOffset.w);
-            Vector2 decalCenter = position;
+            Vector2 centerOffset = new Vector2((scaleOffset.x + scaleOffset.y)/2, (scaleOffset.z + scaleOffset.w)/2);
+            Vector2 decalCenter = position + centerOffset;
             float theta = Mathf.Deg2Rad * rotation;
             float cs = Mathf.Cos(theta);
             float sn = Mathf.Sin(theta);

@@ -64,7 +64,8 @@
             float2 decalUV(float2 uv, float2 position, half rotation, half rotationSpeed, half2 scale, float4 scaleOffset, float depth)
             {
                 scaleOffset = float4(-scaleOffset.x, scaleOffset.y, -scaleOffset.z, scaleOffset.w);
-                float2 decalCenter = position;
+                float2 centerOffset = float2((scaleOffset.x + scaleOffset.y)/2, (scaleOffset.z + scaleOffset.w)/2);
+                float2 decalCenter = position + centerOffset;
                 float theta = radians(rotation + _Time.z * rotationSpeed);
                 float cs = cos(theta);
                 float sn = sin(theta);
