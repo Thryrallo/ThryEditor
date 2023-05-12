@@ -1652,7 +1652,8 @@ namespace Thry
                     }
                     else if(className == "ThryToggle") // Thry Toggle drawer, toggles a keyword directly if provided as [Toggle(KEYWORD)]
                     {
-                        if(args != "false")
+                        // Ignore ThryToggle's bools, since otherwise we get keywords that have the same name as HLSL language keywords
+                        if(args != "false" && args != "true")
                             keywords.Add(args);
 
                         break;
