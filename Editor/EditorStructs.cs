@@ -184,6 +184,7 @@ namespace Thry
             this.tooltip = new BetterTooltips.Tooltip(Options.tooltip);
             this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = Options.reference_property != null;
+            this.XOffset += Options.offset;
         }
 
         public void SetReferenceProperty(string s)

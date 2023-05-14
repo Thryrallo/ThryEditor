@@ -103,6 +103,7 @@ namespace Thry
     #region In Shader Data
     public class PropertyOptions
     {
+        public int offset = 0;
         public string tooltip = "";
         public DefineableAction altClick;
         public DefineableAction onClick;
