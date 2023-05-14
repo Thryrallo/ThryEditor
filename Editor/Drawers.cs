@@ -41,7 +41,33 @@ namespace Thry
         }
     }
 
-    public class StylizedBigTextureDrawer : MaterialPropertyDrawer
+    // For backwards compatibility
+    public class BigTextureDrawer : SimpleLargeTextureDrawer
+    {
+        
+    }
+    
+    // For backwards compatibility
+    public class StylizedBigTextureDrawer : StylizedLargeTextureDrawer
+    {
+        
+    }
+
+    public class SimpleLargeTextureDrawer : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
+        {
+            GuiHelper.BigTexturePropertyBasic(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
+        }
+
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.LastPropertyUsedCustomDrawer = true;
+            return base.GetPropertyHeight(prop, label, editor);
+        }
+    }
+
+    public class StylizedLargeTextureDrawer : MaterialPropertyDrawer
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
