@@ -54,6 +54,7 @@ namespace Thry
         public static Rect LastGuiObjectRect;
         public static Rect LastGuiObjectHeaderRect;
         public static Rect TooltipCheckRect;
+        public static float IconsPositioningHeight;
         public static bool LastPropertyUsedCustomDrawer;
         public static bool LastPropertyDoesntAllowAnimation;
         public static DrawerType LastPropertyDrawerType;

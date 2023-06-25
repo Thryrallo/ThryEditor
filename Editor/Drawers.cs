@@ -2017,7 +2017,7 @@ namespace Thry
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
             DrawingData.LastPropertyUsedCustomDrawer = true;
-            DrawingData.LastPropertyDoesntAllowAnimation = true;
+            DrawingData.LastPropertyDoesntAllowAnimation = false;
             return EditorGUIUtility.singleLineHeight + 6;
         }
     }
