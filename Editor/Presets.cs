@@ -104,43 +104,44 @@ namespace Thry.ThryEditor
 
             if(importedAssets.Length > 0)
             {
-                // Check if any presets were imported
-                foreach (string asset in importedAssets)
+                // Check if any presets were imported, iterate over all imported materials
+                foreach (string asset in importedAssets.Where(a => a.EndsWith(".mat")))
                 {
-                    // Check if asset is material
-                    if (asset.EndsWith(".mat"))
+                    Material material = AssetDatabase.LoadAssetAtPath<Material>(asset);
+                    // Check if asset is preset
+                    if (IsPreset(material))
                     {
-                        Material material = AssetDatabase.LoadAssetAtPath<Material>(asset);
-                        // Check if asset is preset
-                        if (IsPreset(material))
-                        {
-                            // Add preset
-                            AddPreset(material);
-                        }
+                        // Add preset
+                        AddPreset(material);
                     }
                 }
             }
 
             if(deletedAssets.Length > 0)
-            {
-                Dictionary<string,string> presetPaths = new Dictionary<string,string>();
+            { 
                 // get all paths from guids
-                foreach (var kvp in s_presetGuids)
+                Dictionary<string,string> presetPaths = new Dictionary<string, string>();
+                foreach(string guid in s_presetGuids.Values)
                 {
-                    presetPaths.Add(AssetDatabase.GUIDToAssetPath(kvp.Value), kvp.Key);
-                }
-                // Check if any presets were deleted
-                foreach (string asset in deletedAssets)
-                {
-                    // Check if asset is material
-                    if (asset.EndsWith(".mat"))
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    // if path is empty, the asset was deleted somewhere between the last cache save and now
+                    if(string.IsNullOrWhiteSpace(path))
                     {
-                        // Check if asset is preset
-                        if (presetPaths.ContainsKey(asset))
-                        {
-                            // Remove preset
-                            RemovePreset(presetPaths[asset]);
-                        }
+                        // remove from cache
+                        RemovePreset(guid);
+                    }else
+                    {
+                        presetPaths[path] = guid;
+                    }
+                }
+                // Check if any presets were deleted, iterate over all deleted materials
+                foreach (string asset in deletedAssets.Where(a => a.EndsWith(".mat")))
+                {
+                    // Check if asset is preset
+                    if (presetPaths.ContainsKey(asset))
+                    {
+                        // Remove preset
+                        RemovePreset(presetPaths[asset]);
                     }
                 }
             }
