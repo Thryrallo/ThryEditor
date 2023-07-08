@@ -109,6 +109,7 @@ namespace Thry
         public DefineableAction altClick;
         public DefineableAction onClick;
         public DefineableCondition condition_show = new DefineableCondition();
+        public DefineableCondition condition_expand = new DefineableCondition();
         public string condition_showS;
         public DefineableCondition condition_enable = null;
         public PropertyValueAction[] on_value_actions;
