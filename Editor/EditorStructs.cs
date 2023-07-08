@@ -708,6 +708,7 @@ namespace Thry
         void InitializeDrawers()
         {
             DrawingData.ResetLastDrawerData();
+            DrawingData.IsCollectingProperties = true;
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
 
             this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
@@ -748,6 +749,8 @@ namespace Thry
             
             this.IsAnimated = IsAnimatable && tag != "";
             this.IsRenaming = IsAnimatable && tag == "2";
+
+            DrawingData.IsCollectingProperties = false;
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
