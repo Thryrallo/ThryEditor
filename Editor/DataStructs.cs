@@ -126,6 +126,7 @@ namespace Thry
         public string generic_string;
         public bool never_lock;
         public bool draw_border;
+        public float margin_top = 0;
 
         public static PropertyOptions Deserialize(string s)
         {

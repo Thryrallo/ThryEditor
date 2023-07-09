@@ -505,6 +505,11 @@ namespace Thry
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
+            if(Options.margin_top > 0)
+            {
+                GUILayoutUtility.GetRect(0, Options.margin_top);
+            }
+
             bool doExpand = Options.condition_expand.Test();
             if(Options.draw_border)
             {
