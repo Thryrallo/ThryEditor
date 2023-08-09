@@ -47,6 +47,10 @@ namespace Thry
         private ShaderHeaderProperty _shaderHeader = null;
         private List<FooterButton> _footers;
 
+        private Type modularShadersForThryEditorType;
+        private MethodInfo GUICustomPoiMSSMethod;
+        private MethodInfo GUICustomPoiMSSTopBarMethod;
+
         // sates
         private bool _isFirstOnGUICall = true;
         private bool _wasUsed = false;
@@ -392,6 +396,13 @@ namespace Thry
                 ShaderUtil.allowAsyncCompilation = true;
             }
 
+            modularShadersForThryEditorType = Type.GetType("Poi.Tools.ModularShaderSystem.ModularShadersForThryEditor, Poi.Tools");
+            if (modularShadersForThryEditorType != null)
+            {
+                GUICustomPoiMSSMethod = modularShadersForThryEditorType.GetMethod("GUICustomPoiMSS");
+                GUICustomPoiMSSTopBarMethod = modularShadersForThryEditorType.GetMethod("GUICustomPoiMSSTopBar");
+            }
+
             _isFirstOnGUICall = false;
         }
 
@@ -478,6 +489,8 @@ namespace Thry
             Presets.PresetEditorGUI(this);
             ShaderTranslator.SuggestedTranslationButtonGUI(this);
 
+            GUICustomPoiMSS();
+
             //PROPERTIES
             foreach (ShaderPart part in MainGroup.parts)
             {
@@ -495,6 +508,21 @@ namespace Thry
             HandleEvents();
 
             IsDrawing = false;
+        }
+
+        private void GUICustomPoiMSS()
+        {
+            if (modularShadersForThryEditorType != null)
+            {
+                GUICustomPoiMSSMethod.Invoke(null, new object[1] {this});
+            }
+        }
+        private void GUICustomPoiMSSTopBar()
+        {
+            if (modularShadersForThryEditorType != null)
+            {
+                GUICustomPoiMSSTopBarMethod.Invoke(null, new object[1] {this});
+            }
         }
 
         private void GUIManualReloadButton()
@@ -553,6 +581,8 @@ namespace Thry
             {
                 Presets.OpenPresetsMenu(GUILayoutUtility.GetLastRect(), this);
             }
+
+            GUICustomPoiMSSTopBar();
 
             //draw master label text after ui elements, so it can be positioned between
             if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
