@@ -176,7 +176,61 @@ namespace Thry
             if (prop == null)
                 return;
 
+            // Do parse options & check for alternative names if shader swap
+            if(ShaderEditor.Active.DidSwapToNewShader)
+            {
+                if(Options.alts != null && Options.alts.Length > 0)
+                    CopyAlternativeUpgradeValues();
+            }
+
             this.ExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
+        }
+
+        private void CopyAlternativeUpgradeValues()
+        {
+            foreach(Material m in ShaderEditor.Active.Materials)
+                {
+                    // Material as serializedObject
+                    SerializedObject serializedObject = new SerializedObject(m);
+                    foreach (string alt in Options.alts)
+                    {
+                        SerializedProperty prop = null;
+                        if(this.MaterialProperty.type == MaterialProperty.PropType.Float ||
+                                this.MaterialProperty.type == MaterialProperty.PropType.Range)
+                            prop = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
+                        else if(this.MaterialProperty.type == MaterialProperty.PropType.Vector ||
+                                this.MaterialProperty.type == MaterialProperty.PropType.Color)
+                            prop = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
+                        else if(this.MaterialProperty.type == MaterialProperty.PropType.Texture)
+                            prop = serializedObject.FindProperty($"m_SavedProperties.m_TexEnvs.Array");
+
+                        if(prop == null)
+                            continue;
+
+                        // Iterate through properties in prop array, find where .first is alt
+                        for (int i = 0; i < prop.arraySize; i++)
+                        {
+                            SerializedProperty prop2 = prop.GetArrayElementAtIndex(i);
+                            if (prop2.FindPropertyRelative("first").stringValue == alt)
+                            {
+                                prop = prop2.FindPropertyRelative("second");
+                                break;
+                            }
+                        }
+
+                        if (prop == null)
+                            continue;
+
+                        if (this.MaterialProperty.type == MaterialProperty.PropType.Float ||
+                                this.MaterialProperty.type == MaterialProperty.PropType.Range)
+                            this.MaterialProperty.floatValue = prop.floatValue;
+                        else if (this.MaterialProperty.type == MaterialProperty.PropType.Vector ||
+                                this.MaterialProperty.type == MaterialProperty.PropType.Color)
+                            this.MaterialProperty.colorValue = prop.colorValue;
+                        else if (this.MaterialProperty.type == MaterialProperty.PropType.Texture)
+                            this.MaterialProperty.textureValue = prop.objectReferenceValue as Texture;
+                    }
+                }
         }
 
         protected virtual void InitOptions()

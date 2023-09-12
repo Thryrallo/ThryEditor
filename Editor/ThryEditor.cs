@@ -102,6 +102,14 @@ namespace Thry
             }
         }
 
+        public bool DidSwapToNewShader
+        {
+            get
+            {
+                return _didSwapToShader;
+            }
+        }
+
         //-------------Init functions--------------------
 
         private Dictionary<string, string> LoadDisplayNamesFromFile()
@@ -495,6 +503,7 @@ namespace Thry
             HandleEvents();
 
             IsDrawing = false;
+            _didSwapToShader = false;
         }
 
         private void GUIManualReloadButton()
@@ -698,7 +707,6 @@ namespace Thry
                 foreach (DefineableAction a in _onSwapToActions)
                     a.Perform(Materials);
                 _onSwapToActions = null;
-                _didSwapToShader = false;
             }
 
             //test if material has been reset
@@ -761,7 +769,6 @@ namespace Thry
         public void Reload()
         {
             this._isFirstOnGUICall = true;
-            this._didSwapToShader = true;
             this._doReloadNextDraw = true;
             this.Repaint();
             ThryWideEnumDrawer.Reload();
