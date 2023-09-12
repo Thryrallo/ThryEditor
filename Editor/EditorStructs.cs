@@ -188,20 +188,50 @@ namespace Thry
 
         private void CopyAlternativeUpgradeValues()
         {
+            MaterialProperty.PropType type = this.MaterialProperty.type;
+            if(type == MaterialProperty.PropType.Color) type = MaterialProperty.PropType.Vector;
+            if(type == MaterialProperty.PropType.Range) type = MaterialProperty.PropType.Float;
+
+            int index = ShaderEditor.Active.Shader.FindPropertyIndex(this.MaterialProperty.name);
+
+            object defaultValue = null;
+            if (type == MaterialProperty.PropType.Float)
+                defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultFloatValue(index);
+            else if (type == MaterialProperty.PropType.Vector)
+                defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(index);
+            else if (type == MaterialProperty.PropType.Texture)
+                defaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(index);
+
             foreach(Material m in ShaderEditor.Active.Materials)
                 {
+                    // Check if is not default value
+                    if (type == MaterialProperty.PropType.Float)
+                    {
+                        if (m.GetFloat(this.MaterialProperty.name) != (float)defaultValue)
+                            continue;
+                    }
+                    else if (type == MaterialProperty.PropType.Vector)
+                    {
+                        if (m.GetVector(this.MaterialProperty.name) != (Vector4)defaultValue)
+                            continue;
+                    }
+                    else if (type == MaterialProperty.PropType.Texture)
+                    {
+                        if (m.GetTexture(this.MaterialProperty.name) != null && 
+                            m.GetTexture(this.MaterialProperty.name).name != (string)defaultValue)
+                            continue;
+                    }
+
                     // Material as serializedObject
                     SerializedObject serializedObject = new SerializedObject(m);
                     foreach (string alt in Options.alts)
                     {
                         SerializedProperty prop = null;
-                        if(this.MaterialProperty.type == MaterialProperty.PropType.Float ||
-                                this.MaterialProperty.type == MaterialProperty.PropType.Range)
+                        if(type == MaterialProperty.PropType.Float)
                             prop = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
-                        else if(this.MaterialProperty.type == MaterialProperty.PropType.Vector ||
-                                this.MaterialProperty.type == MaterialProperty.PropType.Color)
+                        else if(type == MaterialProperty.PropType.Vector)
                             prop = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
-                        else if(this.MaterialProperty.type == MaterialProperty.PropType.Texture)
+                        else if(type == MaterialProperty.PropType.Texture)
                             prop = serializedObject.FindProperty($"m_SavedProperties.m_TexEnvs.Array");
 
                         if(prop == null)
@@ -221,13 +251,11 @@ namespace Thry
                         if (prop == null)
                             continue;
 
-                        if (this.MaterialProperty.type == MaterialProperty.PropType.Float ||
-                                this.MaterialProperty.type == MaterialProperty.PropType.Range)
+                        if (type == MaterialProperty.PropType.Float)
                             this.MaterialProperty.floatValue = prop.floatValue;
-                        else if (this.MaterialProperty.type == MaterialProperty.PropType.Vector ||
-                                this.MaterialProperty.type == MaterialProperty.PropType.Color)
+                        else if (type == MaterialProperty.PropType.Vector)
                             this.MaterialProperty.colorValue = prop.colorValue;
-                        else if (this.MaterialProperty.type == MaterialProperty.PropType.Texture)
+                        else if (type == MaterialProperty.PropType.Texture)
                             this.MaterialProperty.textureValue = prop.objectReferenceValue as Texture;
                     }
                 }
