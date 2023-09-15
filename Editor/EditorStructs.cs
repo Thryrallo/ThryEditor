@@ -585,6 +585,10 @@ namespace Thry
             if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
+        const int BORDER_WIDTH = 3;
+        const int HEADER_HEIGHT = 20;
+        const int CHECKBOX_OFFSET = 6;
+
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if(Options.margin_top > 0)
@@ -595,33 +599,35 @@ namespace Thry
             bool doExpand = Options.condition_expand.Test();
             if(Options.draw_border)
             {
-                bool has_header = string.IsNullOrWhiteSpace(this.Content.text) == false;
-                int headerXOffset = 0;
                 ShaderProperty reference = Options.reference_property != null ? ActiveShaderEditor.PropertyDictionary[Options.reference_property] : null;
+                bool has_header = string.IsNullOrWhiteSpace(this.Content.text) == false || reference != null;
+
+                int headerTextX = 16;
+                int height = (has_header ? HEADER_HEIGHT : 0) + 4; // 4 for border margin
 
                 Rect border = EditorGUILayout.BeginVertical();
-                GUILayoutUtility.GetRect(0, 5 + (has_header ? 20 : 0));
                 border = new RectOffset(this.XOffset * -15 - 12, 3, -2, -2).Add(border);
                 if(doExpand)
                 {
                     // Draw as border line
-                    Vector4 borderWidths = new Vector4(3, (has_header ? 22 : 3), 3, 3);
-                    GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, borderWidths, 10);
+                    Vector4 borderWidths = new Vector4(3, (has_header ? HEADER_HEIGHT : 3), 3, 3);
+                    GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, borderWidths, 5);
                 }else
                 {
                     // Draw as solid
-                    GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, Vector4.zero, 10);
+                    GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, Vector4.zero, 5);
                 }
+                GUILayoutUtility.GetRect(0, height);
                 if(reference != null)
                 {
-                    Rect referenceRect = new Rect(border.x + 16, border.y + 2, 20, 20);
+                    Rect referenceRect = new Rect(border.x + CHECKBOX_OFFSET, border.y + 1, HEADER_HEIGHT - 2, HEADER_HEIGHT - 2);
                     reference.Draw(new CRect(referenceRect), new GUIContent(), isInHeader: true, useEditorIndent: true);
-                    headerXOffset = 16;
+                    headerTextX = CHECKBOX_OFFSET + HEADER_HEIGHT;
                 }
                 if(has_header)
                 {
-                    Rect header = new Rect(border.x + 16 + headerXOffset, border.y, border.width - 16, 22);
-                    GUI.Label(header, this.Content, EditorStyles.boldLabel);
+                    Rect header = new Rect(border.x + headerTextX, border.y - 2, border.width - 16, 22);
+                    GUI.Label(header, this.Content, EditorStyles.label);
                 }
             }
             if(doExpand)
@@ -630,10 +636,10 @@ namespace Thry
                 {
                     part.Draw();
                 }
+                GUILayoutUtility.GetRect(0, 5);
             }
             if (Options.draw_border)
             {
-                GUILayoutUtility.GetRect(0, 5);
                 EditorGUILayout.EndVertical();
             }
         }
