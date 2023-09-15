@@ -72,6 +72,7 @@ namespace Thry
     {
         // Tags
         public const string TAG_ORIGINAL_SHADER = "OriginalShader";
+        public const string TAG_ORIGINAL_SHADER_GUID = "OriginalShaderGUID";
         public const string TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER = "AllLockedGUIDS";
         //When locking don't include code from define blocks that are not enabled
         const bool REMOVE_UNUSED_IF_DEFS = true;
@@ -856,8 +857,11 @@ namespace Thry
             List<RenamingProperty> animatedPropsToDuplicate = applyStruct.animatedPropsToDuplicate;
             string animPropertySuffix = applyStruct.animPropertySuffix;
 
+            string shaderGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(shader));
+
             // Write original shader to override tag
             material.SetOverrideTag(TAG_ORIGINAL_SHADER, shader.name);
+            material.SetOverrideTag(TAG_ORIGINAL_SHADER_GUID, shaderGUID);
             // Write the new shader folder name in an override tag so it will be deleted
 
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
@@ -1612,8 +1616,10 @@ namespace Thry
         }
         public static bool GuessShader(Shader locked, out Shader shader)
         {
-            string name = locked.name;
-            name = Regex.Match(name.Substring(7), @".*(?=\/)").Value;
+            string name = locked.name.Substring(7); // Remove "Hidden/" prefix
+            if(name.StartsWith("Locked/"))
+                name = name.Substring(7); // Remove "Locked/" prefix
+            name = Regex.Match(name, @".*(?=\/)").Value;
             ShaderInfo[] allShaders = ShaderUtil.GetAllShaderInfo();
             int closestDistance = int.MaxValue;
             string closestShaderName = null;
@@ -1627,44 +1633,63 @@ namespace Thry
                     closestShaderName = s.name;
                 }
             }
+            // Debug.Log(closestDistance + " < " + (name.Length * 0.5f) + " " + closestShaderName + " " + name);
             shader = Shader.Find(closestShaderName);
-            return shader != null && closestDistance < name.Length / 2;
+            return shader != null && closestDistance < name.Length * 0.5f;
         }
         private static UnlockSuccess UnlockConcrete (Material material)
         {
             Shader lockedShader = material.shader;
-            // Revert to original shader
-            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, "");
-            Shader orignalShader = null;
-            if (originalShaderName == "" && !GuessShader(lockedShader, out orignalShader))
+            // Check if shader is Hidden
+            if (!lockedShader.name.StartsWith("Hidden/", StringComparison.Ordinal))
             {
-                if (material.shader.name.StartsWith("Hidden/"))
-                {
-                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) { }
-                    Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
-                    return UnlockSuccess.hasNoSavedShader;
-                }
-                else
-                {
-                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
-                    return UnlockSuccess.wasNotLocked;
-                }
-
+                Debug.LogWarning("[Shader Optimizer] Shader " + lockedShader.name + " is not locked.");
+                return UnlockSuccess.wasNotLocked;
             }
-            if(orignalShader == null) orignalShader = Shader.Find(originalShaderName);
-            if (orignalShader == null && !GuessShader(lockedShader, out orignalShader))
+            Shader orignalShader = null;
+            // Check for original shader by name
+            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, "");
+            if(originalShaderName == "")
             {
-                if (material.shader.name.StartsWith("Hidden/"))
+                Debug.LogWarning("[Shader Optimizer] Original shader name not saved to material.");
+            }else
+            {
+                orignalShader = Shader.Find(originalShaderName);
+                if (orignalShader == null)
                 {
-                    if (EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) { }
-                    Debug.LogError("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
-                    return UnlockSuccess.couldNotFindOriginalShader;
+                    Debug.LogWarning("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
                 }
+            }
+            // Check for original shader by GUID
+            if(orignalShader == null)
+            {
+                string originalShaderGUID = material.GetTag(TAG_ORIGINAL_SHADER_GUID, false, "");
+                if(originalShaderGUID != "")
+                {
+                    Debug.LogWarning("[Shader Optimizer] Original shader GUID found. Searching by GUID.");
+                    string originalShaderPath = AssetDatabase.GUIDToAssetPath(originalShaderGUID);
+                    if(string.IsNullOrWhiteSpace(originalShaderPath) == false)
+                        orignalShader = AssetDatabase.LoadAssetAtPath<Shader>(originalShaderPath);
+                    if (orignalShader == null)
+                    {
+                        Debug.LogWarning("[Shader Optimizer] Original shader " + originalShaderGUID + " could not be found");
+                    }
+                }
+            }
+            // Check for original shader by guessing name
+            if(orignalShader == null)
+            {
+                if(GuessShader(lockedShader, out orignalShader))
+                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material. Guessing shader name.");
                 else
-                {
-                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material, but material also doesnt seem to be locked.");
-                    return UnlockSuccess.wasNotLocked;
-                }
+                    lockedShader = null;
+            }
+
+            if(orignalShader == null)
+            {
+                Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
+                if(EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) {}
+                return UnlockSuccess.hasNoSavedShader;
             }
 
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
