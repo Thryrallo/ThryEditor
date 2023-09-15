@@ -124,10 +124,16 @@ namespace Thry.ThryEditor
         {
             if(editor.SuggestedTranslationDefinition != null)
             {
-                if(GUILayout.Button("Apply " + editor.SuggestedTranslationDefinition.Name + " shader translation."))
+                GUILayoutUtility.GetRect(0, 5);
+                Color backup = GUI.backgroundColor;
+                GUI.backgroundColor = Color.green;
+                if(GUILayout.Button($"Apply {editor.SuggestedTranslationDefinition.Name}"))
                 {
                     editor.SuggestedTranslationDefinition.Apply(editor);
+                    editor.SuggestedTranslationDefinition = null;
                 }
+                GUI.backgroundColor = backup;
+                GUILayoutUtility.GetRect(0, 5);
             }
         }
 
