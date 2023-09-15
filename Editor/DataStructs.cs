@@ -725,10 +725,12 @@ namespace Thry
         {
             // Debug.Log("Parsing single: " + s);
 
-            DefineableCondition con = new DefineableCondition();
-            con._materialInsteadOfEditor = useThisMaterialInsteadOfOpenEditor;
+            DefineableCondition con = new DefineableCondition
+            {
+                _materialInsteadOfEditor = useThisMaterialInsteadOfOpenEditor
+            };
 
-            if(s.IndexOfAny(ComparissionLiteralsToCheckFor) != -1)
+            if (s.IndexOfAny(ComparissionLiteralsToCheckFor) != -1)
             {
                 //is a comparission
                 con.data = s;
@@ -758,6 +760,16 @@ namespace Thry
             {
                 con.type = DefineableConditionType.PROPERTY_IS_ANIMATED;
                 con.data = s.Replace("isAnimated(", "").TrimEnd(')');
+                return con;
+            }
+            if(s.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                con.type = DefineableConditionType.TRUE;
+                return con;
+            }
+            if(s.Equals("false", StringComparison.OrdinalIgnoreCase))
+            {
+                con.type = DefineableConditionType.FALSE;
                 return con;
             }
             return con;

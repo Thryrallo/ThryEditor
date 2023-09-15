@@ -268,8 +268,8 @@ namespace Thry
 
         private static object ConvertToObject(object parsed, Type objtype)
         {
-            if (parsed.GetType() == typeof(string) && objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic) != null)
-                return objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { parsed });
+            if (objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic) != null)
+                return objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { parsed.ToString() });
             if (parsed.GetType() != typeof(Dictionary<object, object>)) return null;
             object returnObject = Activator.CreateInstance(objtype);
             Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
