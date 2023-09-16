@@ -268,10 +268,11 @@ namespace Thry
 
         private static object ConvertToObject(object parsed, Type objtype)
         {
-            if (objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic) != null)
-                return objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { parsed.ToString() });
+            object returnObject;
+            if (TryThryParser(parsed, objtype, out returnObject))
+                return returnObject;
             if (parsed.GetType() != typeof(Dictionary<object, object>)) return null;
-            object returnObject = Activator.CreateInstance(objtype);
+            returnObject = Activator.CreateInstance(objtype);
             Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
             foreach (FieldInfo field in objtype.GetFields())
             {
@@ -288,6 +289,17 @@ namespace Thry
                 }
             }
             return returnObject;
+        }
+
+        private static bool TryThryParser(object parsed, Type objtype, out object returnObject)
+        {
+            returnObject = null;
+            if(Helper.IsPrimitive(parsed.GetType()) == false) return false;
+            MethodInfo method = objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic);
+            if (method == null) return false;
+                
+            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
+            return true;
         }
 
         private static object ConvertToList(object parsed, Type objtype)
