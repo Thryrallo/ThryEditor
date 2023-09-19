@@ -109,9 +109,9 @@ namespace Thry
         public DefineableAction altClick;
         public DefineableAction onClick;
         public DefineableCondition condition_show = new DefineableCondition();
-        public DefineableCondition condition_expand = new DefineableCondition();
         public string condition_showS;
         public DefineableCondition condition_enable = null;
+        public DefineableCondition condition_enable_children = null;
         public PropertyValueAction[] on_value_actions;
         public string on_value;
         public DefineableAction[] actions;
@@ -125,9 +125,10 @@ namespace Thry
         public string remote_version_url;
         public string generic_string;
         public bool never_lock;
-        public bool draw_border;
         public float margin_top = 0;
         public string[] alts;
+        public bool persistent_expand = true;
+        public bool default_expand = false;
 
         public static PropertyOptions Deserialize(string s)
         {
