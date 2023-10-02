@@ -154,9 +154,9 @@ namespace Thry
             // add some padding at the top
             position.y += 5;
 
-            position.x += (EditorGUI.indentLevel) * 15;
-            position.width -= (EditorGUI.indentLevel) * 15;
             Rect border = new Rect(position);
+            border.x += (EditorGUI.indentLevel) * 15;
+            border.width -= (EditorGUI.indentLevel) * 15;
             border.height = 80; // for texture & offset
 
             Rect[] additionRects = new Rect[(DrawingData.CurrentTextureProperty.DoesReferencePropertyExist ? 1 : 0) +
@@ -168,17 +168,17 @@ namespace Thry
                 foreach (string r_property in DrawingData.CurrentTextureProperty.Options.reference_properties)
                 {
                     float height = editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[r_property].MaterialProperty);
-                    additionRects[i++] = new Rect(border.x + 15, border.y + border.height - 8, border.width - 15, height);
+                    additionRects[i++] = new Rect(position.x + 30, border.y + border.height - 8, border.width , height);
                     border.height += height + 3; // add a little padding
                 }
             }
             if (DrawingData.CurrentTextureProperty.DoesReferencePropertyExist)
             {
                 float height = editor.GetPropertyHeight(ShaderEditor.Active.PropertyDictionary[DrawingData.CurrentTextureProperty.Options.reference_property].MaterialProperty);
-                additionRects[i++] = new Rect(border.x + 15, border.y + border.height, border.width - 15, height);
+                additionRects[i++] = new Rect(position.x + 30, border.y + border.height, border.width , height);
                 border.height += height + 3; // add a little padding
             }
-            Rect vramRect = new Rect(border.x + 30, border.y + border.height - 6, border.width - 15, EditorStyles.label.lineHeight);
+            Rect vramRect = new Rect(border.x + 30, border.y + border.height - 6, border.width , EditorStyles.label.lineHeight);
             border.height += EditorStyles.label.lineHeight;
 
             // Reserve space
@@ -256,11 +256,13 @@ namespace Thry
                 if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
 
                 PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
+                float labelWith = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = EditorGUI.indentLevel * 15 + 35;
                 if (options.reference_property != null)
                 {
                     ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
                     Rect r = additionRects[additionRects.Length - 1];
-                    r.width = optionsSide.width - 20;
+                    r.width = optionsSide.width;
                     property.Draw(new CRect(r));
                 }
                 if (options.reference_properties != null)
@@ -270,10 +272,11 @@ namespace Thry
                     {
                         ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
                         Rect r = additionRects[i++];
-                        r.width = optionsSide.width - 20;
+                        r.width = optionsSide.width;
                         property.Draw(new CRect(r));
                     }
                 }
+                EditorGUIUtility.labelWidth = labelWith;
 
                 //readd disabled group
                 if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
@@ -291,11 +294,12 @@ namespace Thry
             EditorGUI.indentLevel -= 2;
             EditorGUIUtility.labelWidth = oldLabelWidth;
 
-            Rect label_rect = new RectOffset(-5, 0, -2, 0).Add(position);
+            Rect label_rect = new RectOffset(-5, 0, -2, 0).Add(border);
+            label_rect.height = EditorGUIUtility.singleLineHeight;
             GUI.Label(label_rect, label);
 
             DrawingData.LastGuiObjectRect = border;
-            DrawingData.TooltipCheckRect = Rect.MinMaxRect(position.x, position.y, scale_offset_rect.xMax, scale_offset_rect.yMax);
+            DrawingData.TooltipCheckRect = Rect.MinMaxRect(border.x, border.y, scale_offset_rect.xMax, scale_offset_rect.yMax);
             DrawingData.IconsPositioningHeight = scale_offset_rect.y;
         }
 
