@@ -129,6 +129,7 @@ namespace Thry
         public string[] alts;
         public bool persistent_expand = true;
         public bool default_expand = false;
+        public bool ref_float_toggles_expand = true;
 
         public static PropertyOptions Deserialize(string s)
         {

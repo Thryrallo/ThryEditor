@@ -697,9 +697,15 @@ namespace Thry
             Rect clickCheckRect = GUILayoutUtility.GetRect(0, height);
             if(reference != null)
             {
+                EditorGUI.BeginChangeCheck();
                 Rect referenceRect = new Rect(border.x + CHECKBOX_OFFSET, border.y + 1, HEADER_HEIGHT - 2, HEADER_HEIGHT - 2);
                 reference.Draw(new CRect(referenceRect), new GUIContent(), isInHeader: true, useEditorIndent: true);
                 headerTextX = CHECKBOX_OFFSET + HEADER_HEIGHT;
+                // Change expand state if reference is toggled
+                if(EditorGUI.EndChangeCheck() && Options.ref_float_toggles_expand)
+                {
+                    IsExpanded = reference.MaterialProperty.floatValue == 1;
+                }
             }
             if(has_header)
             {
@@ -794,13 +800,21 @@ namespace Thry
                 togglePropertyRect.width = GUI.skin.font.fontSize * 3;
                 float fieldWidth = EditorGUIUtility.fieldWidth;
                 EditorGUIUtility.fieldWidth = 20;
-                ShaderProperty prop = ShaderEditor.Active.PropertyDictionary[options.reference_property];
+                ShaderProperty refProperty = ShaderEditor.Active.PropertyDictionary[options.reference_property];
 
-                int xOffset = prop.XOffset;
-                prop.XOffset = 0;
-                prop.Draw(new CRect(togglePropertyRect), new GUIContent(), isInHeader: true);
-                prop.XOffset = xOffset;
+                EditorGUI.BeginChangeCheck();
+
+                int xOffset = refProperty.XOffset;
+                refProperty.XOffset = 0;
+                refProperty.Draw(new CRect(togglePropertyRect), new GUIContent(), isInHeader: true);
+                refProperty.XOffset = xOffset;
                 EditorGUIUtility.fieldWidth = fieldWidth;
+
+                // Change expand state if reference is toggled
+                if(EditorGUI.EndChangeCheck() && Options.ref_float_toggles_expand)
+                {
+                    IsExpanded = refProperty.MaterialProperty.floatValue == 1;
+                }
             }
             // else if(keyword != null)
             // {
