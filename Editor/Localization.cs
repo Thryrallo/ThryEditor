@@ -195,6 +195,7 @@ namespace Thry{
             _keys = new string[0];
             _values = new string[0];
             Languages = new string[0];
+            _localizedStrings.Clear();
         }
 
         [MenuItem("Assets/Thry/Shaders/Create Locale File", false)]
@@ -291,18 +292,24 @@ namespace Thry{
                         {
                             locale.AddLanguage(FromCSVString(languages[i]));
                         }
+
+                        locale._values = new string[(lines.Length - 1) * (languages.Length - 1)];
+                        locale._keys = new string[lines.Length - 1];
+
                         for (int i = 1; i < lines.Length; i++)
                         {
                             string[] values = lines[i].Split(',');
                             if (values.Length > 0)
                             {
                                 string key = FromCSVString(values[0]);
+                                locale._keys[i - 1] = key;
                                 for (int j = 1; j < values.Length; j++)
                                 {
                                     locale._values[(i - 1) * (languages.Length - 1) + j - 1] = FromCSVString(values[j]);
                                 }
                             }
                         }
+                        locale.Load();
                         locale.Save();
                     }
                 }
