@@ -1417,6 +1417,7 @@ namespace Thry
         public VRCFallbackProperty(ShaderEditor shaderEditor) : base(shaderEditor, "VRCFallback", 0, "", "Select the shader VRChat should use when your shaders are being hidden.")
         {
             doCustomDrawLogic = true;
+            ExemptFromLockedDisabling = true;
         }
 
         public override void DrawDefault()
@@ -1425,7 +1426,10 @@ namespace Thry
             EditorGUI.BeginChangeCheck();
             int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
             if (EditorGUI.EndChangeCheck())
-                ActiveShaderEditor.Materials[0].SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
+            {
+                foreach(Material m in ActiveShaderEditor.Materials)
+                    m.SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
+            }
         }
 
         public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
