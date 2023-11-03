@@ -2,8 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
-using Thry;
 using UnityEditor;
 using UnityEngine;
 
