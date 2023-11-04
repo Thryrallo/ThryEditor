@@ -23,7 +23,8 @@ namespace Thry
         {
             CrossEditor window = EditorWindow.GetWindow(typeof(CrossEditor)) as CrossEditor;
             window.name = "Cross Shader Editor";
-            window._targets = Selection.objects.Where(o => o is Material).Cast<Material>().ToList();
+            window._materialList = Selection.objects.Where(o => o is Material).Cast<Material>().ToList();
+            window.UpdateTargets();
             window._shaderEditor = null;
         }
 
@@ -33,6 +34,7 @@ namespace Thry
             return Selection.objects.All(o => o is Material);
         }
 
+        List<Material> _materialList = new List<Material>();
         List<Material> _targets = new List<Material>();
         Dictionary<Material,Shader> _targetShaders = new Dictionary<Material, Shader>();
         ShaderEditor _shaderEditor = null;
@@ -40,6 +42,14 @@ namespace Thry
         MaterialProperty[] _materialProperties = null;
         Vector2 _scrollPosition = Vector2.zero;
         bool _showMaterials = true;
+
+        void UpdateTargets()
+        {
+            bool isShaderBroken (Shader s) => s == null || s.name == "Hidden/InternalErrorShader";
+            _targets = _materialList.Where(t => t != null && !isShaderBroken(t.shader)).ToList();
+            foreach(Material m in _materialList.Where(t => t != null && isShaderBroken(t.shader)))
+                Debug.LogWarning("Material " + m.name + " has no shader assigned");
+        }
 
         private void OnGUI()
         {
@@ -52,14 +62,14 @@ namespace Thry
             if(_showMaterials)
             {
                 EditorGUILayout.BeginVertical();
-                for (int i = 0; i < _targets.Count; i++)
+                for (int i = 0; i < _materialList.Count; i++)
                 {
                     EditorGUILayout.BeginHorizontal();
                     GUILayout.Space(30);
-                    _targets[i] = (Material)EditorGUILayout.ObjectField(_targets[i], typeof(Material), false);
+                    _materialList[i] = (Material)EditorGUILayout.ObjectField(_materialList[i], typeof(Material), false);
                     if (GUILayout.Button("Remove", GUILayout.Width(70)))
                     {
-                        _targets.RemoveAt(i);
+                        _materialList.RemoveAt(i);
                     }
                     EditorGUILayout.EndHorizontal();
                 }
@@ -67,7 +77,7 @@ namespace Thry
                 GUILayout.Space(30);
                 if (GUILayout.Button("Add", GUILayout.Width(70)))
                 {
-                    _targets.Add(null);
+                    _materialList.Add(null);
                 }
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.EndVertical();
@@ -75,9 +85,9 @@ namespace Thry
 
             // Check if targets have changed
             bool didShadersChange = false;
-            foreach(Material m in _targets)
+            foreach(Material m in _materialList)
             {
-                if(!_targetShaders.ContainsKey(m) || _targetShaders[m] != m.shader)
+                if(m != null && (!_targetShaders.ContainsKey(m) || _targetShaders[m] != m.shader))
                 {
                     didShadersChange = true;
                     _targetShaders[m] = m.shader;
@@ -86,6 +96,7 @@ namespace Thry
             if (EditorGUI.EndChangeCheck() || didShadersChange)
             {
                 _shaderEditor = null;
+                UpdateTargets();
             }
 
             // Draw shader editor
