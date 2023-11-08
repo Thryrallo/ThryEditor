@@ -578,7 +578,18 @@ namespace Thry
             }
             set 
             {
-                if(Options.persistent_expand) this.MaterialProperty.floatValue = value ? 1 : 0;
+                if(Options.persistent_expand)
+                {
+                    if (AnimationMode.InAnimationMode()) 
+                    {
+                        AnimationMode.StopAnimationMode();
+                        this.MaterialProperty.floatValue = value ? 1 : 0;
+                        AnimationMode.StartAnimationMode();
+                    }else
+                    {
+                        this.MaterialProperty.floatValue = value ? 1 : 0;
+                    }
+                } 
                 _isExpanded = value; 
             }
         }
