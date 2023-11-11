@@ -238,7 +238,8 @@ namespace Thry.ThryEditor
 
         static void ApplyQuickPreset(object userData, string[] options, int selected)
         {
-            Apply(GetPresetMaterial(s_presetGuids[selected - 1]), userData as ShaderEditor);
+            int index = s_presetNames.IndexOf(options[selected]);
+            Apply(GetPresetMaterial(s_presetGuids[index]), userData as ShaderEditor);
         }
 
         public static void PresetEditorGUI(ShaderEditor shaderEditor)
