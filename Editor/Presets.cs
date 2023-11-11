@@ -319,12 +319,14 @@ namespace Thry.ThryEditor
 
         public static void SetProperty(Material m, ShaderPart prop, bool value)
         {
+            if (prop.CustomStringTagID != null) m.SetOverrideTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PRESET, value ? "true" : "");
             if (prop.MaterialProperty != null)   m.SetOverrideTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PRESET, value ? "true" : "");
             if (prop.PropertyIdentifier != null) m.SetOverrideTag(prop.PropertyIdentifier    + TAG_POSTFIX_IS_PRESET, value ? "true" : "");
         }
 
         public static bool IsPreset(Material m, ShaderPart prop)
         {
+            if (prop.CustomStringTagID != null) return m.GetTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PRESET, false, "") == "true";
             if (prop.MaterialProperty != null)   return m.GetTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PRESET, false, "") == "true";
             if (prop.PropertyIdentifier != null) return m.GetTag(prop.PropertyIdentifier    + TAG_POSTFIX_IS_PRESET, false, "") == "true";
             return false;
@@ -340,7 +342,7 @@ namespace Thry.ThryEditor
             return m.GetTag(TAG_IS_PRESET, false, "false") == "true";
         }
 
-        [MenuItem("Assets/Thry/Mark as preset")]
+        [MenuItem("Assets/Thry/Materials/Mark as Preset",false,500)]
         static void MarkAsPreset()
         {
             IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
@@ -354,14 +356,14 @@ namespace Thry.ThryEditor
             p_presetNames = null;
         }
 
-        [MenuItem("Assets/Thry/Mark as preset", true)]
+        [MenuItem("Assets/Thry/Materials/Mark as Preset", true,500)]
         static bool MarkAsPresetValid()
         {
             return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
                 All(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material));
         }
 
-        [MenuItem("Assets/Thry/Remove as preset")]
+        [MenuItem("Assets/Thry/Materials/Remove as preset",false,500)]
         static void RemoveAsPreset()
         {
             IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
@@ -374,7 +376,7 @@ namespace Thry.ThryEditor
             p_presetNames = null;
         }
 
-        [MenuItem("Assets/Thry/Remove as preset", true)]
+        [MenuItem("Assets/Thry/Materials/Remove as preset", true,500)]
         static bool RemoveAsPresetValid()
         {
             return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).

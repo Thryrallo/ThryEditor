@@ -131,6 +131,7 @@ namespace Thry
         public bool ExemptFromLockedDisabling = false;
         public bool IsAnimated = false;
         public bool IsRenaming = false;
+        public string CustomStringTagID = null;
 
         public BetterTooltips.Tooltip tooltip;
 
@@ -667,6 +668,16 @@ namespace Thry
                 foreach (Material m in linked_materials)
                     this.CopyToMaterial(m);
         }
+
+        protected void FoldoutArrow(Rect rect, Event e)
+        {
+            if (e.type == EventType.Repaint)
+            {
+                Rect arrowRect = new RectOffset(4, 0, 0, 0).Remove(rect);
+                arrowRect.width = 13;
+                EditorStyles.foldout.Draw(arrowRect, false, false, _isExpanded, false);
+            }
+        }
     }
 
     public class ShaderSection : ShaderGroup
@@ -674,7 +685,7 @@ namespace Thry
 
         const int BORDER_WIDTH = 3;
         const int HEADER_HEIGHT = 20;
-        const int CHECKBOX_OFFSET = 6;
+        const int CHECKBOX_OFFSET = 20;
 
         public ShaderSection(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw)
         {
@@ -690,9 +701,10 @@ namespace Thry
             ShaderProperty reference = Options.reference_property != null ? ActiveShaderEditor.PropertyDictionary[Options.reference_property] : null;
             bool has_header = string.IsNullOrWhiteSpace(this.Content.text) == false || reference != null;
 
-            int headerTextX = 16;
+            int headerTextX = 18;
             int height = (has_header ? HEADER_HEIGHT : 0) + 4; // 4 for border margin
 
+            // Draw border
             Rect border = EditorGUILayout.BeginVertical();
             border = new RectOffset(this.XOffset * -15 - 12, 3, -2, -2).Add(border);
             if(IsExpanded)
@@ -705,6 +717,8 @@ namespace Thry
                 // Draw as solid
                 GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, Vector4.zero, 5);
             }
+
+            // Draw Reference
             Rect clickCheckRect = GUILayoutUtility.GetRect(0, height);
             if(reference != null)
             {
@@ -718,18 +732,24 @@ namespace Thry
                     IsExpanded = reference.MaterialProperty.floatValue == 1;
                 }
             }
+
+            // Draw Header (GUIContent)
+            Rect top_border = new Rect(border.x, border.y - 2, border.width - 16, 22);
             if(has_header)
             {
-                Rect header = new Rect(border.x + headerTextX, border.y - 2, border.width - 16, 22);
-                GUI.Label(header, this.Content, EditorStyles.label);
+                Rect header_rect = new RectOffset(headerTextX, 0, 0, 0).Remove(top_border);
+                GUI.Label(header_rect, this.Content, EditorStyles.label);
             }
 
+            // Toggling + Draw Arrow
+            FoldoutArrow(top_border, Event.current);
             if (Event.current.type == EventType.MouseDown && clickCheckRect.Contains(Event.current.mousePosition))
             {
                 IsExpanded = !IsExpanded;
                 Event.current.Use();
             }
 
+            // Draw Children
             if(IsExpanded)
             {
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
@@ -790,10 +810,11 @@ namespace Thry
             position.x = xOffset_total;
 
             DrawingData.LastGuiObjectHeaderRect = position;
-
             DrawBoxAndContent(position, e, label, options);
 
-            DrawSmallArrow(position, e);
+            Rect arrowRect = new Rect(position){ height = 18 };
+            FoldoutArrow(arrowRect, e);
+
             HandleToggleInput(position);
         }
 
@@ -941,15 +962,6 @@ namespace Thry
             menu.DropDown(position);
         }
 
-        private void DrawSmallArrow(Rect rect, Event e)
-        {
-            if (e.type == EventType.Repaint)
-            {
-                var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
-                EditorStyles.foldout.Draw(toggleRect, false, false, _isExpanded, false);
-            }
-        }
-
         private void HandleToggleInput(Rect rect)
         {
             //Ignore unity uses is cause disabled will use the event to prevent toggling
@@ -963,20 +975,17 @@ namespace Thry
 
     public class ShaderProperty : ShaderPart
     {
-        public float setFloat;
-        public bool updateFloat;
-
-        public bool doCustomDrawLogic = false;
-        public bool doForceIntoOneLine = false;
-        public bool doDrawTwoFields = false;
+        protected bool _doCustomDrawLogic = false;
+        protected bool _doForceIntoOneLine = false;
+        protected bool _doDrawTwoFields = false;
 
         //Done for e.g. Vectors cause they draw in 2 lines for some fucking reasons
-        public bool doCustomHeightOffset = false;
-        public float customHeightOffset = 0;
+        public bool DoCustomHeightOffset = false;
+        public float CustomHeightOffset = 0;
 
-        private int property_index = 0;
+        private int _property_index = 0;
 
-        public string keyword;
+        public string Keyword;
 
         protected MaterialPropertyDrawer[] _customDecorators;
         protected Rect[] _customDecoratorRects;
@@ -984,29 +993,29 @@ namespace Thry
 
         bool _needsDrawerInitlization = true;
 
-        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip) : base(propertyIdentifier, xOffset, displayName, tooltip, shaderEditor)
+        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip, int property_index) : base(propertyIdentifier, xOffset, displayName, tooltip, shaderEditor)
         {
-
+            this._property_index = property_index;
         }
 
         public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
         {
-            this.doCustomDrawLogic = false;
-            this.doForceIntoOneLine = forceOneLine;
+            this._doCustomDrawLogic = false;
+            this._doForceIntoOneLine = forceOneLine;
 
-            this.property_index = property_index;
+            this._property_index = property_index;
         }
 
         protected override void InitOptions()
         {
             base.InitOptions();
-            this.doDrawTwoFields = Options.reference_property != null;
+            this._doDrawTwoFields = Options.reference_property != null;
         }
 
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(MaterialProperty, m);
-            if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(MaterialProperty.name)==1);
+            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(MaterialProperty.name)==1);
             if (IsAnimatable)
             {
                 ShaderOptimizer.CopyAnimatedTagFromMaterial(m, MaterialProperty);
@@ -1022,7 +1031,7 @@ namespace Thry
         public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueToMaterial(MaterialProperty, m);
-            if (keyword != null) SetKeyword(m, MaterialProperty.floatValue == 1);
+            if (Keyword != null) SetKeyword(m, MaterialProperty.floatValue == 1);
             if (IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, MaterialProperty);
 
@@ -1033,19 +1042,19 @@ namespace Thry
 
         private void SetKeyword(Material[] materials, bool enabled)
         {
-            if (enabled) foreach (Material m in materials) m.EnableKeyword(keyword);
-            else foreach (Material m in materials) m.DisableKeyword(keyword);
+            if (enabled) foreach (Material m in materials) m.EnableKeyword(Keyword);
+            else foreach (Material m in materials) m.DisableKeyword(Keyword);
         }
 
         private void SetKeyword(Material m, bool enabled)
         {
-            if (enabled) m.EnableKeyword(keyword);
-            else m.DisableKeyword(keyword);
+            if (enabled) m.EnableKeyword(Keyword);
+            else m.DisableKeyword(Keyword);
         }
 
         public void UpdateKeywordFromValue()
         {
-            if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, MaterialProperty.floatValue == 1);
+            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, MaterialProperty.floatValue == 1);
         }
 
         void InitializeDrawers()
@@ -1057,10 +1066,10 @@ namespace Thry
             this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
             this._hasDrawer = DrawingData.LastPropertyUsedCustomDrawer;
 
-            if (MaterialProperty.type == MaterialProperty.PropType.Vector && doForceIntoOneLine == false)
+            if (MaterialProperty.type == MaterialProperty.PropType.Vector && _doForceIntoOneLine == false)
             {
-                this.doCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
-                this.customHeightOffset = -EditorGUIUtility.singleLineHeight;
+                this.DoCustomHeightOffset = !DrawingData.LastPropertyUsedCustomDrawer;
+                this.CustomHeightOffset = -EditorGUIUtility.singleLineHeight;
             }
             if(DrawingData.LastPropertyDecorators.Count > 0)
             {
@@ -1099,7 +1108,7 @@ namespace Thry
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
-            this.MaterialProperty = ActiveShaderEditor.Properties[property_index];
+            this.MaterialProperty = ActiveShaderEditor.Properties[_property_index];
 
             if(_needsDrawerInitlization)
             {
@@ -1114,7 +1123,7 @@ namespace Thry
             if (!useEditorIndent)
                 EditorGUI.indentLevel = XOffset + 1;
 
-            if(_customDecorators != null && doCustomDrawLogic)
+            if(_customDecorators != null && _doCustomDrawLogic)
             {
                 for(int i= 0;i<_customDecorators.Length;i++)
                 {
@@ -1122,11 +1131,11 @@ namespace Thry
                 }
             }
 
-            if (doCustomDrawLogic)
+            if (_doCustomDrawLogic)
             {
                 DrawDefault();
             }
-            else if (doDrawTwoFields)
+            else if (_doDrawTwoFields)
             {
                 Rect r = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
                 float labelWidth = (r.width - EditorGUIUtility.labelWidth) / 2; ;
@@ -1140,13 +1149,13 @@ namespace Thry
                 ActiveShaderEditor.PropertyDictionary[Options.reference_property].Draw(new CRect(r), new GUIContent());
                 EditorGUIUtility.labelWidth = prevLabelW;
             }
-            else if (doForceIntoOneLine)
+            else if (_doForceIntoOneLine)
             {
                 ActiveShaderEditor.Editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.MaterialProperty, content);
-            }else if (doCustomHeightOffset)
+            }else if (DoCustomHeightOffset)
             {
                 ActiveShaderEditor.Editor.ShaderProperty(
-                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, ActiveShaderEditor.Editor.GetPropertyHeight(this.MaterialProperty, content.text) + customHeightOffset)
+                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, ActiveShaderEditor.Editor.GetPropertyHeight(this.MaterialProperty, content.text) + CustomHeightOffset)
                     , this.MaterialProperty, content);
             }
             else if (rect != null)
@@ -1165,7 +1174,7 @@ namespace Thry
                 ActiveShaderEditor.Editor.ShaderProperty(this.MaterialProperty, content);
             }
 
-            if(_customDecorators != null && doCustomDrawLogic)
+            if(_customDecorators != null && _doCustomDrawLogic)
             {
                 for(int i= 0;i<_customDecorators.Length;i++)
                 {
@@ -1188,7 +1197,7 @@ namespace Thry
         {
             if (MaterialProperty.type != p.MaterialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(MaterialProperty, p.MaterialProperty);
-            if (keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(p.MaterialProperty.name) == 1);
+            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(p.MaterialProperty.name) == 1);
             if (IsAnimatable && p.IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagFromProperty(p.MaterialProperty, MaterialProperty);
             this.IsAnimated = IsAnimatable && ShaderOptimizer.GetAnimatedTag(MaterialProperty) != "";
@@ -1220,7 +1229,7 @@ namespace Thry
 
         public TextureProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool hasScaleOffset, bool forceThryUI, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, false, property_index)
         {
-            doCustomDrawLogic = forceThryUI;
+            _doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
         }
 
@@ -1252,7 +1261,7 @@ namespace Thry
         public override void PreDraw()
         {
             DrawingData.CurrentTextureProperty = this;
-            this.doCustomDrawLogic = !this._hasDrawer;
+            this._doCustomDrawLogic = !this._hasDrawer;
             if (this._isVRAMDirty)
             {
                 UpdateVRAM();
@@ -1394,9 +1403,10 @@ namespace Thry
 
     public class RenderQueueProperty : ShaderProperty
     {
-        public RenderQueueProperty(ShaderEditor shaderEditor) : base(shaderEditor, "RenderQueue", 0, "", "Change the Queue at which the material is rendered.")
+        public RenderQueueProperty(ShaderEditor shaderEditor) : base(shaderEditor, "RenderQueue", 0, "", "Change the Queue at which the material is rendered.", 0)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
+            CustomStringTagID = "RenderQueue";
         }
 
         public override void DrawDefault()
@@ -1425,9 +1435,10 @@ namespace Thry
         static string[] s_vRCFallbackOptionsPopup = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypes.SelectMany(r => s_fallbackCullTypes.Select(c => r + "/" + c).Select(rc => s + "/" + rc)))).ToArray();
         static string[] s_vRCFallbackOptionsValues = s_fallbackNoTypes.Union(s_fallbackShaderTypes.SelectMany(s => s_fallbackRenderTypesValues.SelectMany(r => s_fallbackCullTypesValues.Select(c => r + c).Select(rc => s + rc)))).ToArray();
 
-        public VRCFallbackProperty(ShaderEditor shaderEditor) : base(shaderEditor, "VRCFallback", 0, "", "Select the shader VRChat should use when your shaders are being hidden.")
+        public VRCFallbackProperty(ShaderEditor shaderEditor) : base(shaderEditor, "VRCFallback", 0, "", "Select the shader VRChat should use when your shaders are being hidden.", 0)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
+            CustomStringTagID = "VRCFallback";
             ExemptFromLockedDisabling = true;
         }
 
@@ -1456,9 +1467,9 @@ namespace Thry
     }
     public class InstancingProperty : ShaderProperty
     {
-        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
+        public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
@@ -1468,9 +1479,14 @@ namespace Thry
     }
     public class GIProperty : ShaderProperty
     {
-        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
+        public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
+        }
+
+        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        {
+            base.DrawInternal(content, rect, useEditorIndent, isInHeader);
         }
 
         public override void DrawDefault()
@@ -1540,9 +1556,9 @@ namespace Thry
     }
     public class DSGIProperty : ShaderProperty
     {
-        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
+        public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()
@@ -1554,7 +1570,7 @@ namespace Thry
     {
         public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
         {
-            doCustomDrawLogic = true;
+            _doCustomDrawLogic = true;
         }
 
         public override void DrawDefault()

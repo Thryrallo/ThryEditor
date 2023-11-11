@@ -1096,7 +1096,7 @@ namespace Thry
                 isFirstGUICall = false;
             }
             //why is this not inFirstGUICall ? cause it seems drawers are kept between different openings of the shader editor, so this needs to be set again every time the shader editor is reopened for that material
-            (ShaderEditor.Active.PropertyDictionary[prop.name] as ShaderProperty).keyword = keyword;
+            (ShaderEditor.Active.PropertyDictionary[prop.name] as ShaderProperty).Keyword = keyword;
 
             EditorGUI.BeginChangeCheck();
 

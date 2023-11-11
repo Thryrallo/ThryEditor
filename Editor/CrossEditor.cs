@@ -16,7 +16,7 @@ namespace Thry
             window.name = "Cross Shader Editor";
         }
 
-        [MenuItem("Assets/Thry/Materials/Open in Cross Shader Editor")]
+        [MenuItem("Assets/Thry/Materials/Open in Cross Shader Editor", false , 400)]
         public static void OpenInCrossShaderEditor()
         {
             CrossEditor window = EditorWindow.GetWindow(typeof(CrossEditor)) as CrossEditor;
@@ -26,7 +26,7 @@ namespace Thry
             window._shaderEditor = null;
         }
 
-        [MenuItem("Assets/Thry/Materials/Open in Cross Shader Editor", true)]
+        [MenuItem("Assets/Thry/Materials/Open in Cross Shader Editor", true, 400)]
         public static bool OpenInCrossShaderEditorValidation()
         {
             return Selection.objects.All(o => o is Material);

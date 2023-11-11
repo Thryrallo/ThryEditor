@@ -318,13 +318,13 @@ namespace Thry
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.lightmap_flags:
-                        NewProperty = new GIProperty(this, props[i], displayName, offset, optionsRaw, false);
+                        NewProperty = new GIProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.dsgi:
-                        NewProperty = new DSGIProperty(this, props[i], displayName, offset, optionsRaw, false);
+                        NewProperty = new DSGIProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.instancing:
-                        NewProperty = new InstancingProperty(this, props[i], displayName, offset, optionsRaw, false);
+                        NewProperty = new InstancingProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.locale:
                         NewProperty = new LocaleProperty(this, props[i], displayName, offset, optionsRaw, false);
