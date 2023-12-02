@@ -244,12 +244,13 @@ namespace Thry
                             SerializedProperty prop2 = prop.GetArrayElementAtIndex(i);
                             if (prop2.FindPropertyRelative("first").stringValue == alt)
                             {
+                                foundProp = true;
                                 prop = prop2.FindPropertyRelative("second");
                                 break;
                             }
                         }
 
-                        if (prop == null)
+                        if (!foundProp || prop == null)
                             continue;
 
                         if (type == MaterialProperty.PropType.Float)
