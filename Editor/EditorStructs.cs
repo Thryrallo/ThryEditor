@@ -196,79 +196,78 @@ namespace Thry
             int index = ShaderEditor.Active.Shader.FindPropertyIndex(this.MaterialProperty.name);
 
             object defaultValue = null;
-            if (type == MaterialProperty.PropType.Float)
+            if(type == MaterialProperty.PropType.Float)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultFloatValue(index);
-            else if (type == MaterialProperty.PropType.Vector)
+            else if(type == MaterialProperty.PropType.Vector)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(index);
-            else if (type == MaterialProperty.PropType.Texture)
+            else if(type == MaterialProperty.PropType.Texture)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(index);
 
             foreach(Material m in ShaderEditor.Active.Materials)
+            {
+                // Check if is not default value
+                if(type == MaterialProperty.PropType.Float)
                 {
-                    // Check if is not default value
-                    if (type == MaterialProperty.PropType.Float)
-                    {
-                        if (m.GetFloat(this.MaterialProperty.name) != (float)defaultValue)
-                            continue;
-                    }
-                    else if (type == MaterialProperty.PropType.Vector)
-                    {
-                        if (m.GetVector(this.MaterialProperty.name) != (Vector4)defaultValue)
-                            continue;
-                    }
-                    else if (type == MaterialProperty.PropType.Texture)
-                    {
-                        if (m.GetTexture(this.MaterialProperty.name) != null && 
-                            m.GetTexture(this.MaterialProperty.name).name != (string)defaultValue)
-                            continue;
-                    }
+                    if(m.GetFloat(this.MaterialProperty.name) != (float)defaultValue)
+                        continue;
+                }
+                else if(type == MaterialProperty.PropType.Vector)
+                {
+                    if(m.GetVector(this.MaterialProperty.name) != (Vector4)defaultValue)
+                        continue;
+                }
+                else if(type == MaterialProperty.PropType.Texture)
+                {
+                    if(m.GetTexture(this.MaterialProperty.name) != null &&
+                       m.GetTexture(this.MaterialProperty.name).name != (string)defaultValue)
+                        continue;
+                }
 
-                    // Material as serializedObject
-                    SerializedObject serializedObject = new SerializedObject(m);
-                    foreach (string alt in Options.alts)
+                // Material as serializedObject
+                SerializedObject serializedObject = new SerializedObject(m);
+                foreach(string alt in Options.alts)
+                {
+                    SerializedProperty arrayProp = null;
+                    if(type == MaterialProperty.PropType.Float)
+                        arrayProp = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
+                    else if(type == MaterialProperty.PropType.Vector)
+                        arrayProp = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
+                    else if(type == MaterialProperty.PropType.Texture)
+                        arrayProp = serializedObject.FindProperty($"m_SavedProperties.m_TexEnvs.Array");
+
+                    if(arrayProp == null)
+                        continue;
+
+                    SerializedProperty valueProp = null;
+                    // Iterate through properties in prop array, find where .first is alt
+                    for(int i = 0; i < arrayProp.arraySize; i++)
                     {
-                        SerializedProperty prop = null;
-                        if(type == MaterialProperty.PropType.Float)
-                            prop = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
-                        else if(type == MaterialProperty.PropType.Vector)
-                            prop = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
-                        else if(type == MaterialProperty.PropType.Texture)
-                            prop = serializedObject.FindProperty($"m_SavedProperties.m_TexEnvs.Array");
-
-                        if(prop == null)
-                            continue;
-
-                        bool foundProp = false;
-                        // Iterate through properties in prop array, find where .first is alt
-                        for (int i = 0; i < prop.arraySize; i++)
+                        SerializedProperty keyProp = arrayProp.GetArrayElementAtIndex(i);
+                        if(keyProp.FindPropertyRelative("first").stringValue == alt)
                         {
-                            SerializedProperty prop2 = prop.GetArrayElementAtIndex(i);
-                            if (prop2.FindPropertyRelative("first").stringValue == alt)
-                            {
-                                foundProp = true;
-                                prop = prop2.FindPropertyRelative("second");
-                                break;
-                            }
+                            valueProp = keyProp.FindPropertyRelative("second");
+                            break;
                         }
+                    }
 
-                        if (!foundProp || prop == null)
-                            continue;
+                    if(valueProp == null)
+                        continue;
 
-                        if (type == MaterialProperty.PropType.Float)
-                            this.MaterialProperty.floatValue = prop.floatValue;
-                        else if (type == MaterialProperty.PropType.Vector)
-                            this.MaterialProperty.colorValue = prop.colorValue;
-                        else if (type == MaterialProperty.PropType.Texture)
-                        {
-                            var texProperty = prop.FindPropertyRelative("m_Texture").objectReferenceValue as Texture;
-                            var scaleProperty = prop.FindPropertyRelative("m_Scale").vector2Value;
-                            var offsetProperty = prop.FindPropertyRelative("m_Offset").vector2Value;
+                    if(type == MaterialProperty.PropType.Float)
+                        this.MaterialProperty.floatValue = valueProp.floatValue;
+                    else if(type == MaterialProperty.PropType.Vector)
+                        this.MaterialProperty.colorValue = valueProp.colorValue;
+                    else if(type == MaterialProperty.PropType.Texture)
+                    {
+                        var texProperty = valueProp.FindPropertyRelative("m_Texture").objectReferenceValue as Texture;
+                        var scaleProperty = valueProp.FindPropertyRelative("m_Scale").vector2Value;
+                        var offsetProperty = valueProp.FindPropertyRelative("m_Offset").vector2Value;
 
-                            this.MaterialProperty.textureValue = texProperty;
-                            this.MaterialProperty.textureScaleAndOffset = new Vector4(scaleProperty.x, scaleProperty.y, offsetProperty.x, offsetProperty.y);
-                        }
+                        this.MaterialProperty.textureValue = texProperty;
+                        this.MaterialProperty.textureScaleAndOffset = new Vector4(scaleProperty.x, scaleProperty.y, offsetProperty.x, offsetProperty.y);
                     }
                 }
+            }
         }
 
         protected virtual void InitOptions()
