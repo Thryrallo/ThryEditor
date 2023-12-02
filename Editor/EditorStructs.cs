@@ -257,7 +257,14 @@ namespace Thry
                         else if (type == MaterialProperty.PropType.Vector)
                             this.MaterialProperty.colorValue = prop.colorValue;
                         else if (type == MaterialProperty.PropType.Texture)
-                            this.MaterialProperty.textureValue = prop.objectReferenceValue as Texture;
+                        {
+                            var texProperty = prop.FindPropertyRelative("m_Texture").objectReferenceValue as Texture;
+                            var scaleProperty = prop.FindPropertyRelative("m_Scale").vector2Value;
+                            var offsetProperty = prop.FindPropertyRelative("m_Offset").vector2Value;
+
+                            this.MaterialProperty.textureValue = texProperty;
+                            this.MaterialProperty.textureScaleAndOffset = new Vector4(scaleProperty.x, scaleProperty.y, offsetProperty.x, offsetProperty.y);
+                        }
                     }
                 }
         }
