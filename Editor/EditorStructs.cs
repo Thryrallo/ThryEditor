@@ -238,6 +238,7 @@ namespace Thry
                         if(prop == null)
                             continue;
 
+                        bool foundProp = false;
                         // Iterate through properties in prop array, find where .first is alt
                         for (int i = 0; i < prop.arraySize; i++)
                         {
