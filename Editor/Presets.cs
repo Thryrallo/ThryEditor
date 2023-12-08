@@ -314,7 +314,8 @@ namespace Thry.ThryEditor
                     }
                 }
             }
-            MaterialEditor.ApplyMaterialPropertyDrawers(shaderEditor.Materials);
+            foreach(Material m in shaderEditor.Materials)
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);
             shaderEditor.Reload();
         }
 

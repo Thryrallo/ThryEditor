@@ -2292,7 +2292,6 @@ namespace Thry
         }
 
 #if UNITY_2022_1_OR_NEWER
-
         // In Unity 2022 locking / unlocking deselects the material in the inspector
         // This is a workaround to fix that
         static Material[] s_materialsToFixSelection = null;
