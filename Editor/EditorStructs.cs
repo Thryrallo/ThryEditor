@@ -240,7 +240,7 @@ namespace Thry
                         
                         // Iterate through properties in prop array, find where .first is alt
                         SerializedProperty valueProp = null;
-                        for (int i = 0; i < prop.arraySize; i++)
+                        for (int i = 0; i < arrayProp.arraySize; i++)
                         {
                             SerializedProperty keyProp = arrayProp.GetArrayElementAtIndex(i);
                             if (keyProp.FindPropertyRelative("first").stringValue == alt)

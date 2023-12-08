@@ -835,17 +835,23 @@ namespace Thry
         }
 
         public static void ApplyMaterialPropertyDrawersPatch(Material material) {}
+        public static void ApplyMaterialPropertyDrawersFromNativePatch(Material material) {}
         static MethodInfo ApplyMaterialPropertyDrawersOriginalMethodInfo = typeof(MaterialEditor).GetMethod("ApplyMaterialPropertyDrawers", new Type[] {typeof(Material)});
+        static MethodInfo ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo = typeof(MaterialEditor).GetMethod("ApplyMaterialPropertyDrawersFromNative", BindingFlags.NonPublic | BindingFlags.Static);
         static MethodInfo ApplyMaterialPropertyDrawersPatchMethodInfo = typeof(ShaderOptimizer).GetMethod(nameof(ApplyMaterialPropertyDrawersPatch), BindingFlags.Public | BindingFlags.Static);
+        static MethodInfo ApplyMaterialPropertyDrawersFromNativePatchMethodInfo = typeof(ShaderOptimizer).GetMethod(nameof(ApplyMaterialPropertyDrawersFromNativePatch), BindingFlags.Public | BindingFlags.Static);
+        
 
         public static void DetourApplyMaterialPropertyDrawers()
         {
             Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersOriginalMethodInfo, ApplyMaterialPropertyDrawersPatchMethodInfo);
+            Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo, ApplyMaterialPropertyDrawersFromNativePatchMethodInfo);
         }
 
         public static void RestoreApplyMaterialPropertyDrawers()
         {
             Helper.RestoreDetour(ApplyMaterialPropertyDrawersOriginalMethodInfo);
+            Helper.RestoreDetour(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo);
         }
 
         private static bool LockApplyShader(ApplyStruct applyStruct)
@@ -876,12 +882,13 @@ namespace Thry
                 Debug.LogError("[Shader Optimizer] Generated shader " + newShaderName + " could not be found");
                 return false;
             }
+            // Detour ApplyMaterialPropertyDrawers to prevent it from running, for performance reasons
             DetourApplyMaterialPropertyDrawers();
             material.shader = newShader;
             RestoreApplyMaterialPropertyDrawers();
-            //ShaderEditor.reload();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
+            
 
             material.SetOverrideTag("OriginalKeywords", string.Join(" ", material.shaderKeywords));
             // Remove ALL keywords
@@ -2274,9 +2281,24 @@ namespace Thry
 
             if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
             {
+                s_materialsToFixSelection = materials.ToArray();
+                EditorApplication.update += EditorLoopForFixingSelection;
                 GUIUtility.ExitGUI();
             }
+                
             return true;
+        }
+
+        static Material[] s_materialsToFixSelection = null;
+        static void EditorLoopForFixingSelection()
+        {
+            if(Selection.activeObject == null)
+            {
+                Selection.objects = s_materialsToFixSelection;
+                EditorApplication.update -= EditorLoopForFixingSelection;
+                s_materialsToFixSelection = null;
+            }
+            
         }
 
         // This is just a wrapper so that it waits a cycle before saving
