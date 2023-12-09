@@ -771,7 +771,7 @@ namespace Thry
         {
             this._isFirstOnGUICall = true;
             this._doReloadNextDraw = true;
-            this.Repaint();
+            // this.Repaint();
             ThryWideEnumDrawer.Reload();
             ThryRGBAPackerDrawer.Reload();
         }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using MonoMod.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,18 +14,11 @@ namespace Thry{
         [SerializeField] Shader[] ValidateWithShaders;
         [SerializeField] string DefaultLanguage = "English";
         [SerializeField] string[] Languages = new string[0];
-        [SerializeField]int SelectedLanguage = -1;
-        [SerializeField]
-        string[] _keys = new string[0];
-        [SerializeField]
-        string[] _values = new string[0];
-        [SerializeField]
-        string[] _defaultKeys = new string[0];
-        [SerializeField]
-        string[] _defaultValues = new string[0];
+        [SerializeField] int SelectedLanguage = -1;
+        [SerializeField] string[] _keys = new string[0]; 
+        [SerializeField] string[] _values = new string[0];
 
         Dictionary<string, string[]> _localizedStrings = new Dictionary<string, string[]>();
-        Dictionary<string,string> _defaultKeyValues = new Dictionary<string,string>();
         string[] _allLanguages;
         bool _isLoaded = false;
         bool _couldNotLoad = false;
@@ -46,9 +40,11 @@ namespace Thry{
 
         void Load()
         {
+            // Load languages
             _allLanguages = new string[Languages.Length + 1];
             _allLanguages[0] = DefaultLanguage;
             Array.Copy(Languages, 0, _allLanguages, 1, Languages.Length);
+            
             _localizedStrings = new Dictionary<string, string[]>();
             for (int i = 0; i < _keys.Length; i++)
             {
@@ -88,16 +84,7 @@ namespace Thry{
 
         public string Get(MaterialProperty prop, string defaultValue)
         {
-            if(_localizedStrings.ContainsKey(prop.name))
-            {
-                string[] ar = _localizedStrings[prop.name];
-                if(ar.Length > SelectedLanguage && SelectedLanguage > -1)
-                {
-                    return ar[SelectedLanguage] ?? defaultValue;
-                }
-            }
-            _defaultKeyValues[prop.name] = defaultValue;
-            return defaultValue;
+            return Get(prop.name, defaultValue);
         }
 
         public string Get(MaterialProperty prop, FieldInfo field, string defaultValue)
@@ -117,7 +104,6 @@ namespace Thry{
                     return ar[SelectedLanguage] ?? defaultValue;
                 }
             }
-            _defaultKeyValues[id] = defaultValue;
             return defaultValue;
         }
 
@@ -175,8 +161,6 @@ namespace Thry{
 
         void Save()
         {
-            _defaultKeys = _defaultKeyValues.Keys.ToArray();
-            _defaultValues = _defaultKeyValues.Values.ToArray();
             _keys = _localizedStrings.Keys.ToArray();
             _values = new string[_keys.Length * Languages.Length];
             for (int i = 0; i < _keys.Length; i++)
@@ -190,8 +174,6 @@ namespace Thry{
 
         void Clear()
         {
-            _defaultKeys = new string[0];
-            _defaultValues = new string[0];
             _keys = new string[0];
             _values = new string[0];
             Languages = new string[0];
@@ -235,6 +217,7 @@ namespace Thry{
         public class LocaleEditor : Editor
         {
             List<(string key, string defaultValue, string newValue)> _missingKeys = new List<(string key, string defaultValue, string newValue)>();
+            Dictionary<string, string> _defaultPropertyContent = new Dictionary<string, string>();
             int _selectedLanguageIndex = 0;
             string _searchById = "";
             string _searchByTranslation = "";
@@ -246,6 +229,8 @@ namespace Thry{
 
             string ToCSVString(string s)
             {
+                if(s == null)
+                    return "";
                 return "\"" + s.Replace("\"", "“") + "\"";
             }
 
@@ -322,7 +307,10 @@ namespace Thry{
                 {
                     if (string.IsNullOrEmpty(locale._localizedStrings[key][_selectedLanguageIndex]))
                     {
-                        _missingKeys.Add((key, locale._defaultKeyValues[key], locale._defaultKeyValues[key]));
+                        if(_defaultPropertyContent.ContainsKey(key) && !string.IsNullOrWhiteSpace(_defaultPropertyContent[key]))
+                        {
+                            _missingKeys.Add((key, _defaultPropertyContent[key], _defaultPropertyContent[key]));
+                        }
                     }
                 }
             }
@@ -330,20 +318,30 @@ namespace Thry{
             void UpdateData(Localization locale)
             {
                 locale.Load();
-                // create _defaultKeyValues
-                if(locale._defaultKeyValues == null)
+
+                // Gather all keys from all shaders
+                List<MaterialProperty> allProps = new List<MaterialProperty>();
+                foreach(Shader s in locale.ValidateWithShaders)
                 {
-                    locale._defaultKeyValues = new Dictionary<string, string>();
+                    allProps.AddRange(
+                        MaterialEditor.GetMaterialProperties(new Material[]{new Material(s)})
+                    );
                 }
-                for(int i = 0; i < locale._defaultKeys.Length; i++)
-                {
-                    if(locale._defaultKeyValues.ContainsKey(locale._defaultKeys[i]) == false)
-                        locale._defaultKeyValues.Add(locale._defaultKeys[i], locale._defaultValues[i]);
-                }
+                // Make unique by propname
+                allProps = allProps.GroupBy(p => p.name).Select(g => g.First()).ToList();
+                _defaultPropertyContent.Clear();
+
                 // add all keys from shader
-                foreach(var kv in locale._defaultKeyValues)
+                foreach(var prop in allProps)
                 {
-                    string key = kv.Key;
+                    string key = prop.name;
+                    string value = prop.displayName;
+                    int seperatorIndex = value.IndexOf("--", StringComparison.Ordinal);
+                    if(seperatorIndex != -1)
+                    {
+                        value = value.Substring(0, seperatorIndex).Trim();
+                    }
+
                     if(key.StartsWith("footer_")) continue;
                     if(key == ShaderEditor.PROPERTY_NAME_MASTER_LABEL) continue;
                     if(key == ShaderEditor.PROPERTY_NAME_LABEL_FILE) continue;
@@ -351,10 +349,11 @@ namespace Thry{
                     if(key == ShaderEditor.PROPERTY_NAME_ON_SWAP_TO_ACTIONS) continue;
                     if(key == ShaderEditor.PROPERTY_NAME_SHADER_VERSION) continue;
                     if(key == ShaderEditor.PROPERTY_NAME_EDITOR_DETECT) continue;
-                    if (string.IsNullOrEmpty(kv.Value) == false && !locale._localizedStrings.ContainsKey(kv.Key))
+                    if (!string.IsNullOrWhiteSpace(value) && !locale._localizedStrings.ContainsKey(key))
                     {
-                        locale._localizedStrings.Add(kv.Key, new string[locale.Languages.Length]);
+                        locale._localizedStrings.Add(key, new string[locale.Languages.Length]);
                     }
+                    _defaultPropertyContent.Add(key, value);
                 }
                 // make missing keys a list of all keys that have an empty string in the selected language
                 UpdateMissing(locale);
@@ -381,11 +380,58 @@ namespace Thry{
                     UpdateData(locale);
                 }
 
-                if(GUILayout.Button("Save"))
+                if(GUILayout.Button("Save", GUILayout.Height(50)))
                 {
                     locale.Save();
                 }
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
+                GUIShaders(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Languages", EditorStyles.boldLabel);
+                GUILanguages(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Import / Export", EditorStyles.boldLabel);
+                GUICSV(locale);
+
+                if(locale.Languages.Length == 0) return;
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Select Language To Edit", EditorStyles.boldLabel);
+                GUIEditLanguageSelection(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Missing Entries", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("This will search all properties and list all that have no translation for the selected language.", MessageType.Info);
+                GUIMissingEntries(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Automatic Translation using Google", EditorStyles.boldLabel);
+                GUIGoogleTranslate(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Translate entries by value", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("This will search all properties and translate all that have the exact display name with the selected value. Suggested usecase: Panning, UV", MessageType.Info);
+                GUIValueTranslate(locale);
+
+                EditorGUILayout.Space(20);
+                EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+                EditorGUILayout.LabelField("Existing Entries", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("This will search all properties allows editing or removing them.", MessageType.Info);
+                GUIEdit(locale);
+
+            }
+
+            void GUIShaders(Localization locale)
+            {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("ValidateWithShaders"));
                 if(GUILayout.Button("Load Properties from Shaders"))
                 {
@@ -396,6 +442,10 @@ namespace Thry{
                         se.FakePartialInitilizationForLocaleGathering(s);
                     }
                 }
+            }
+
+            void GUILanguages(Localization locale)
+            {
                 locale.DefaultLanguage = EditorGUILayout.TextField("Default Language", locale.DefaultLanguage);
 
                 EditorGUILayout.LabelField("Languages");
@@ -415,8 +465,10 @@ namespace Thry{
                     locale.AddLanguage("New Language");
                 }
                 EditorGUILayout.EndHorizontal();
+            }
 
-                // popup for selecting language
+            void GUIEditLanguageSelection(Localization locale)
+            {
                 EditorGUI.BeginChangeCheck();
                 _selectedLanguageIndex = EditorGUILayout.Popup("Language to edit", _selectedLanguageIndex, locale.Languages);
                 if(EditorGUI.EndChangeCheck())
@@ -424,23 +476,27 @@ namespace Thry{
                     _missingKeys.Clear();
                 }
 
-                if(GUILayout.Button("Update"))
+                if(GUILayout.Button("Update Missing Entries"))
                 {
                     UpdateData(locale);
                 }
+            }
 
-                EditorGUILayout.Space(20);
-                EditorGUILayout.LabelField("Import / Export", EditorStyles.boldLabel);
-                if(GUILayout.Button("Import from CSV"))
+            void GUICSV(Localization locale)
+            {
+                if(GUILayout.Button("Load from CSV"))
+                {
                     LoadFromCSV(locale);
-
+                }
                 if(locale.Languages.Length == 0) return;
-
-                if(GUILayout.Button("Export to CSV"))
+                if(GUILayout.Button("Export as CSV"))
+                {
                     ExportAsCSV(locale);
+                }
+            }
 
-                EditorGUILayout.Space(20);
-                EditorGUILayout.LabelField("Missing Entries", EditorStyles.boldLabel);
+            void GUIMissingEntries(Localization locale)
+            {
                 (string,string,string) kvToRemove = default;
                 for(int i = 0; i < _missingKeys.Count && i < 10; i++)
                 {
@@ -471,9 +527,10 @@ namespace Thry{
                 {
                     _missingKeys.Remove(kvToRemove);
                 }
+            }
 
-                EditorGUILayout.Space(20);
-                EditorGUILayout.LabelField("Automatic Translation using Google", EditorStyles.boldLabel);
+            void GUIGoogleTranslate(Localization locale)
+            {
                 _autoTranslateLanguageShortCode = EditorGUILayout.TextField("Language Short Code", _autoTranslateLanguageShortCode);
                 EditorGUILayout.HelpBox("Short code must be valid short code. See https://cloud.google.com/translate/docs/languages for a list of valid short codes.", MessageType.Info);   
                 if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
@@ -504,15 +561,15 @@ namespace Thry{
                     EditorUtility.ClearProgressBar();
                     locale.Save();
                 }
+            }
 
-                EditorGUILayout.Space(20);
-                EditorGUILayout.LabelField("Translate entries by value", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("This will search all properties and translate all that have the exact display name with the selected value. Suggested usecase: Panning, UV", MessageType.Info);
+            void GUIValueTranslate(Localization locale)
+            {
                 _translateByValueIn = EditorGUILayout.TextField("Search for", _translateByValueIn);
                 _translateByValueOut = EditorGUILayout.TextField("Translate with", _translateByValueOut);
                 if(GUILayout.Button("Execute"))
                 {
-                    foreach(var kv in locale._defaultKeyValues)
+                    foreach(var kv in _defaultPropertyContent)
                     {
                         if(kv.Value == _translateByValueIn)
                         {
@@ -521,9 +578,10 @@ namespace Thry{
                     }
                     UpdateMissing(locale);
                 }
+            }
 
-                EditorGUILayout.Space(20);
-                EditorGUILayout.LabelField("Existing Entries", EditorStyles.boldLabel);
+            void GUIEdit(Localization locale)
+            {
                 EditorGUI.BeginChangeCheck();
                 _searchById = EditorGUILayout.TextField("Search by id", _searchById);
                 _searchByTranslation = EditorGUILayout.TextField("Search by translation", _searchByTranslation);
@@ -563,7 +621,6 @@ namespace Thry{
                         count++;
                     }
                 }
-
             }
         }
     }
