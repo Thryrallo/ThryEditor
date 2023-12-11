@@ -1598,7 +1598,6 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             EditorGUI.showMixedValue = prop.hasMixedValue;
-            EditorGUI.BeginChangeCheck();
             var value = prop.floatValue;
             int selectedIndex = Array.IndexOf(values, value);
 
@@ -1608,10 +1607,16 @@ namespace Thry
                 LoadNames();
             }
 
+            // Custom Change Check, so it triggers on reselect too
+            bool wasClickEvent = Event.current.type == EventType.MouseDown;
             var selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
             EditorGUI.showMixedValue = false;
-            if (EditorGUI.EndChangeCheck())
+            if (wasClickEvent && Event.current.type == EventType.Used)
+            {
+                // Set GUI.changed to true, so it triggers a change event, even on reselection
+                GUI.changed = true;
                 prop.floatValue = values[selIndex];
+            } 
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
