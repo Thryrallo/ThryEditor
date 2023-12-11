@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using PlasticGui.WorkspaceWindow.Home;
 using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
@@ -132,6 +133,8 @@ namespace Thry
         public bool IsAnimated = false;
         public bool IsRenaming = false;
         public string CustomStringTagID = null;
+        protected int ShaderPropertyId = -1;
+        protected int ShaderPropertyIndex = -1;
 
         public BetterTooltips.Tooltip tooltip;
 
@@ -165,7 +168,7 @@ namespace Thry
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
         }
 
-        public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, string optionsRaw)
+        public ShaderPart(ShaderEditor shaderEditor, MaterialProperty prop, int xOffset, string displayName, string optionsRaw, int propertyIndex)
         {
             this._optionsRaw = optionsRaw;
             this.ActiveShaderEditor = shaderEditor;
@@ -174,8 +177,11 @@ namespace Thry
             this.Content = new GUIContent(displayName);
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
 
-            if (prop == null)
+            if (MaterialProperty == null)
                 return;
+
+            this.ShaderPropertyId = Shader.PropertyToID(MaterialProperty.name);
+            this.ShaderPropertyIndex = propertyIndex;
 
             // Do parse options & check for alternative names if shader swap
             if(ShaderEditor.Active.DidSwapToNewShader)
@@ -326,12 +332,13 @@ namespace Thry
             if (DrawingData.IsEnabled && Options.condition_enable != null)
             {
                 hasAddedDisabledGroup = !Options.condition_enable.Test();
-                if(hasAddedDisabledGroup)
-                {
-                    DrawingData.IsEnabled = !hasAddedDisabledGroup;
-                    EditorGUI.BeginDisabledGroup(true);
-                }
             }
+            if(hasAddedDisabledGroup)
+            {
+                DrawingData.IsEnabled = !hasAddedDisabledGroup;
+                EditorGUI.BeginDisabledGroup(true);
+            }
+
             if (Options.condition_show.Test())
             {
                 PerformDraw(content, rect, useEditorIndent, isInHeader);
@@ -352,7 +359,7 @@ namespace Thry
                 //Context menu
                 //Show context menu, if not open.
                 //If locked material only show menu for animated materials. Only show data retieving options in locked state
-                if ( (!ShaderEditor.Active.IsLockedMaterial || IsAnimated)) {
+                if (!ShaderEditor.Active.IsLockedMaterial || IsAnimated) {
                     contextMenu = new GenericMenu();
                     if (IsAnimatable && !ShaderEditor.Active.IsLockedMaterial)
                     {
@@ -370,10 +377,209 @@ namespace Thry
                     contextMenu.AddItem(new GUIContent("Copy Animated Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = GetAnimatedPropertyName(); });
                     contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, CopyPropertyPath );
                     contextMenu.AddItem(new GUIContent("Copy Property as Keyframe"), false, CopyPropertyAsKeyframe);
+#if UNITY_2022_1_OR_NEWER
+                    bool isLockedInChildren = false;
+                    bool isLockedByAncestor = false;
+                    bool isOverriden = true;
+                    foreach (Material target in ShaderEditor.Active.Materials)
+                    {
+                        if(target == null) continue;
+                        int nameId = Shader.PropertyToID(MaterialProperty.name);
+                        isLockedInChildren |= target.IsPropertyLocked(nameId);
+                        isLockedByAncestor |= target.IsPropertyLockedByAncestor(nameId);
+                        isOverriden &= target.IsPropertyOverriden(nameId);                            
+                    }
+                    DoVariantMenuStuff(contextMenu, isOverriden, isLockedByAncestor, isLockedInChildren, ShaderEditor.Active.Materials, true);
+#endif
                     contextMenu.ShowAsContext();
                 }
             }
         }
+
+#if UNITY_2022_1_OR_NEWER
+        // static Type s_PropertyData = typeof(MaterialProperty).GetNestedType("PropertyData", BindingFlags.NonPublic);
+        // static MethodInfo s_HandleApplyRevert = s_PropertyData.GetMethod("HandleApplyRevert", BindingFlags.NonPublic | BindingFlags.Static);
+
+        void DoVariantMenuStuff(GenericMenu menu, bool overriden, bool lockedByAncestor, bool isLockedInChildren, Material[] targets, bool allowLocking)
+        {
+            if (lockedByAncestor)
+            {
+                if (targets.Length != 1)
+                    return;
+
+                contextMenu.AddSeparator("");
+                menu.AddItem(Styles.lockOriginContent, false, () => GotoLockOriginAction(targets));
+            }
+            else if (GUI.enabled)
+            {
+                DoRegularMenu(menu, overriden, targets);
+                DoLockPropertiesMenu(contextMenu, !isLockedInChildren, ShaderEditor.Active.Materials, true);
+            }
+        }
+
+        void DoRegularMenu(GenericMenu menu, bool isOverriden, Material[] targets)
+        {
+            var singleEditing = targets.Length == 1;
+
+            if (isOverriden)
+            {
+                contextMenu.AddSeparator("");
+                HandleApplyRevert(menu, singleEditing, targets);
+            }
+
+            DisplayMode displayMode = GetDisplayMode(targets);
+            if (displayMode == DisplayMode.Material)
+            {
+                menu.AddSeparator("");
+                menu.AddItem(Styles.resetContent, false, ResetMaterialProperties);
+            }
+            else if (displayMode == DisplayMode.Variant)
+                HandleRevertAll(menu, singleEditing, targets);
+        }
+
+        enum DisplayMode { Material, Variant, Mixed };
+        static DisplayMode GetDisplayMode(Material[] targets)
+        {
+            int variantCount = GetVariantCount(targets);
+            if (variantCount == 0)
+                return DisplayMode.Material;
+            if (variantCount == targets.Length)
+                return DisplayMode.Variant;
+            return DisplayMode.Mixed;
+        }
+
+        static int GetVariantCount(Material[] targets)
+        {
+            int count = 0;
+            foreach (Material target in targets)
+                count += target.isVariant ? 1 : 0;
+            return count;
+        }
+
+        void DoLockPropertiesMenu(GenericMenu menu, bool lockValue, Material[] targets, bool allowLocking)
+        {
+            if (menu.GetItemCount() != 0)
+                menu.AddSeparator("");
+
+            if (allowLocking)
+            {
+                menu.AddItem(Styles.lockContent, !lockValue, () => { SetLockedProperty(targets, lockValue); });
+            }
+            else
+            {
+                menu.AddDisabledItem(Styles.lockContent);
+            }
+        }
+
+        void SetLockedProperty(Material[] targets, bool value)
+        {
+            foreach (Material target in targets)
+            {
+                target.SetPropertyLock(ShaderPropertyId, value);
+            }
+        }
+
+        void GotoLockOriginAction(Material[] targets)
+        {
+            Material origin = targets[0] as Material;
+            while (origin = origin.parent)
+            {
+                if(origin.IsPropertyLocked(ShaderPropertyId))
+                    break;
+            }
+
+            if (origin)
+            {
+                EditorGUIUtility.PingObject(origin);
+            }
+        }
+
+        void HandleApplyRevert(GenericMenu menu, bool singleEditing, Material[] targets)
+        {
+            // Apply
+            if (singleEditing)
+            {
+                Material source = (Material)targets[0];
+                Material destination = (Material)targets[0];
+                while (destination = destination.parent as Material)
+                {
+                    if (AssetDatabase.IsForeignAsset(destination))
+                        continue;
+
+                    var text = destination.isVariant ? Styles.applyToVariantText : Styles.applyToMaterialText;
+                    var applyContent = new GUIContent(string.Format(text, destination.name));
+
+                    menu.AddItem(applyContent, false, (object dest) => {
+                        source.ApplyPropertyOverride((Material)dest, ShaderPropertyId);
+                    }, destination);
+                }
+            }
+
+            // Revert
+            var content = singleEditing ? Styles.revertContent :
+                new GUIContent(string.Format(Styles.revertMultiText, targets.Length));
+            menu.AddItem(content, false, () => {
+                string displayName = MaterialProperty.displayName;
+                string targetName = singleEditing ? targets[0].name : targets.Length + " Materials";
+                Undo.RecordObjects(targets, "Revert " + displayName + " of " + targetName);
+
+                foreach (Material target in targets)
+                {
+                    target.RevertPropertyOverride(ShaderPropertyId);
+                }
+            });
+        }
+
+        void HandleRevertAll(GenericMenu menu, bool singleEditing, Material[] targets)
+        {
+            foreach (Material target in targets)
+            {
+                if (target.isVariant)
+                {
+                    menu.AddSeparator("");
+
+                    menu.AddItem(Styles.revertAllContent, false, () => {
+                            string targetName = singleEditing ? targets[0].name : targets.Length + " Materials";
+                            Undo.RecordObjects(targets, "Revert all overrides of " + targetName);
+
+                            foreach (Material target in targets)
+                            target.RevertAllPropertyOverrides();
+                            });
+                    break;
+                }
+            }
+        }
+
+        void ResetMaterialProperties()
+        {
+            MaterialProperty prop = MaterialProperty;
+            Shader shader = ShaderEditor.Active.Shader;
+            switch (prop.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    prop.floatValue = shader.GetPropertyDefaultFloatValue(ShaderPropertyIndex);
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    prop.vectorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
+                    break;
+                case MaterialProperty.PropType.Color:
+                    prop.colorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
+                    break;
+                case MaterialProperty.PropType.Int:
+                    prop.intValue = shader.GetPropertyDefaultIntValue(ShaderPropertyIndex);
+                    break;
+                case MaterialProperty.PropType.Texture:
+                    Texture texture = null;
+                    var importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(shader)) as ShaderImporter;
+                    if (importer != null)
+                        texture = importer.GetDefaultTexture(prop.name);
+                    prop.textureValue = texture;
+                    prop.textureScaleAndOffset = new Vector4(1, 1, 0, 0);
+                    break;
+            }
+        }
+#endif
 
         void ToggleIsPreset()
         {
@@ -583,7 +789,7 @@ namespace Thry
             this._optionsRaw = optionsRaw;
         }
 
-        public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, xOffset, displayName, optionsRaw)
+        public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, xOffset, displayName, optionsRaw, propertyIndex)
         {
 
         }
@@ -607,6 +813,9 @@ namespace Thry
                 {
                     if (AnimationMode.InAnimationMode()) 
                     {
+                        // This fails when unselecting the object in hirearchy
+                        // Then reselecting it
+                        // Don't know why
                         AnimationMode.StopAnimationMode();
                         this.MaterialProperty.SetNumber(value ? 1 : 0);
                         AnimationMode.StartAnimationMode();
@@ -711,7 +920,7 @@ namespace Thry
         const int HEADER_HEIGHT = 20;
         const int CHECKBOX_OFFSET = 20;
 
-        public ShaderSection(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw)
+        public ShaderSection(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw, propertyIndex)
         {
         }
 
@@ -795,7 +1004,7 @@ namespace Thry
         {
         }
 
-        public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw)
+        public ShaderHeader(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw, propertyIndex)
         {
         }
 
@@ -1007,8 +1216,6 @@ namespace Thry
         public bool DoCustomHeightOffset = false;
         public float CustomHeightOffset = 0;
 
-        private int _property_index = 0;
-
         public string Keyword;
 
         protected MaterialPropertyDrawer[] _customDecorators;
@@ -1017,17 +1224,15 @@ namespace Thry
 
         bool _needsDrawerInitlization = true;
 
-        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip, int property_index) : base(propertyIdentifier, xOffset, displayName, tooltip, shaderEditor)
+        public ShaderProperty(ShaderEditor shaderEditor, string propertyIdentifier, int xOffset, string displayName, string tooltip, int propertyIndex) : base(propertyIdentifier, xOffset, displayName, tooltip, shaderEditor)
         {
-            this._property_index = property_index;
+            this.ShaderPropertyIndex = propertyIndex;
         }
 
-        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
+        public ShaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int propertyIndex) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw, propertyIndex)
         {
             this._doCustomDrawLogic = false;
             this._doForceIntoOneLine = forceOneLine;
-
-            this._property_index = property_index;
         }
 
         protected override void InitOptions()
@@ -1132,7 +1337,7 @@ namespace Thry
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
-            this.MaterialProperty = ActiveShaderEditor.Properties[_property_index];
+            this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
 
             if(_needsDrawerInitlization)
             {
@@ -1358,7 +1563,7 @@ namespace Thry
 
     public class ShaderHeaderProperty : ShaderPart
     {
-        public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw)
+        public ShaderHeaderProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int propertyIndex) : base(shaderEditor, materialProperty, xOffset, displayName, optionsRaw, propertyIndex)
         {
             // guid is defined as <guid:x*>
             if(displayName.Contains("<guid="))
@@ -1592,7 +1797,7 @@ namespace Thry
     }
     public class LocaleProperty : ShaderProperty
     {
-        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, 0)
+        public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
             _doCustomDrawLogic = true;
         }

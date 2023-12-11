@@ -277,14 +277,14 @@ namespace Thry
                 switch(type)
                 {
                     case ThryPropertyType.group_start:
-                        newPart = new ShaderGroup(this, props[i], Editor, displayName, offset, optionsRaw);
+                        newPart = new ShaderGroup(this, props[i], Editor, displayName, offset, optionsRaw, i);
                         break;
                     case ThryPropertyType.section_start:
-                        newPart = new ShaderSection(this, props[i], Editor, displayName, offset, optionsRaw);
+                        newPart = new ShaderSection(this, props[i], Editor, displayName, offset, optionsRaw, i);
                         break;
                     case ThryPropertyType.header:
                     case ThryPropertyType.header_start:
-                        newPart = new ShaderHeader(this, props[i], Editor, displayName, offset, optionsRaw);
+                        newPart = new ShaderHeader(this, props[i], Editor, displayName, offset, optionsRaw, i);
                         break;
                 }
                 // pop if needed
@@ -305,7 +305,7 @@ namespace Thry
                         _onSwapToActions = PropertyOptions.Deserialize(optionsRaw).actions;
                         break;
                     case ThryPropertyType.master_label:
-                        _shaderHeader = new ShaderHeaderProperty(this, props[i], displayName, 0, optionsRaw, false);
+                        _shaderHeader = new ShaderHeaderProperty(this, props[i], displayName, 0, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.footer:
                         _footers.Add(new FooterButton(Parser.Deserialize<ButtonData>(displayName)));
@@ -327,7 +327,7 @@ namespace Thry
                         NewProperty = new InstancingProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.locale:
-                        NewProperty = new LocaleProperty(this, props[i], displayName, offset, optionsRaw, false);
+                        NewProperty = new LocaleProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
                     case ThryPropertyType.shader_version:
                         PropertyOptions options = PropertyOptions.Deserialize(optionsRaw);
