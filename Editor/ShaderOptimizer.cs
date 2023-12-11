@@ -2298,40 +2298,11 @@ namespace Thry
 
             if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
             {
-#if UNITY_2022_1_OR_NEWER
-                s_materialsToFixSelection = materials.ToArray();
-                EditorApplication.update += EditorLoopForFixingSelection;
-#endif
                 GUIUtility.ExitGUI();
             }
                 
             return true;
         }
-
-#if UNITY_2022_1_OR_NEWER
-        // In Unity 2022 locking / unlocking deselects the material in the inspector
-        // This is a workaround to fix that
-        static Material[] s_materialsToFixSelection = null;
-        static int s_editorLoopCounter = 0;
-        static void EditorLoopForFixingSelection()
-        {
-            if(Selection.activeObject == null)
-            {
-                Selection.objects = s_materialsToFixSelection;
-                EditorApplication.update -= EditorLoopForFixingSelection;
-                s_materialsToFixSelection = null;
-                s_editorLoopCounter = 0;
-            }
-
-            s_editorLoopCounter++;
-            if(s_editorLoopCounter > 7)
-            {
-                EditorApplication.update -= EditorLoopForFixingSelection;
-                s_materialsToFixSelection = null;
-                s_editorLoopCounter = 0;
-            }
-        }
-#endif
 
         // This is just a wrapper so that it waits a cycle before saving
         static void QueueSaveAfterLockUnlock()
