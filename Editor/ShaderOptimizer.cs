@@ -466,34 +466,34 @@ namespace Thry
                 if (prop.name.EndsWith(AnimatedPropertySuffix, StringComparison.Ordinal)) continue;
                 else if (prop.name == UseInlineSamplerStatesPropertyName)
                 {
-                    UseInlineSamplerStates = (prop.floatValue == 1);
+                    UseInlineSamplerStates = (prop.GetNumber() == 1);
                     continue;
                 }
                 else if (prop.name.StartsWith(GeometryShaderEnabledPropertyName, StringComparison.Ordinal))
                 {
                     if (prop.name == GeometryShaderEnabledPropertyName)
-                        UseGeometry = (prop.floatValue == 1);
+                        UseGeometry = (prop.GetNumber() == 1);
                     else if (prop.name == GeometryShaderEnabledPropertyName + "ForwardBase")
-                        UseGeometryForwardBase = (prop.floatValue == 1);
+                        UseGeometryForwardBase = (prop.GetNumber() == 1);
                     else if (prop.name == GeometryShaderEnabledPropertyName + "ForwardAdd")
-                        UseGeometryForwardAdd = (prop.floatValue == 1);
+                        UseGeometryForwardAdd = (prop.GetNumber() == 1);
                     else if (prop.name == GeometryShaderEnabledPropertyName + "ShadowCaster")
-                        UseGeometryShadowCaster = (prop.floatValue == 1);
+                        UseGeometryShadowCaster = (prop.GetNumber() == 1);
                     else if (prop.name == GeometryShaderEnabledPropertyName + "Meta")
-                        UseGeometryMeta = (prop.floatValue == 1);
+                        UseGeometryMeta = (prop.GetNumber() == 1);
                 }
                 else if (prop.name.StartsWith(TessellationEnabledPropertyName, StringComparison.Ordinal))
                 {
                     if (prop.name == TessellationEnabledPropertyName)
-                        UseTessellation = (prop.floatValue == 1);
+                        UseTessellation = (prop.GetNumber() == 1);
                     else if (prop.name == TessellationEnabledPropertyName + "ForwardBase")
-                        UseTessellationForwardBase = (prop.floatValue == 1);
+                        UseTessellationForwardBase = (prop.GetNumber() == 1);
                     else if (prop.name == TessellationEnabledPropertyName + "ForwardAdd")
-                        UseTessellationForwardAdd = (prop.floatValue == 1);
+                        UseTessellationForwardAdd = (prop.GetNumber() == 1);
                     else if (prop.name == TessellationEnabledPropertyName + "ShadowCaster")
-                        UseTessellationShadowCaster = (prop.floatValue == 1);
+                        UseTessellationShadowCaster = (prop.GetNumber() == 1);
                     else if (prop.name == TessellationEnabledPropertyName + "Meta")
-                        UseTessellationMeta = (prop.floatValue == 1);
+                        UseTessellationMeta = (prop.GetNumber() == 1);
                 }
 
                 string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "");
@@ -555,6 +555,13 @@ namespace Thry
                         propData.value = new Vector4(prop.floatValue, 0, 0, 0);
                         constantProps.Add(propData);
                         break;
+                    case MaterialProperty.PropType.Int:
+                        propData = new PropertyData();
+                        propData.type = PropertyType.Float;
+                        propData.name = prop.name;
+                        propData.value = new Vector4(prop.intValue, 0, 0, 0);
+                        constantProps.Add(propData);
+                        break;
                     case MaterialProperty.PropType.Texture:
                         PropertyData ST = new PropertyData();
                         ST.type = PropertyType.Vector;
@@ -581,7 +588,7 @@ namespace Thry
             var disabledLightModesProperty = Array.Find(props, x => x.name == DisabledLightModesPropertyName);
             if (disabledLightModesProperty != null)
             {
-                int lightModesMask = (int)disabledLightModesProperty.floatValue;
+                int lightModesMask = (int)disabledLightModesProperty.GetNumber();
                 if ((lightModesMask & (int)LightMode.ForwardAdd) != 0)
                     disabledLightModes.Add("ForwardAdd");
                 if ((lightModesMask & (int)LightMode.ShadowCaster) != 0)
@@ -668,19 +675,19 @@ namespace Thry
                         else if (trimmedLine.StartsWith("//#pragmamulti_compile_LOD_FADE_CROSSFADE", StringComparison.Ordinal))
                         {
                             MaterialProperty crossfadeProp = Array.Find(props, x => x.name == LODCrossFadePropertyName);
-                            if (crossfadeProp != null && crossfadeProp.floatValue == 1)
+                            if (crossfadeProp != null && crossfadeProp.GetNumber() == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//#pragma", "#pragma");
                         }
                         else if (trimmedLine.StartsWith("//\"IgnoreProjector\"=\"True\"", StringComparison.Ordinal))
                         {
                             MaterialProperty projProp = Array.Find(props, x => x.name == IgnoreProjectorPropertyName);
-                            if (projProp != null && projProp.floatValue == 1)
+                            if (projProp != null && projProp.GetNumber() == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//\"IgnoreProjector", "\"IgnoreProjector");
                         }
                         else if (trimmedLine.StartsWith("//\"ForceNoShadowCasting\"=\"True\"", StringComparison.Ordinal))
                         {
                             MaterialProperty forceNoShadowsProp = Array.Find(props, x => x.name == ForceNoShadowCastingPropertyName);
-                            if (forceNoShadowsProp != null && forceNoShadowsProp.floatValue == 1)
+                            if (forceNoShadowsProp != null && forceNoShadowsProp.GetNumber() == 1)
                                 psf.lines[i] = psf.lines[i].Replace("//\"ForceNoShadowCasting", "\"ForceNoShadowCasting");
                         }
                         else if (trimmedLine.StartsWith("GrabPass {", StringComparison.Ordinal))
@@ -909,6 +916,9 @@ namespace Thry
                     case MaterialProperty.PropType.Float:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
+                    case MaterialProperty.PropType.Int:
+                        material.SetInt(newName, animProp.Prop.intValue);
+                        break;
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
@@ -935,6 +945,9 @@ namespace Thry
                         break;
                     case MaterialProperty.PropType.Float:
                         material.SetFloat(newName, animProp.Prop.floatValue);
+                        break;
+                    case MaterialProperty.PropType.Int:
+                        material.SetInt(newName, animProp.Prop.intValue);
                         break;
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.Prop.floatValue);
@@ -1441,7 +1454,7 @@ namespace Thry
                     MaterialProperty maxTessFactorProperty = Array.Find(props, x => x.name == TessellationMaxFactorPropertyName);
                     if (maxTessFactorProperty != null)
                     {
-                        float maxTessellation = maxTessFactorProperty.floatValue;
+                        float maxTessellation = maxTessFactorProperty.GetNumber();
                         string animateTag = material.GetTag(TessellationMaxFactorPropertyName + AnimatedTagSuffix, false, "0");
                         if (animateTag != "" && animateTag == "1")
                             maxTessellation = 64.0f;
@@ -2106,6 +2119,10 @@ namespace Thry
                         case MaterialProperty.PropType.Range:
                         case MaterialProperty.PropType.Float:
                             stringBuilder.Append(m.GetFloat(propName)
+                                .ToString(CultureInfo.InvariantCulture));
+                            break;
+                        case MaterialProperty.PropType.Int:
+                            stringBuilder.Append(m.GetInt(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
                         case MaterialProperty.PropType.Texture:

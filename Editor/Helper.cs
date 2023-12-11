@@ -934,6 +934,11 @@ namespace Thry
                 prev = p.floatValue;
                 p.floatValue = Parser.ParseFloat(value, p.floatValue);
             }
+            else if (p.type == MaterialProperty.PropType.Int)
+            {
+                prev = p.intValue;
+                p.intValue = (int)Parser.ParseFloat(value, p.intValue);
+            }
             else if (p.type == MaterialProperty.PropType.Vector)
             {
                 prev = p.vectorValue;
@@ -958,6 +963,10 @@ namespace Thry
                 case MaterialProperty.PropType.Range:
                     prev = p.floatValue;
                     p.floatValue = source.GetFloat(p.name);
+                    break;
+                case MaterialProperty.PropType.Int:
+                    prev = p.intValue;
+                    p.intValue = source.GetInt(p.name);
                     break;
                 case MaterialProperty.PropType.Color:
                     prev = p.colorValue;
@@ -988,6 +997,10 @@ namespace Thry
                 case MaterialProperty.PropType.Range:
                     prev = target.floatValue;
                     target.floatValue = source.floatValue;
+                    break;
+                case MaterialProperty.PropType.Int:
+                    prev = target.intValue;
+                    target.intValue = source.intValue;
                     break;
                 case MaterialProperty.PropType.Color:
                     prev = target.colorValue;

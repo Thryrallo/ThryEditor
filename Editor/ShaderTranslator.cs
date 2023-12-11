@@ -62,6 +62,15 @@ namespace Thry.ThryEditor
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
                             }
                             break;
+                        case MaterialProperty.PropType.Int:
+                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Ints", trans.Origin);
+                            if (p != null)
+                            {
+                                float f = p.FindPropertyRelative("second").intValue;
+                                if (trans.Math.Length > 0) f = Helper.SolveMath(trans.Math, f);
+                                editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
+                            }
+                            break;
                         case MaterialProperty.PropType.Vector:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
                             if (p != null) editor.PropertyDictionary[trans.Target].MaterialProperty.vectorValue = p.FindPropertyRelative("second").vector4Value;

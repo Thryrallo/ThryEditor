@@ -896,7 +896,7 @@ namespace Thry
             if (framesProperty != null)
             {
                 if (ShaderEditor.Active.PropertyDictionary.ContainsKey(framesProperty))
-                    ShaderEditor.Active.PropertyDictionary[framesProperty].MaterialProperty.floatValue = tex.depth;
+                    ShaderEditor.Active.PropertyDictionary[framesProperty].MaterialProperty.SetNumber(tex.depth);
             }
         }
 
@@ -1067,7 +1067,7 @@ namespace Thry
             {
                 foreach (Material m in prop.targets)
                 {
-                    if (prop.floatValue == 1)
+                    if (prop.GetNumber() == 1)
                         m.EnableKeyword(keyword);
                     else
                         m.DisableKeyword(keyword);
@@ -1077,7 +1077,9 @@ namespace Thry
 
         static bool IsPropertyTypeSuitable(MaterialProperty prop)
         {
-            return prop.type == MaterialProperty.PropType.Float || prop.type == MaterialProperty.PropType.Range;
+            return prop.type == MaterialProperty.PropType.Float || 
+                   prop.type == MaterialProperty.PropType.Range ||
+                   prop.type == MaterialProperty.PropType.Int;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -1110,14 +1112,14 @@ namespace Thry
 
             EditorGUI.BeginChangeCheck();
 
-            bool value = (Math.Abs(prop.floatValue) > 0.001f);
+            bool value = (Math.Abs(prop.GetNumber()) > 0.001f);
             EditorGUI.showMixedValue = prop.hasMixedValue;
             if (left) value = EditorGUI.ToggleLeft(position, label, value, Styles.style_toggle_left_richtext);
             else value = EditorGUI.Toggle(position, label, value);
             EditorGUI.showMixedValue = false;
             if (EditorGUI.EndChangeCheck())
             {
-                prop.floatValue = value ? 1.0f : 0.0f;
+                prop.SetNumber(value ? 1.0f : 0.0f);
                 if (hasKeyword) SetKeyword(prop, value);
             }
         }
@@ -1131,7 +1133,7 @@ namespace Thry
             if (prop.hasMixedValue)
                 return;
 
-            if (hasKeyword) SetKeyword(prop, (Math.Abs(prop.floatValue) > 0.001f));
+            if (hasKeyword) SetKeyword(prop, (Math.Abs(prop.GetNumber()) > 0.001f));
         }
 
         protected void SetKeywordInternal(MaterialProperty prop, bool on, string defaultKeywordSuffix)
@@ -1598,7 +1600,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             EditorGUI.showMixedValue = prop.hasMixedValue;
-            var value = prop.floatValue;
+            float value = prop.GetNumber();
             int selectedIndex = Array.IndexOf(values, value);
 
             if (_reloadCount != _reloadCountStatic)
@@ -1608,14 +1610,14 @@ namespace Thry
             }
 
             // Custom Change Check, so it triggers on reselect too
-            bool wasClickEvent = Event.current.type == EventType.MouseDown;
-            var selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
+            bool wasClickEvent = Event.current.type == EventType.ExecuteCommand;
+            int selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
             EditorGUI.showMixedValue = false;
             if (wasClickEvent && Event.current.type == EventType.Used)
             {
                 // Set GUI.changed to true, so it triggers a change event, even on reselection
                 GUI.changed = true;
-                prop.floatValue = values[selIndex];
+                prop.SetNumber(values[selIndex]);
             } 
         }
 
@@ -1635,9 +1637,9 @@ namespace Thry
         {
             var range = prop.rangeLimits;
             EditorGUI.BeginChangeCheck();
-            var value = EditorGUI.IntSlider(position, label, (int)prop.floatValue, (int)range.x, (int)range.y);
+            var value = EditorGUI.IntSlider(position, label, (int)prop.GetNumber(), (int)range.x, (int)range.y);
             if (EditorGUI.EndChangeCheck())
-                prop.floatValue = value;
+                prop.SetNumber(value);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -1841,19 +1843,19 @@ namespace Thry
                 (shader.name.StartsWith("Hidden/") && material.GetTag("OriginalShader", false, "") != "" && shader.GetPropertyDefaultFloatValue(shader.FindPropertyIndex(shaderOptimizer.name)) == 1);
             //this will make sure the button is unlocked if you manually swap to an unlocked shader
             //shaders that have the ability to be locked shouldnt really be hidden themself. at least it wouldnt make too much sense
-            if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 1 && isLocked == false)
+            if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.GetNumber() == 1 && isLocked == false)
             {
-                shaderOptimizer.floatValue = 0;
+                shaderOptimizer.SetNumber(0);
             }
-            else if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.floatValue == 0 && isLocked)
+            else if (shaderOptimizer.hasMixedValue == false && shaderOptimizer.GetNumber() == 0 && isLocked)
             {
-                shaderOptimizer.floatValue = 1;
+                shaderOptimizer.SetNumber(1);
             }
 
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.
             // But in a case where the material property says its locked in but the material really isn't, this
             // will display and allow users to fix the property/lock in
-            ShaderEditor.Active.IsLockedMaterial = shaderOptimizer.floatValue == 1;
+            ShaderEditor.Active.IsLockedMaterial = shaderOptimizer.GetNumber() == 1;
             if (shaderOptimizer.hasMixedValue)
             {
                 EditorGUI.BeginChangeCheck();
@@ -1868,7 +1870,7 @@ namespace Thry
             else
             {
                 EditorGUI.BeginChangeCheck();
-                if (shaderOptimizer.floatValue == 0)
+                if (shaderOptimizer.GetNumber() == 0)
                 {
                     if (materialEditor.targets.Length == 1)
                         GUILayout.Button(EditorLocale.editor.Get("lockin_button_single"));
@@ -1883,7 +1885,7 @@ namespace Thry
                 if (EditorGUI.EndChangeCheck())
                 {
                     SaveChangeStack();
-                    ShaderOptimizer.SetLockedForAllMaterials(shaderOptimizer.targets.Select(t => t as Material), shaderOptimizer.floatValue == 1 ? 0 : 1, true, false, false, shaderOptimizer);
+                    ShaderOptimizer.SetLockedForAllMaterials(shaderOptimizer.targets.Select(t => t as Material), shaderOptimizer.GetNumber() == 1 ? 0 : 1, true, false, false, shaderOptimizer);
                     RestoreChangeStack();
                 }
             }
@@ -1979,7 +1981,7 @@ namespace Thry
             _sceneTool = DecalSceneTool.Create(
                 Selection.activeTransform.GetComponent<Renderer>(),
                 ShaderEditor.Active.Materials[0],
-                (int)ShaderEditor.Active.PropertyDictionary[_uvIndexPropertyName].MaterialProperty.floatValue,
+                (int)ShaderEditor.Active.PropertyDictionary[_uvIndexPropertyName].MaterialProperty.GetNumber(),
                 ShaderEditor.Active.PropertyDictionary[_positionPropertyName].MaterialProperty,
                 ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
                 ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,

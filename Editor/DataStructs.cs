@@ -275,6 +275,7 @@ namespace Thry
         {
             if(
                 (p.type == MaterialProperty.PropType.Float   && p.floatValue.ToString()   ==  value)          ||
+                (p.type == MaterialProperty.PropType.Int     && p.intValue.ToString()     ==  value)          ||
                 (p.type == MaterialProperty.PropType.Range   && p.floatValue.ToString()   ==  value)          ||
                 (p.type == MaterialProperty.PropType.Color   && p.colorValue.ToString()   ==  value)          ||
                 (p.type == MaterialProperty.PropType.Vector  && p.vectorValue.ToString()  ==  value)          ||
@@ -535,13 +536,13 @@ namespace Thry
                 case DefineableConditionType.PROPERTY_BOOL:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    if (_compareType == CompareType.NONE) return materialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return materialProperty.floatValue == _floatValue;
-                    if (_compareType == CompareType.NOT_EQUAL) return materialProperty.floatValue != _floatValue;
-                    if (_compareType == CompareType.SMALLER) return materialProperty.floatValue < _floatValue;
-                    if (_compareType == CompareType.BIGGER) return materialProperty.floatValue > _floatValue;
-                    if (_compareType == CompareType.BIGGER_EQ) return materialProperty.floatValue >= _floatValue;
-                    if (_compareType == CompareType.SMALLER_EQ) return materialProperty.floatValue <= _floatValue;
+                    if (_compareType == CompareType.NONE) return materialProperty.GetNumber() == 1;
+                    if (_compareType == CompareType.EQUAL) return materialProperty.GetNumber() == _floatValue;
+                    if (_compareType == CompareType.NOT_EQUAL) return materialProperty.GetNumber() != _floatValue;
+                    if (_compareType == CompareType.SMALLER) return materialProperty.GetNumber() < _floatValue;
+                    if (_compareType == CompareType.BIGGER) return materialProperty.GetNumber() > _floatValue;
+                    if (_compareType == CompareType.BIGGER_EQ) return materialProperty.GetNumber() >= _floatValue;
+                    if (_compareType == CompareType.SMALLER_EQ) return materialProperty.GetNumber() <= _floatValue;
                     break;
                 case DefineableConditionType.TEXTURE_SET:
                     materialProperty = GetMaterialProperty();
@@ -550,9 +551,9 @@ namespace Thry
                 case DefineableConditionType.DROPDOWN:
                     materialProperty = GetMaterialProperty();
                     if (materialProperty == null) return false;
-                    if (_compareType == CompareType.NONE) return materialProperty.floatValue == 1;
-                    if (_compareType == CompareType.EQUAL) return "" + materialProperty.floatValue == _value;
-                    if (_compareType == CompareType.NOT_EQUAL) return "" + materialProperty.floatValue != _value;
+                    if (_compareType == CompareType.NONE) return materialProperty.GetNumber() == 1;
+                    if (_compareType == CompareType.EQUAL) return "" + materialProperty.GetNumber() == _value;
+                    if (_compareType == CompareType.NOT_EQUAL) return "" + materialProperty.GetNumber() != _value;
                     break;
                 case DefineableConditionType.PROPERTY_IS_ANIMATED:
                     return ShaderOptimizer.IsAnimated(_materialInsteadOfEditor, _obj);

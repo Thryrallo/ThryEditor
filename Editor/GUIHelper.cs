@@ -549,7 +549,7 @@ namespace Thry
             selected = EditorGUILayout.Popup(label.text, selected, locales);
             if (EditorGUI.EndChangeCheck())
             {
-                ShaderEditor.Active.PropertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].MaterialProperty.floatValue = selected;
+                ShaderEditor.Active.PropertyDictionary[ShaderEditor.PROPERTY_NAME_LOCALE].MaterialProperty.SetNumber(selected);
                 ShaderEditor.ReloadActive();
             }
         }

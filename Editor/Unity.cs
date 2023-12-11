@@ -114,6 +114,32 @@ namespace Thry
         }
     }
 
+    public static class UnityExtensions
+    {
+        // MaterialProperty extension for setting floats / ints
+        public static void SetNumber(this MaterialProperty prop, float value)
+        {
+            if(prop.type == MaterialProperty.PropType.Int)
+                prop.intValue = (int)value;
+            else
+                prop.floatValue = value;
+        }
+
+        public static float GetNumber(this MaterialProperty prop)
+        {
+            if(prop.type == MaterialProperty.PropType.Int)
+                return prop.intValue;
+            else
+                return prop.floatValue;
+        }
+
+        public static void SetNumber(this Material mat, string name, float value)
+        {
+            mat.SetFloat(name, value);
+            mat.SetInteger(name, (int)value);
+        }
+    }
+
     public class UnityFixer
     {
         public const string RSP_DRAWING_DLL_CODE = "\n-r:System.Drawing.dll";
