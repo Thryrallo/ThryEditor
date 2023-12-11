@@ -138,6 +138,14 @@ namespace Thry
             mat.SetFloat(name, value);
             mat.SetInteger(name, (int)value);
         }
+        
+        public static float GetNumber(this Material mat, MaterialProperty prop)
+        {
+            if(prop.type == MaterialProperty.PropType.Int)
+                return mat.GetInt(prop.name);
+            else
+                return mat.GetFloat(prop.name);
+        }
     }
 
     public class UnityFixer

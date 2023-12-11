@@ -1631,7 +1631,7 @@ namespace Thry
                 || success == UnlockSuccess.couldNotDeleteLockedShader)
             {
                 if (shaderOptimizer != null) shaderOptimizer.floatValue = 0;
-                else material.SetFloat(GetOptimizerPropertyName(material.shader), 0);
+                else material.SetNumber(GetOptimizerPropertyName(material.shader), 0);
             }
         }
         public static bool GuessShader(Shader locked, out Shader shader)
@@ -2286,7 +2286,7 @@ namespace Thry
                 {
                     if (ShaderOptimizer.LockApplyShader(m))
                     {
-                        m.SetFloat(GetOptimizerPropertyName(m.shader), 1);
+                        m.SetNumber(GetOptimizerPropertyName(m.shader), 1);
                     }
                 }
             }

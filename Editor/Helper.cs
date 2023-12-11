@@ -962,7 +962,7 @@ namespace Thry
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
                     prev = p.floatValue;
-                    p.floatValue = source.GetFloat(p.name);
+                    p.floatValue = source.GetNumber(p);
                     break;
                 case MaterialProperty.PropType.Int:
                     prev = p.intValue;

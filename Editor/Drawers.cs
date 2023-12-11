@@ -1057,7 +1057,7 @@ namespace Thry
             {
                 foreach (Material m in prop.targets)
                 {
-                    if (m.GetFloat(prop.name) == 1)
+                    if (m.GetNumber(prop) == 1)
                         m.EnableKeyword(keyword);
                     else
                         m.DisableKeyword(keyword);

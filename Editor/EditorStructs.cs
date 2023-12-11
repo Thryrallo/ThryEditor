@@ -210,7 +210,7 @@ namespace Thry
                     // Check if is not default value
                     if (type == MaterialProperty.PropType.Float)
                     {
-                        if (m.GetFloat(this.MaterialProperty.name) != (float)defaultValue)
+                        if (m.GetNumber(this.MaterialProperty) != (float)defaultValue)
                             continue;
                     }
                     else if (type == MaterialProperty.PropType.Int)
@@ -1039,7 +1039,7 @@ namespace Thry
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(MaterialProperty, m);
-            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(MaterialProperty.name)==1);
+            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetNumber(MaterialProperty)==1);
             if (IsAnimatable)
             {
                 ShaderOptimizer.CopyAnimatedTagFromMaterial(m, MaterialProperty);
@@ -1221,7 +1221,7 @@ namespace Thry
         {
             if (MaterialProperty.type != p.MaterialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(MaterialProperty, p.MaterialProperty);
-            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetFloat(p.MaterialProperty.name) == 1);
+            if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetNumber(p.MaterialProperty) == 1);
             if (IsAnimatable && p.IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagFromProperty(p.MaterialProperty, MaterialProperty);
             this.IsAnimated = IsAnimatable && ShaderOptimizer.GetAnimatedTag(MaterialProperty) != "";
