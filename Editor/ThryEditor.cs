@@ -478,6 +478,7 @@ namespace Thry
 
             Active = this;
 
+            DoVariantWarning();
             GUIManualReloadButton();
             GUIDevloperMode();
             GUIShaderVersioning();
@@ -606,6 +607,14 @@ namespace Thry
             if (GUILayout.Button("@UI Made by Thryrallo", Styles.made_by_style))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+        }
+
+        private void DoVariantWarning()
+        {
+            if(Materials[0].isVariant)
+            {
+                EditorGUILayout.HelpBox("This material is a variant. It cannot be locked or uploaded to VRChat.", MessageType.Warning);
+            }
         }
 
         private void PopupTools(Rect position)
