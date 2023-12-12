@@ -352,7 +352,7 @@ namespace Thry
 
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
-            if (this is ShaderGroup) return;
+            if (this is ShaderGroup || isInHeader) return;
             if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
                 //Context menu

@@ -1852,6 +1852,9 @@ namespace Thry
                 shaderOptimizer.SetNumber(1);
             }
 
+            bool disabled = ShaderEditor.Active.Materials[0].isVariant;
+            EditorGUI.BeginDisabledGroup(disabled); // for variant materials
+
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.
             // But in a case where the material property says its locked in but the material really isn't, this
             // will display and allow users to fix the property/lock in
@@ -1911,6 +1914,8 @@ namespace Thry
                 }
                 EditorGUI.EndDisabledGroup();
             }
+
+            EditorGUI.EndDisabledGroup(); // for variant materials
         }
 
         //This code purly exists cause Unity 2019 is a piece of shit that looses it's internal change stack on locking CAUSE FUCK IF I KNOW
