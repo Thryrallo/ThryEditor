@@ -851,14 +851,23 @@ namespace Thry
 
         public static void DetourApplyMaterialPropertyDrawers()
         {
+        // Detour not needed anymore in 2022. ApplyMaterialPropertyDrawers is not slow anymore.
+        // + Unity 2022 Crashes on apple silicon when detouring ApplyMaterialPropertyDrawers
+#if UNITY_2022_1_OR_NEWER
+#else
             Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersOriginalMethodInfo, ApplyMaterialPropertyDrawersPatchMethodInfo);
             Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo, ApplyMaterialPropertyDrawersFromNativePatchMethodInfo);
+#endif
         }
 
         public static void RestoreApplyMaterialPropertyDrawers()
         {
+            
+#if UNITY_2022_1_OR_NEWER
+#else
             Helper.RestoreDetour(ApplyMaterialPropertyDrawersOriginalMethodInfo);
             Helper.RestoreDetour(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo);
+#endif
         }
 
         private static bool LockApplyShader(ApplyStruct applyStruct)

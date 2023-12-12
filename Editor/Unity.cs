@@ -136,8 +136,11 @@ namespace Thry
 
         public static void SetNumber(this Material mat, string name, float value)
         {
-            mat.SetFloat(name, value);
-            mat.SetInteger(name, (int)value);
+            MaterialProperty prop = MaterialEditor.GetMaterialProperty(new UnityEngine.Object[] { mat }, name);
+            if(prop.type == MaterialProperty.PropType.Int)
+                mat.SetInteger(name, (int)value);
+            else
+                mat.SetFloat(name, value);
         }
         
         public static float GetNumber(this Material mat, MaterialProperty prop)
