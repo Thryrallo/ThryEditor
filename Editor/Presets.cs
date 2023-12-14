@@ -271,13 +271,7 @@ namespace Thry.ThryEditor
         public static void Apply(Material preset, ShaderEditor shaderEditor)
         {
             s_appliedPresets[shaderEditor.Materials[0]] = (preset, new Material(shaderEditor.Materials[0]));
-            foreach (ShaderPart prop in shaderEditor.ShaderParts)
-            {
-                if (IsPreset(preset, prop))
-                {
-                    prop.CopyFromMaterial(preset);
-                }
-            }
+            ApplyPreset(shaderEditor, preset);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
@@ -305,18 +299,27 @@ namespace Thry.ThryEditor
                 shaderEditor.Materials[i].CopyPropertiesFromMaterial(originals[i]);
             foreach (Material preset in presets)
             {
-                string guuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(preset));
-                foreach (ShaderPart prop in shaderEditor.ShaderParts)
-                {
-                    if (IsPreset(preset, prop))
-                    {
-                        prop.CopyFromMaterial(preset);
-                    }
-                }
+                ApplyPreset(shaderEditor, preset);
             }
             foreach(Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
             shaderEditor.Reload();
+        }
+
+        static void ApplyPreset(ShaderEditor shaderEditor, Material preset)
+        {
+            // Swap shader to make sure all properties are available
+            // And prevent stuff like missing shaders making presets unusable
+            Shader prev = preset.shader;
+            preset.shader = shaderEditor.Shader;
+            foreach (ShaderPart prop in shaderEditor.ShaderParts)
+            {
+                if (IsPreset(preset, prop))
+                {
+                    prop.CopyFromMaterial(preset);
+                }
+            }
+            preset.shader = prev;
         }
 
         public static void SetProperty(Material m, ShaderPart prop, bool value)
@@ -447,7 +450,7 @@ namespace Thry.ThryEditor
                     isOn = EditorGUILayout.ToggleLeft(name, isOn);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        popupGUI.ToggelPreset(Presets.GetPresetMaterial(guid), isOn);
+                        popupGUI.TogglePreset(Presets.GetPresetMaterial(guid), isOn);
                     }
                 }
                 if(structure.Count > 0)
@@ -514,11 +517,12 @@ namespace Thry.ThryEditor
             }
         }
 
-        void ToggelPreset(Material m, bool on)
+        void TogglePreset(Material m, bool on)
         {
             if (tickedPresets.Contains(m) && !on) tickedPresets.Remove(m);
             if (!tickedPresets.Contains(m) && on) tickedPresets.Add(m);
             Presets.ApplyList(shaderEditor, beforePreset, tickedPresets);
+            shaderEditor.Repaint();
         }
 
         static Texture2D backgroundTextrure;
