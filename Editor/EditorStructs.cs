@@ -126,7 +126,7 @@ namespace Thry
         public bool DoReferencePropertiesExist = false;
         public bool DoesReferencePropertyExist = false;
         public bool IsHidden = false;
-        public bool IsAnimatable = false;
+        public bool IsAnimatable = true;
         public bool IsPreset = false;
         public bool ExemptFromLockedDisabling = false;
         public bool IsAnimated = false;
@@ -1291,7 +1291,7 @@ namespace Thry
             DrawingData.IsCollectingProperties = true;
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
 
-            this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation;
+            this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation && IsAnimatable; // &&, so that IsAnimatable can be set to false before InitializeDrawers
             this._hasDrawer = DrawingData.LastPropertyUsedCustomDrawer;
 
             if (MaterialProperty.type == MaterialProperty.PropType.Vector && _doForceIntoOneLine == false)
@@ -1634,6 +1634,7 @@ namespace Thry
         public RenderQueueProperty(ShaderEditor shaderEditor) : base(shaderEditor, "RenderQueue", 0, "", "Change the Queue at which the material is rendered.", 0)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
             CustomStringTagID = "RenderQueue";
         }
 
@@ -1666,6 +1667,7 @@ namespace Thry
         public VRCFallbackProperty(ShaderEditor shaderEditor) : base(shaderEditor, "VRCFallback", 0, "", "Select the shader VRChat should use when your shaders are being hidden.", 0)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
             CustomStringTagID = "VRCFallback";
             ExemptFromLockedDisabling = true;
         }
@@ -1698,6 +1700,7 @@ namespace Thry
         public InstancingProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
         }
 
         public override void DrawDefault()
@@ -1710,6 +1713,7 @@ namespace Thry
         public GIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -1787,6 +1791,7 @@ namespace Thry
         public DSGIProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
         }
 
         public override void DrawDefault()
@@ -1799,6 +1804,7 @@ namespace Thry
         public LocaleProperty(ShaderEditor shaderEditor, MaterialProperty materialProperty, string displayName, int xOffset, string optionsRaw, bool forceOneLine, int property_index) : base(shaderEditor, materialProperty, displayName, xOffset, optionsRaw, forceOneLine, property_index)
         {
             _doCustomDrawLogic = true;
+            IsAnimatable = false;
         }
 
         public override void DrawDefault()
