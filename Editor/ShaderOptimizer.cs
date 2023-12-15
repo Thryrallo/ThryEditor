@@ -852,7 +852,7 @@ namespace Thry
         public static void DetourApplyMaterialPropertyDrawers()
         {
         // Unity 2022 Crashes on apple silicon when detouring ApplyMaterialPropertyDrawers
-#if !UNITY_EDITOR_WIN
+#if UNITY_EDITOR_WIN
             Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersOriginalMethodInfo, ApplyMaterialPropertyDrawersPatchMethodInfo);
             Helper.TryDetourFromTo(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo, ApplyMaterialPropertyDrawersFromNativePatchMethodInfo);
 #endif
@@ -861,7 +861,7 @@ namespace Thry
         public static void RestoreApplyMaterialPropertyDrawers()
         {
             
-#if !UNITY_EDITOR_WIN
+#if UNITY_EDITOR_WIN
             Helper.RestoreDetour(ApplyMaterialPropertyDrawersOriginalMethodInfo);
             Helper.RestoreDetour(ApplyMaterialPropertyDrawersFromNativeOriginalMethodInfo);
 #endif
