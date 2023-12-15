@@ -555,6 +555,7 @@ namespace Thry
                         propData.value = new Vector4(prop.floatValue, 0, 0, 0);
                         constantProps.Add(propData);
                         break;
+#if UNITY_2022_1_OR_NEWER
                     case MaterialProperty.PropType.Int:
                         propData = new PropertyData();
                         propData.type = PropertyType.Float;
@@ -562,6 +563,7 @@ namespace Thry
                         propData.value = new Vector4(prop.intValue, 0, 0, 0);
                         constantProps.Add(propData);
                         break;
+#endif
                     case MaterialProperty.PropType.Texture:
                         PropertyData ST = new PropertyData();
                         ST.type = PropertyType.Vector;
@@ -923,9 +925,11 @@ namespace Thry
                     case MaterialProperty.PropType.Float:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
+#if UNITY_2022_1_OR_NEWER
                     case MaterialProperty.PropType.Int:
                         material.SetInt(newName, animProp.Prop.intValue);
                         break;
+#endif
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
@@ -953,9 +957,11 @@ namespace Thry
                     case MaterialProperty.PropType.Float:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
+#if UNITY_2022_1_OR_NEWER
                     case MaterialProperty.PropType.Int:
                         material.SetInt(newName, animProp.Prop.intValue);
                         break;
+#endif
                     case MaterialProperty.PropType.Range:
                         material.SetFloat(newName, animProp.Prop.floatValue);
                         break;
@@ -2128,10 +2134,12 @@ namespace Thry
                             stringBuilder.Append(m.GetFloat(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
+#if UNITY_2022_1_OR_NEWER
                         case MaterialProperty.PropType.Int:
                             stringBuilder.Append(m.GetInt(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
+#endif
                         case MaterialProperty.PropType.Texture:
                             Texture t = m.GetTexture(propName);
                             Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);

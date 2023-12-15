@@ -611,10 +611,12 @@ namespace Thry
 
         private void DoVariantWarning()
         {
+#if UNITY_2022_1_OR_NEWER
             if(Materials[0].isVariant)
             {
                 EditorGUILayout.HelpBox("This material is a variant. It cannot be locked or uploaded to VRChat.", MessageType.Warning);
             }
+#endif
         }
 
         private void PopupTools(Rect position)

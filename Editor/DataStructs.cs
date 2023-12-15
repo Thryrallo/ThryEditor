@@ -275,7 +275,9 @@ namespace Thry
         {
             if(
                 (p.type == MaterialProperty.PropType.Float   && p.floatValue.ToString()   ==  value)          ||
+#if UNITY_2022_1_OR_NEWER
                 (p.type == MaterialProperty.PropType.Int     && p.intValue.ToString()     ==  value)          ||
+#endif
                 (p.type == MaterialProperty.PropType.Range   && p.floatValue.ToString()   ==  value)          ||
                 (p.type == MaterialProperty.PropType.Color   && p.colorValue.ToString()   ==  value)          ||
                 (p.type == MaterialProperty.PropType.Vector  && p.vectorValue.ToString()  ==  value)          ||

@@ -203,8 +203,10 @@ namespace Thry
             object defaultValue = null;
             if (type == MaterialProperty.PropType.Float)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultFloatValue(index);
+#if UNITY_2022_1_OR_NEWER
             else if(type == MaterialProperty.PropType.Int)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultIntValue(index);
+#endif
             else if (type == MaterialProperty.PropType.Vector)
                 defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(index);
             else if (type == MaterialProperty.PropType.Texture)
@@ -218,11 +220,13 @@ namespace Thry
                         if (m.GetNumber(this.MaterialProperty) != (float)defaultValue)
                             continue;
                     }
+#if UNITY_2022_1_OR_NEWER
                     else if (type == MaterialProperty.PropType.Int)
                     {
                         if (m.GetInt(this.MaterialProperty.name) != (int)defaultValue)
                             continue;
                     }
+#endif
                     else if (type == MaterialProperty.PropType.Vector)
                     {
                         if (m.GetVector(this.MaterialProperty.name) != (Vector4)defaultValue)
@@ -242,8 +246,10 @@ namespace Thry
                         SerializedProperty arrayProp = null;
                         if(type == MaterialProperty.PropType.Float)
                             arrayProp = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
+#if UNITY_2022_1_OR_NEWER
                         else if(type == MaterialProperty.PropType.Int)
                             arrayProp = serializedObject.FindProperty("m_SavedProperties.m_Ints.Array");
+#endif
                         else if(type == MaterialProperty.PropType.Vector)
                             arrayProp = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
                         else if(type == MaterialProperty.PropType.Texture)
@@ -269,8 +275,10 @@ namespace Thry
 
                         if (type == MaterialProperty.PropType.Float)
                             this.MaterialProperty.floatValue = valueProp.floatValue;
+#if UNITY_2022_1_OR_NEWER
                         else if(type == MaterialProperty.PropType.Int)
                             this.MaterialProperty.intValue = valueProp.intValue;
+#endif
                         else if (type == MaterialProperty.PropType.Vector)
                             this.MaterialProperty.colorValue = valueProp.colorValue;
                         else if (type == MaterialProperty.PropType.Texture)
@@ -640,11 +648,13 @@ namespace Thry
                 clip.SetCurve(path, rendererType, propertyname, new AnimationCurve(new Keyframe(0, MaterialProperty.floatValue)));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, "", rendererType));
             }
+#if UNITY_2022_1_OR_NEWER
             else if(MaterialProperty.type == MaterialProperty.PropType.Int)
             {
                 clip.SetCurve(path, rendererType, propertyname, new AnimationCurve(new Keyframe(0, MaterialProperty.intValue)));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, "", rendererType));
             }
+#endif
             else if(MaterialProperty.type == MaterialProperty.PropType.Color)
             {
                 clip.SetCurve(path, rendererType, propertyname + ".r", new AnimationCurve(new Keyframe(0, MaterialProperty.colorValue.r)));

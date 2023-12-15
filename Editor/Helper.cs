@@ -934,11 +934,13 @@ namespace Thry
                 prev = p.floatValue;
                 p.floatValue = Parser.ParseFloat(value, p.floatValue);
             }
+#if UNITY_2022_1_OR_NEWER
             else if (p.type == MaterialProperty.PropType.Int)
             {
                 prev = p.intValue;
                 p.intValue = (int)Parser.ParseFloat(value, p.intValue);
             }
+#endif
             else if (p.type == MaterialProperty.PropType.Vector)
             {
                 prev = p.vectorValue;
@@ -964,10 +966,12 @@ namespace Thry
                     prev = p.floatValue;
                     p.floatValue = source.GetNumber(p);
                     break;
+#if UNITY_2022_1_OR_NEWER
                 case MaterialProperty.PropType.Int:
                     prev = p.intValue;
                     p.intValue = source.GetInt(p.name);
                     break;
+#endif
                 case MaterialProperty.PropType.Color:
                     prev = p.colorValue;
                     p.colorValue = source.GetColor(p.name);
@@ -998,10 +1002,12 @@ namespace Thry
                     prev = target.floatValue;
                     target.floatValue = source.floatValue;
                     break;
+#if UNITY_2022_1_OR_NEWER
                 case MaterialProperty.PropType.Int:
                     prev = target.intValue;
                     target.intValue = source.intValue;
                     break;
+#endif
                 case MaterialProperty.PropType.Color:
                     prev = target.colorValue;
                     target.colorValue = source.colorValue;

@@ -1077,9 +1077,12 @@ namespace Thry
 
         static bool IsPropertyTypeSuitable(MaterialProperty prop)
         {
-            return prop.type == MaterialProperty.PropType.Float || 
-                   prop.type == MaterialProperty.PropType.Range ||
-                   prop.type == MaterialProperty.PropType.Int;
+            return prop.type == MaterialProperty.PropType.Float
+                   || prop.type == MaterialProperty.PropType.Range
+#if UNITY_2022_1_OR_NEWER
+                   || prop.type == MaterialProperty.PropType.Int;
+#endif
+                    ;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -1852,7 +1855,10 @@ namespace Thry
                 shaderOptimizer.SetNumber(1);
             }
 
-            bool disabled = ShaderEditor.Active.Materials[0].isVariant;
+            bool disabled = false;
+#if UNITY_2022_1_OR_NEWER
+            disabled |= ShaderEditor.Active.Materials[0].isVariant;
+#endif
             EditorGUI.BeginDisabledGroup(disabled); // for variant materials
 
             // Theoretically this shouldn't ever happen since locked in materials have different shaders.

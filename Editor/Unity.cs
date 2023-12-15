@@ -120,34 +120,42 @@ namespace Thry
         // MaterialProperty extension for setting floats / ints
         public static void SetNumber(this MaterialProperty prop, float value)
         {
+#if UNITY_2022_1_OR_NEWER
             if(prop.type == MaterialProperty.PropType.Int)
                 prop.intValue = (int)value;
             else
+#endif
                 prop.floatValue = value;
         }
 
         public static float GetNumber(this MaterialProperty prop)
         {
+#if UNITY_2022_1_OR_NEWER
             if(prop.type == MaterialProperty.PropType.Int)
                 return prop.intValue;
             else
+#endif  
                 return prop.floatValue;
         }
 
         public static void SetNumber(this Material mat, string name, float value)
         {
+#if UNITY_2022_1_OR_NEWER
             MaterialProperty prop = MaterialEditor.GetMaterialProperty(new UnityEngine.Object[] { mat }, name);
             if(prop.type == MaterialProperty.PropType.Int)
                 mat.SetInteger(name, (int)value);
             else
+#endif
                 mat.SetFloat(name, value);
         }
         
         public static float GetNumber(this Material mat, MaterialProperty prop)
         {
+#if UNITY_2022_1_OR_NEWER
             if(prop.type == MaterialProperty.PropType.Int)
                 return mat.GetInt(prop.name);
             else
+#endif
                 return mat.GetFloat(prop.name);
         }
     }

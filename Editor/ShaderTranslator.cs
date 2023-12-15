@@ -62,6 +62,7 @@ namespace Thry.ThryEditor
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
                             }
                             break;
+#if UNITY_2022_1_OR_NEWER
                         case MaterialProperty.PropType.Int:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Ints", trans.Origin);
                             if (p != null)
@@ -71,6 +72,7 @@ namespace Thry.ThryEditor
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
                             }
                             break;
+#endif
                         case MaterialProperty.PropType.Vector:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
                             if (p != null) editor.PropertyDictionary[trans.Target].MaterialProperty.vectorValue = p.FindPropertyRelative("second").vector4Value;
