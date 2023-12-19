@@ -1198,11 +1198,25 @@ namespace Thry
             public float Min;
             public float Max;
 
+            public SliderConfig(string l, string min, string max)
+            {
+                Label = l;
+                Min = Parse(min);
+                Max = Parse(max);
+            }
+
             public SliderConfig(string l, float min, float max)
             {
                 Label = l;
                 Min = min;
                 Max = max;
+            }
+
+            private float Parse(string s)
+            {
+                if(s.StartsWith("n", StringComparison.Ordinal))
+                    return -float.Parse(s.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
+                return float.Parse(s.Substring(1), System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 
@@ -1220,6 +1234,19 @@ namespace Thry
             _slider4 = slider4;
             _twoMinMaxDrawers = twoMinMaxDrawers == 1;
         }
+
+        public VectorToSlidersDrawer(string label1, string min1, string max1, string label2, string min2, string max2, string label3, string min3, string max3, string label4, string min4, string max4) :
+            this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), new SliderConfig(label3, min3, max3), new SliderConfig(label4, min4, max4), 0)
+        { }
+        public VectorToSlidersDrawer(string label1, string min1, string max1, string label2, string min2, string max2, string label3, string min3, string max3) :
+            this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), new SliderConfig(label3, min3, max3), null, 0)
+        { }
+        public VectorToSlidersDrawer(string label1, string min1, string max1, string label2, string min2, string max2) :
+            this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), null, null, 0)
+        { }
+        public VectorToSlidersDrawer(float twoMinMaxDrawers, string label1, string min1, string max1, string label2, string min2, string max2) :
+            this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), null, null, twoMinMaxDrawers)
+        { }
 
         public VectorToSlidersDrawer(string label1, float min1, float max1, string label2, float min2, float max2, string label3, float min3, float max3, string label4, float min4, float max4) :
             this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), new SliderConfig(label3, min3, max3), new SliderConfig(label4, min4, max4), 0)
