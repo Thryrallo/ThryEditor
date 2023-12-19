@@ -246,6 +246,7 @@ namespace Thry
             int offsetDepthCount = 0;
             DrawingData.IsCollectingProperties = true;
 
+            HashSet<string> duplicatePropertiesSearch = new HashSet<string>(); // for debugging
             List<string> duplicateProperties = new List<string>(); // for debugging
 
             for (int i = 0; i < props.Length; i++)
@@ -261,6 +262,12 @@ namespace Thry
                 displayName = Locale.Get(props[i], displayName);
 
                 int offset = offsetDepthCount;
+                
+                // Duplicate property name check
+                if (duplicatePropertiesSearch.Contains(props[i].name))
+                    duplicateProperties.Add(props[i].name);
+                else
+                    duplicatePropertiesSearch.Add(props[i].name);
 
                 DrawingData.ResetLastDrawerData();
 
@@ -341,23 +348,19 @@ namespace Thry
                 if (NewProperty != null)
                 {
                     newPart = NewProperty;
-                    if (PropertyDictionary.ContainsKey(props[i].name))
-                    {
-                        duplicateProperties.Add(props[i].name);
-                        continue;
-                    }
-                    PropertyDictionary.Add(props[i].name, NewProperty);
                     if (type != ThryPropertyType.none)
                         groupStack.Peek().addPart(NewProperty);
                 }
                 if (newPart != null)
                 {
+                    if (!PropertyDictionary.ContainsKey(props[i].name))
+                        PropertyDictionary.Add(props[i].name, NewProperty);
                     ShaderParts.Add(newPart);
                 }
             }
 
             if(duplicateProperties.Count > 0 && Config.Singleton.enableDeveloperMode)
-                _duplicatePropertyNamesString = string.Join(", ", duplicateProperties.ToArray());
+                _duplicatePropertyNamesString = string.Join("\n ", duplicateProperties.ToArray());
 
             DrawingData.IsCollectingProperties = false;
         }
@@ -526,7 +529,7 @@ namespace Thry
                 // Show duplicate property names
                 if(_duplicatePropertyNamesString != null)
                 {
-                    EditorGUILayout.HelpBox("Duplicate Property Names:" + _duplicatePropertyNamesString, MessageType.Warning);
+                    EditorGUILayout.HelpBox("Duplicate Property Names:\n" + _duplicatePropertyNamesString, MessageType.Warning);
                 }
             }
         }
@@ -547,7 +550,7 @@ namespace Thry
             if (_shaderHeader != null && _shaderHeader.Options.texture != null) _shaderHeader.Draw();
 
             bool drawAboveToolbar = EditorGUIUtility.wideMode == false;
-            if(drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
+            if(_shaderHeader != null && drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
 
             Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
             //draw editor settings button

@@ -108,13 +108,36 @@ namespace Thry
 
                     // group targets by shader, take one material per shader
                     IEnumerable<Material> materialsToSearchProperties = _targets.GroupBy(t => t.shader).Select(g => g.First());
-                    // get all properties of each material
-                    IEnumerable<string[]> properties = materialsToSearchProperties.Select(m => MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }).Select(p => p.name).ToArray());
-                    // get intersection of all properties
-                    string[] intersection = properties.Aggregate((a, b) => a.Intersect(b).ToArray());
-
+                    // get properties for each shader
+                    Dictionary<Shader, HashSet<string>> shaderProperties = materialsToSearchProperties.ToDictionary(m => m.shader, m => new HashSet<string>(MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }).Select(p => p.name)));
+                    // get values of dict as string arrays
+                    IEnumerable<string[]> propertiesPerShader = shaderProperties.Values.Select(v => v.ToArray());
+                    // create intersection of all properties
+                    List<string> propertiesOrdered = propertiesPerShader.Aggregate((a, b) => a.Intersect(b).ToArray()).ToList();
+                    // expand the intersection to be a union, but add each property after the occurence of their predecessor
+                    foreach (string[] properties in propertiesPerShader)
+                    {
+                        int index = 0;
+                        foreach (string property in properties)
+                        {
+                            if (!propertiesOrdered.Contains(property))
+                            {
+                                if (index == 0)
+                                    propertiesOrdered.Insert(0, property);
+                                else
+                                    propertiesOrdered.Insert(propertiesOrdered.IndexOf(properties[index - 1]) + 1, property);
+                            }
+                            index++;
+                        }
+                    }
+                    // For each property get all materials, whos shader has this property
+                    Dictionary<string, List<Material>> propertyMaterials = new Dictionary<string, List<Material>>();
+                    foreach (string property in propertiesOrdered)
+                    {
+                        propertyMaterials[property] = _targets.Where(t => shaderProperties[t.shader].Contains(property)).ToList();
+                    }
                     // Get MaterialProperties of all materials
-                    _materialProperties = intersection.Select(p => MaterialEditor.GetMaterialProperty(_targets.ToArray(), p)).ToArray();
+                    _materialProperties = propertiesOrdered.Select(p => MaterialEditor.GetMaterialProperty(propertyMaterials[p].ToArray(), p)).ToArray();
                 }
 
                 // Seperator
