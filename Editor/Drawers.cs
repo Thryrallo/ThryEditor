@@ -282,7 +282,8 @@ namespace Thry
         string _label3;
         string _label4;
         bool _firstTextureIsRGB;
-        bool _makeSRGB = true;
+        ColorSpace _colorSpace = ColorSpace.Gamma;
+        bool _alphaIsTransparency = true;
 
         // for locale changing
         // i tried using an array to save the default labels, but the data just got lost somewhere. not sure why
@@ -312,33 +313,23 @@ namespace Thry
 
         // end locale changing
 
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4, float sRGB)
+        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4, string colorspace, string alphaIsTransparency)
         {
-            _defaultLabel1 = label1;
-            _defaultLabel2 = label2;
-            _defaultLabel3 = label3;
-            _defaultLabel4 = label4;
-            _label1 = label1;
-            _label2 = label2;
-            _label3 = label3;
-            _label4 = label4;
-            _makeSRGB = sRGB == 1;
+            _label1 = string.IsNullOrWhiteSpace(label1) ? null : label1;
+            _label2 = string.IsNullOrWhiteSpace(label2) ? null : label2;
+            _label3 = string.IsNullOrWhiteSpace(label3) ? null : label3;
+            _label4 = string.IsNullOrWhiteSpace(label4) ? null : label4;
+            _defaultLabel1 = _label1;
+            _defaultLabel2 = _label2;
+            _defaultLabel3 = _label3;
+            _defaultLabel4 = _label4;
+            _colorSpace = (colorspace == "linear" || colorspace == "Linear") ? ColorSpace.Linear : ColorSpace.Gamma;
+            _alphaIsTransparency = alphaIsTransparency == "true" || alphaIsTransparency == "True";
         }
 
-        public ThryRGBAPackerDrawer(string label1, string label2, float sRGB) : this(label1, label2, null, null, sRGB) { }
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3, float sRGB) : this(label1, label2, label3, null, sRGB) { }
-
-        public ThryRGBAPackerDrawer(string label1, string label2) : this(label1, label2, null, null, 0) { }
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3) : this(label1, label2, label3, null, 0) { }
-        public ThryRGBAPackerDrawer(string label1, string label2, string label3, string label4) : this(label1, label2, label3, label4, 0) { }
-
-        public ThryRGBAPackerDrawer(float firstTextureIsRGB, string label1, string label2) : this(label1, label2, null, null, 0)
+        public ThryRGBAPackerDrawer(string label1, string label2, string colorspace, string alphaIsTransparency) : this(label1, label2, null, null, colorspace, alphaIsTransparency)
         {
-            _firstTextureIsRGB = firstTextureIsRGB == 1;
-        }
-        public ThryRGBAPackerDrawer(float firstTextureIsRGB, string label1, string label2, float sRGB) : this(label1, label2, null, null, sRGB)
-        {
-            _firstTextureIsRGB = firstTextureIsRGB == 1;
+            _firstTextureIsRGB = true;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -504,7 +495,7 @@ namespace Thry
 
         void Pack()
         {
-            _current._packedTexture = TexturePacker.Pack(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _makeSRGB ? ColorSpace.Gamma : ColorSpace.Linear);
+            _current._packedTexture = TexturePacker.Pack(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _colorSpace, alphaIsTransparency: _alphaIsTransparency);
             _prop.textureValue = _current._packedTexture;
 
             _current._hasTextureChanged = true;
@@ -563,7 +554,7 @@ namespace Thry
         void OpenFullTexturePacker()
         {
             TexturePacker packer = TexturePacker.ShowWindow();
-            packer.InitilizeWithData(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _makeSRGB ? ColorSpace.Gamma : ColorSpace.Linear);
+            packer.InitilizeWithData(GetTextureSources(), GetOutputConfigs(), GetConnections(), GetFiltermode(), _colorSpace, _alphaIsTransparency);
             packer.OnChange += FullTexturePackerOnChange;
             packer.OnSave += FullTexturePackerOnSave;
         }
@@ -615,7 +606,7 @@ namespace Thry
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
             importer.crunchedCompression = true;
-            importer.sRGBTexture = _makeSRGB;
+            importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
             importer.filterMode = GetFiltermode();
             importer.alphaIsTransparency = _current._packedTexture.alphaIsTransparency;
             importer.SaveAndReimport();
