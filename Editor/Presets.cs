@@ -163,8 +163,20 @@ namespace Thry.ThryEditor
             string presetName = material.GetTag(TAG_PRESET_NAME, false, material.name).Replace(';', '_');
             // Get preset guid
             string presetGuid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
+            // check if preset already exists
+            if(s_presetGuids.Contains(presetGuid))
+            {
+                // update if name changed
+                int index = s_presetGuids.IndexOf(presetGuid);
+                if(p_presetNames[index] != presetName)
+                {
+                    Debug.Log($"UpdatePreset: {p_presetNames[index]} ({presetGuid}) -> {presetName}");
+                    p_presetNames[index] = presetName;
+                    Save();
+                }
+                return;
+            }
             // Add to cache
-            if(s_presetGuids.Contains(presetGuid)) return;
             Debug.Log($"AddPreset: {presetName} ({presetGuid})");
             s_presetNames.Add(presetName);
             s_presetGuids.Add(presetGuid);
@@ -185,7 +197,7 @@ namespace Thry.ThryEditor
             if(!s_presetGuids.Contains(guid)) return;
             // Remove from cache
             int index = s_presetGuids.IndexOf(guid);
-            Debug.Log($"RemovePreset: {p_presetNames[index]}");
+            Debug.Log($"RemovePreset: {p_presetNames[index]} ({guid})");
             p_presetNames.RemoveAt(index);
             s_presetGuids.RemoveAt(index);
             s_presetMaterials.Remove(guid);
