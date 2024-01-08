@@ -32,6 +32,16 @@ namespace Thry
             return Selection.objects.All(o => o is Material);
         }
 
+        [MenuItem("GameObject/Thry/Materials/Open All in Cross Shader Editor", false, 10)]
+        public static void OpenAllInCrossShaderEditor()
+        {
+            CrossEditor window = EditorWindow.GetWindow(typeof(CrossEditor)) as CrossEditor;
+            window.name = "Cross Shader Editor";
+            window._materialList = Selection.gameObjects.SelectMany(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(r => r.sharedMaterials).ToList();
+            window.UpdateTargets();
+            window._shaderEditor = null;
+        }
+
         List<Material> _materialList = new List<Material>();
         List<Material> _targets = new List<Material>();
         Dictionary<Material,Shader> _targetShaders = new Dictionary<Material, Shader>();
