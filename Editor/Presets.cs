@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -17,15 +19,68 @@ namespace Thry.ThryEditor
         const string TAG_IS_SECTION_PRESET = "isSectionedPreset";
         const string TAG_SECTION_NAME_POSTFIX = "_presetName";
         const string FILE_NAME_CACHE = "Thry/preset_cache.txt";
+        const string FILE_NAME_KNOWN_MATERIALS = "Thry/presets_known_materials.txt";
         const string PRESET_VERSION = "1.0.0";
 
         static Dictionary<Material, (string name, string guid, Material prePreset)> s_appliedPresets = new Dictionary<Material, (string, string, Material)>();
-
         
         class PresetsCollection
         {
             public List<string> Names = new List<string>();
             public List<string> Guids = new List<string>();
+        }
+        public class MaterialsList
+        {
+            string _filepath;
+            HashSet<string> _guids;
+            bool _isDirty = false;
+            public MaterialsList(string filepath)
+            {
+                _filepath = filepath;
+                _guids = new HashSet<string>();
+                if (File.Exists(_filepath))
+                {
+                    string[] lines = File.ReadAllLines(_filepath);
+                    foreach (string line in lines)
+                    {
+                        _guids.Add(line);
+                    }
+                }
+            }
+
+            public bool Contains(string guid)
+            {
+                return _guids.Contains(guid);
+            }
+
+            public void SetCollection(IEnumerable<string> guids)
+            {
+                _guids.Clear();
+                _guids.UnionWith(guids);
+                _isDirty = true;
+            }
+
+            public void Add(string guid)
+            {
+                _guids.Add(guid);
+                _isDirty = true;
+            }
+
+            public void AllAll(IEnumerable<string> guids)
+            {
+                _guids.UnionWith(guids);
+                _isDirty = true;
+            }
+
+            public void Save()
+            {
+                if (_isDirty)
+                {
+                    FileHelper.CreateFileWithDirectories(_filepath);
+                    File.WriteAllLines(_filepath, _guids.ToArray());
+                    _isDirty = false;
+                }
+            }
         }
 
         static Dictionary<string, Material> s_materalCache;
@@ -46,6 +101,8 @@ namespace Thry.ThryEditor
                 return s_presetCollections["_full_"];
             }
         }
+
+        public static MaterialsList KnownMaterials = new MaterialsList(FILE_NAME_KNOWN_MATERIALS);
 
         static void InitializeDataStructures()
         {
@@ -113,6 +170,10 @@ namespace Thry.ThryEditor
                     AddPreset(material);
                 }
             }
+
+            KnownMaterials.SetCollection(guids);
+            KnownMaterials.Save();
+            
             EditorUtility.ClearProgressBar();
         }
 
@@ -174,6 +235,8 @@ namespace Thry.ThryEditor
                         RemovePreset(material);
                         AddPreset(material);
                     }
+                    Debug.Log($"OnPostprocessAllAssets: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
+                    KnownMaterials.Add(AssetDatabase.AssetPathToGUID(asset));
                 }
             }
 
@@ -210,6 +273,8 @@ namespace Thry.ThryEditor
                     }
                 }
             }
+
+            KnownMaterials.Save();
         }
 
         static void AddPreset(Material material)
@@ -501,13 +566,15 @@ namespace Thry.ThryEditor
         public static void SetSectionPreset(Material m, string headerPropName, string name)
         {
             m.SetOverrideTag(headerPropName + TAG_IS_SECTION_PRESET, name);
+
+            string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m));
             if(!string.IsNullOrWhiteSpace(name))
             {
                 if(!PresetCollections.ContainsKey(headerPropName))
                 {
                     PresetCollections[headerPropName] = new PresetsCollection();
                 }
-    	        string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(m));
+    	        
                 if(!PresetCollections[headerPropName].Guids.Contains(guid))
                 {
                     Debug.Log($"AddPreset: {name} ({guid})");
@@ -518,6 +585,17 @@ namespace Thry.ThryEditor
                     Debug.Log($"SetSectionPreset: {name} ({guid})");
                     PresetCollections[headerPropName].Names[PresetCollections[headerPropName].Guids.IndexOf(guid)] = name;
                 }
+            }else
+            {
+                if(PresetCollections.ContainsKey(headerPropName))
+                {
+                    if(PresetCollections[headerPropName].Guids.Contains(guid))
+                    {
+                        Debug.Log($"RemovePreset: {PresetCollections[headerPropName].Names[PresetCollections[headerPropName].Guids.IndexOf(guid)]} ({guid})");
+                        PresetCollections[headerPropName].Names.RemoveAt(PresetCollections[headerPropName].Guids.IndexOf(guid));
+                        PresetCollections[headerPropName].Guids.RemoveAt(PresetCollections[headerPropName].Guids.IndexOf(guid));
+                    }
+                }
             }
         }
 
@@ -525,6 +603,59 @@ namespace Thry.ThryEditor
         {
             return PresetCollections.ContainsKey(headerPropName);
         }
+
+#region Preset Validation
+
+        /* This is a check for if the preset cache is invalid & should be rebuild from scratch */
+        [InitializeOnLoadMethod]
+        static void CheckPresetCache()
+        {
+            // Check if any chached presets do not exist anymore
+            InitializeDataStructures();
+            bool cacheInvalid = false;
+            foreach(KeyValuePair<string, PresetsCollection> collection in PresetCollections)
+            {
+                for(int i = 0; i < collection.Value.Guids.Count; i++)
+                {
+                    string guid = collection.Value.Guids[i];
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if(string.IsNullOrWhiteSpace(path))
+                    {
+                        cacheInvalid = true;
+                        break;
+                    }
+                }
+                if(cacheInvalid)
+                {
+                    break;
+                }
+            }
+
+            // check if any material is not known
+            if(!cacheInvalid)
+            {
+                string[] guids = AssetDatabase.FindAssets("t:material");
+                foreach(string guid in guids)
+                {
+                    if(!KnownMaterials.Contains(guid))
+                    {
+                        cacheInvalid = true;
+                        break;
+                    }
+                }
+            }
+
+
+            if(cacheInvalid)
+            {
+                Debug.Log("Preset cache invalid, rebuilding...");
+                CreatePresetCache();
+            }
+        }
+
+#endregion
+
+#region Unity Menu Hooks
 
         [MenuItem("Assets/Thry/Materials/Mark as Preset",false,500)]
         static void MarkAsPreset()
@@ -570,6 +701,7 @@ namespace Thry.ThryEditor
         {
             Presets.CreatePresetCache();
         }
+#endregion
     }
 
     public class PresetsPopupGUI : EditorWindow
