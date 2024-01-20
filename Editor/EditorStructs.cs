@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Thry.ThryEditor;
 using UnityEditor;
+using UnityEditor.Presets;
 using UnityEngine;
 
 namespace Thry
@@ -38,6 +39,8 @@ namespace Thry
         public Vector2 mouse_position;
         public Vector2 screen_mouse_position;
 
+        public EventType OriginalEventType;
+
         public void Update(bool isLockedMaterial)
         {
             Event e = Event.current;
@@ -58,6 +61,7 @@ namespace Thry
             screen_mouse_position = GUIUtility.GUIToScreenPoint(e.mousePosition);
             is_drop_event = e.type == EventType.DragPerform;
             is_drag_drop_event = is_drop_event || e.type == EventType.DragUpdated;
+            OriginalEventType = e.type;
         }
 
         public void Use()
@@ -68,14 +72,12 @@ namespace Thry
             Event.current.Use();
         }
 
-        public bool LeftClick_IgnoreUnityUses
+        // This is cursed. I need to look over this whole system at some point
+        public void PowerUse()
         {
-            get { return _MouseLeftClick;  }
-        }
-
-        public bool RightClick_IgnoreUnityUses
-        {
-            get { return _MouseRightClick; }
+            Use();
+            _MouseRightClickIgnoreLocked = false;
+            _MouseLeftClickIgnoreLocked = false;
         }
 
         public bool LeftClick_IgnoreLocked
@@ -101,16 +103,6 @@ namespace Thry
         public bool Click
         {
             get { return _MouseClick && Event.current.type != EventType.Used; }
-        }
-
-        public bool RightClick
-        {
-            get { return _MouseRightClick && Event.current.type != EventType.Used; }
-        }
-
-        public bool LeftClick
-        {
-            get { return _MouseLeftClick && Event.current.type != EventType.Used; }
         }
     }
 
@@ -361,8 +353,10 @@ namespace Thry
         public virtual void HandleRightClickToggles(bool isInHeader)
         {
             if (this is ShaderGroup) return;
-            if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
+            if (DrawingData.TooltipCheckRect.y < 25) return; // Happens in Layout event, with some dynamic properties
+            if (ShaderEditor.Input.RightClick_IgnoreLockedAndUnityUses && ShaderEditor.Input.OriginalEventType != EventType.Layout && DrawingData.TooltipCheckRect.Contains(Event.current.mousePosition))
             {
+                Event.current.Use();
                 //Context menu
                 //Show context menu, if not open.
                 //If locked material only show menu for animated materials. Only show data retieving options in locked state
@@ -1026,6 +1020,17 @@ namespace Thry
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
             if (IsExpanded)
             {
+                if (ShaderEditor.Active.IsSectionedPresetEditor)
+                {
+                    string presetName = Presets.GetSectionPresetName(ShaderEditor.Active.Materials[0], this.MaterialProperty.name);
+                    EditorGUI.BeginChangeCheck();
+                    presetName = EditorGUILayout.DelayedTextField("Preset Name:", presetName);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        Presets.SetSectionPreset(ShaderEditor.Active.Materials[0], this.MaterialProperty.name, presetName);
+                    }
+                }
+
                 EditorGUILayout.Space();
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
                 foreach (ShaderPart part in parts)
@@ -1127,6 +1132,8 @@ namespace Thry
             buttonRect.width = buttonRect.height;
 
             float right = rect.x + rect.width;
+            buttonRect.x = right - 74;
+            DrawPresetButton(buttonRect, options, e);
             buttonRect.x = right - 56;
             DrawHelpButton(buttonRect, options, e);
             buttonRect.x = right - 38;
@@ -1144,6 +1151,19 @@ namespace Thry
                 {
                     ShaderEditor.Input.Use();
                     if (button.action != null) button.action.Perform(ShaderEditor.Active?.Materials);
+                }
+            }
+        }
+
+        private void DrawPresetButton(Rect rect, PropertyOptions options, Event e)
+        {
+            bool hasPresets = Presets.DoesSectionHavePresets(this.MaterialProperty.name);
+            if (hasPresets)
+            {
+                if (GuiHelper.Button(rect, Styles.icon_style_presets))
+                {
+                    ShaderEditor.Input.Use();
+                    Presets.OpenPresetsMenu(rect, ActiveShaderEditor, true, this.MaterialProperty.name);
                 }
             }
         }
@@ -1592,7 +1612,6 @@ namespace Thry
 
         public override void HandleRightClickToggles(bool isInHeader)
         {
-
         }
 
         public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)

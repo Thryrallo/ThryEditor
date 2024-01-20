@@ -87,6 +87,13 @@ namespace Thry
 
         public bool IsDrawing { get; private set; } = false;
         public bool IsPresetEditor { get; private set; } = false;
+        public bool IsSectionedPresetEditor
+        {
+            get
+            {
+                return IsPresetEditor && Presets.IsMaterialSectionedPreset(Materials[0]);
+            }
+        }
 
         public bool HasMixedCustomPropertySuffix
         {
@@ -565,7 +572,8 @@ namespace Thry
             }
             if (GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets" , 25, 25))
             {
-                Presets.OpenPresetsMenu(GUILayoutUtility.GetLastRect(), this);
+                Input.PowerUse();
+                Presets.OpenPresetsMenu(Rect.zero, this, false);
             }
 
             //draw master label text after ui elements, so it can be positioned between
