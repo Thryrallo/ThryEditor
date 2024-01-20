@@ -6,9 +6,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
-using Thry;
 using System;
-using System.Reflection;
 using System.Linq;
 using Thry.ThryEditor;
 
