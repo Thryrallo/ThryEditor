@@ -56,7 +56,8 @@ namespace Thry.ThryEditor
                             if (p != null)
                             {
                                 float f = p.FindPropertyRelative("second").floatValue;
-                                if (trans.Math.Length > 0) f = Helper.SolveMath(trans.Math, f);
+                                if (string.IsNullOrWhiteSpace(trans.Math) == false) 
+                                    f = Helper.SolveMath(trans.Math, f);
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
                             }
                             break;
@@ -66,7 +67,8 @@ namespace Thry.ThryEditor
                             if (p != null)
                             {
                                 float f = p.FindPropertyRelative("second").intValue;
-                                if (trans.Math.Length > 0) f = Helper.SolveMath(trans.Math, f);
+                                if (string.IsNullOrWhiteSpace(trans.Math) == false) 
+                                    f = Helper.SolveMath(trans.Math, f);
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
                             }
                             break;
