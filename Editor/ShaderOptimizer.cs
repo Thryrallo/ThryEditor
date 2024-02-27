@@ -75,6 +75,7 @@ namespace Thry
         public const string TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER = "AllLockedGUIDS";
         //When locking don't include code from define blocks that are not enabled
         const bool REMOVE_UNUSED_IF_DEFS = true;
+        const bool DEBUG_IF_DEF_REMOVAL = false;
 
         // For some reason, 'if' statements with replaced constant (literal) conditions cause some compilation error
         // So until that is figured out, branches will be removed by default
@@ -1046,6 +1047,9 @@ namespace Thry
             int ifStacking = 0;
             Stack<bool> removeEndifStack = new Stack<bool>();
 
+            Stack<string> removeEndifStackIfLines = new Stack<string>();
+            StringBuilder removeEndifStackDebugging = new StringBuilder();
+
             bool isCommentedOut = false;
 
             int currentExcludeDepth = 0;
@@ -1110,12 +1114,12 @@ namespace Thry
                 //removes empty lines
                 if (string.IsNullOrEmpty(lineParsed)) continue;
                 //removes code that is commented
-                if (lineParsed== "*/")
+                if (lineParsed.EndsWith("*/", StringComparison.OrdinalIgnoreCase))
                 {
                     isCommentedOut = false;
                     continue;
                 }
-                else if (lineParsed == "/*")
+                else if (lineParsed.StartsWith("/*", StringComparison.OrdinalIgnoreCase))
                 {
                     isCommentedOut = true;
                     continue;
@@ -1129,6 +1133,13 @@ namespace Thry
                     if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
+
+                        if(DEBUG_IF_DEF_REMOVAL)
+                        {
+                            removeEndifStackDebugging.AppendLine($"push {ifStacking}" + lineParsed);
+                            removeEndifStackIfLines.Push(lineParsed);
+                        }
+
                         if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
                             string keyword = lineParsed.Substring(6).Trim().Split(' ')[0];
@@ -1195,7 +1206,13 @@ namespace Thry
                         {
                             Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
                                 +$"\nError found in file '{filePath}' line {i+1}. Current output copied to clipboard.");
+                            Debug.LogError(removeEndifStackDebugging.ToString());
                             GUIUtility.systemCopyBuffer = string.Join(Environment.NewLine, includedLines);
+                        }
+                        if(DEBUG_IF_DEF_REMOVAL)
+                        {
+                            fileLines[i] += $" // {removeEndifStackIfLines.Peek()}";
+                            removeEndifStackDebugging.AppendLine($"pop {ifStacking}" + removeEndifStackIfLines.Pop());
                         }
                         if (removeEndifStack.Pop()) continue;
                     }
@@ -1292,6 +1309,10 @@ namespace Thry
         private static void ReplaceShaderValues(Material material, string[] lines, int startLine, int endLine, 
         MaterialProperty[] props, Dictionary<string,PropertyData> constants, Macro[] macros, GrabPassReplacement[] grabPassVariables)
         {
+            // print macros and constants
+            string c = string.Join("\n" , constants.Select(m => m.Key + " : " + m.Value));
+            GUIUtility.systemCopyBuffer = c;
+
             List <TextureProperty> uniqueSampledTextures = new List<TextureProperty>();
 
             // Outside loop is each line
