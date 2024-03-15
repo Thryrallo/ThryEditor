@@ -224,7 +224,7 @@ namespace Thry
                     }
                     else if (type == MaterialProperty.PropType.Texture)
                     {
-                        if (m.GetTexture(this.MaterialProperty.name) != null && 
+                        if (m.GetTexture(this.MaterialProperty.name) != null &&
                             m.GetTexture(this.MaterialProperty.name).name != (string)defaultValue)
                             continue;
                     }
@@ -247,7 +247,7 @@ namespace Thry
 
                         if(arrayProp == null)
                             continue;
-                        
+
                         // Iterate through properties in prop array, find where .first is alt
                         SerializedProperty valueProp = null;
                         for (int i = 0; i < arrayProp.arraySize; i++)
@@ -311,7 +311,7 @@ namespace Thry
 
         public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
-        public abstract void CopyToMaterial(Material m, bool isTopCall = false);
+        public abstract void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
 
         protected void CopyReferencePropertiesToMaterial(Material target)
         {
@@ -343,7 +343,7 @@ namespace Thry
             }
         }
 
-        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false);
+        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null);
 
         bool hasAddedDisabledGroup = false;
         public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -416,7 +416,7 @@ namespace Thry
                         int nameId = Shader.PropertyToID(MaterialProperty.name);
                         isLockedInChildren |= target.IsPropertyLocked(nameId);
                         isLockedByAncestor |= target.IsPropertyLockedByAncestor(nameId);
-                        isOverriden &= target.IsPropertyOverriden(nameId);                            
+                        isOverriden &= target.IsPropertyOverriden(nameId);
                     }
                     DoVariantMenuStuff(contextMenu, isOverriden, isLockedByAncestor, isLockedInChildren, ShaderEditor.Active.Materials, true);
 #endif
@@ -741,7 +741,7 @@ namespace Thry
             {
                 DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
                 DrawingData.IconsPositioningHeight = DrawingData.LastGuiObjectRect.y + DrawingData.LastGuiObjectRect.height - 14;
-            } 
+            }
             DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
 
             HandleRightClickToggles(isInHeader);
@@ -753,7 +753,7 @@ namespace Thry
                 //Check if property is being animated
                 if (this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
                 {
-                    if (MaterialProperty.type == MaterialProperty.PropType.Texture ? 
+                    if (MaterialProperty.type == MaterialProperty.PropType.Texture ?
                         AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x" ) :
                         AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name))
                         SetAnimated(true, false);
@@ -803,6 +803,15 @@ namespace Thry
         }
 
         public abstract void FindUnusedTextures(List<string> unusedList, bool isEnabled);
+
+        protected bool ShouldSkipProperty(MaterialProperty property, MaterialProperty.PropType[] propertyTypesToSkip)
+        {
+            if(propertyTypesToSkip != null)
+                foreach(MaterialProperty.PropType typeToSkip in propertyTypesToSkip)
+                    if(property.type == typeToSkip)
+                        return true;
+            return false;
+        }
     }
 
     public class ShaderGroup : ShaderPart
@@ -834,15 +843,15 @@ namespace Thry
 
         protected bool IsExpanded
         {
-            get 
+            get
             {
                 return _isExpanded;
             }
-            set 
+            set
             {
                 if(Options.persistent_expand)
                 {
-                    if (AnimationMode.InAnimationMode()) 
+                    if (AnimationMode.InAnimationMode())
                     {
                         // This fails when unselecting the object in hirearchy
                         // Then reselecting it
@@ -860,8 +869,8 @@ namespace Thry
                     {
                         this.MaterialProperty.SetNumber(value ? 1 : 0);
                     }
-                } 
-                _isExpanded = value; 
+                }
+                _isExpanded = value;
             }
         }
 
@@ -887,12 +896,17 @@ namespace Thry
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m, bool isTopCall = false)
+        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
+            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+
             if (Options.reference_property != null)
                 ActiveShaderEditor.PropertyDictionary[Options.reference_property].CopyToMaterial(m);
-            foreach (ShaderPart p in parts)
-                p.CopyToMaterial(m);
+            foreach(ShaderPart p in parts)
+            {
+                if(!ShouldSkipProperty(p.MaterialProperty, skipPropertyTypes))
+                    p.CopyToMaterial(m);
+            }
             if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
@@ -908,15 +922,17 @@ namespace Thry
             }
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null)
         {
+            if (ShouldSkipProperty(MaterialProperty, propertyTypesToSkip)) return;
             if (p is ShaderGroup == false) return;
             ShaderGroup group = p as ShaderGroup;
             if (Options.reference_property != null && group.Options.reference_property != null)
                 ActiveShaderEditor.PropertyDictionary[Options.reference_property].TransferFromMaterialAndGroup(m, group.ActiveShaderEditor.PropertyDictionary[group.Options.reference_property]);
             for(int i=0;i<group.parts.Count && i < parts.Count; i++)
             {
-                parts[i].TransferFromMaterialAndGroup(m, group.parts[i]);
+                if (!ShouldSkipProperty(parts[i].MaterialProperty, propertyTypesToSkip))
+                    parts[i].TransferFromMaterialAndGroup(m, group.parts[i]);
             }
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
@@ -1255,6 +1271,18 @@ namespace Thry
                             property.CopyToMaterial(m, true);
                 }
             });
+            menu.AddItem(new GUIContent("Paste without Textures"), false, delegate ()
+            {
+                if(Mediator.copy_material != null || Mediator.transfer_group != null)
+                {
+                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture };
+                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true, propsToIgnore);
+                    List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
+                    if(linked_materials != null)
+                        foreach(Material m in linked_materials)
+                            property.CopyToMaterial(m, true, propsToIgnore);
+                }
+            });
             menu.DropDown(position);
         }
 
@@ -1308,7 +1336,7 @@ namespace Thry
         {
             MaterialHelper.CopyPropertyValueFromMaterial(MaterialProperty, m);
             CopyReferencePropertiesFromMaterial(m);
-            
+
             if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetNumber(MaterialProperty)==1);
             if (IsAnimatable)
             {
@@ -1322,11 +1350,13 @@ namespace Thry
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m, bool isTopCall = false)
+        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
+            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+
             MaterialHelper.CopyPropertyValueToMaterial(MaterialProperty, m);
             CopyReferencePropertiesToMaterial(m);
-            
+
             if (Keyword != null) SetKeyword(m, MaterialProperty.GetNumber() == 1);
             if (IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, MaterialProperty);
@@ -1394,7 +1424,7 @@ namespace Thry
                     tag = ShaderOptimizer.GetAnimatedTag(MaterialProperty);
                 }
             }
-            
+
             this.IsAnimated = IsAnimatable && tag != "";
             this.IsRenaming = IsAnimatable && tag == "2";
 
@@ -1489,8 +1519,9 @@ namespace Thry
 
         public virtual void DrawDefault() { }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
+            if (ShouldSkipProperty(p.MaterialProperty, skipPropertyTypes)) return;
             if (MaterialProperty.type != p.MaterialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(MaterialProperty, p.MaterialProperty);
             if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetNumber(p.MaterialProperty) == 1);
@@ -1572,8 +1603,9 @@ namespace Thry
             DrawingData.LastGuiObjectRect = pos;
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
+            if (ShouldSkipProperty(p.MaterialProperty, skipPropertyTypes)) return;
             if (MaterialProperty.type != p.MaterialProperty.type) return;
             MaterialHelper.CopyMaterialValueFromProperty(MaterialProperty, p.MaterialProperty);
             TransferReferencePropertiesToMaterial(m, p);
@@ -1645,12 +1677,12 @@ namespace Thry
             throw new System.NotImplementedException();
         }
 
-        public override void CopyToMaterial(Material m, bool isTopCall = false)
+        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             throw new System.NotImplementedException();
         }
 
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
+        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             throw new System.NotImplementedException();
         }
@@ -1678,7 +1710,7 @@ namespace Thry
         {
             foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false)
+        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             targetM.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
         }
@@ -1723,7 +1755,7 @@ namespace Thry
             string value = sourceM.GetTag("VRCFallback", false, "None");
             foreach (Material m in ActiveShaderEditor.Materials) m.SetOverrideTag("VRCFallback", value);
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false)
+        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             string value = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
             targetM.SetOverrideTag("VRCFallback", value);
@@ -1843,7 +1875,7 @@ namespace Thry
 
         public override void DrawDefault()
         {
-            ShaderEditor.Active.Locale.DrawDropdown();    
+            ShaderEditor.Active.Locale.DrawDropdown();
         }
     }
 }
