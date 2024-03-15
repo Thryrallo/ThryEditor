@@ -313,6 +313,36 @@ namespace Thry
         public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
         public abstract void CopyToMaterial(Material m, bool isTopCall = false);
 
+        protected void CopyReferencePropertiesToMaterial(Material target)
+        {
+            if (Options.reference_properties != null)
+                foreach (string r_property in Options.reference_properties)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
+                    MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+                }
+            if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+            }
+        }
+
+        protected void CopyReferencePropertiesFromMaterial(Material source)
+        {
+            if (Options.reference_properties != null)
+                foreach (string r_property in Options.reference_properties)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
+                    MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+                }
+            if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+            }
+        }
+
         public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false);
 
         bool hasAddedDisabledGroup = false;
@@ -1277,6 +1307,8 @@ namespace Thry
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueFromMaterial(MaterialProperty, m);
+            CopyReferencePropertiesFromMaterial(m);
+            
             if (Keyword != null) SetKeyword(ActiveShaderEditor.Materials, m.GetNumber(MaterialProperty)==1);
             if (IsAnimatable)
             {
@@ -1293,6 +1325,8 @@ namespace Thry
         public override void CopyToMaterial(Material m, bool isTopCall = false)
         {
             MaterialHelper.CopyPropertyValueToMaterial(MaterialProperty, m);
+            CopyReferencePropertiesToMaterial(m);
+            
             if (Keyword != null) SetKeyword(m, MaterialProperty.GetNumber() == 1);
             if (IsAnimatable)
                 ShaderOptimizer.CopyAnimatedTagToMaterials(new Material[] { m }, MaterialProperty);
@@ -1538,22 +1572,6 @@ namespace Thry
             DrawingData.LastGuiObjectRect = pos;
         }
 
-        public override void CopyFromMaterial(Material m, bool isTopCall = false)
-        {
-            MaterialHelper.CopyPropertyValueFromMaterial(MaterialProperty, m);
-            CopyReferencePropertiesFromMaterial(m);
-
-            if (isTopCall) ActiveShaderEditor.ApplyDrawers();
-        }
-
-        public override void CopyToMaterial(Material m, bool isTopCall = false)
-        {
-            MaterialHelper.CopyPropertyValueToMaterial(MaterialProperty, m);
-            CopyReferencePropertiesToMaterial(m);
-
-            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
-        }
-
         public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false)
         {
             if (MaterialProperty.type != p.MaterialProperty.type) return;
@@ -1571,26 +1589,6 @@ namespace Thry
                 ShaderProperty sourceP = p.ActiveShaderEditor.PropertyDictionary[p.Options.reference_properties[i]];
                 MaterialHelper.CopyMaterialValueFromProperty(targetP.MaterialProperty, sourceP.MaterialProperty);
             }
-        }
-
-        private void CopyReferencePropertiesToMaterial(Material target)
-        {
-            if (Options.reference_properties != null)
-                foreach (string r_property in Options.reference_properties)
-                {
-                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
-                }
-        }
-
-        private void CopyReferencePropertiesFromMaterial(Material source)
-        {
-            if (Options.reference_properties != null)
-                foreach (string r_property in Options.reference_properties)
-                {
-                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
-                }
         }
     }
 
@@ -1713,7 +1711,10 @@ namespace Thry
             if (EditorGUI.EndChangeCheck())
             {
                 foreach(Material m in ActiveShaderEditor.Materials)
+                {
                     m.SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
+                    EditorUtility.SetDirty(m);
+                }
             }
         }
 
