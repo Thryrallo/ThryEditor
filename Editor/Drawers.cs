@@ -265,6 +265,7 @@ namespace Thry
             public bool _hasConfigChanged;
             public bool _hasTextureChanged;
             public long _lastConfirmTime;
+            public int _overwriteShowInline;
 
             public TexturePacker.Connection[] _connections;
             public TexturePacker.TextureSource[] _sources;
@@ -335,6 +336,16 @@ namespace Thry
             _prop = prop;
             if (materialPackerData.ContainsKey(_prop.targets[0]) == false) materialPackerData[_prop.targets[0]] = new ThryRGBAPackerData();
             _current = materialPackerData[_prop.targets[0]];
+            // So showFoldoutProperties is reset to false a few events after an undo event.
+            // To keep the texture packer open we just force it to ture until this reset is done (which happens in / after the ValidateCommand event, right before the KeyUp event)
+            if (_current._overwriteShowInline > 0)
+            {
+                DrawingData.CurrentTextureProperty.showFoldoutProperties = true;
+                if(Event.current.type == EventType.ValidateCommand)
+                    _current._overwriteShowInline = 1;
+                else if (Event.current.type == EventType.Layout && _current._overwriteShowInline == 1)
+                    _current._overwriteShowInline = 0;
+            }
             GuiHelper.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
             if (_prop.textureValue != _current._packedTexture) _current._previousTexture = _prop.textureValue;
         }
@@ -368,6 +379,8 @@ namespace Thry
             if (changeCheck)
             {
                 _current._hasConfigChanged = true;
+                foreach(Material m in ShaderEditor.Active.Materials)
+                    Undo.RegisterCompleteObjectUndo(m, "Thry Packer Texture Change " + _prop.name);
                 Save();
                 Pack();
             }
@@ -442,6 +455,7 @@ namespace Thry
         void Init()
         {
             if (_current._isInit) return;
+            Undo.undoRedoEvent += OnUndoRedo;
             _current._input_r = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "r");
             _current._input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
             _current._input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
@@ -449,6 +463,16 @@ namespace Thry
             _current._lastConfirmTime = long.Parse(ShaderEditor.Active.Materials[0].GetTag(_prop.name + "_texPack_lastConfirmTime", false, "" + Helper.DatetimeToUnixSeconds(DateTime.Now)));
             _current._previousTexture = _prop.textureValue;
             _current._isInit = true;
+        }
+
+        void OnUndoRedo(in UndoRedoInfo undoRedoInfo)
+        {
+            if (undoRedoInfo.undoName == "Thry Packer Texture Change " + _prop.name)
+            {
+                _current._isInit = false;
+                _current._overwriteShowInline = 2;
+                Undo.undoRedoEvent -= OnUndoRedo;
+            }
         }
 
         void Save()
