@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using static Thry.TexturePacker;
 
 namespace Thry
 {
@@ -590,24 +591,30 @@ namespace Thry
 
         void FullTexturePackerOnChange(Texture2D tex, TexturePacker.TextureSource[] sources, TexturePacker.OutputConfig[] configs, TexturePacker.Connection[] connections)
         {
-            _current._input_r.TextureSource = sources[0];
-            _current._input_g.TextureSource = sources[1];
-            _current._input_b.TextureSource = sources[2];
-            _current._input_a.TextureSource = sources[3];
+            TexturePacker.Connection connection_0 = connections.Where(c => c.FromTextureIndex == 0).FirstOrDefault();
+            TexturePacker.Connection connection_1 = connections.Where(c => c.FromTextureIndex == 1).FirstOrDefault();
+            TexturePacker.Connection connection_2 = connections.Where(c => c.FromTextureIndex == 2).FirstOrDefault();
+            TexturePacker.Connection connection_3 = connections.Where(c => c.FromTextureIndex == 3).FirstOrDefault();
+
+            _current._input_r.TextureSource = connection_0 != null ? sources[0] : new TextureSource();
+            _current._input_g.TextureSource = connection_1 != null ? sources[1] : new TextureSource();
+            _current._input_b.TextureSource = connection_2 != null ? sources[2] : new TextureSource();
+            _current._input_a.TextureSource = connection_3 != null ? sources[3] : new TextureSource();
 
             _current._input_r.FromOutputConfig(configs[0]);
             _current._input_g.FromOutputConfig(configs[1]);
             _current._input_b.FromOutputConfig(configs[2]);
             _current._input_a.FromOutputConfig(configs[3]);
 
-            _current._input_r.Channel = connections.Length > 0 ? connections[0].FromChannel : TexturePacker.TextureChannelIn.Max;
-            _current._input_g.Channel = connections.Length > 1 ? connections[1].FromChannel : TexturePacker.TextureChannelIn.Max;
-            _current._input_b.Channel = connections.Length > 2 ? connections[2].FromChannel : TexturePacker.TextureChannelIn.Max;
-            _current._input_a.Channel = connections.Length > 3 ? connections[3].FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_r.Channel = connection_0 != null ? connection_0.FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_g.Channel = connection_1 != null ? connection_1.FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_b.Channel = connection_2 != null ? connection_2.FromChannel : TexturePacker.TextureChannelIn.Max;
+            _current._input_a.Channel = connection_3 != null ? connection_3.FromChannel : TexturePacker.TextureChannelIn.Max;
 
             _current._packedTexture = tex;
             _prop.textureValue = _current._packedTexture;
             _current._hasTextureChanged = true;
+            _current._hasConfigChanged = true;
         }
 
         FilterMode GetFiltermode()
