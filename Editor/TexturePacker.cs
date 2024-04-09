@@ -372,6 +372,7 @@ namespace Thry
             _imageAdjust = new ImageAdjust();
             DeterminePathAndFileNameIfEmpty(true);
             DetermineImportSettings();
+            DetermineOutputResolution(_textureSources, _imageAdjust);
             Pack();
         }
 
