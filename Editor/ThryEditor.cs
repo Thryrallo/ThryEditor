@@ -9,6 +9,7 @@ using UnityEngine;
 using System;
 using System.Linq;
 using Thry.ThryEditor;
+using Thry.ThryEditor.ShaderTranslations;
 
 namespace Thry
 {
