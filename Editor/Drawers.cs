@@ -456,7 +456,6 @@ namespace Thry
         void Init()
         {
             if (_current._isInit) return;
-            Undo.undoRedoEvent += OnUndoRedo;
             _current._input_r = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "r");
             _current._input_g = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "g");
             _current._input_b = LoadForChannel(ShaderEditor.Active.Materials[0], _prop.name, "b");
@@ -464,6 +463,9 @@ namespace Thry
             _current._lastConfirmTime = long.Parse(ShaderEditor.Active.Materials[0].GetTag(_prop.name + "_texPack_lastConfirmTime", false, "" + Helper.DatetimeToUnixSeconds(DateTime.Now)));
             _current._previousTexture = _prop.textureValue;
             _current._isInit = true;
+
+#if UNITY_2022_1_OR_NEWER
+            Undo.undoRedoEvent += OnUndoRedo;
         }
 
         void OnUndoRedo(in UndoRedoInfo undoRedoInfo)
@@ -475,6 +477,7 @@ namespace Thry
                 Undo.undoRedoEvent -= OnUndoRedo;
             }
         }
+#endif
 
         void Save()
         {
