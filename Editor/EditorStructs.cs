@@ -9,15 +9,6 @@ using UnityEngine;
 
 namespace Thry
 {
-    public class CRect
-    {
-        public Rect r;
-        public CRect(Rect r)
-        {
-            this.r = r;
-        }
-    }
-
     public class InputEvent
     {
         public bool HadMouseDownRepaint;
@@ -309,7 +300,7 @@ namespace Thry
             this.tooltip.SetText(tooltip);
         }
 
-        public abstract void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false);
+        public abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
         public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
         public abstract void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
 
@@ -346,7 +337,7 @@ namespace Thry
         public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null);
 
         bool hasAddedDisabledGroup = false;
-        public void Draw(CRect rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
+        public void Draw(Rect? rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if(_doOptionsNeedInitilization)
             {
@@ -730,7 +721,7 @@ namespace Thry
             ShaderOptimizer.SetAnimatedTag(MaterialProperty, IsAnimated ? (IsRenaming ? "2" : "1") : "");
         }
 
-        private void PerformDraw(GUIContent content, CRect rect, bool useEditorIndent, bool isInHeader = false)
+        private void PerformDraw(GUIContent content, Rect? rect, bool useEditorIndent, bool isInHeader = false)
         {
             if (content == null)
                 content = this.Content;
@@ -910,7 +901,7 @@ namespace Thry
             if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if(Options.margin_top > 0)
             {
@@ -977,7 +968,7 @@ namespace Thry
         {
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if(Options.margin_top > 0)
             {
@@ -1010,7 +1001,7 @@ namespace Thry
             {
                 EditorGUI.BeginChangeCheck();
                 Rect referenceRect = new Rect(border.x + CHECKBOX_OFFSET, border.y + 1, HEADER_HEIGHT - 2, HEADER_HEIGHT - 2);
-                reference.Draw(new CRect(referenceRect), new GUIContent(), isInHeader: true, useEditorIndent: true);
+                reference.Draw(referenceRect, new GUIContent(), isInHeader: true, useEditorIndent: true);
                 headerTextX = CHECKBOX_OFFSET + HEADER_HEIGHT;
                 // Change expand state if reference is toggled
                 if(EditorGUI.EndChangeCheck() && Options.ref_float_toggles_expand)
@@ -1061,7 +1052,7 @@ namespace Thry
         {
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
@@ -1135,7 +1126,7 @@ namespace Thry
 
                 int xOffset = refProperty.XOffset;
                 refProperty.XOffset = 0;
-                refProperty.Draw(new CRect(togglePropertyRect), new GUIContent(), isInHeader: true);
+                refProperty.Draw(togglePropertyRect, new GUIContent(), isInHeader: true);
                 refProperty.XOffset = xOffset;
                 EditorGUIUtility.fieldWidth = fieldWidth;
 
@@ -1431,7 +1422,7 @@ namespace Thry
             DrawingData.IsCollectingProperties = false;
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
             this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
@@ -1472,7 +1463,7 @@ namespace Thry
                 r.width = labelWidth;
                 float prevLabelW = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 0;
-                ActiveShaderEditor.PropertyDictionary[Options.reference_property].Draw(new CRect(r), new GUIContent());
+                ActiveShaderEditor.PropertyDictionary[Options.reference_property].Draw(r, new GUIContent());
                 EditorGUIUtility.labelWidth = prevLabelW;
             }
             else if (_doForceIntoOneLine)
@@ -1489,10 +1480,10 @@ namespace Thry
                 // Custom Drawing for Range, because it doesnt draw correctly if inside the big texture property
                 if(!_hasDrawer && MaterialProperty.type == MaterialProperty.PropType.Range)
                 {
-                    MaterialProperty.floatValue = EditorGUI.Slider(rect.r, content, MaterialProperty.floatValue, 0, MaterialProperty.rangeLimits.y);
+                    MaterialProperty.floatValue = EditorGUI.Slider(rect.Value, content, MaterialProperty.floatValue, 0, MaterialProperty.rangeLimits.y);
                 }else
                 {
-                    ActiveShaderEditor.Editor.ShaderProperty(rect.r, this.MaterialProperty, content);
+                    ActiveShaderEditor.Editor.ShaderProperty(rect.Value, this.MaterialProperty, content);
                 }
             }
             else
@@ -1510,7 +1501,7 @@ namespace Thry
 
             EditorGUI.indentLevel = oldIndentLevel;
             if (rect == null) DrawingData.LastGuiObjectRect = GUILayoutUtility.GetLastRect();
-            else DrawingData.LastGuiObjectRect = rect.r;
+            else DrawingData.LastGuiObjectRect = rect.Value;
             if (ActiveShaderEditor.IsLockedMaterial)
                 EditorGUI.EndDisabledGroup();
         }
@@ -1648,7 +1639,7 @@ namespace Thry
         {
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (rect == null)
             {
@@ -1666,9 +1657,8 @@ namespace Thry
             else
             {
                 //is text draw
-                Rect headerrect = new Rect(0, rect.r.y, rect.r.width, 18);
-                EditorGUI.LabelField(headerrect, "<size=16>" + this.Content.text + "</size>", Styles.masterLabel);
-                DrawingData.LastGuiObjectRect = headerrect;
+                EditorGUI.LabelField(rect.Value, "<size=16>" + this.Content.text + "</size>", Styles.masterLabel);
+                DrawingData.LastGuiObjectRect = rect.Value;
             }
         }
 
@@ -1782,7 +1772,7 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawInternal(GUIContent content, CRect rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             base.DrawInternal(content, rect, useEditorIndent, isInHeader);
         }
@@ -1873,9 +1863,9 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawDefault()
+        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
-            ShaderEditor.Active.Locale.DrawDropdown();
+            ShaderEditor.Active.Locale.DrawDropdown(rect.Value);
         }
     }
 }

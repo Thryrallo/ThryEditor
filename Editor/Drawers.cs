@@ -778,7 +778,7 @@ namespace Thry
                                 r = GUILayoutUtility.GetRect(propertyWidth, editor.GetPropertyHeight(property.MaterialProperty, property.Content.text) + 3);
                                 r.x = propertyX;
                                 r.width = propertyWidth;
-                                property.Draw(new CRect(r));
+                                property.Draw(r);
                             }
                         }
                         EditorGUIUtility.labelWidth = labelWidth;
@@ -1664,7 +1664,7 @@ namespace Thry
 
             // Custom Change Check, so it triggers on reselect too
             bool wasClickEvent = Event.current.type == EventType.ExecuteCommand;
-            int selIndex = EditorGUI.Popup(position, label, selectedIndex, names);
+            int selIndex = EditorGUI.Popup(position, selectedIndex, names);
             EditorGUI.showMixedValue = false;
             if (wasClickEvent && Event.current.type == EventType.Used)
             {

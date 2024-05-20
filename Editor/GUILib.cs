@@ -76,7 +76,7 @@ namespace Thry
                 r.width -= EditorGUIUtility.labelWidth - CurrentIndentWidth();
                 r.width -= vramPos.width;
                 foloutClickCheck.width -= r.width;
-                property.Draw(new CRect(r), new GUIContent());
+                property.Draw(r, new GUIContent());
                 property.tooltip.ConditionalDraw(r);
             }
             //Foldouts
@@ -261,7 +261,7 @@ namespace Thry
                     ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
                     Rect r = additionRects[additionRects.Length - 1];
                     r.width = optionsSide.width;
-                    property.Draw(new CRect(r));
+                    property.Draw(r);
                 }
                 if (options.reference_properties != null)
                 {
@@ -271,7 +271,7 @@ namespace Thry
                         ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
                         Rect r = additionRects[i++];
                         r.width = optionsSide.width;
-                        property.Draw(new CRect(r));
+                        property.Draw(r);
                     }
                 }
                 EditorGUIUtility.labelWidth = labelWith;
