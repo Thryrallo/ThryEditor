@@ -26,7 +26,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             if(!HasValidConditionals)
             {
-                Debug.Log($"Property Translation <b>{Origin}</b> -> <b>{Target}</b> uses conditional expressions but has one or more empty conditional block. Returning math expression <b>{Math}</b>");
+                Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b> uses conditional expressions but has one or more empty conditional block. Returning math expression <b>{Math}</b>");
                 return Math;
             }
 
@@ -34,15 +34,28 @@ namespace Thry.ThryEditor.ShaderTranslations
             {
                 if(block.ConditionType == ConditionalTranslationBlock.ConditionalBlockType.If)
                 {
-                    if(ExpressionParser.Parse(block.ConditionalExpression, value).Compile().Invoke())
+                    Delegate parsedExpression = ExpressionParser.Parse(block.ConditionalExpression);
+                    bool? result = null;
+
+                    // Check if the delegate is a Func<double, bool>
+                    if(parsedExpression is Func<double, bool> expressionWithParameter)
                     {
-                        Debug.Log("Returning <b>if</b> condition expression " + block.MathExpression);
+                        result = expressionWithParameter(value);
+                    }
+                    else if(parsedExpression is Func<bool> expressionWithoutParameter)
+                    {
+                        result = expressionWithoutParameter();
+                    }
+
+                    if((bool)result)
+                    {
+                        Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b>: <b>if</b> conditional <b>{block.ConditionalExpression}</b> returned math expression <b>{block.MathExpression}</b>");
                         return block.MathExpression;
                     }
                 }
                 else
                 {
-                    Debug.Log("Returning <b>else</b> condition expression " + block.MathExpression);
+                    Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b>: <b>else</b> returned math expression <b>{block.MathExpression}</b>");
                     return block.MathExpression;
                 }
             }
