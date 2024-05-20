@@ -1746,7 +1746,8 @@ namespace Thry
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.ColorspaceWarning(prop, _isSRGB);
+            if(Config.Singleton.showColorspaceWarnings)
+                GuiHelper.ColorspaceWarning(prop, _isSRGB);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
