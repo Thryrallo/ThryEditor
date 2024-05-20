@@ -51,7 +51,13 @@ namespace Thry.ThryEditor.ShaderTranslations
                                 string expression = trans.GetAppropriateExpression(f);
 
                                 if(!string.IsNullOrWhiteSpace(expression))
-                                    f = Helper.SolveMath(trans.Math, f);
+                                {
+                                    // If we can parse the expression then our expression is just a number. Replace old value with ours
+                                    if(float.TryParse(expression, out float result))
+                                        f = result;
+                                    else
+                                        f = Helper.SolveMath(trans.Math, f);
+                                }
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
                             }
                             break;
@@ -63,7 +69,13 @@ namespace Thry.ThryEditor.ShaderTranslations
                                 float f = p.FindPropertyRelative("second").intValue;
                                 string expression = trans.GetAppropriateExpression(f);
                                 if(!string.IsNullOrWhiteSpace(expression))
-                                    f = Helper.SolveMath(trans.Math, f);
+                                {
+                                    // If we can parse the expression then our expression is just a number. Replace old value with ours
+                                    if(float.TryParse(expression, out float result))
+                                        f = result;
+                                    else
+                                        f = Helper.SolveMath(trans.Math, f);
+                                }
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
                             }
                             break;

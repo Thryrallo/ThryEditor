@@ -1,62 +1,168 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
+using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace Thry
 {
-    public class ExpressionParser
+    public static class ExpressionParser
     {
-        public static Expression<Func<bool>> Parse(string expression, object variableValue = null)
+        public static Delegate Parse(string expression)
         {
-            expression = SanitizeExpressionAddVariable(expression, variableValue);
+            // Clean up the expression
+            expression = expression.Replace(" ", "");
+
+            if(double.TryParse(expression, out _))
+            {
+                string oldExpression = expression;
+                expression = $"x == {expression}";
+                Debug.Log($"Expression was {oldExpression} so we assume {expression}");
+            }
+
+            // Handle negative numbers by replacing unary minus with a special character
+            expression = HandleUnaryOperators(expression);
+
+            // Define the parameter for the expression
+            var parameter = Expression.Parameter(typeof(double), "x");
+
+            // Tokenize the expression
+            var tokens = Tokenize(expression);
+
+            // Check if the parameter "x" is used in the expression
+            bool containsParameter = tokens.Contains("x");
 
             // Parse the expression string into an expression tree
-            Expression body = ParseExpression(expression);
+            var body = ParseExpression(tokens, containsParameter ? parameter : null);
 
-            // Create a lambda expression with no parameters and parsed body
-            return Expression.Lambda<Func<bool>>(body);
+            // Create a lambda expression with the parameter and parsed body
+            if(containsParameter)
+            {
+                return Expression.Lambda<Func<double, bool>>(body, parameter).Compile();
+            }
+            else
+            {
+                // If parameter "x" is not used, create a parameter-less lambda
+                return Expression.Lambda<Func<bool>>(body).Compile();
+            }
         }
 
-        static string SanitizeExpressionAddVariable(string expression, object variableValue = null)
+        private static string HandleUnaryOperators(string expression)
         {
-            StringBuilder sb = new StringBuilder(expression.ToLowerInvariant());
-            sb.Replace(" ", "");
-            sb.Replace(',', '.');
-            sb.Replace("\t", "");
-
-            if(variableValue != null)
-                sb.Replace("x", variableValue.ToString());
-
-            return sb.ToString();
+            // Replace unary minus and plus with special characters
+            expression = Regex.Replace(expression, @"(?<![\d)])-", "_"); // Replace unary minus
+            expression = Regex.Replace(expression, @"(?<![\d)])\+", ""); // Remove unary plus
+            return expression;
         }
 
-        private static Expression ParseExpression(string expression)
+        private static List<string> Tokenize(string expression)
         {
-            // Split the expression into tokens
-            string[] tokens = Tokenize(expression);
+            var tokens = new List<string>();
+            var token = "";
 
-            // Initialize the expression stack and operator stack
+            for(int i = 0; i < expression.Length; i++)
+            {
+                char c = expression[i];
+                if(char.IsWhiteSpace(c))
+                {
+                    continue;
+                }
+
+                if(IsParenthesis(c))
+                {
+                    if(token.Length > 0)
+                    {
+                        tokens.Add(token);
+                        token = "";
+                    }
+
+                    tokens.Add(c.ToString());
+                }
+                else if(i + 1 < expression.Length && IsOperator(expression.Substring(i, 2)))
+                {
+                    if(token.Length > 0)
+                    {
+                        tokens.Add(token);
+                        token = "";
+                    }
+
+                    tokens.Add(expression.Substring(i, 2));
+                    i++; // Skip the next character as it has been processed
+                }
+                else if(IsOperator(c.ToString()))
+                {
+                    if(token.Length > 0)
+                    {
+                        tokens.Add(token);
+                        token = "";
+                    }
+
+                    tokens.Add(c.ToString());
+                }
+                else if(char.IsDigit(c) || c == '.')
+                {
+                    token += c;
+                }
+                else if(c == 'x')
+                {
+                    if(token.Length > 0)
+                    {
+                        tokens.Add(token);
+                        token = "";
+                    }
+
+                    tokens.Add("x");
+                }
+                else
+                {
+                    token += c;
+                }
+            }
+
+            if(token.Length > 0)
+            {
+                tokens.Add(token);
+            }
+
+            return tokens;
+        }
+
+        private static Expression ParseExpression(List<string> tokens, ParameterExpression parameter)
+        {
             var stack = new Stack<Expression>();
             var operatorStack = new Stack<string>();
 
-            foreach(string token in tokens)
+            for(int i = 0; i < tokens.Count; i++)
             {
-                if(IsBooleanOperator(token) || IsMathOperator(token))
+                var token = tokens[i];
+
+                if(double.TryParse(token, out var number))
                 {
-                    while(operatorStack.Count > 0 && GetPrecedence(token) <= GetPrecedence(operatorStack.Peek()))
+                    stack.Push(Expression.Constant(number));
+                }
+                else if(token == "x")
+                {
+                    if(parameter == null)
+                        throw new ArgumentException("Parameter 'x' is not defined.");
+                    stack.Push(parameter);
+                }
+                else if(token == "_")
+                {
+                    stack.Push(Expression.Negate(ParseExpression(tokens.GetRange(i + 1, 1), parameter)));
+                    i++; // Skip the next token as it has been processed
+                }
+                else if(IsOperator(token))
+                {
+                    while(operatorStack.Count > 0 && GetPrecedence(operatorStack.Peek()) >= GetPrecedence(token))
                     {
-                        ApplyOperator(stack, operatorStack.Pop());
+                        var op = operatorStack.Pop();
+                        var right = stack.Pop();
+                        var left = stack.Pop();
+                        stack.Push(CreateBinaryExpression(op, left, right));
                     }
+
                     operatorStack.Push(token);
-                }
-                else if(IsNumeric(token))
-                {
-                    stack.Push(Expression.Constant(Convert.ToDouble(token)));
-                }
-                else if(IsBoolean(token))
-                {
-                    stack.Push(Expression.Constant(Convert.ToBoolean(token)));
                 }
                 else if(token == "(")
                 {
@@ -66,11 +172,15 @@ namespace Thry
                 {
                     while(operatorStack.Count > 0 && operatorStack.Peek() != "(")
                     {
-                        ApplyOperator(stack, operatorStack.Pop());
+                        var op = operatorStack.Pop();
+                        var right = stack.Pop();
+                        var left = stack.Pop();
+                        stack.Push(CreateBinaryExpression(op, left, right));
                     }
-                    if(operatorStack.Count == 0 || operatorStack.Pop() != "(")
+
+                    if(operatorStack.Count > 0 && operatorStack.Peek() == "(")
                     {
-                        throw new ArgumentException("Invalid expression");
+                        operatorStack.Pop();
                     }
                 }
                 else
@@ -81,95 +191,16 @@ namespace Thry
 
             while(operatorStack.Count > 0)
             {
-                ApplyOperator(stack, operatorStack.Pop());
-            }
-
-            if(stack.Count != 1)
-            {
-                throw new ArgumentException("Invalid expression");
+                var op = operatorStack.Pop();
+                var right = stack.Pop();
+                var left = stack.Pop();
+                stack.Push(CreateBinaryExpression(op, left, right));
             }
 
             return stack.Pop();
         }
 
-        private static string[] Tokenize(string expression)
-        {
-            // Split the expression into tokens
-            List<string> tokens = new List<string>();
-            string token = "";
-
-            for(int i = 0; i < expression.Length; i++)
-            {
-                char ch = expression[i];
-                if(char.IsWhiteSpace(ch))
-                {
-                    if(!string.IsNullOrEmpty(token))
-                    {
-                        tokens.Add(token);
-                        token = "";
-                    }
-                }
-                else if(IsOperator(ch))
-                {
-                    if(!string.IsNullOrEmpty(token))
-                    {
-                        tokens.Add(token);
-                        token = "";
-                    }
-                    tokens.Add(ch.ToString());
-                }
-                else if(IsParenthesis(ch))
-                {
-                    if(!string.IsNullOrEmpty(token))
-                    {
-                        tokens.Add(token);
-                        token = "";
-                    }
-                    tokens.Add(ch.ToString());
-                }
-                else
-                {
-                    token += ch;
-                    // Check for positive/negative numbers
-                    if(i < expression.Length - 1 && (expression[i + 1] == '+' || expression[i + 1] == '-'))
-                    {
-                        token += expression[i + 1];
-                        i++;
-                    }
-                }
-            }
-
-            if(!string.IsNullOrEmpty(token))
-            {
-                tokens.Add(token);
-            }
-
-            return tokens.ToArray();
-        }
-
-        private static bool IsOperator(char c)
-        {
-            return c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '^';
-        }
-
-        private static bool IsParenthesis(char c)
-        {
-            return c == '(' || c == ')';
-        }
-
-        private static void ApplyOperator(Stack<Expression> stack, string op)
-        {
-            if(stack.Count < 2)
-            {
-                throw new ArgumentException("Invalid expression");
-            }
-
-            Expression right = stack.Pop();
-            Expression left = stack.Pop();
-            stack.Push(CreateExpression(left, right, op));
-        }
-
-        private static Expression CreateExpression(Expression left, Expression right, string op)
+        private static Expression CreateBinaryExpression(string op, Expression left, Expression right)
         {
             switch(op)
             {
@@ -206,25 +237,17 @@ namespace Thry
             }
         }
 
-        private static bool IsBooleanOperator(string token)
+
+        static readonly string[] _operators = new string[] { "+", "-", "*", "/", "%", "^", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "_" };
+
+        private static bool IsOperator(string token)
         {
-            return token == "==" || token == "!=" || token == "<" || token == "<=" || token == ">" || token == ">=" ||
-                   token == "&&" || token == "||";
+            return _operators.Contains(token);
         }
 
-        private static bool IsMathOperator(string token)
+        private static bool IsParenthesis(char c)
         {
-            return token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "^";
-        }
-
-        private static bool IsNumeric(string token)
-        {
-            return double.TryParse(token, out _);
-        }
-
-        private static bool IsBoolean(string token)
-        {
-            return token == "true" || token == "false";
+            return c == '(' || c == ')';
         }
 
         private static int GetPrecedence(string op)
@@ -249,10 +272,19 @@ namespace Thry
                 case "*":
                 case "/":
                 case "%":
-                case "^":
                     return 6;
+                case "^":
+                    return 7;
                 default:
                     return 0;
+            }
+        }
+
+        private class ExpressionReplacer : ExpressionVisitor
+        {
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                return Expression.Parameter(typeof(double), "x");
             }
         }
     }
