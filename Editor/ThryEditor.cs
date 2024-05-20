@@ -467,6 +467,10 @@ namespace Thry
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
+#if UNITY_2022_1_OR_NEWER
+            EditorGUI.indentLevel -= 2;
+#endif
+
             IsDrawing = true;
             //Init
             bool reloadUI = _isFirstOnGUICall || (_doReloadNextDraw && Event.current.type == EventType.Layout) || (materialEditor.target as Material).shader != Shader;
@@ -514,6 +518,10 @@ namespace Thry
 
             IsDrawing = false;
             _didSwapToShader = false;
+
+#if UNITY_2022_1_OR_NEWER
+            EditorGUI.indentLevel += 2;
+#endif
         }
 
         private void GUIManualReloadButton()
@@ -557,36 +565,37 @@ namespace Thry
             bool drawAboveToolbar = EditorGUIUtility.wideMode == false;
             if(_shaderHeader != null && drawAboveToolbar) _shaderHeader.Draw(new CRect(EditorGUILayout.GetControlRect()));
 
-            Rect mainHeaderRect = EditorGUILayout.BeginHorizontal();
-            //draw editor settings button
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_settings, "Settings", 25, 25))
+            Rect topBarRect = RectifiedLayout.GetRect(25);
+            Rect iconRect = new Rect(topBarRect.x, topBarRect.y, 25, 25);
+            if(GUILib.ButtonWithCursor(iconRect, Styles.icon_style_settings, "Settings"))
             {
                 EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
             }
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_search, "Search", 25, 25))
+            iconRect.x += 25;
+            if(GUILib.ButtonWithCursor(iconRect, Styles.icon_style_search, "Search"))
             {
                 DoShowSearchBar = !DoShowSearchBar;
-                if(!DoShowSearchBar) ClearSearch();
+                if (!DoShowSearchBar) ClearSearch();
             }
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_presets, "Presets" , 25, 25))
+            iconRect.x += 25;
+            if (GUILib.ButtonWithCursor(iconRect, Styles.icon_style_presets, "Presets"))
             {
                 Input.PowerUse();
                 Presets.OpenPresetsMenu(Rect.zero, this, false);
             }
+            iconRect.x = topBarRect.width - 25;
+            if (GUILib.ButtonWithCursor(iconRect, Styles.icon_style_thryIcon, "Thryrallo"))
+                Application.OpenURL("https://www.twitter.com/thryrallo");
+            iconRect.x -= 25;
+            ShaderTranslator.TranslationSelectionGUI(iconRect, this);
+            iconRect.x -= 25;
+            if (GUILib.ButtonWithCursor(iconRect, Styles.icon_style_tools, "Tools"))
+            {
+                PopupTools(iconRect);
+            }
 
             //draw master label text after ui elements, so it can be positioned between
-            if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(mainHeaderRect));
-
-            GUILayout.FlexibleSpace();
-            Rect popupPosition;
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_tools, "Tools", 25, 25, out popupPosition))
-            {
-                PopupTools(popupPosition);
-            }
-            ShaderTranslator.TranslationSelectionGUI(this);
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_thryIcon, "Thryrallo", 25, 25))
-                Application.OpenURL("https://www.twitter.com/thryrallo");
-            EditorGUILayout.EndHorizontal();
+            if (_shaderHeader != null && !drawAboveToolbar) _shaderHeader.Draw(new CRect(topBarRect));
         }
 
         private void GUISearchBar()

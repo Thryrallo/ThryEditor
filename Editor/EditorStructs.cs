@@ -1197,7 +1197,7 @@ namespace Thry
             ButtonData button = options.button_help;
             if (button != null && button.condition_show.Test())
             {
-                if (GuiHelper.Button(rect, Styles.icon_style_help))
+                if (GUILib.Button(rect, Styles.icon_style_help))
                 {
                     ShaderEditor.Input.Use();
                     if (button.action != null) button.action.Perform(ShaderEditor.Active?.Materials);
@@ -1210,7 +1210,7 @@ namespace Thry
             bool hasPresets = Presets.DoesSectionHavePresets(this.MaterialProperty.name);
             if (hasPresets)
             {
-                if (GuiHelper.Button(rect, Styles.icon_style_presets))
+                if (GUILib.Button(rect, Styles.icon_style_presets))
                 {
                     ShaderEditor.Input.Use();
                     Presets.OpenPresetsMenu(rect, ActiveShaderEditor, true, this.MaterialProperty.name);
@@ -1220,7 +1220,7 @@ namespace Thry
 
         private void DrawDowdownSettings(Rect rect, Event e)
         {
-            if (GuiHelper.Button(rect, Styles.icon_style_menu))
+            if (GUILib.Button(rect, Styles.icon_style_menu))
             {
                 ShaderEditor.Input.Use();
                 Rect buttonRect = new Rect(rect);
@@ -1236,7 +1236,7 @@ namespace Thry
 
         private void DrawLinkSettings(Rect rect, Event e)
         {
-            if (GuiHelper.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty)))
+            if (GUILib.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty)))
             {
                 ShaderEditor.Input.Use();
                 List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty);
@@ -1599,7 +1599,7 @@ namespace Thry
         public override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(Content, Styles.vectorPropertyStyle);
-            GuiHelper.ConfigTextureProperty(pos, MaterialProperty, Content, ActiveShaderEditor.Editor, hasFoldoutProperties);
+            GUILib.ConfigTextureProperty(pos, MaterialProperty, Content, ActiveShaderEditor.Editor, hasFoldoutProperties);
             DrawingData.LastGuiObjectRect = pos;
         }
 

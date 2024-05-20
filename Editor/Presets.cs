@@ -409,6 +409,8 @@ namespace Thry.ThryEditor
         {
             if (shaderEditor.IsPresetEditor)
             {
+                RectifiedLayout.Seperator();
+
                 EditorGUILayout.LabelField(EditorLocale.editor.Get("preset_material_notify"), Styles.greenStyle);
                 EditorGUI.BeginChangeCheck();
                 bool isSectionPreset = IsMaterialSectionedPreset(shaderEditor.Materials[0]);
@@ -431,6 +433,9 @@ namespace Thry.ThryEditor
                         Save();
                     }
                 }
+
+                RectifiedLayout.Seperator();
+                GUILayout.Space(10);
             }
             if (s_appliedPresets.ContainsKey(shaderEditor.Materials[0]))
             {

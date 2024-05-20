@@ -148,10 +148,9 @@ namespace Thry.ThryEditor
             }
         }
 
-        public static void TranslationSelectionGUI(ShaderEditor editor)
+        public static void TranslationSelectionGUI(Rect r, ShaderEditor editor)
         {
-            Rect r;
-            if (GuiHelper.ButtonWithCursor(Styles.icon_style_shaders, "Shader Translation", 25, 25, out r))
+            if (GUILib.ButtonWithCursor(r, Styles.icon_style_shaders, "Shader Translation"))
             {
                 EditorUtility.DisplayCustomMenu(r, TranslationDefinitions.Select(t => new GUIContent(t.Name)).ToArray(), -1, ConfirmTranslationSelection, editor);
             }
@@ -235,11 +234,11 @@ namespace Thry.ThryEditor
                     Rect fullWidth = EditorGUILayout.GetControlRect();
                     Rect r = fullWidth;
                     r.width = (r.width - 20) / 3;
-                    if (GUI.Button(r, trans.Origin)) GuiHelper.SearchableEnumPopup.CreateSearchableEnumPopup(
+                    if (GUI.Button(r, trans.Origin)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
                          MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(origin) }).Select(p => p.name).ToArray(), trans.Origin,
                          (newValue) => trans.Origin = newValue);
                     r.x += r.width;
-                    if (GUI.Button(r, trans.Target)) GuiHelper.SearchableEnumPopup.CreateSearchableEnumPopup(
+                    if (GUI.Button(r, trans.Target)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
                          MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(target) }).Select(p => p.name).ToArray(), trans.Target,
                          (newValue) => trans.Target = newValue);
                     r.x += r.width;

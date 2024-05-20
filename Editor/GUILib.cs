@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Thry
 {
-    public class GuiHelper
+    public class GUILib
     {
         public const float SMALL_TEXTURE_VRAM_DISPLAY_WIDTH = 80;
 
@@ -633,56 +633,17 @@ namespace Thry
             return GUI.Button(r, new GUIContent("", tooltip), style);
         }
 
-        public static bool Button(GUIStyle style, int width, int height)
+        public static bool ButtonWithCursor(Rect r, GUIStyle style, string tooltip)
         {
-            Rect r = GUILayoutUtility.GetRect(width, height);
-            return Button(r, style);
-        }
-        
-        public static bool ButtonWithCursor(GUIStyle style, int width, int height)
-        {
-            Rect r = GUILayoutUtility.GetRect(width, height);
-            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
-            return Button(r, style);
-        }
-        
-        public static bool ButtonWithCursor(GUIStyle style, string tooltip, int width, int height)
-        {
-            Rect r = GUILayoutUtility.GetRect(width, height);
             EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
             return Button(r, tooltip, style);
-        }
-
-        public static bool ButtonWithCursor(GUIStyle style, string tooltip, int width, int height, out Rect r)
-        {
-            r = GUILayoutUtility.GetRect(width, height);
-            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
-            return Button(r, tooltip, style);
-        }
-
-        public static bool Button(Rect r, string tooltip, GUIStyle style, Color c)
-        {
-            Color prevColor = GUI.backgroundColor;
-            GUI.backgroundColor = c;
-            bool b = GuiHelper.Button(r, tooltip, style);
-            GUI.backgroundColor = prevColor;
-            return b;
-        }
-
-        public static bool Button(GUIStyle style, int width, int height, Color c)
-        {
-            Color prevColor = GUI.backgroundColor;
-            GUI.backgroundColor = c;
-            bool b = GuiHelper.Button(style, width, height);
-            GUI.backgroundColor = prevColor;
-            return b;
         }
 
         public static bool Button(Rect r, GUIStyle style, Color c, bool doColor)
         {
             Color prevColor = GUI.backgroundColor;
             if(doColor) GUI.backgroundColor = c;
-            bool b = GuiHelper.Button(r, style);
+            bool b = GUILib.Button(r, style);
             GUI.backgroundColor = prevColor;
             return b;
         }
@@ -748,6 +709,41 @@ namespace Thry
         #endregion
     }
 
+    public class RectifiedLayout
+    {
+        /// <summary>
+        /// Returns recitfied for 2022 rect
+        /// </summary>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        public static Rect GetRect(int height)
+        {
+            Rect r = EditorGUILayout.GetControlRect(false, height);
+#if UNITY_2022_1_OR_NEWER
+            r.x -= 30;
+            r.width += 30;
+#endif
+            return r;
+        }
+
+        public static bool Button(string text)
+        {
+            Rect r = GetRect(25);
+            return GUI.Button(r, text);
+        }
+
+        public static bool ButtonWithCursor(string text)
+        {
+            Rect r = GetRect(25);
+            EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
+            return GUI.Button(r, text);
+        }
+
+        public static void Seperator()
+        {
+            EditorGUI.DrawRect(RectifiedLayout.GetRect(1), Styles.COLOR_FG);
+        }
+    }
     public class BetterTooltips
     {
         private static Tooltip activeTooltip;

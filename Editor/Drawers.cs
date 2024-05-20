@@ -16,7 +16,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.ConfigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
+            GUILib.ConfigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -30,7 +30,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.SmallTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
+            GUILib.SmallTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -56,7 +56,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.BigTexturePropertyBasic(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
+            GUILib.BigTexturePropertyBasic(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -70,7 +70,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.StylizedBigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
+            GUILib.StylizedBigTextureProperty(position, prop, label, editor, ((TextureProperty)ShaderEditor.Active.CurrentProperty).hasScaleOffset);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -109,7 +109,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Init();
-            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth + 15 - GuiHelper.GetSmallTextureVRAMWidth(prop), position.height);
+            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth + 15 - GUILib.GetSmallTextureVRAMWidth(prop), position.height);
 
             EditorGUI.BeginChangeCheck();
             curve = EditorGUI.CurveField(border_position, curve);
@@ -118,7 +118,7 @@ namespace Thry
                 UpdateCurveTexture(prop);
             }
 
-            GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
+            GUILib.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
 
             CheckWindowForCurveEditor();
 
@@ -184,11 +184,11 @@ namespace Thry
             if (_doesExternalTypeExist)
             {
                 _prop = prop;
-                GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties, ExternalGUI);
+                GUILib.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties, ExternalGUI);
             }
             else
             {
-                GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
+                GUILib.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
             }
         }
 
@@ -200,14 +200,14 @@ namespace Thry
                 Init();
 
                 int indent = EditorGUI.indentLevel;
-                GuiHelper.BeginCustomIndentLevel(0);
+                GUILib.BeginCustomIndentLevel(0);
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(indent * 15);
                 GUILayout.BeginVertical();
                 _onGui.Invoke(_externalTool, new object[0]);
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
-                GuiHelper.EndCustomIndentLevel();
+                GUILib.EndCustomIndentLevel();
             }
         }
 
@@ -347,7 +347,7 @@ namespace Thry
                 else if (Event.current.type == EventType.Layout && _current._overwriteShowInline == 1)
                     _current._overwriteShowInline = 0;
             }
-            GuiHelper.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
+            GUILib.SmallTextureProperty(position, prop, label, editor, true, TexturePackerGUI);
             if (_prop.textureValue != _current._packedTexture) _current._previousTexture = _prop.textureValue;
         }
 
@@ -724,7 +724,7 @@ namespace Thry
                 UpdateRects(position, prop);
                 if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
                     Open(prop);
-                GuiHelper.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
+                GUILib.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
                 GradientField();
             }
             else
@@ -792,13 +792,13 @@ namespace Thry
                     GUI.DrawTexture(backgroundBottom, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Styles.COLOR_BACKGROUND_1, 3, 10);
                 }
 
-                bool changed = GuiHelper.HandleTexturePicker(prop);
-                changed |= GuiHelper.AcceptDragAndDrop(border_position, prop);
+                bool changed = GUILib.HandleTexturePicker(prop);
+                changed |= GUILib.AcceptDragAndDrop(border_position, prop);
                 if (changed)
                     Init(prop, true);
                 if (GUI.Button(button_select, "Select", EditorStyles.miniButton))
                 {
-                    GuiHelper.OpenTexturePicker(prop);
+                    GUILib.OpenTexturePicker(prop);
                 }
 
                 GradientField();
@@ -817,7 +817,7 @@ namespace Thry
 
         private void UpdateRects(Rect position, MaterialProperty prop)
         {
-            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - GuiHelper.GetSmallTextureVRAMWidth(prop), position.height);
+            border_position = new Rect(position.x + EditorGUIUtility.labelWidth, position.y, position.width - EditorGUIUtility.labelWidth - GUILib.GetSmallTextureVRAMWidth(prop), position.height);
             gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
         }
 
@@ -883,7 +883,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             ShaderProperty shaderProperty = (ShaderProperty)ShaderEditor.Active.CurrentProperty;
-            GuiHelper.ConfigTextureProperty(position, prop, label, editor, true, true);
+            GUILib.ConfigTextureProperty(position, prop, label, editor, true, true);
 
             if ((ShaderEditor.Input.is_drag_drop_event) && position.Contains(ShaderEditor.Input.mouse_position))
             {
@@ -1203,7 +1203,7 @@ namespace Thry
     {
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            GuiHelper.MinMaxSlider(position, label, prop);
+            GUILib.MinMaxSlider(position, label, prop);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -1747,7 +1747,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             if(Config.Singleton.showColorspaceWarnings)
-                GuiHelper.ColorspaceWarning(prop, _isSRGB);
+                GUILib.ColorspaceWarning(prop, _isSRGB);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
@@ -1933,14 +1933,14 @@ namespace Thry
                 if (shaderOptimizer.GetNumber() == 0)
                 {
                     if (materialEditor.targets.Length == 1)
-                        GUILayout.Button(EditorLocale.editor.Get("lockin_button_single"));
-                    else GUILayout.Button(EditorLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                        RectifiedLayout.Button(EditorLocale.editor.Get("lockin_button_single"));
+                    else RectifiedLayout.Button(EditorLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
                 else
                 {
                     if (materialEditor.targets.Length == 1)
-                        GUILayout.Button(EditorLocale.editor.Get("unlock_button_single"));
-                    else GUILayout.Button(EditorLocale.editor.Get("unlock_button_multi").ReplaceVariables(materialEditor.targets.Length));
+                        RectifiedLayout.Button(EditorLocale.editor.Get("unlock_button_single"));
+                    else RectifiedLayout.Button(EditorLocale.editor.Get("unlock_button_multi").ReplaceVariables(materialEditor.targets.Length));
                 }
                 if (EditorGUI.EndChangeCheck())
                 {

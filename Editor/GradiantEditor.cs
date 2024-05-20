@@ -217,7 +217,7 @@ namespace Thry
             EditorGUIUtility.labelWidth = 100;
             EditorGUIUtility.fieldWidth = 150;
             EditorGUILayout.LabelField("Texture options:",EditorStyles.boldLabel);
-            bool changed = GuiHelper.GUIDataStruct<TextureData>(textureSettings, new string[]{"name"});
+            bool changed = GUILib.GUIDataStruct<TextureData>(textureSettings, new string[]{"name"});
             if (changed)
             {
                 FileHelper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.ObjectToString(textureSettings), PATH.PERSISTENT_DATA);
