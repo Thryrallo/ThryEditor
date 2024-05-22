@@ -11,7 +11,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.52.2";
+        private const string VERSION = "2.53.2";
 
         // static
         private static Config config;
@@ -63,6 +63,7 @@ namespace Thry
         public TextureDisplayType default_texture_type = TextureDisplayType.small;
         public bool showRenderQueue = true;
         public bool showManualReloadButton = false;
+        public bool showColorspaceWarnings = true;
         public bool allowCustomLockingRenaming = false;
         public bool autoMarkPropertiesAnimated = true;
         public TextureImporterFormat texturePackerCompressionWithAlphaOverwrite = TextureImporterFormat.Automatic;
