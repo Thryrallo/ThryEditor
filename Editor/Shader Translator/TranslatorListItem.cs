@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -5,17 +7,20 @@ namespace Thry.ThryEditor.ShaderTranslations
 {
     public class TranslatorListItem : BindableElement
     {
-        public TextField sourceField;
-        public TextField targetField;
-        public TextField expressionField;
+        public TextField sourceField, targetField, expressionField;
+        public Button openSourceFieldPopup, openTargetFieldPopup;
         public Toggle advancedToggle;
         public VisualElement conditionalContainer;
         public ListView conditionalList;
 
-        public TranslatorListItem()
+        public ShaderTranslatorEditorUI translatorEditor;
+
+        public TranslatorListItem(ShaderTranslatorEditorUI uiOwner)
         {
             var uxml = Resources.Load<VisualTreeAsset>("Thry/TranslatorListItem");
             uxml.CloneTree(this);
+
+            translatorEditor = uiOwner;
 
             sourceField = this.Q<TextField>("sourceProperty");
             targetField = this.Q<TextField>("targetProperty");
@@ -30,6 +35,28 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             conditionalList = this.Q<ListView>("conditionalList");
             conditionalList.makeItem = () => new ConditionalTranslationBlockListItem();
+
+            SetupButton("sourcePropertyPopupButton", sourceField, translatorEditor, true);
+            SetupButton("targetPropertyPopupButton", targetField, translatorEditor, false);
+        }
+
+        void SetupButton(string name, TextField targetField, ShaderTranslatorEditorUI editor, bool isSource)
+        {
+            var button = this.Q<Button>(name);
+            button.clicked += () =>
+            {
+                if(EditorWindow.HasOpenInstances<TranslatorPropertySearchPopup>())
+                    EditorWindow.GetWindow<TranslatorPropertySearchPopup>().Close();
+
+                var window = EditorWindow.CreateInstance<TranslatorPropertySearchPopup>();
+                window.titleContent = new GUIContent("Find Property");
+                window.ShowUtility();
+                window.Init(editor, isSource, (propertyName) =>
+                {
+                    targetField.value = propertyName;
+                    window.Close();
+                });
+            };
         }
 
         void SetContainerVisibleAndTextFieldDisabled(VisualElement container, TextField textField, bool isVisible)
