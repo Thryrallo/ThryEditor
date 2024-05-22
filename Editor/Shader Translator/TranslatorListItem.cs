@@ -1,3 +1,4 @@
+#if UNITY_2022_1_OR_NEWER
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -13,9 +14,9 @@ namespace Thry.ThryEditor.ShaderTranslations
         public VisualElement conditionalContainer;
         public ListView conditionalList;
 
-        public ShaderTranslatorEditorUI translatorEditor;
+        public ShaderTranslatorEditor translatorEditor;
 
-        public TranslatorListItem(ShaderTranslatorEditorUI uiOwner)
+        public TranslatorListItem(ShaderTranslatorEditor uiOwner)
         {
             var uxml = Resources.Load<VisualTreeAsset>("Thry/TranslatorListItem");
             uxml.CloneTree(this);
@@ -40,7 +41,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             SetupButton("targetPropertyPopupButton", targetField, translatorEditor, false);
         }
 
-        void SetupButton(string name, TextField targetField, ShaderTranslatorEditorUI editor, bool isSource)
+        void SetupButton(string name, TextField targetField, ShaderTranslatorEditor editor, bool isSource)
         {
             var button = this.Q<Button>(name);
             button.clicked += () =>
@@ -66,3 +67,4 @@ namespace Thry.ThryEditor.ShaderTranslations
         }
     }
 }
+#endif

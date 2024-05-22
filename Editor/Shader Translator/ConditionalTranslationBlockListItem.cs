@@ -4,8 +4,10 @@ using UnityEngine.UIElements;
 
 namespace Thry.ThryEditor.ShaderTranslations
 {
+
     public class ConditionalTranslationBlockListItem : BindableElement
     {
+#if UNITY_2022_1_OR_NEWER
         EnumField statementField;
         TextField conditionField;
 
@@ -32,5 +34,6 @@ namespace Thry.ThryEditor.ShaderTranslations
             bool isReadOnly = (ConditionalTranslationBlock.ConditionalBlockType)statementField.value == ConditionalTranslationBlock.ConditionalBlockType.Else;
             UIElementsHelpers.SetTextFieldReadonly(conditionField, isReadOnly);
         }
+#endif
     }
 }

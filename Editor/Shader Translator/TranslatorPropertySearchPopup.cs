@@ -1,3 +1,4 @@
+#if UNITY_2022_1_OR_NEWER
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 {
     public class TranslatorPropertySearchPopup : EditorWindow
     {
-        ShaderTranslatorEditorUI editor;
+        ShaderTranslatorEditor editor;
         bool isSourceProperties;
 
         List<string> filteredProperties;
@@ -21,7 +22,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             uxml.CloneTree(rootVisualElement);
         }
 
-        public void Init(ShaderTranslatorEditorUI ownerEditor, bool isSource, Action<string> onSelected)
+        public void Init(ShaderTranslatorEditor ownerEditor, bool isSource, Action<string> onSelected)
         {
             editor = ownerEditor;
             isSourceProperties = isSource;
@@ -65,3 +66,4 @@ namespace Thry.ThryEditor.ShaderTranslations
         }
     }
 }
+#endif

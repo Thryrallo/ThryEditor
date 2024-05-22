@@ -8,8 +8,9 @@ using UnityEngine.UIElements;
 namespace Thry.ThryEditor.ShaderTranslations
 {
     [CustomEditor(typeof(ShaderTranslator))]
-    public class ShaderTranslatorEditorUI : Editor
+    public class ShaderTranslatorEditor : Editor
     {
+#if UNITY_2022_1_OR_NEWER
         List<string> shaderNames;
         public List<string> sourceShaderPropertyNames;
         public List<string> targetShaderPropertyNames;
@@ -82,8 +83,8 @@ namespace Thry.ThryEditor.ShaderTranslations
             propertyList.Rebuild();
         }
 
-        #region Old inspector
-        public void OnInspectorGUI_old() // override
+#elif UNITY_2019_1_OR_NEWER
+        public override void OnInspectorGUI()
         {
             serializedObject.Update();
             ShaderTranslator translator = serializedObject.targetObject as ShaderTranslator;
@@ -122,6 +123,8 @@ namespace Thry.ThryEditor.ShaderTranslations
             Shader target = Shader.Find(shaders[targetIndex]);
 
             GUILayout.Space(10);
+
+            EditorGUILayout.HelpBox("Please use Unity 2022 to use conditional properties.", MessageType.Error);
 
             using(new GUILayout.VerticalScope("box"))
             {
@@ -163,6 +166,6 @@ namespace Thry.ThryEditor.ShaderTranslations
             serializedObject.Update();
             EditorUtility.SetDirty(serializedObject.targetObject);
         }
-        #endregion
+#endif
     }
 }
