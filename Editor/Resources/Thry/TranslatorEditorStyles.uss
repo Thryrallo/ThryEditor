@@ -56,3 +56,10 @@
 .icon-only-dropdown > VisualElement > PopupTextElement {
     display: none;
 }
+
+.list-inline {
+}
+
+.list-inline > #unity-list-view__foldout-header {
+    padding-left: 16px;
+}

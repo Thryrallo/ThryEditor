@@ -15,10 +15,6 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         public List<ConditionalTranslationBlock> ConditionalProperties;
 
-        public bool HasValidConditionals
-            => ConditionalProperties != null && ConditionalProperties.Count > 0 && ConditionalProperties.All(x => x.IsValid);
-
-
         public string GetAppropriateExpression(float value)
         {
             if(!UseConditionals)
@@ -27,16 +23,14 @@ namespace Thry.ThryEditor.ShaderTranslations
                 return Math;
             }
 
-            if(!HasValidConditionals)
-            {
-                Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b> uses conditional expressions but has one or more empty conditional block. Returning math expression <b>{Math}</b>");
-                return Math;
-            }
-
             foreach(ConditionalTranslationBlock block in ConditionalProperties)
             {
                 if(block.ConditionType == ConditionalTranslationBlock.ConditionalBlockType.If)
                 {
+                    // Empty conditional will return it's expression every time
+                    if(string.IsNullOrWhiteSpace(block.ConditionalExpression))
+                        return block.MathExpression;
+
                     Delegate parsedExpression = ExpressionParser.Parse(block.ConditionalExpression);
                     bool? result = null;
 
@@ -55,11 +49,6 @@ namespace Thry.ThryEditor.ShaderTranslations
                         Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b>: <b>if</b> conditional <b>{block.ConditionalExpression}</b> returned math expression <b>{block.MathExpression}</b>");
                         return block.MathExpression;
                     }
-                }
-                else
-                {
-                    Debug.Log($"<b>{Origin}</b> -> <b>{Target}</b>: <b>else</b> returned math expression <b>{block.MathExpression}</b>");
-                    return block.MathExpression;
                 }
             }
             return Math;

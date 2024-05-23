@@ -17,17 +17,9 @@ namespace Thry.ThryEditor.ShaderTranslations
         public bool MatchTargetShaderBasedOnRegex;
         public string OriginShaderRegex;
         public string TargetShaderRegex;
-        public List<PropertyTranslation> PropertyTranslations;
+        public List<ShaderTranslationsContainer> PropertyTranslationContainers;
 
-        public List<PropertyTranslation> GetPropertyTranslations()
-        {
-            if (PropertyTranslations == null)
-            {
-                PropertyTranslations = new List<PropertyTranslation>();
-            }
-
-            return PropertyTranslations;
-        }
+        public List<PropertyTranslation> AllPropertyTranslations => PropertyTranslationContainers.SelectMany(x => x.PropertyTranslations).ToList();
 
         public void Apply(ShaderEditor editor)
         {
@@ -35,7 +27,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             Shader targetShader = Shader.Find(TargetShader);
             SerializedObject serializedMaterial = new SerializedObject(editor.Materials[0]);
 
-            foreach(PropertyTranslation trans in GetPropertyTranslations())
+            foreach(PropertyTranslation trans in AllPropertyTranslations)
             {
                 if(editor.PropertyDictionary.TryGetValue(trans.Target, out ShaderProperty prop))
                 {
@@ -112,7 +104,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             Shader targetShader = Shader.Find(TargetShader);
             SerializedObject serializedMaterial = new SerializedObject(editor.Materials[0]);
 
-            foreach(PropertyTranslation trans in GetPropertyTranslations())
+            foreach(PropertyTranslation trans in AllPropertyTranslations)
             {
                 if (editor.PropertyDictionary.ContainsKey(trans.Target))
                 {

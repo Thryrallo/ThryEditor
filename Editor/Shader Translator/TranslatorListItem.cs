@@ -50,7 +50,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                     EditorWindow.GetWindow<TranslatorPropertySearchPopup>().Close();
 
                 var window = EditorWindow.CreateInstance<TranslatorPropertySearchPopup>();
-                window.titleContent = new GUIContent("Find Property");
+                window.titleContent = new GUIContent(isSource ? editor.SelectedSourceShaderName : editor.SelectedTargetShaderName);
                 window.ShowUtility();
                 window.Init(editor, isSource, (propertyName) =>
                 {

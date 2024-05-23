@@ -7,14 +7,11 @@ namespace Thry.ThryEditor.ShaderTranslations
     {
         public enum ConditionalBlockType
         {
-            If,
-            Else
+            If
         }
 
-        public ConditionalBlockType ConditionType;
+        public ConditionalBlockType ConditionType = ConditionalBlockType.If;
         public string ConditionalExpression;
         public string MathExpression;
-
-        public bool IsValid => ConditionType == ConditionalBlockType.Else || !string.IsNullOrWhiteSpace(ConditionalExpression);
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -16,7 +17,12 @@ namespace Thry.ThryEditor.ShaderTranslations
         public List<string> targetShaderPropertyNames;
 
         static UnityEngine.Object[] _material;
-        ListView propertyList;
+        ListView sectionsList;
+
+        ShaderTranslator targetTranslator;
+
+        public string SelectedSourceShaderName { get; private set; }
+        public string SelectedTargetShaderName { get; private set; }
 
         public override VisualElement CreateInspectorGUI()
         {
@@ -24,13 +30,34 @@ namespace Thry.ThryEditor.ShaderTranslations
             var treeAsset = Resources.Load<VisualTreeAsset>("Thry/TranslatorEditor");
             treeAsset.CloneTree(root);
 
+            targetTranslator = target as ShaderTranslator;
+
             shaderNames = AssetDatabase.FindAssets("t:shader")
                .Select(g => AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g)).name)
                .Where(s => s.StartsWith("Hidden") == false).ToList();
 
-            var translationsProp = serializedObject.FindProperty(nameof(ShaderTranslator.PropertyTranslations));
-            propertyList = root.Q<ListView>("propertyList");
-            propertyList.makeItem = () => new TranslatorListItem(this);
+            sectionsList = root.Q<ListView>("sectionsList");
+            sectionsList.makeItem = () =>
+            {
+                var item = new TranslatorSectionListItem(this);
+                var innerList = item.Q<ListView>();
+                item.RegisterCallback<PointerDownEvent>(_HandlePointer);
+
+                void _HandlePointer(EventBase evt)
+                {
+                    if(innerList.Contains(evt.target as VisualElement))
+                        evt.StopPropagation();
+                }
+                return item;
+            };
+
+            var translationsProp = serializedObject.FindProperty(nameof(ShaderTranslator.PropertyTranslationContainers));
+            sectionsList.bindItem = (element, index) =>
+            {
+                var listItem = element as TranslatorSectionListItem;
+                listItem.container = targetTranslator.PropertyTranslationContainers[index];
+                listItem.BindProperty(translationsProp.GetArrayElementAtIndex(index));
+            };
 
             SetupShaderSelectionUI(root.Q<VisualElement>("originShaderContainer"), true);
             SetupShaderSelectionUI(root.Q<VisualElement>("targetShaderContainer"), false);
@@ -46,7 +73,14 @@ namespace Thry.ThryEditor.ShaderTranslations
             shaderDropdown.choices = shaderNames;
             shaderDropdown.RegisterValueChangedCallback(evt => shaderText.value = evt.newValue);
 
-            shaderText.RegisterValueChangedCallback(evt => UpdateShaderProperties(evt.newValue, ref isSourceShader ? ref sourceShaderPropertyNames : ref targetShaderPropertyNames));
+            shaderText.RegisterValueChangedCallback(evt =>
+            {
+                UpdateShaderProperties(evt.newValue, ref isSourceShader ? ref sourceShaderPropertyNames : ref targetShaderPropertyNames);
+                if(isSourceShader)
+                    SelectedSourceShaderName = shaderText.value;
+                else
+                    SelectedTargetShaderName = shaderText.value;
+            });
 
             var shaderRegexText = container.Q<TextField>("shaderRegexText");
             var regexToggle = container.Q<Toggle>("shaderRegexToggle");
@@ -80,7 +114,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             properties = MaterialEditor.GetMaterialPropertyNames(_material).ToList();
 
-            propertyList.Rebuild();
+            sectionsList.Rebuild();
         }
 
 #elif UNITY_2019_1_OR_NEWER
