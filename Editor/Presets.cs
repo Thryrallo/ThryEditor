@@ -117,8 +117,7 @@ namespace Thry.ThryEditor
             {
                 string[] lines = File.ReadAllLines(FILE_NAME_CACHE);
 
-                string presetVersion = lines[0];
-                if(presetVersion != PRESET_VERSION)
+                if(lines.Length == 0 || lines[0] != PRESET_VERSION)
                 {
                     CreatePresetCache();
                     return;
