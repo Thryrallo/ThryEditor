@@ -1284,9 +1284,18 @@ namespace Thry
             this(new SliderConfig(label1, min1, max1), new SliderConfig(label2, min2, max2), null, null, twoMinMaxDrawers)
         { }
 
+        private float GetIconHeight()
+        {
+            return GUILayoutUtility.GetLastRect().y + GUILayoutUtility.GetLastRect().height - 14;
+        }
+
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Vector4 vector = prop.vectorValue;
+
+            Rect fullRect = EditorGUILayout.BeginVertical();
+            DrawingData.IconsPositioningCount = 2;
+
             EditorGUI.BeginChangeCheck();
             if (_twoMinMaxDrawers)
             {
@@ -1296,29 +1305,42 @@ namespace Thry
                 float max2 = vector.w;
                 EditorGUI.showMixedValue = prop.hasMixedValue;
                 EditorGUILayout.MinMaxSlider(_slider1.Label, ref min1, ref max1, _slider1.Min, _slider1.Max);
+                DrawingData.IconsPositioningHeights[0] = GetIconHeight();
                 EditorGUI.showMixedValue = prop.hasMixedValue;
                 EditorGUILayout.MinMaxSlider(_slider2.Label, ref min2, ref max2, _slider2.Min, _slider2.Max);
+                DrawingData.IconsPositioningHeights[1] = GetIconHeight();
                 vector = new Vector4(min1, max1, min2, max2);
             }
             else
             {
                 EditorGUI.showMixedValue = prop.hasMixedValue;
                 vector.x = EditorGUILayout.Slider(_slider1.Label, vector.x, _slider1.Min, _slider1.Max);
+                DrawingData.IconsPositioningHeights[0] = GetIconHeight();
                 EditorGUI.showMixedValue = prop.hasMixedValue;
                 vector.y = EditorGUILayout.Slider(_slider2.Label, vector.y, _slider2.Min, _slider2.Max);
+                DrawingData.IconsPositioningHeights[1] = GetIconHeight();
                 if (_slider3 != null)
                 {
                     EditorGUI.showMixedValue = prop.hasMixedValue;
                     vector.z = EditorGUILayout.Slider(_slider3.Label, vector.z, _slider3.Min, _slider3.Max);
+                    DrawingData.IconsPositioningHeights[2] = GetIconHeight();
+
+                    DrawingData.IconsPositioningCount = 3;
                 }
                 if (_slider4 != null)
                 {
                     EditorGUI.showMixedValue = prop.hasMixedValue;
                     vector.w = EditorGUILayout.Slider(_slider4.Label, vector.w, _slider4.Min, _slider4.Max);
+                    DrawingData.IconsPositioningHeights[3] = GetIconHeight();
+
+                    DrawingData.IconsPositioningCount = 4;
                 }
             }
             if (EditorGUI.EndChangeCheck())
                 prop.vectorValue = vector;
+
+            EditorGUILayout.EndVertical();
+            DrawingData.TooltipCheckRect = fullRect;
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

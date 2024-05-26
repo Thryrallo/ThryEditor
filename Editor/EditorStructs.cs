@@ -727,12 +727,19 @@ namespace Thry
             if (content == null)
                 content = this.Content;
             EditorGUI.BeginChangeCheck();
+
+            DrawingData.IconsPositioningCount = 0;
+
             DrawInternal(content, rect, useEditorIndent, isInHeader);
 
-            if(this is TextureProperty == false)
+            if (this is TextureProperty == false)
             {
                 DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
-                DrawingData.IconsPositioningHeight = DrawingData.LastGuiObjectRect.y + DrawingData.LastGuiObjectRect.height - 14;
+                if(DrawingData.IconsPositioningCount == 0)
+                {
+                    DrawingData.IconsPositioningCount = 1;
+                    DrawingData.IconsPositioningHeights[0] = DrawingData.LastGuiObjectRect.y + DrawingData.LastGuiObjectRect.height - 14;
+                }
             }
             DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
 
@@ -772,17 +779,21 @@ namespace Thry
 
         private void DrawLockedAnimated()
         {
-            Rect r = new Rect(14, DrawingData.IconsPositioningHeight, 16, 16);
-            //GUI.DrawTexture(r, is_renaming ? Styles.texture_animated_renamed : Styles.texture_animated, ScaleMode.StretchToFill, true);
-            if (IsRenaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
-            else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
+            for(int i=0;i<DrawingData.IconsPositioningCount;i++)
+            {
+                Rect r = new Rect(14, DrawingData.IconsPositioningHeights[i], 16, 16);
+                if (IsRenaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
+                else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
+            }
         }
 
         private void DrawPresetProperty()
         {
-            Rect r = new Rect(3, DrawingData.IconsPositioningHeight, 8, 16);
-            //GUI.DrawTexture(r, Styles.texture_preset, ScaleMode.StretchToFill, true);
-            GUI.Label(r, "P", Styles.presetIndicatorStyle);
+            for (int i = 0; i < DrawingData.IconsPositioningCount; i++)
+            {
+                Rect r = new Rect(3, DrawingData.IconsPositioningHeights[i], 8, 16);
+                GUI.Label(r, "P", Styles.presetIndicatorStyle);
+            }
         }
 
         protected void ExecuteOnValueActions(Material[] targets)

@@ -52,7 +52,8 @@ namespace Thry
         public static Rect LastGuiObjectRect;
         public static Rect LastGuiObjectHeaderRect;
         public static Rect TooltipCheckRect;
-        public static float IconsPositioningHeight;
+        public static float[] IconsPositioningHeights = new float[4];
+        public static float IconsPositioningCount = 1;
         public static bool LastPropertyUsedCustomDrawer;
         public static bool LastPropertyDoesntAllowAnimation;
         public static DrawerType LastPropertyDrawerType;

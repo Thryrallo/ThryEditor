@@ -131,7 +131,7 @@ namespace Thry
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
             DrawingData.LastGuiObjectRect = object_rect;
             DrawingData.TooltipCheckRect = tooltipRect;            
-            DrawingData.IconsPositioningHeight = iconsPositioningHeight;
+            DrawingData.IconsPositioningHeights[0] = iconsPositioningHeight;
 
             // Border Code start
             if(isFoldedOut)
@@ -296,7 +296,7 @@ namespace Thry
 
             DrawingData.LastGuiObjectRect = border;
             DrawingData.TooltipCheckRect = Rect.MinMaxRect(border.x, border.y, scale_offset_rect.xMax, scale_offset_rect.yMax);
-            DrawingData.IconsPositioningHeight = scale_offset_rect.y;
+            DrawingData.IconsPositioningHeights[0] = scale_offset_rect.y;
         }
 
         public static void BigTexturePropertyBasic(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
@@ -336,7 +336,7 @@ namespace Thry
 
             DrawingData.LastGuiObjectRect = position;
             DrawingData.TooltipCheckRect = tooltipCheckRect;
-            DrawingData.IconsPositioningHeight = iconsPositioningHeight;
+            DrawingData.IconsPositioningHeights[0] = iconsPositioningHeight;
         }
 
         public static void OpenTexturePicker(MaterialProperty prop)
