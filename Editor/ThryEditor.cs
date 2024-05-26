@@ -11,6 +11,7 @@ using System.Linq;
 using Thry.ThryEditor;
 using System.Reflection;
 using static Thry.UnityHelper;
+using Thry.ThryEditor.ShaderTranslations;
 
 namespace Thry
 {
