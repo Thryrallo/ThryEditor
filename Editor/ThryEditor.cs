@@ -829,7 +829,7 @@ namespace Thry
                 foreach (ShaderPart p in (part as ShaderGroup).parts)
                 {
                     UpdateSearch(p, includesSearchTerm);
-                    part.has_not_searchedFor |= p.has_not_searchedFor;
+                    part.has_not_searchedFor |= !p.has_not_searchedFor;
                 }
             }
 
