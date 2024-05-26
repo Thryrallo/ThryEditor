@@ -1442,6 +1442,7 @@ namespace Thry
             PreDraw();
             if (ActiveShaderEditor.IsLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !ExemptFromLockedDisabling);
+
             int oldIndentLevel = EditorGUI.indentLevel;
             if (!useEditorIndent)
                 EditorGUI.indentLevel = XOffset + 1;

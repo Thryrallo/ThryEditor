@@ -106,7 +106,8 @@ namespace Thry
                             iconsPositioningHeight = lastRect.y;
                         }
                         //In case of locked material end disabled group here to allow editing of sub properties
-                        if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.EndDisabledGroup();
+
+                        if (ShaderEditor.Active.IsLockedMaterial) GUI.enabled = DrawingData.IsEnabled;
 
                         PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
                         if (options.reference_properties != null)
@@ -115,9 +116,6 @@ namespace Thry
                                 ShaderProperty property = ShaderEditor.Active.PropertyDictionary[r_property];
                                 property.Draw(useEditorIndent: true);
                             }
-
-                        //readd disabled group
-                        if (ShaderEditor.Active.IsLockedMaterial) EditorGUI.BeginDisabledGroup(false);
 
                         EditorGUI.indentLevel -= 2;
                     }

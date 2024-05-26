@@ -1134,11 +1134,13 @@ namespace Thry
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
 
-                        if(DEBUG_IF_DEF_REMOVAL)
+#pragma warning disable CS0162 // Unreachable code detected
+                        if (DEBUG_IF_DEF_REMOVAL)
                         {
                             removeEndifStackDebugging.AppendLine($"push {ifStacking}" + lineParsed);
                             removeEndifStackIfLines.Push(lineParsed);
                         }
+#pragma warning restore CS0162 // Unreachable code detected
 
                         if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
@@ -1209,11 +1211,14 @@ namespace Thry
                             Debug.LogError(removeEndifStackDebugging.ToString());
                             GUIUtility.systemCopyBuffer = string.Join(Environment.NewLine, includedLines);
                         }
-                        if(DEBUG_IF_DEF_REMOVAL)
+#pragma warning disable CS0162 // Unreachable code detected
+                        if (DEBUG_IF_DEF_REMOVAL)
                         {
                             fileLines[i] += $" // {removeEndifStackIfLines.Peek()}";
                             removeEndifStackDebugging.AppendLine($"pop {ifStacking}" + removeEndifStackIfLines.Pop());
                         }
+#pragma warning restore CS0162 // Unreachable code detected
+
                         if (removeEndifStack.Pop()) continue;
                     }
                     if (!isIncluded) continue;

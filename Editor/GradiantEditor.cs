@@ -204,7 +204,7 @@ namespace Thry
                 TextureSettingsGUI();
         }
 
-        private void DiscardChanges()
+        private new void DiscardChanges()
         {
             prop.textureValue = privious_preview_texture;
             SetGradient(TextureHelper.GetGradient(privious_preview_texture));
