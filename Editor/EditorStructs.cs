@@ -6,6 +6,7 @@ using System.Reflection;
 using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Thry
 {
@@ -844,19 +845,24 @@ namespace Thry
                 {
                     if (AnimationMode.InAnimationMode())
                     {
+                        
+
+#if UNITY_2020_1_OR_NEWER
+                        // So we do this instead
+                        _isExpanded = value;
+#else
                         // This fails when unselecting the object in hirearchy
                         // Then reselecting it
                         // Don't know why
                         // It seems AnimationMode is not working properly in Unity 2022
                         // It worked fine in Unity 2019
-
-                        // AnimationMode.StopAnimationMode();
-                        // this.MaterialProperty.SetNumber(value ? 1 : 0);
-                        // AnimationMode.StartAnimationMode();
-
-                        // So we do this instead
-                        _isExpanded = value;
-                    }else
+                        
+                        AnimationMode.StopAnimationMode();
+                        this.MaterialProperty.SetNumber(value ? 1 : 0);
+                        AnimationMode.StartAnimationMode();
+#endif
+                    }
+                    else
                     {
                         this.MaterialProperty.SetNumber(value ? 1 : 0);
                     }

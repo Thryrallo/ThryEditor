@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -111,6 +112,38 @@ namespace Thry
 
             FileHelper.WriteStringToFile(shaderCode, path);
         }
+
+        static MethodInfo[] method_PropertyBeginOriginal = typeof(MaterialProperty).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Where(m => m.Name == "BeginProperty").ToArray();
+        static MethodInfo method_PropertyEnd = typeof(MaterialProperty).GetMethod("EndProperty", BindingFlags.Static | BindingFlags.NonPublic);
+        static MethodInfo[] method_PropertyBeginPatch = typeof(UnityHelper).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Where(m => m.Name == "BeginPropertyPatch").ToArray();
+        static MethodInfo method_PropertyEndPatch = typeof(UnityHelper).GetMethod(nameof(EndPropertyPatch), BindingFlags.NonPublic | BindingFlags.Static);
+
+        static void EndPropertyPatch() { }
+        static void BeginPropertyPatch(UnityEditor.MaterialProperty prop, UnityEngine.Object[] objs) { }
+        static void BeginPropertyPatch(int prop, UnityEngine.Object[] objs) { }
+        static void BeginPropertyPatch(UnityEngine.Rect r, UnityEditor.MaterialProperty prop, int serialized, UnityEngine.Object[] obs, System.Single f) { }
+
+        public class DetourMaterialPropertyVariantIcon : IDisposable
+        {
+            public DetourMaterialPropertyVariantIcon()
+            {
+#if UNITY_2022_1_OR_NEWER
+                for (int i = 0; i < method_PropertyBeginOriginal.Length; i++)
+                    Helper.TryDetourFromTo(method_PropertyBeginOriginal[i], method_PropertyBeginPatch[i]);
+                Helper.TryDetourFromTo(method_PropertyEnd, method_PropertyEndPatch);
+#endif
+            }
+
+            public void Dispose()
+            {
+#if UNITY_2022_1_OR_NEWER
+                for (int i = 0; i < method_PropertyBeginOriginal.Length; i++)
+                    Helper.RestoreDetour(method_PropertyBeginOriginal[i]);
+                Helper.RestoreDetour(method_PropertyEnd);
+#endif
+            }
+        }
+
     }
 
     public static class UnityExtensions

@@ -9,6 +9,8 @@ using UnityEngine;
 using System;
 using System.Linq;
 using Thry.ThryEditor;
+using System.Reflection;
+using static Thry.UnityHelper;
 
 namespace Thry
 {
@@ -522,10 +524,17 @@ namespace Thry
             Presets.PresetEditorGUI(this);
             ShaderTranslator.SuggestedTranslationButtonGUI(this);
 
+#if UNITY_2022_1_OR_NEWER
+            EditorGUI.indentLevel += 2;
+#endif
+
             //PROPERTIES
-            foreach (ShaderPart part in MainGroup.parts)
+            using( new DetourMaterialPropertyVariantIcon())
             {
-                part.Draw();
+                foreach (ShaderPart part in MainGroup.parts)
+                {
+                    part.Draw();
+                }
             }
 
             //Render Queue selection
@@ -540,10 +549,6 @@ namespace Thry
 
             IsDrawing = false;
             _didSwapToShader = false;
-
-#if UNITY_2022_1_OR_NEWER
-            EditorGUI.indentLevel += 2;
-#endif
         }
 
         private void GUIManualReloadButton()
@@ -748,6 +753,12 @@ namespace Thry
             {
                 menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Is Preset"), Presets.IsPreset(Materials[0]), delegate ()
+            {
+                Presets.SetPreset(Materials, !Presets.IsPreset(Materials[0]));
+                this.Reload();
+            });
             menu.DropDown(position);
         }
 

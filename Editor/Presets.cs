@@ -547,6 +547,27 @@ namespace Thry.ThryEditor
         {
             return m.GetTag(TAG_IS_PRESET, false, "false") == "true";
         }
+        
+        public static void SetPreset(IEnumerable<Material> mats, bool set)
+        {
+            if (set)
+            {
+                foreach (Material m in mats)
+                {
+                    m.SetOverrideTag(TAG_IS_PRESET, "true");
+                    if (m.GetTag("presetName", false, "") == "") m.SetOverrideTag("presetName", m.name);
+                    Presets.AddPreset(m);
+                }
+            }
+            else
+            {
+                foreach (Material m in mats)
+                {
+                    m.SetOverrideTag(TAG_IS_PRESET, "");
+                    Presets.RemovePreset(m);
+                }
+            }
+        }
 
         public static bool IsMaterialSectionedPreset(Material m)
         {
@@ -661,46 +682,6 @@ namespace Thry.ThryEditor
 #endregion
 
 #region Unity Menu Hooks
-
-        [MenuItem("Assets/Thry/Materials/Mark as Preset",false,500)]
-        static void MarkAsPreset()
-        {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
-                Where(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material)).Select(p => AssetDatabase.LoadAssetAtPath<Material>(p));
-            foreach (Material m in mats)
-            {
-                m.SetOverrideTag(TAG_IS_PRESET, "true");
-                if (m.GetTag("presetName", false, "") == "") m.SetOverrideTag("presetName", m.name);
-                Presets.AddPreset(m);
-            }
-        }
-
-        [MenuItem("Assets/Thry/Materials/Mark as Preset", true,500)]
-        static bool MarkAsPresetValid()
-        {
-            return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
-                All(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material));
-        }
-
-        [MenuItem("Assets/Thry/Materials/Remove as preset",false,500)]
-        static void RemoveAsPreset()
-        {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
-                Where(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material)).Select(p => AssetDatabase.LoadAssetAtPath<Material>(p));
-            foreach (Material m in mats)
-            {
-                m.SetOverrideTag(TAG_IS_PRESET, "");
-                Presets.RemovePreset(m);
-            }
-        }
-
-        [MenuItem("Assets/Thry/Materials/Remove as preset", true,500)]
-        static bool RemoveAsPresetValid()
-        {
-            return Selection.assetGUIDs.Select(g => AssetDatabase.GUIDToAssetPath(g)).
-                All(p => AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Material));
-        }
-        
         [MenuItem("Thry/Presets/Rebuild Cache", priority = 100)]
         static void RebuildCache()
         {
