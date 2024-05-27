@@ -299,7 +299,7 @@ namespace Thry.ThryEditor
                         
                         if(!PresetCollections[collectionName].Guids.Contains(guid))
                         {
-                            Debug.Log($"AddPreset: {name} ({guid})");
+                            //Debug.Log($"AddPreset: {name} ({guid})");
                             PresetCollections[collectionName].Names.Add(name);
                             PresetCollections[collectionName].Guids.Add(guid);
                         }
@@ -311,7 +311,7 @@ namespace Thry.ThryEditor
                 string name = material.GetTag(TAG_PRESET_NAME, false, material.name).Replace(';', '_');
                 if(!PresetCollections["_full_"].Guids.Contains(guid))
                 {
-                    Debug.Log($"AddPreset: {name} ({guid})");
+                    //Debug.Log($"AddPreset: {name} ({guid})");
                     PresetCollections["_full_"].Names.Add(name);
                     PresetCollections["_full_"].Guids.Add(guid);
                 }
@@ -340,7 +340,7 @@ namespace Thry.ThryEditor
                     // if guid matches, remove from collection
                     if(collection.Value.Guids[i] == guid)
                     {
-                        Debug.Log($"RemovePreset: {collection.Value.Names[i]} ({guid})");
+                        //Debug.Log($"RemovePreset: {collection.Value.Names[i]} ({guid})");
                         collection.Value.Guids.RemoveAt(i);
                         collection.Value.Names.RemoveAt(i);
                         break;
@@ -576,6 +576,8 @@ namespace Thry.ThryEditor
         public static void SetMaterialSectionedPreset(Material m, bool value)
         {
             m.SetOverrideTag(TAG_IS_SECTION_PRESET, value ? "true" : "");
+            RemovePreset(m);
+            AddPreset(m);   
         }
 
         public static bool IsSectionPreset(Material m, string headerPropName)
@@ -626,7 +628,7 @@ namespace Thry.ThryEditor
 
         public static bool DoesSectionHavePresets(string headerPropName)
         {
-            return PresetCollections.ContainsKey(headerPropName);
+            return PresetCollections.ContainsKey(headerPropName) && PresetCollections[headerPropName].Guids.Count > 0;
         }
 
 #region Preset Validation
