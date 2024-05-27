@@ -2038,6 +2038,16 @@ namespace Thry
         }
     }
 
+    public class DoNotAnimateDecorator : MaterialPropertyDrawer
+    {
+        public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor) { }
+        public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
+        {
+            DrawingData.LastPropertyDoesntAllowAnimation = true;
+            return 0;
+        }
+    }
+
     public class ThryDecalPositioningDecorator : MaterialPropertyDrawer
     {
         string _texturePropertyName;
