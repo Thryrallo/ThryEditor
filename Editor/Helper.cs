@@ -1257,7 +1257,7 @@ namespace Thry
         {
             width = Mathf.Max(0, Mathf.Min(8192, width));
             height = Mathf.Max(0, Mathf.Min(8192, height));
-            Texture2D texture = new Texture2D(width, height);
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA64, false);
             Color col;
             if(vertical)
             {

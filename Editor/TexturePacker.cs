@@ -41,7 +41,7 @@ namespace Thry
         public enum TextureChannelOut { R, G, B, A, None }
         public enum BlendMode { Add, Multiply, Max, Min }
         public enum InvertMode { None, Invert}
-        public enum SaveType { PNG, JPG }
+        public enum SaveType { PNG, JPG, EXR }
         public enum InputType { Texture, Color, Gradient }
         public enum GradientDirection { Horizontal, Vertical }
         public enum KernelPreset { None, Custom, EdgeDetection, Sharpen, GaussianBlur3x3, GaussianBlur5x5 }
@@ -63,6 +63,7 @@ namespace Thry
             {
                 case SaveType.PNG: return ".png";
                 case SaveType.JPG: return ".jpg";
+                case SaveType.EXR: return ".exr";
                 default: return ".png";
             }
         }
@@ -113,15 +114,12 @@ namespace Thry
             {
             }
 
-            public TextureSource(Texture2D tex)
-            {
-                SetTexture(tex);
-            }
-
-            public void SetTexture(Texture2D tex)
+            public void SetInputTexture(Texture2D tex)
             {
                 Texture = tex;
+                TextureTexture = tex;
                 FilterMode = tex != null ? tex.filterMode : FilterMode.Bilinear;
+                if (tex != null) InputType = InputType.Texture;
             }
 
             public static void SetUncompressedTextureDirty(Texture2D tex)
@@ -296,10 +294,10 @@ namespace Thry
         List<Connection> _connections = new List<Connection>();
         Connection _creatingConnection;
         Texture2D _outputTexture;
-        ColorSpace _colorSpace = ColorSpace.Uninitialized;
+        ColorSpace _colorSpace = ColorSpace.Linear;
         FilterMode _filterMode = FilterMode.Bilinear;
 
-        string _saveFolder;
+        string _saveFolder = "Assets";
         string _saveName;
         SaveType _saveType = SaveType.PNG;
         float _saveQuality = 1;
@@ -379,10 +377,10 @@ namespace Thry
         void InitilizeWithOneTexture(Texture2D texture)
         {
             _connections.Clear();
-            _textureSources[0].SetTexture(texture);
-            _textureSources[1].SetTexture(texture);
-            _textureSources[2].SetTexture(texture);
-            _textureSources[3].SetTexture(texture);
+            _textureSources[0].SetInputTexture(texture);
+            _textureSources[1].SetInputTexture(texture);
+            _textureSources[2].SetInputTexture(texture);
+            _textureSources[3].SetInputTexture(texture);
             // Add connections
             _connections.Add(Connection.CreateFull(0, TextureChannelIn.R, TextureChannelOut.R));
             _connections.Add(Connection.CreateFull(1, TextureChannelIn.G, TextureChannelOut.G));
@@ -966,7 +964,7 @@ namespace Thry
                             // Needs to call these itself because it's in a callback not the OnGUI method
                             Pack();
                             Repaint();
-                        }, texture.GradientDirection == GradientDirection.Vertical, false, _imageAdjust.Resolution, new Vector2Int(4096, 4096));
+                        }, texture.GradientDirection == GradientDirection.Vertical, false, _imageAdjust.Resolution, new Vector2Int(8192, 8192));
 
                     }
                     EditorGUI.BeginChangeCheck();
@@ -1134,7 +1132,7 @@ namespace Thry
             int height = colorAdjust.Resolution.y;
             
 
-            RenderTexture target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            RenderTexture target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB64, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
             target.filterMode = targetFilterMode;
             target.Create();
@@ -1173,7 +1171,7 @@ namespace Thry
                 // define the opposite way, because each loop flips it
                 RenderTexture filterTarget = target;
 
-                RenderTexture filterInput = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+                RenderTexture filterInput = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB64, RenderTextureReadWrite.Linear);
                 filterInput.enableRandomWrite = true;
                 filterInput.filterMode = targetFilterMode;
                 filterInput.Create();
@@ -1192,7 +1190,7 @@ namespace Thry
                 target = filterTarget;
             }
 
-            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA32, true, targetColorSpace == ColorSpace.Linear);
+            Texture2D atlas = new Texture2D(width, height, TextureFormat.RGBA64, true, targetColorSpace == ColorSpace.Linear);
             RenderTexture.active = target;
             atlas.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             atlas.filterMode = targetFilterMode;
@@ -1276,7 +1274,7 @@ namespace Thry
             ComputeShader.SetVector("Channels_Strength_A", lerpA);
             ComputeShader.Dispatch(2, _outputTexture.width / 8, _outputTexture.height / 8, 1);
 
-            Texture2D tex = new Texture2D(renderTex.width, renderTex.height, TextureFormat.RGBA32, true, _colorSpace == ColorSpace.Linear);
+            Texture2D tex = new Texture2D(renderTex.width, renderTex.height, TextureFormat.RGBA64, true, _colorSpace == ColorSpace.Linear);
             RenderTexture.active = renderTex;
             tex.ReadPixels(new Rect(0, 0, renderTex.width, renderTex.height), 0, 0);
             tex.filterMode = renderTex.filterMode;
@@ -1292,7 +1290,7 @@ namespace Thry
             Pack();
             DeterminePathAndFileNameIfEmpty();
 
-            RenderTexture target = new RenderTexture(_outputTexture.width, _outputTexture.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            RenderTexture target = new RenderTexture(_outputTexture.width, _outputTexture.height, 24, RenderTextureFormat.ARGB64, RenderTextureReadWrite.Linear);
             target.enableRandomWrite = true;
             target.filterMode = _outputTexture.filterMode;
             target.Create();
@@ -1349,6 +1347,7 @@ namespace Thry
             {
                 case SaveType.PNG: bytes = _outputTexture.EncodeToPNG(); break;
                 case SaveType.JPG: bytes = _outputTexture.EncodeToJPG((int)_saveQuality); break;
+                case SaveType.EXR: bytes = _outputTexture.EncodeToEXR(); break;
             }
             System.IO.File.WriteAllBytes(path, bytes);
             AssetDatabase.Refresh();

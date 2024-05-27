@@ -415,7 +415,7 @@ namespace Thry
             Texture2D changed = EditorGUI.ObjectField(r, input.TextureSource.Texture, typeof(Texture2D), false) as Texture2D;
             if (EditorGUI.EndChangeCheck())
             {
-                input.TextureSource.SetTexture(changed);
+                input.TextureSource.SetInputTexture(changed);
             }
 
             r.x += r.width + 5;
@@ -514,7 +514,7 @@ namespace Thry
             {
                 string p = AssetDatabase.GUIDToAssetPath(guid);
                 if (p != null)
-                    packerChannelConfig.TextureSource.SetTexture(AssetDatabase.LoadAssetAtPath<Texture2D>(p));
+                    packerChannelConfig.TextureSource.SetInputTexture(AssetDatabase.LoadAssetAtPath<Texture2D>(p));
             }
             return packerChannelConfig;
         }
