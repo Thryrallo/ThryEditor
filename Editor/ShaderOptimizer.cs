@@ -449,6 +449,7 @@ namespace Thry
             List<PropertyData> constantProps = new List<PropertyData>();
             List<RenamingProperty> animatedPropsToRename = new List<RenamingProperty>();
             List<RenamingProperty> animatedPropsToDuplicate = new List<RenamingProperty>();
+            List<string> stripTextures = new List<string>();
             foreach (MaterialProperty prop in props)
             {
                 if (prop == null) continue;
@@ -600,7 +601,7 @@ namespace Thry
             // Parse shader and cginc files, also gets preprocessor macros
             List<ParsedShaderFile> shaderFiles = new List<ParsedShaderFile>();
             List<Macro> macros = new List<Macro>();
-            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material))
+            if (!ParseShaderFilesRecursive(shaderFiles, newShaderDirectory, shaderFilePath, macros, material, stripTextures))
                 return false;
 
             // Remove all defines where name if not in shader files
@@ -806,6 +807,7 @@ namespace Thry
             applyStruct.animatedPropsToRename = animatedPropsToRename;
             applyStruct.animatedPropsToDuplicate = animatedPropsToDuplicate;
             applyStruct.animPropertySuffix = animPropertySuffix;
+            applyStruct.stripTextures = stripTextures;
 
             if (applyShaderLater)
             {
@@ -828,6 +830,7 @@ namespace Thry
             public List<RenamingProperty> animatedPropsToDuplicate;
             public string animPropertySuffix;
             public bool shared;
+            public List<string> stripTextures;
         }
 
         private static bool LockApplyShader(Material material)
@@ -893,6 +896,31 @@ namespace Thry
             // So these are saved as temp values and reassigned after switching shaders
             string renderType = material.GetTag("RenderType", false, "");
             int renderQueue = material.renderQueue;
+
+            // Strip removed textures
+            SerializedObject serializedObject = new SerializedObject(material);
+            SerializedProperty serializedTexProperties = serializedObject.FindProperty("m_SavedProperties.m_TexEnvs");
+            List<(string tag,string guid)> savedTextures = new List<(string,string)>();
+            for(int i=0;i<serializedTexProperties.arraySize;i++)
+            {
+                SerializedProperty prop = serializedTexProperties.GetArrayElementAtIndex(i);
+                string propName = prop.FindPropertyRelative("first").stringValue;
+                Object propTex = prop.FindPropertyRelative("second.m_Texture").objectReferenceValue;
+                bool doStrip = applyStruct.stripTextures.Contains(propName) && propTex != null;
+                if (doStrip || propTex == null)
+                {
+                    if (doStrip)
+                        savedTextures.Add(
+                            ("_stripped_tex_" + propName,
+                            AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(material.GetTexture(propName))).ToString()));
+                    serializedTexProperties.DeleteArrayElementAtIndex(i);
+                    i -= 1;
+                }
+            }
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+
+            foreach ((string tag, string guid) in savedTextures)
+                material.SetOverrideTag(tag, guid);
 
             // Actually switch the shader
             Shader newShader = Shader.Find(newShaderName);
@@ -1008,7 +1036,7 @@ namespace Thry
         // Save each file as string[], parse each macro with //KSOEvaluateMacro
         // Only editing done is replacing #include "X" filepaths where necessary
         // most of these args could be private static members of the class
-        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros, Material material)
+        private static bool ParseShaderFilesRecursive(List<ParsedShaderFile> filesParsed, string newTopLevelDirectory, string filePath, List<Macro> macros, Material material, List<string> stripTextures)
         {
             // Infinite recursion check
             if (filesParsed.Exists(x => x.filePath == filePath)) return true;
@@ -1109,7 +1137,23 @@ namespace Thry
                     }
                     continue;
                 }
-                if (doExclude) continue;
+                if (doExclude)
+                {
+                    // check for texture property definitions, remove textures later
+                    // needs specific naming
+                    if(lineParsed.EndsWith("{ }", StringComparison.Ordinal) && lineParsed.Contains("2D)", StringComparison.Ordinal))
+                    {
+                        lineParsed = lineParsed.Substring(0, lineParsed.IndexOf('"'));
+                        if (lineParsed.Contains("]", StringComparison.Ordinal))
+                        {
+                            lineParsed = lineParsed.Substring(lineParsed.LastIndexOf(']') + 1);
+                        }
+                        lineParsed = lineParsed.Substring(0, lineParsed.IndexOf('('));
+                        lineParsed = lineParsed.Trim();
+                        stripTextures.Add(lineParsed);
+                    }
+                    continue;
+                }
 
                 //removes empty lines
                 if (string.IsNullOrEmpty(lineParsed)) continue;
@@ -1253,7 +1297,7 @@ namespace Thry
                         {
                             includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
                         }
-                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material))
+                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, stripTextures))
                             return false;
                         //Change include to be be ralative to only one directory up, because all files are moved into the same folder
                         fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
@@ -1765,6 +1809,17 @@ namespace Thry
             material.renderQueue = renderQueue;
             material.shaderKeywords = material.GetTag("OriginalKeywords", false, string.Join(" ", material.shaderKeywords)).Split(' ');
 
+            // Restore stripped textures
+            foreach (string tex in material.GetTexturePropertyNames())
+            {
+                string guid = material.GetTag("_stripped_tex_" + tex, false);
+                if (!string.IsNullOrWhiteSpace(guid))
+                {
+                    material.SetOverrideTag("_stripped_tex_" + tex, "");
+                    material.SetTexture(tex, AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath(guid)));
+                }
+            }
+
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
             // But only if no other material is using the locked shader
             string[] lockedMaterials = material.GetTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, false, "").Split(',');
@@ -1787,7 +1842,6 @@ namespace Thry
                 FileUtil.DeleteFileOrDirectory(lockedFolder);
                 FileUtil.DeleteFileOrDirectory(lockedFolder + ".meta");
             }
-            //AssetDatabase.Refresh();
 
             return UnlockSuccess.success;
         }
