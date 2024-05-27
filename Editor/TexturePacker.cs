@@ -300,7 +300,7 @@ namespace Thry
         string _saveFolder = "Assets";
         string _saveName;
         SaveType _saveType = SaveType.PNG;
-        float _saveQuality = 1;
+        float _saveQuality = 75;
         bool _showTransparency = true;
         bool _alphaIsTransparency = true;
 
