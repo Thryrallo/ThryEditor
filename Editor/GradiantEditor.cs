@@ -11,7 +11,11 @@ namespace Thry
 {
     public class GradientEditor : EditorWindow
     {
-
+        public class GradientData
+        {
+            public Texture PreviewTexture;
+            public Gradient Gradient;
+        }
         public static void Open(GradientData data, MaterialProperty prop, TextureData predefinedTextureSettings, bool force_texture_options = false, bool show_texture_options=true)
         {
             texture_settings_data = LoadTextureSettings(prop, predefinedTextureSettings, force_texture_options);

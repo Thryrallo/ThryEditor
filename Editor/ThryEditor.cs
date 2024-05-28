@@ -344,7 +344,7 @@ namespace Thry
                     case ThryPropertyType.none:
                     case ThryPropertyType.property:
                         if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new TextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
+                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
@@ -653,8 +653,10 @@ namespace Thry
 
             if (GUI.Button(presetsRect, "Presets") | GUILib.Button(presetsIcon, Styles.icon_style_presets))
                 Presets.OpenPresetsMenu(barRect, this, false);
+            ThryWideEnumDrawer.RenderLabel = false;
             if (InShaderPresetsProperty!= null)
                 InShaderPresetsProperty.Draw(inShaderRect);
+            ThryWideEnumDrawer.RenderLabel = true;
         }
 
         private void GUISearchBar()
