@@ -240,6 +240,7 @@ namespace Thry
         static Dictionary<MethodInfo, byte[]> s_patchedData = new Dictionary<MethodInfo, byte[]>();
         public static unsafe void TryDetourFromTo(MethodInfo src, MethodInfo dst)
         {
+#if UNITY_EDITOR_WIN
             try
             {
                 if (IntPtr.Size == sizeof(Int64))
@@ -306,14 +307,17 @@ namespace Thry
                 Debug.LogError($"Unable to detour: {src?.Name ?? "UnknownSrc"} -> {dst?.Name ?? "UnknownDst"}\n{ex}");
                 throw;
             }
+#endif
         }
 
         public static unsafe void RestoreDetour(MethodInfo src)
         {
+#if UNITY_EDITOR_WIN
             var Source_IntPtr = src.MethodHandle.GetFunctionPointer();
             var backup = s_patchedData[src];
             Marshal.Copy(backup, 0, Source_IntPtr, backup.Length);
             s_patchedData.Remove(src);
+#endif
         }
         // End of Detour Methods
     }

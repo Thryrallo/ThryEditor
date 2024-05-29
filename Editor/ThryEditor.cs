@@ -466,6 +466,9 @@ namespace Thry
 
         public override void AssignNewShaderToMaterial(Material material, Shader oldShader, Shader newShader)
         {
+            this.ShaderOptimizerProperty = null;
+            this.LocaleProperty = null;
+            this.InShaderPresetsProperty = null;
             //Unity sets the render queue to the shader defult when changing shader
             //This seems to be some deeper process that cant be disabled so i just set it again after the swap
             //Even material.shader = newShader resets the queue. (this is actually the only thing the base function does)
@@ -530,7 +533,7 @@ namespace Thry
 #endif
 
             //PROPERTIES
-            using( new DetourMaterialPropertyVariantIcon())
+            using ( new DetourMaterialPropertyVariantIcon())
             {
                 foreach (ShaderPart part in MainGroup.parts)
                 {
