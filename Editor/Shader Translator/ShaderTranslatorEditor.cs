@@ -27,7 +27,7 @@ namespace Thry.ThryEditor.ShaderTranslations
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement root = new VisualElement();
-            var treeAsset = Resources.Load<VisualTreeAsset>("Thry/TranslatorEditor");
+            var treeAsset = Resources.Load<VisualTreeAsset>("Shader Translator/TranslatorEditor");
             treeAsset.CloneTree(root);
 
             targetTranslator = target as ShaderTranslator;

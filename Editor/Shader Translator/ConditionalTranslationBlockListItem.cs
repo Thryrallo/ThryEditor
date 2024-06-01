@@ -10,7 +10,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         public ConditionalTranslationBlockListItem()
         {
-            var uxml = Resources.Load<VisualTreeAsset>("Thry/TranslatorConditionalListItem");
+            var uxml = Resources.Load<VisualTreeAsset>("Shader Translator/TranslatorConditionalListItem");
             uxml.CloneTree(this);
         }
 #endif
