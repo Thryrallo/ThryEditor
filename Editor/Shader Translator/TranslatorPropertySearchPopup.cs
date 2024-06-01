@@ -18,7 +18,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         private void CreateGUI()
         {
-            var uxml = Resources.Load<VisualTreeAsset>("Thry/TranslatorPropertySearchPopup");
+            var uxml = Resources.Load<VisualTreeAsset>("Shader Translator/TranslatorPropertySearchPopup");
             uxml.CloneTree(rootVisualElement);
         }
 

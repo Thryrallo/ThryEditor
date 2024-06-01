@@ -17,7 +17,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         public TranslatorSectionListItem(ShaderTranslatorEditor uiOwner)
         {
-            var uxml = Resources.Load<VisualTreeAsset>("Thry/TranslatorSectionListItem");
+            var uxml = Resources.Load<VisualTreeAsset>("Shader Translator/TranslatorSectionListItem");
             uxml.CloneTree(this);
 
             propertyList = this.Q<ListView>("propertyList");
