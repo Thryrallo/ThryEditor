@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
 
 namespace Thry.ThryEditor.ShaderTranslations
 {
@@ -158,47 +158,59 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             GUILayout.Space(10);
 
-            EditorGUILayout.HelpBox("Please use Unity 2022 to use conditional properties.", MessageType.Error);
+            EditorGUILayout.HelpBox("Please use Unity 2022 to create property translations.", MessageType.Error);
 
-            using(new GUILayout.VerticalScope("box"))
+            using(new EditorGUILayout.VerticalScope("box"))
             {
-                GUILayout.Label("Property Translation", EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("From");
-                GUILayout.Label("To");
-                GUILayout.Label("Math");
-                GUILayout.EndHorizontal();
-                List<PropertyTranslation> remove = new List<PropertyTranslation>();
-                foreach(PropertyTranslation trans in translator.GetPropertyTranslations())
+                foreach(var container in translator.PropertyTranslationContainers)
                 {
-                    Rect fullWidth = EditorGUILayout.GetControlRect();
-                    Rect r = fullWidth;
-                    r.width = (r.width - 20) / 3;
-                    if(GUI.Button(r, trans.Origin)) GuiHelper.SearchableEnumPopup.CreateSearchableEnumPopup(
-                         MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(origin) }).Select(p => p.name).ToArray(), trans.Origin,
-                         (newValue) => trans.Origin = newValue);
-                    r.x += r.width;
-                    if(GUI.Button(r, trans.Target)) GuiHelper.SearchableEnumPopup.CreateSearchableEnumPopup(
-                         MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(target) }).Select(p => p.name).ToArray(), trans.Target,
-                         (newValue) => trans.Target = newValue);
-                    r.x += r.width;
-                    trans.Math = EditorGUI.TextField(r, trans.Math);
-                    r.x += r.width;
-                    r.width = 20;
-                    if(GUI.Button(r, GUIContent.none, Styles.icon_style_remove)) remove.Add(trans);
+                    using(new GUILayout.VerticalScope("box"))
+                    {
+                        GUILayout.Label("Property Translation", EditorStyles.boldLabel);
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label("From");
+                        GUILayout.Label("To");
+                        GUILayout.Label("Math");
+                        GUILayout.EndHorizontal();
+                        List<PropertyTranslation> remove = new List<PropertyTranslation>();
+                        foreach(PropertyTranslation trans in container.PropertyTranslations)
+                        {
+                            Rect fullWidth = EditorGUILayout.GetControlRect();
+                            Rect r = fullWidth;
+                            r.width = (r.width - 20) / 3;
+                            if(GUI.Button(r, trans.Origin)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
+                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(origin) }).Select(p => p.name).ToArray(), trans.Origin,
+                                 (newValue) => trans.Origin = newValue);
+                            r.x += r.width;
+                            if(GUI.Button(r, trans.Target)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
+                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(target) }).Select(p => p.name).ToArray(), trans.Target,
+                                 (newValue) => trans.Target = newValue);
+                            r.x += r.width;
+                            trans.Math = EditorGUI.TextField(r, trans.Math);
+                            r.x += r.width;
+                            r.width = 20;
+                            if(GUI.Button(r, GUIContent.none, Styles.icon_style_remove)) remove.Add(trans);
+                        }
+
+                        foreach(PropertyTranslation translation in remove)
+                            container.PropertyTranslations.Remove(translation);
+                    }
+
+                    serializedObject.Update();
+                    EditorUtility.SetDirty(serializedObject.targetObject);
                 }
 
-                foreach(PropertyTranslation r in remove)
-                    translator.GetPropertyTranslations().Remove(r);
+                Rect addRemoveRect = EditorGUILayout.GetControlRect();
+                addRemoveRect.x = addRemoveRect.width - 20;
+                addRemoveRect.width = 20;
+                if(GUI.Button(addRemoveRect, GUIContent.none, Styles.icon_style_add))
+                    translator.PropertyTranslationContainers.Add(new ShaderTranslationsContainer());
 
-                Rect buttonRect = EditorGUILayout.GetControlRect();
-                buttonRect.x = buttonRect.width - 20;
-                buttonRect.width = 20;
-                if(GUI.Button(buttonRect, GUIContent.none, Styles.icon_style_add)) translator.GetPropertyTranslations().Add(new PropertyTranslation());
+                addRemoveRect.x += 20;
+                int containerCount = translator.PropertyTranslationContainers.Count;
+                if(containerCount > 0 && GUI.Button(addRemoveRect, GUIContent.none, Styles.icon_style_remove))
+                    translator.PropertyTranslationContainers.RemoveAt(containerCount - 1);
             }
-
-            serializedObject.Update();
-            EditorUtility.SetDirty(serializedObject.targetObject);
         }
 #endif
     }

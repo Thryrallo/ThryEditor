@@ -904,10 +904,16 @@ namespace Thry
                 bool doStrip = applyStruct.stripTextures.Contains(propName) && propTex != null;
                 if (doStrip || propTex == null)
                 {
-                    if (doStrip)
-                        savedTextures.Add(
-                            ("_stripped_tex_" + propName,
-                            AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(material.GetTexture(propName))).ToString()));
+                    if(doStrip)
+                    {
+                        var guid =
+#if UNITY_2019_1_OR_NEWER
+                        AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material.GetTexture(propName)));
+#elif UNITY_2022_1_OR_NEWER
+                        AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(material.GetTexture(propName)));
+#endif
+                        savedTextures.Add(("_stripped_tex_" + propName, guid.ToString()));
+                    }
                     serializedTexProperties.DeleteArrayElementAtIndex(i);
                     i -= 1;
                 }
@@ -1136,10 +1142,10 @@ namespace Thry
                 {
                     // check for texture property definitions, remove textures later
                     // needs specific naming
-                    if(lineParsed.EndsWith("{ }", StringComparison.Ordinal) && lineParsed.Contains("2D)", StringComparison.Ordinal))
+                    if(lineParsed.EndsWith("{ }", StringComparison.Ordinal) && lineParsed.IndexOf("2D)", StringComparison.Ordinal) >= 0)
                     {
                         lineParsed = lineParsed.Substring(0, lineParsed.IndexOf('"'));
-                        if (lineParsed.Contains("]", StringComparison.Ordinal))
+                        if (lineParsed.IndexOf("]", StringComparison.Ordinal) >= 0) // Unity 2019 doesn't like string.Contains(string, StringComparison)
                         {
                             lineParsed = lineParsed.Substring(lineParsed.LastIndexOf(']') + 1);
                         }
