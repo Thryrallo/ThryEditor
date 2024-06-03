@@ -11,7 +11,7 @@ namespace Thry
     {
         // consts
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.56.2";
+        private const string VERSION = "2.56.3";
 
         // static
         private static Config config;
@@ -44,15 +44,22 @@ namespace Thry
             }
         }
 
+        private static bool LoadFromFile(ref Config config)
+        {
+            if (!File.Exists(PATH_CONFIG_FILE)) return false;
+            string data = FileHelper.ReadFileIntoString(PATH_CONFIG_FILE);
+            if (string.IsNullOrWhiteSpace(data)) return false;
+            config = JsonUtility.FromJson<Config>(data);
+            return true;
+        }
+
         public static Config Singleton
         {
             get
             {
                 if (config == null)
                 {
-                    if (File.Exists(PATH_CONFIG_FILE))
-                        config = JsonUtility.FromJson<Config>(FileHelper.ReadFileIntoString(PATH_CONFIG_FILE));
-                    else
+                    if(!LoadFromFile(ref config))
                         config = new Config().Save();
                 }
                 return config;
