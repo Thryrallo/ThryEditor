@@ -33,10 +33,7 @@ namespace Thry
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Init(prop);
-
-            EditorGUI.BeginChangeCheck();
-            if (EditorGUI.EndChangeCheck())
-                Init(prop, true);
+            ShaderEditor.Active.Editor.EndAnimatedCheck(); // Fixes all dropdoen properties being animated / highlighted
 
             if (Config.Singleton.default_texture_type == TextureDisplayType.small)
             {
@@ -125,6 +122,8 @@ namespace Thry
 
                 GUILayoutUtility.GetRect(0, 5);
             }
+
+            ShaderEditor.Active.Editor.BeginAnimatedCheck(prop);
         }
 
         private void Open(MaterialProperty prop)

@@ -105,6 +105,9 @@ namespace Thry
             //why is this not inFirstGUICall ? cause it seems drawers are kept between different openings of the shader editor, so this needs to be set again every time the shader editor is reopened for that material
             (ShaderEditor.Active.PropertyDictionary[prop.name] as ShaderProperty).Keyword = keyword;
 
+            if (hasKeyword)
+                ShaderEditor.Active.Editor.EndAnimatedCheck();
+            
             EditorGUI.BeginChangeCheck();
 
             bool value = (Math.Abs(prop.GetNumber()) > 0.001f);
@@ -114,9 +117,19 @@ namespace Thry
             EditorGUI.showMixedValue = false;
             if (EditorGUI.EndChangeCheck())
             {
+                bool wasRecording = UnityHelper.InAnimationRecording();
+                if (hasKeyword && wasRecording)
+                    UnityHelper.StopAnimationRecording();
+                
                 prop.SetNumber(value ? 1.0f : 0.0f);
-                if (hasKeyword) SetKeyword(prop, value);
+                if (hasKeyword)
+                    SetKeyword(prop, value);
+
+                if (hasKeyword && wasRecording)
+                    UnityHelper.StartAnimationRecording();
             }
+
+            ShaderEditor.Active.Editor.BeginAnimatedCheck(prop);
         }
 
         public override void Apply(MaterialProperty prop)

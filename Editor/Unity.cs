@@ -1,6 +1,7 @@
 ﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -142,6 +143,36 @@ namespace Thry
                 Helper.RestoreDetour(method_PropertyEnd);
 #endif
             }
+        }
+
+
+
+        static MethodInfo m_StopAnimationRecording = typeof(UnityEditor.AnimationMode).GetMethod("StopAnimationRecording", BindingFlags.Static | BindingFlags.NonPublic);
+        public static void StopAnimationRecording()
+        {
+            if (m_StopAnimationRecording == null)
+                Debug.LogError("StopAnimationRecording not found");
+            else
+                m_StopAnimationRecording.Invoke(null, null);
+        }
+
+        static MethodInfo m_StartAnimationRecording = typeof(UnityEditor.AnimationMode).GetMethod("StartAnimationRecording", BindingFlags.Static | BindingFlags.NonPublic);
+        public static void StartAnimationRecording()
+        {
+            if (m_StartAnimationRecording == null)
+                Debug.LogError("StartAnimationRecording not found");
+            else
+                m_StartAnimationRecording.Invoke(null, null);
+        }
+        
+        static MethodInfo m_InAnimationRecording = typeof(UnityEditor.AnimationMode).GetMethod("InAnimationRecording", BindingFlags.Static | BindingFlags.NonPublic);
+        public static bool InAnimationRecording()
+        {
+            if (m_InAnimationRecording == null)
+                Debug.LogError("StartAnimationRecording not found");
+            else
+                return (bool)m_InAnimationRecording.Invoke(null, null);
+            return false;
         }
 
     }
