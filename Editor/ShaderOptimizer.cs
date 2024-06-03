@@ -411,8 +411,16 @@ namespace Thry
             string shaderFilePath = AssetDatabase.GetAssetPath(shader);
             string materialFilePath = AssetDatabase.GetAssetPath(material);
             string materialFolder = Path.GetDirectoryName(materialFilePath);
-            string guid = AssetDatabase.AssetPathToGUID(materialFilePath);
-            string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid;
+            bool isSubAsset = AssetDatabase.IsSubAsset(material);
+            if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(material, out string guid, out long fileId))
+            {
+                guid = AssetDatabase.AssetPathToGUID(materialFilePath);
+                isSubAsset = false;
+            }
+
+
+
+            string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid + (isSubAsset ? $"_{fileId}" : "");
             string shaderOptimizerButtonDrawerName = $"[{nameof(ThryShaderOptimizerLockButtonDrawer).Replace("Drawer", "")}]";
             //string newShaderDirectory = materialFolder + "/OptimizedShaders/" + material.name + "-" + smallguid + "/";
             // unity path stuff (https://docs.unity3d.com/Manual/SpecialFolders.html)
@@ -427,7 +435,7 @@ namespace Thry
             // if directory already exists swap to using the guid
             if (Directory.Exists(newShaderDirectory))
             {
-                newShaderDirectory = materialFolder + "/OptimizedShaders/" + guid + "/";
+                newShaderDirectory = materialFolder + "/OptimizedShaders/" + guid + (isSubAsset ? $"_{fileId}" : "") + "/";
             }
             
 
@@ -802,7 +810,6 @@ namespace Thry
             ApplyStruct applyStruct = new ApplyStruct();
             applyStruct.material = material;
             applyStruct.shader = shader;
-            applyStruct.smallguid = guid;
             applyStruct.newShaderName = newShaderName;
             applyStruct.animatedPropsToRename = animatedPropsToRename;
             applyStruct.animatedPropsToDuplicate = animatedPropsToDuplicate;
@@ -824,7 +831,6 @@ namespace Thry
         {
             public Material material;
             public Shader shader;
-            public string smallguid;
             public string newShaderName;
             public List<RenamingProperty> animatedPropsToRename;
             public List<RenamingProperty> animatedPropsToDuplicate;
