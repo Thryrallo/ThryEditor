@@ -96,6 +96,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                     }
                 }
             }
+            ShaderEditor.FixKeywords(new Material[] { editor.Materials[0] });
         }
 
         public void Apply_old(ShaderEditor editor)
@@ -174,7 +175,7 @@ namespace Thry.ThryEditor.ShaderTranslations
         }
 
         static List<ShaderTranslator> s_translationDefinitions;
-        static List<ShaderTranslator> TranslationDefinitions
+        public static List<ShaderTranslator> TranslationDefinitions
         {
             get
             {
