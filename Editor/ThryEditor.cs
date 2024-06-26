@@ -59,6 +59,7 @@ namespace Thry
         public MaterialProperty[] Properties;
         public Material[] Materials;
         public Shader Shader;
+        public Shader LastShader;
         public ShaderPart CurrentProperty;
         public Dictionary<string, ShaderProperty> PropertyDictionary;
         public List<ShaderPart> ShaderParts;
@@ -479,6 +480,8 @@ namespace Thry
             FixKeywords(new Material[] { material });
             _doReloadNextDraw = true;
             _didSwapToShader = true;
+            LastShader = oldShader;
+            Shader = newShader;
         }
 
         void InitEditorData(MaterialEditor materialEditor)

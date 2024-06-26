@@ -62,6 +62,9 @@ namespace Thry.ThryEditor.ShaderTranslations
             SetupShaderSelectionUI(root.Q<VisualElement>("originShaderContainer"), true);
             SetupShaderSelectionUI(root.Q<VisualElement>("targetShaderContainer"), false);
 
+            var propertyMods = root.Q<ListView>("modsList");
+            propertyMods.makeItem += () => new ShaderNamePropertyModificationListItem();
+
             return root;
         }
 
