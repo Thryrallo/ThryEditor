@@ -136,7 +136,9 @@ namespace Thry.ThryEditor.ShaderTranslations
             switch(prop.MaterialProperty.type)
             {
                 case MaterialProperty.PropType.Float:
+#if UNITY_2021_1_OR_NEWER
                 case MaterialProperty.PropType.Int:
+#endif
                     prop.MaterialProperty.SetNumber(value);
                     break;
             }

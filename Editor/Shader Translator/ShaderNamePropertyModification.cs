@@ -30,14 +30,18 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         public bool IsShaderNameMatch(string name)
         {
-            return conditionOperator switch
+            switch(conditionOperator)
             {
-                ConditionOperator.Equals => name.Equals(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase),
-                ConditionOperator.Contains => name.Contains(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase),
-                ConditionOperator.StartsWith => name.StartsWith(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase),
-                ConditionOperator.EndsWith => name.EndsWith(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase),
-                _ => false
-            };
+                case ConditionOperator.Equals:
+                    return name.Equals(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase);
+                case ConditionOperator.Contains:
+                    return name.IndexOf(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase) != -1;
+                case ConditionOperator.StartsWith:
+                    return name.StartsWith(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase);
+                case ConditionOperator.EndsWith:
+                    return name.EndsWith(shaderNameMatch, StringComparison.CurrentCultureIgnoreCase);
+            }
+            return false;
         }
     }
 }

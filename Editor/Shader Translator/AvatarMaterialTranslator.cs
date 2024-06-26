@@ -1,3 +1,4 @@
+#if UNITY_2022_1_OR_NEWER
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,9 +14,10 @@ namespace Thry.ThryEditor.ShaderTranslations
 {
     public class AvatarMaterialTranslator : EditorWindow
     {
-        const string helpBoxText = "Please select an avatar, a target shader and a translation to apply from the list.";
 
+        const string helpBoxText = "Please select an avatar, a target shader and a translation to apply from the list.";
         DropdownField targetShaderDropdown;
+
         ListView materialList, translationList;
         static ObjectField avatarField;
 
@@ -291,3 +293,4 @@ namespace Thry.ThryEditor.ShaderTranslations
         }
     }
 }
+#endif
