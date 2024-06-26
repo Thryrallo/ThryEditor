@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-#if UNITY_2019_1
+#if UNITY_2019
 using UnityEditor.UIElements;
 #endif
 namespace Thry.ThryEditor.ShaderTranslations
