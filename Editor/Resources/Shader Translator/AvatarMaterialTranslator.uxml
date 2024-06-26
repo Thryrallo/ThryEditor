@@ -7,7 +7,7 @@
         </ui:VisualElement>
         <ui:VisualElement class="section" style="flex-grow: 1;">
             <ui:DropdownField label="Target Shader" index="-1" name="targetShader" />
-            <ui:ListView focusable="true" header-title="Translation" show-add-remove-footer="false" show-border="true" show-foldout-header="true" show-bound-collection-size="false" name="translationList" />
+            <ui:ListView focusable="true" header-title="Available Translations" show-add-remove-footer="false" show-border="true" show-foldout-header="true" show-bound-collection-size="false" name="translationList" />
         </ui:VisualElement>
         <ui:VisualElement style="justify-content: flex-end;">
             <ui:VisualElement name="applyButtonsContainer" style="flex-grow: 0;">
