@@ -32,9 +32,8 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             targetTranslator = target as ShaderTranslator;
 
-            shaderNames = AssetDatabase.FindAssets("t:shader")
-               .Select(g => AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g)).name)
-               .Where(s => s.StartsWith("Hidden") == false).ToList();
+            shaderNames = ShaderUtil.GetAllShaderInfo().Select(s => s.name)
+                .Where(s => !s.StartsWith("Hidden/")).ToList();
 
             sectionsList = root.Q<ListView>("sectionsList");
             sectionsList.makeItem = () =>
@@ -63,7 +62,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             SetupShaderSelectionUI(root.Q<VisualElement>("targetShaderContainer"), false);
 
             var propertyMods = root.Q<ListView>("modsList");
-            propertyMods.makeItem += () => new ShaderNamePropertyModificationListItem();
+            propertyMods.makeItem += () => new ShaderNameMatchedModificationsEditor();
 
             return root;
         }
@@ -119,102 +118,6 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             sectionsList.Rebuild();
         }
-
-#elif UNITY_2019_1_OR_NEWER
-        public override void OnInspectorGUI()
-        {
-            serializedObject.Update();
-            ShaderTranslator translator = serializedObject.targetObject as ShaderTranslator;
-
-            translator.Name = EditorGUILayout.TextField("Translation File Name: ", translator.Name);
-
-            GUILayout.Space(10);
-
-            string[] shaders = AssetDatabase.FindAssets("t:shader").Select(g => AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(g)).name).
-                Where(s => s.StartsWith("Hidden") == false).ToArray();
-
-            EditorGUI.BeginChangeCheck();
-            int originIndex = EditorGUILayout.Popup("From Shader", Array.IndexOf(shaders, translator.OriginShader), shaders);
-            if(EditorGUI.EndChangeCheck()) translator.OriginShader = shaders[originIndex];
-
-            EditorGUI.BeginChangeCheck();
-            int targetIndex = EditorGUILayout.Popup("To Shader", Array.IndexOf(shaders, translator.TargetShader), shaders);
-            if(EditorGUI.EndChangeCheck()) translator.TargetShader = shaders[targetIndex];
-
-            translator.MatchOriginShaderBasedOnRegex = EditorGUILayout.ToggleLeft(new GUIContent("Match Origin Shader Using Regex",
-                "Match the origin shader for suggestions based on a regex definition."), translator.MatchOriginShaderBasedOnRegex);
-            if(translator.MatchOriginShaderBasedOnRegex)
-                translator.OriginShaderRegex = EditorGUILayout.TextField("Origin Shader Regex", translator.OriginShaderRegex);
-            translator.MatchTargetShaderBasedOnRegex = EditorGUILayout.ToggleLeft(new GUIContent("Match Target Shader Using Regex",
-                "Match the target shader for suggestions based on a regex definition."), translator.MatchTargetShaderBasedOnRegex);
-            if(translator.MatchTargetShaderBasedOnRegex)
-                translator.TargetShaderRegex = EditorGUILayout.TextField("Target Shader Regex", translator.TargetShaderRegex);
-
-            if(originIndex < 0 || targetIndex < 0)
-            {
-                EditorGUILayout.HelpBox("Could not find origin or target shader.", MessageType.Error);
-                return;
-            }
-
-            Shader origin = Shader.Find(shaders[originIndex]);
-            Shader target = Shader.Find(shaders[targetIndex]);
-
-            GUILayout.Space(10);
-
-            EditorGUILayout.HelpBox("Please use Unity 2022 to create property translations.", MessageType.Error);
-
-            using(new EditorGUILayout.VerticalScope("box"))
-            {
-                foreach(var container in translator.PropertyTranslationContainers)
-                {
-                    using(new GUILayout.VerticalScope("box"))
-                    {
-                        GUILayout.Label("Property Translation", EditorStyles.boldLabel);
-                        GUILayout.BeginHorizontal();
-                        GUILayout.Label("From");
-                        GUILayout.Label("To");
-                        GUILayout.Label("Math");
-                        GUILayout.EndHorizontal();
-                        List<PropertyTranslation> remove = new List<PropertyTranslation>();
-                        foreach(PropertyTranslation trans in container.PropertyTranslations)
-                        {
-                            Rect fullWidth = EditorGUILayout.GetControlRect();
-                            Rect r = fullWidth;
-                            r.width = (r.width - 20) / 3;
-                            if(GUI.Button(r, trans.Origin)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
-                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(origin) }).Select(p => p.name).ToArray(), trans.Origin,
-                                 (newValue) => trans.Origin = newValue);
-                            r.x += r.width;
-                            if(GUI.Button(r, trans.Target)) GUILib.SearchableEnumPopup.CreateSearchableEnumPopup(
-                                 MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { new Material(target) }).Select(p => p.name).ToArray(), trans.Target,
-                                 (newValue) => trans.Target = newValue);
-                            r.x += r.width;
-                            trans.Math = EditorGUI.TextField(r, trans.Math);
-                            r.x += r.width;
-                            r.width = 20;
-                            if(GUI.Button(r, GUIContent.none, Styles.icon_style_remove)) remove.Add(trans);
-                        }
-
-                        foreach(PropertyTranslation translation in remove)
-                            container.PropertyTranslations.Remove(translation);
-                    }
-
-                    serializedObject.Update();
-                    EditorUtility.SetDirty(serializedObject.targetObject);
-                }
-
-                Rect addRemoveRect = EditorGUILayout.GetControlRect();
-                addRemoveRect.x = addRemoveRect.width - 20;
-                addRemoveRect.width = 20;
-                if(GUI.Button(addRemoveRect, GUIContent.none, Styles.icon_style_add))
-                    translator.PropertyTranslationContainers.Add(new ShaderTranslationsContainer());
-
-                addRemoveRect.x += 20;
-                int containerCount = translator.PropertyTranslationContainers.Count;
-                if(containerCount > 0 && GUI.Button(addRemoveRect, GUIContent.none, Styles.icon_style_remove))
-                    translator.PropertyTranslationContainers.RemoveAt(containerCount - 1);
-            }
-        }
-#endif
     }
+#endif
 }

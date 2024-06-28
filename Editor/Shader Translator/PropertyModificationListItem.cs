@@ -9,11 +9,11 @@ using UnityEditor.UIElements;
 #endif
 namespace Thry.ThryEditor.ShaderTranslations
 {
-    public class ShaderNamePropertyModificationListItem : BindableElement
+    public class PropertyModificationListItem : BindableElement
     {
-        public ShaderNamePropertyModificationListItem()
+        public PropertyModificationListItem()
         {
-            var treeAsset = Resources.Load<VisualTreeAsset>("Shader Translator/PropertyModificationListItem");
+            var treeAsset = Resources.Load<VisualTreeAsset>("Shader Translator/ModificationListItem");
             treeAsset.CloneTree(this);
 
             var actionTypeField = this.Q<EnumField>("actionType");
@@ -24,14 +24,20 @@ namespace Thry.ThryEditor.ShaderTranslations
                 if(evt.newValue == null)
                     return;
 
-                var value = (ShaderNamePropertyModification.ActionType)evt.newValue;
-                SetPropertyFieldVisible(propertyNameField, value == ShaderNamePropertyModification.ActionType.SetTargetPropertyValue);
+                var value = (ShaderModificationAction.ActionType)evt.newValue;
+                SetPropertyFieldVisible(propertyNameField, value == ShaderModificationAction.ActionType.SetTargetPropertyValue);
             });
 
             EditorApplication.delayCall += () =>
             {
-                var actionFieldValue = (ShaderNamePropertyModification.ActionType)actionTypeField.value;
-                SetPropertyFieldVisible(propertyNameField, actionFieldValue == ShaderNamePropertyModification.ActionType.SetTargetPropertyValue);
+                if(actionTypeField.value == null)
+                {
+                    SetPropertyFieldVisible(propertyNameField, false);
+                    return;
+                }
+
+                var actionFieldValue = (ShaderModificationAction.ActionType)actionTypeField.value;
+                SetPropertyFieldVisible(propertyNameField, ShaderModificationAction.ActionType.SetTargetPropertyValue == actionFieldValue);
             };
         }
 
