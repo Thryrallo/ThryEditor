@@ -18,16 +18,20 @@ namespace Thry.ThryEditor.ShaderTranslations
         public string OriginShaderRegex;
         public string TargetShaderRegex;
         public List<ShaderTranslationsContainer> PropertyTranslationContainers;
+        public List<ShaderNamePropertyModification> PropertyModifications;
 
         public List<PropertyTranslation> AllPropertyTranslations => PropertyTranslationContainers.SelectMany(x => x.PropertyTranslations).ToList();
 
-        public void Apply(ShaderEditor editor)
+        public void Apply(ShaderEditor editor, int? renderQueueOverride = null)
         {
-            Shader originShader = Shader.Find(OriginShader);
-            Shader targetShader = Shader.Find(TargetShader);
-            SerializedObject serializedMaterial = new SerializedObject(editor.Materials[0]);
+            Shader originShader = editor.LastShader;
+            Shader targetShader = editor.Shader;
+            Material material = editor.Materials[0];
+            SerializedObject serializedMaterial = new SerializedObject(material);
 
-            foreach(PropertyTranslation trans in AllPropertyTranslations)
+            List<PropertyTranslation> allTranslations = AllPropertyTranslations;
+
+            foreach(PropertyTranslation trans in allTranslations)
             {
                 if(editor.PropertyDictionary.TryGetValue(trans.Target, out ShaderProperty prop))
                 {
@@ -96,67 +100,47 @@ namespace Thry.ThryEditor.ShaderTranslations
                     }
                 }
             }
+
+            foreach(var mod in PropertyModifications)
+            {
+                if(!mod.IsShaderNameMatch(originShader.name))
+                    continue;
+
+                switch(mod.actionType)
+                {
+                    case ShaderNamePropertyModification.ActionType.ChangeTargetShader:
+                        Shader newShader = Shader.Find(mod.targetValue);
+                        if(newShader)
+                            editor.Materials[0].shader = newShader;
+                    break;
+                    case ShaderNamePropertyModification.ActionType.SetTargetPropertyValue:
+                        if(editor.PropertyDictionary.ContainsKey(mod.propertyName) && float.TryParse(mod.targetValue, out float parsedFloat))
+                            SetPropertyValue(editor, mod.propertyName, parsedFloat);
+                    break;
+                }
+            }
+
+            serializedMaterial.ApplyModifiedProperties();
+
+            if(renderQueueOverride != null)
+                material.renderQueue = (int)renderQueueOverride;
+
+            ShaderEditor.FixKeywords(new Material[] { material });
         }
 
-        public void Apply_old(ShaderEditor editor)
+        void SetPropertyValue(ShaderEditor editor, string propertyName, float value)
         {
-            Shader originShader = Shader.Find(OriginShader);
-            Shader targetShader = Shader.Find(TargetShader);
-            SerializedObject serializedMaterial = new SerializedObject(editor.Materials[0]);
+            if(!editor.PropertyDictionary.TryGetValue(propertyName, out var prop))
+                return;
 
-            foreach(PropertyTranslation trans in AllPropertyTranslations)
+            switch(prop.MaterialProperty.type)
             {
-                if (editor.PropertyDictionary.ContainsKey(trans.Target))
-                {
-                    SerializedProperty p;
-                    switch (editor.PropertyDictionary[trans.Target].MaterialProperty.type)
-                    {
-                        case MaterialProperty.PropType.Float:
-                        case MaterialProperty.PropType.Range:
-                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Floats", trans.Origin);
-                            if (p != null)
-                            {
-                                float f = p.FindPropertyRelative("second").floatValue;
-                                if (string.IsNullOrWhiteSpace(trans.Math) == false) 
-                                    f = Helper.SolveMath(trans.Math, f);
-                                editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
-                            }
-                            break;
-#if UNITY_2022_1_OR_NEWER
-                        case MaterialProperty.PropType.Int:
-                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Ints", trans.Origin);
-                            if (p != null)
-                            {
-                                float f = p.FindPropertyRelative("second").intValue;
-                                if (string.IsNullOrWhiteSpace(trans.Math) == false) 
-                                    f = Helper.SolveMath(trans.Math, f);
-                                editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
-                            }
-                            break;
+                case MaterialProperty.PropType.Float:
+#if UNITY_2021_1_OR_NEWER
+                case MaterialProperty.PropType.Int:
 #endif
-                        case MaterialProperty.PropType.Vector:
-                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
-                            if (p != null) editor.PropertyDictionary[trans.Target].MaterialProperty.vectorValue = p.FindPropertyRelative("second").vector4Value;
-                            break;
-                        case MaterialProperty.PropType.Color:
-                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
-                            if (p != null) editor.PropertyDictionary[trans.Target].MaterialProperty.colorValue = p.FindPropertyRelative("second").colorValue;
-                            break;
-                        case MaterialProperty.PropType.Texture:
-                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_TexEnvs", trans.Origin);
-                            if (p != null)
-                            {
-                                SerializedProperty values = p.FindPropertyRelative("second");
-                                editor.PropertyDictionary[trans.Target].MaterialProperty.textureValue = 
-                                    values.FindPropertyRelative("m_Texture").objectReferenceValue as Texture;
-                                Vector2 scale = values.FindPropertyRelative("m_Scale").vector2Value;
-                                Vector2 offset = values.FindPropertyRelative("m_Offset").vector2Value;
-                                editor.PropertyDictionary[trans.Target].MaterialProperty.textureScaleAndOffset = 
-                                    new Vector4(scale.x, scale.y , offset.x, offset.y);
-                            }
-                            break;
-                    }
-                }
+                    prop.MaterialProperty.SetNumber(value);
+                    break;
             }
         }
 
@@ -174,7 +158,7 @@ namespace Thry.ThryEditor.ShaderTranslations
         }
 
         static List<ShaderTranslator> s_translationDefinitions;
-        static List<ShaderTranslator> TranslationDefinitions
+        public static List<ShaderTranslator> TranslationDefinitions
         {
             get
             {
