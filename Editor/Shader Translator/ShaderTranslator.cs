@@ -161,7 +161,7 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             ShaderEditor.FixKeywords(new Material[] { material });
 
-            void _HandleFloatProperty(ShaderEditor editor, PropertyTranslation trans, SerializedProperty p)
+            void _HandleFloatProperty(ShaderEditor _editor, PropertyTranslation trans, SerializedProperty p)
             {
                 float f = p.FindPropertyRelative("second").floatValue;
                 string expression = trans.GetAppropriateExpression(f);
@@ -174,10 +174,11 @@ namespace Thry.ThryEditor.ShaderTranslations
                     else
                         f = Helper.SolveMath(trans.Math, f);
                 }
-                editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
+                _editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
             }
 
-            void _HandleIntProperty(ShaderEditor editor, PropertyTranslation trans, SerializedProperty p)
+#if UNITY_2022_1_OR_NEWER
+            void _HandleIntProperty(ShaderEditor _editor, PropertyTranslation trans, SerializedProperty p)
             {
                 float f = p.FindPropertyRelative("second").intValue;
                 string expression = trans.GetAppropriateExpression(f);
@@ -189,8 +190,9 @@ namespace Thry.ThryEditor.ShaderTranslations
                     else
                         f = Helper.SolveMath(trans.Math, f);
                 }
-                editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
+                _editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
             }
+#endif
         }
 
         void SetPropertyValue(ShaderEditor editor, string propertyName, float value)

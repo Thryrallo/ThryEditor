@@ -118,6 +118,6 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             sectionsList.Rebuild();
         }
-    }
 #endif
+    }
 }
