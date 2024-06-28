@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
@@ -18,7 +19,7 @@ namespace Thry.ThryEditor.ShaderTranslations
         public string OriginShaderRegex;
         public string TargetShaderRegex;
         public List<ShaderTranslationsContainer> PropertyTranslationContainers;
-        public List<ShaderNamePropertyModification> PropertyModifications;
+        public List<ShaderNameMatchedModifications> PropertyModifications;
 
         public List<PropertyTranslation> AllPropertyTranslations => PropertyTranslationContainers.SelectMany(x => x.PropertyTranslations).ToList();
 
@@ -33,28 +34,34 @@ namespace Thry.ThryEditor.ShaderTranslations
 
             foreach(PropertyTranslation trans in allTranslations)
             {
-                if(editor.PropertyDictionary.TryGetValue(trans.Target, out ShaderProperty prop))
+                if(editor.PropertyDictionary.TryGetValue(trans.Target, out ShaderProperty targetProp))
                 {
                     SerializedProperty p;
-                    switch(prop.MaterialProperty.type)
+                    switch(targetProp.MaterialProperty.type)
                     {
                         case MaterialProperty.PropType.Float:
                         case MaterialProperty.PropType.Range:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Floats", trans.Origin);
                             if(p != null)
                             {
-                                float f = p.FindPropertyRelative("second").floatValue;
-                                string expression = trans.GetAppropriateExpression(f);
-
+                                _HandleFloatProperty(editor, trans, p);
+                                break;
+                            }
+                            // Convert a texture property to a 1 if assigned and to 0 if not
+                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_TexEnvs", trans.Origin);
+                            if(p != null)
+                            {
+                                float textureValue = p.FindPropertyRelative("second").FindPropertyRelative("m_Texture") != null ? 1f : 0f;
+                                string expression = trans.GetAppropriateExpression(textureValue);
                                 if(!string.IsNullOrWhiteSpace(expression))
                                 {
                                     // If we can parse the expression then our expression is just a number. Replace old value with ours
                                     if(float.TryParse(expression, out float result))
-                                        f = result;
+                                        textureValue = result;
                                     else
-                                        f = Helper.SolveMath(trans.Math, f);
+                                        textureValue = Helper.SolveMath(trans.Math, textureValue);
                                 }
-                                editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
+                                editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = textureValue;
                             }
                             break;
 #if UNITY_2022_1_OR_NEWER
@@ -62,7 +69,14 @@ namespace Thry.ThryEditor.ShaderTranslations
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Ints", trans.Origin);
                             if(p != null)
                             {
-                                float f = p.FindPropertyRelative("second").intValue;
+                                _HandleIntProperty(editor, trans, p);
+                                break;
+                            }
+
+                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_Floats", trans.Origin);
+                            if(p != null) // I'm sorry but I don't have time to not-copy paste this
+                            {
+                                float f = p.FindPropertyRelative("second").floatValue;
                                 string expression = trans.GetAppropriateExpression(f);
                                 if(!string.IsNullOrWhiteSpace(expression))
                                 {
@@ -73,6 +87,23 @@ namespace Thry.ThryEditor.ShaderTranslations
                                         f = Helper.SolveMath(trans.Math, f);
                                 }
                                 editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
+                                break;
+                            }
+                            // Convert a texture property to a 1 if assigned and to 0 if not
+                            p = GetProperty(serializedMaterial, "m_SavedProperties.m_TexEnvs", trans.Origin);
+                            if(p != null)
+                            {
+                                float textureValue = p.FindPropertyRelative("second").FindPropertyRelative("m_Texture") != null ? 1f : 0f ;
+                                string expression = trans.GetAppropriateExpression(textureValue);
+                                if(!string.IsNullOrWhiteSpace(expression))
+                                {
+                                    // If we can parse the expression then our expression is just a number. Replace old value with ours
+                                    if(float.TryParse(expression, out float result))
+                                        textureValue = result;
+                                    else
+                                        textureValue = Helper.SolveMath(trans.Math, textureValue);
+                                }
+                                editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)textureValue;
                             }
                             break;
 #endif
@@ -106,17 +137,20 @@ namespace Thry.ThryEditor.ShaderTranslations
                 if(!mod.IsShaderNameMatch(originShader.name))
                     continue;
 
-                switch(mod.actionType)
+                foreach(var action in mod.propertyModifications)
                 {
-                    case ShaderNamePropertyModification.ActionType.ChangeTargetShader:
-                        Shader newShader = Shader.Find(mod.targetValue);
-                        if(newShader)
-                            editor.Materials[0].shader = newShader;
-                    break;
-                    case ShaderNamePropertyModification.ActionType.SetTargetPropertyValue:
-                        if(editor.PropertyDictionary.ContainsKey(mod.propertyName) && float.TryParse(mod.targetValue, out float parsedFloat))
-                            SetPropertyValue(editor, mod.propertyName, parsedFloat);
-                    break;
+                    switch(action.actionType)
+                    {
+                        case ShaderModificationAction.ActionType.ChangeTargetShader:
+                            Shader newShader = Shader.Find(action.targetValue);
+                            if(newShader)
+                                editor.Materials[0].shader = newShader;
+                            break;
+                        case ShaderModificationAction.ActionType.SetTargetPropertyValue:
+                            if(editor.PropertyDictionary.ContainsKey(action.propertyName) && float.TryParse(action.targetValue, out float parsedFloat))
+                                SetPropertyValue(editor, action.propertyName, parsedFloat);
+                            break;
+                    }
                 }
             }
 
@@ -126,6 +160,39 @@ namespace Thry.ThryEditor.ShaderTranslations
                 material.renderQueue = (int)renderQueueOverride;
 
             ShaderEditor.FixKeywords(new Material[] { material });
+
+            void _HandleFloatProperty(ShaderEditor _editor, PropertyTranslation trans, SerializedProperty p)
+            {
+                float f = p.FindPropertyRelative("second").floatValue;
+                string expression = trans.GetAppropriateExpression(f);
+
+                if(!string.IsNullOrWhiteSpace(expression))
+                {
+                    // If we can parse the expression then our expression is just a number. Replace old value with ours
+                    if(float.TryParse(expression, out float result))
+                        f = result;
+                    else
+                        f = Helper.SolveMath(trans.Math, f);
+                }
+                _editor.PropertyDictionary[trans.Target].MaterialProperty.floatValue = f;
+            }
+
+#if UNITY_2022_1_OR_NEWER
+            void _HandleIntProperty(ShaderEditor _editor, PropertyTranslation trans, SerializedProperty p)
+            {
+                float f = p.FindPropertyRelative("second").intValue;
+                string expression = trans.GetAppropriateExpression(f);
+                if(!string.IsNullOrWhiteSpace(expression))
+                {
+                    // If we can parse the expression then our expression is just a number. Replace old value with ours
+                    if(float.TryParse(expression, out float result))
+                        f = result;
+                    else
+                        f = Helper.SolveMath(trans.Math, f);
+                }
+                _editor.PropertyDictionary[trans.Target].MaterialProperty.intValue = (int)f;
+            }
+#endif
         }
 
         void SetPropertyValue(ShaderEditor editor, string propertyName, float value)
