@@ -454,7 +454,7 @@ namespace Thry
                         isLockedByAncestor |= target.IsPropertyLockedByAncestor(nameId);
                         isOverriden &= target.IsPropertyOverriden(nameId);
                     }
-                    DoVariantMenuStuff(contextMenu, isOverriden, isLockedByAncestor, isLockedInChildren, ShaderEditor.Active.Materials, true);
+                    DoVariantMenuStuff(_contextMenu, isOverriden, isLockedByAncestor, isLockedInChildren, ShaderEditor.Active.Materials, true);
 #endif
                     _contextMenu.ShowAsContext();
                 }
@@ -472,13 +472,13 @@ namespace Thry
                 if (targets.Length != 1)
                     return;
 
-                contextMenu.AddSeparator("");
+                _contextMenu.AddSeparator("");
                 menu.AddItem(Styles.lockOriginContent, false, () => GotoLockOriginAction(targets));
             }
             else if (GUI.enabled)
             {
                 DoRegularMenu(menu, overriden, targets);
-                DoLockPropertiesMenu(contextMenu, !isLockedInChildren, ShaderEditor.Active.Materials, true);
+                DoLockPropertiesMenu(_contextMenu, !isLockedInChildren, ShaderEditor.Active.Materials, true);
             }
         }
 
@@ -488,7 +488,7 @@ namespace Thry
 
             if (isOverriden)
             {
-                contextMenu.AddSeparator("");
+                _contextMenu.AddSeparator("");
                 HandleApplyRevert(menu, singleEditing, targets);
             }
 
