@@ -201,6 +201,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 Debug.LogError("Invalid avatar selected");
                 return;
             }
+            Undo.RegisterFullObjectHierarchyUndo(avatarField.value, $"Translate avatar {avatarField.value.name}");
             TranslateMaterials(translations[translationList.selectedIndex], true);
         }
 
@@ -211,6 +212,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 Debug.LogError("Invalid avatar selected");
                 return;
             }
+            Undo.RegisterFullObjectHierarchyUndo(avatarField.value, $"Translate avatar {avatarField.value.name}");
             TranslateMaterials(translations[translationList.selectedIndex], false);
         }
 
@@ -233,7 +235,8 @@ namespace Thry.ThryEditor.ShaderTranslations
 
                 var avatarDuplicate = Selection.activeGameObject;
                 avatarDuplicate.transform.position += Vector3.right;
-                avatarDuplicate.name = $"{oldName} (backup)";
+                avatarDuplicate.name = oldName;
+                avatar.name = $"{oldName}_translated";
                 avatarDuplicate.transform.SetSiblingIndex(avatar.transform.GetSiblingIndex());
             }
 
