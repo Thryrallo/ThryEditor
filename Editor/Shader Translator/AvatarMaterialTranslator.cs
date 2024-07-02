@@ -201,6 +201,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 Debug.LogError("Invalid avatar selected");
                 return;
             }
+            Undo.RegisterFullObjectHierarchyUndo(avatarField.value, $"Translate avatar {avatarField.value.name}");
             TranslateMaterials(translations[translationList.selectedIndex], true);
         }
 
@@ -211,6 +212,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 Debug.LogError("Invalid avatar selected");
                 return;
             }
+            Undo.RegisterFullObjectHierarchyUndo(avatarField.value, $"Translate avatar {avatarField.value.name}");
             TranslateMaterials(translations[translationList.selectedIndex], false);
         }
 
