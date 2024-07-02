@@ -77,7 +77,7 @@ namespace Thry
                 r.width -= vramPos.width;
                 foloutClickCheck.width -= r.width;
                 property.Draw(r, new GUIContent());
-                property.tooltip.ConditionalDraw(r);
+                property.Tooltip.ConditionalDraw(r);
             }
             //Foldouts
             if (hasFoldoutProperties && DrawingData.CurrentTextureProperty != null)

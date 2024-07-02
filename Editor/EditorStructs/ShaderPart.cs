@@ -98,32 +98,41 @@ namespace Thry
 
     public abstract class ShaderPart
     {
-        public ShaderEditor ActiveShaderEditor;
+        public ShaderEditor ActiveShaderEditor { protected set; get; }
+        public MaterialProperty MaterialProperty { private set; get; }
 
-        public int XOffset = 0;
-        public GUIContent Content;
-        public MaterialProperty MaterialProperty;
-        public string PropertyIdentifier;
-        public System.Object PropertyData = null;
-        public bool DoReferencePropertiesExist = false;
-        public bool DoesReferencePropertyExist = false;
-        public bool IsHidden = false;
-        public bool IsAnimatable = true;
-        public bool IsPreset = false;
-        public bool ExemptFromLockedDisabling = false;
-        public bool IsAnimated = false;
-        public bool IsRenaming = false;
-        public string CustomStringTagID = null;
-        protected int ShaderPropertyId = -1;
-        protected int ShaderPropertyIndex = -1;
+        public GUIContent Content { protected set; get; }
+        public BetterTooltips.Tooltip Tooltip { protected set; get; }
+        public System.Object PropertyData { protected set; get; } = null;
 
-        public BetterTooltips.Tooltip tooltip;
+        public string  PropertyIdentifier { protected set; get; }
+        public string CustomStringTagID { protected set; get; } = null;
+
+        public bool IsHidden { protected set; get; } = false;
+        public bool IsPreset { protected set; get; } = false;
+
+        public bool IsExemptFromLockedDisabling { protected set; get; } = false;
+        public bool IsAnimatable { protected set; get; } = true;
+        public bool IsAnimated { protected set; get; } = false;
+        public bool IsRenaming { protected set; get; } = false;
+
+
+
+        public bool DoReferencePropertiesExist { protected set; get; } = false;
+        public bool DoesReferencePropertyExist { protected set; get; } = false;
+
+        public int ShaderPropertyId { protected set; get; } = -1;
+        public int ShaderPropertyIndex { protected set; get; } = -1;
+
 
         public bool has_not_searchedFor = false; //used for property search
 
+        GenericMenu _contextMenu;
+
         protected string _optionsRaw;
-        private PropertyOptions _options;
         private bool _doOptionsNeedInitilization = true;
+
+        private PropertyOptions _options;
         public PropertyOptions Options
         {
             get
@@ -136,7 +145,36 @@ namespace Thry
             }
         }
 
-        GenericMenu contextMenu;
+        private int _xoffset = 0;
+        private int _tempXOffset = -1;
+        public int XOffset
+        {
+            protected set
+            {
+                _xoffset = value;
+            }
+            get
+            {
+                if (_tempXOffset != -1) return _tempXOffset;
+                return _xoffset;
+            }
+        }
+
+        public void SetTemporaryXOffset(int value)
+        {
+            _tempXOffset = value;
+        }
+
+        public void ResetTemporaryXOffset()
+        {
+            _tempXOffset = -1;
+        }
+
+        public void SetIsExemptFromLockedDisabling(bool b)
+        {
+            IsExemptFromLockedDisabling = b;
+        }
+
 
         public ShaderPart(string propertyIdentifier, int xOffset, string displayName, string tooltip, ShaderEditor shaderEditor)
         {
@@ -145,7 +183,7 @@ namespace Thry
             this.PropertyIdentifier = propertyIdentifier;
             this.XOffset = xOffset;
             this.Content = new GUIContent(displayName);
-            this.tooltip = new BetterTooltips.Tooltip(tooltip);
+            this.Tooltip = new BetterTooltips.Tooltip(tooltip);
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
         }
 
@@ -171,7 +209,12 @@ namespace Thry
                     CopyAlternativeUpgradeValues();
             }
 
-            this.ExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
+            this.IsExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
+        }
+
+        protected void UpdatedMaterialPropertyReference()
+        {
+            this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
         }
 
         private void CopyAlternativeUpgradeValues()
@@ -278,7 +321,7 @@ namespace Thry
 
         protected virtual void InitOptions()
         {
-            this.tooltip = new BetterTooltips.Tooltip(Options.tooltip);
+            this.Tooltip = new BetterTooltips.Tooltip(Options.tooltip);
             this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = Options.reference_property != null;
             this.XOffset += Options.offset;
@@ -298,7 +341,7 @@ namespace Thry
 
         public void SetTooltip(string tooltip)
         {
-            this.tooltip.SetText(tooltip);
+            this.Tooltip.SetText(tooltip);
         }
 
         public abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
@@ -382,23 +425,23 @@ namespace Thry
                 //If locked material only show menu for animated materials. Only show data retieving options in locked state
                 if (!ShaderEditor.Active.IsLockedMaterial || IsAnimated)
                 {
-                    contextMenu = new GenericMenu();
+                    _contextMenu = new GenericMenu();
                     if (IsAnimatable && !ShaderEditor.Active.IsLockedMaterial)
                     {
-                        contextMenu.AddItem(new GUIContent("Animated (when locked)"), IsAnimated, () => { SetAnimated(!IsAnimated, false); });
-                        contextMenu.AddItem(new GUIContent("Renamed (when locked)"), IsAnimated && IsRenaming, () => { SetAnimated(true, !IsRenaming); });
-                        contextMenu.AddItem(new GUIContent("Locking Explanation"), false, () => { Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo&ab_channel=poiyomi"); });
-                        contextMenu.AddSeparator("");
+                        _contextMenu.AddItem(new GUIContent("Animated (when locked)"), IsAnimated, () => { SetAnimated(!IsAnimated, false); });
+                        _contextMenu.AddItem(new GUIContent("Renamed (when locked)"), IsAnimated && IsRenaming, () => { SetAnimated(true, !IsRenaming); });
+                        _contextMenu.AddItem(new GUIContent("Locking Explanation"), false, () => { Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo&ab_channel=poiyomi"); });
+                        _contextMenu.AddSeparator("");
                     }
                     if (ShaderEditor.Active.IsPresetEditor)
                     {
-                        contextMenu.AddItem(new GUIContent("Is part of preset"), IsPreset, ToggleIsPreset);
-                        contextMenu.AddSeparator("");
+                        _contextMenu.AddItem(new GUIContent("Is part of preset"), IsPreset, ToggleIsPreset);
+                        _contextMenu.AddSeparator("");
                     }
-                    contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = MaterialProperty.name; });
-                    contextMenu.AddItem(new GUIContent("Copy Animated Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = GetAnimatedPropertyName(); });
-                    contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, CopyPropertyPath);
-                    contextMenu.AddItem(new GUIContent("Copy Property as Keyframe"), false, CopyPropertyAsKeyframe);
+                    _contextMenu.AddItem(new GUIContent("Copy Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = MaterialProperty.name; });
+                    _contextMenu.AddItem(new GUIContent("Copy Animated Property Name"), false, () => { EditorGUIUtility.systemCopyBuffer = GetAnimatedPropertyName(); });
+                    _contextMenu.AddItem(new GUIContent("Copy Animated Property Path"), false, CopyPropertyPath);
+                    _contextMenu.AddItem(new GUIContent("Copy Property as Keyframe"), false, CopyPropertyAsKeyframe);
 #if UNITY_2022_1_OR_NEWER
                     bool isLockedInChildren = false;
                     bool isLockedByAncestor = false;
@@ -413,7 +456,7 @@ namespace Thry
                     }
                     DoVariantMenuStuff(contextMenu, isOverriden, isLockedByAncestor, isLockedInChildren, ShaderEditor.Active.Materials, true);
 #endif
-                    contextMenu.ShowAsContext();
+                    _contextMenu.ShowAsContext();
                 }
             }
         }
@@ -768,7 +811,7 @@ namespace Thry
             if (IsAnimatable && IsAnimated) DrawLockedAnimated();
             if (IsPreset) DrawPresetProperty();
 
-            tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
+            Tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
 
             //Click testing
             if (Event.current.type == EventType.MouseDown && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))

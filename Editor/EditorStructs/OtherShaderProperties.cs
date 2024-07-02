@@ -50,7 +50,7 @@ namespace Thry
             _doCustomDrawLogic = true;
             IsAnimatable = false;
             CustomStringTagID = "VRCFallback";
-            ExemptFromLockedDisabling = true;
+            IsExemptFromLockedDisabling = true;
         }
 
         public override void DrawDefault()

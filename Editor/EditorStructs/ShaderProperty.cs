@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,10 +18,10 @@ namespace Thry
         protected bool _doDrawTwoFields = false;
 
         //Done for e.g. Vectors cause they draw in 2 lines for some fucking reasons
-        public bool DoCustomHeightOffset = false;
-        public float CustomHeightOffset = 0;
+        public bool DoCustomHeightOffset { protected set; get; } = false;
+        public float CustomHeightOffset { protected set; get; } = 0;
 
-        public string Keyword;
+        public string Keyword { private set; get; }
 
         protected MaterialPropertyDrawer[] _customDecorators;
         protected Rect[] _customDecoratorRects;
@@ -43,6 +44,71 @@ namespace Thry
         {
             base.InitOptions();
             this._doDrawTwoFields = Options.reference_property != null;
+        }
+
+        public void SetKeyword(string keyword)
+        {
+            this.Keyword = keyword;
+        }
+
+        [PublicAPI]
+        public float FloatValue
+        {
+            get
+            {
+                return MaterialProperty.floatValue;
+            }
+            set
+            {
+                MaterialProperty.SetNumber(value);
+                if (Keyword != null) SetKeyword(ShaderEditor.Active.Materials, MaterialProperty.GetNumber() == 1);
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
+                MaterialEditor.ApplyMaterialPropertyDrawers(ShaderEditor.Active.Materials);
+            }
+        }
+
+        [PublicAPI]
+        public Vector4 VectorValue
+        {
+            get
+            {
+                return MaterialProperty.vectorValue;
+            }
+            set
+            {
+                MaterialProperty.vectorValue = value;
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
+                MaterialEditor.ApplyMaterialPropertyDrawers(ShaderEditor.Active.Materials);
+            }
+        }
+
+        [PublicAPI]
+        public Color ColorValue
+        {
+            get
+            {
+                return MaterialProperty.colorValue;
+            }
+            set
+            {
+                MaterialProperty.colorValue = value;
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
+                MaterialEditor.ApplyMaterialPropertyDrawers(ShaderEditor.Active.Materials);
+            }
+        }
+
+        [PublicAPI]
+        public Texture TextureValue
+        {
+            get
+            {
+                return MaterialProperty.textureValue;
+            }
+            set
+            {
+                MaterialProperty.textureValue = value;
+                MaterialEditor.ApplyMaterialPropertyDrawers(ShaderEditor.Active.Materials);
+            }
         }
 
         public override void CopyFromMaterial(Material m, bool isTopCall = false)
@@ -147,7 +213,7 @@ namespace Thry
         public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
-            this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
+            UpdatedMaterialPropertyReference();
 
             if (_needsDrawerInitlization)
             {
@@ -157,7 +223,7 @@ namespace Thry
 
             PreDraw();
             if (ActiveShaderEditor.IsLockedMaterial)
-                EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !ExemptFromLockedDisabling);
+                EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !IsExemptFromLockedDisabling);
 
             int oldIndentLevel = EditorGUI.indentLevel;
             if (!useEditorIndent)

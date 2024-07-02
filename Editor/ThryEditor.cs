@@ -371,7 +371,7 @@ namespace Thry
                         break;
                     case ThryPropertyType.optimizer:
                         ShaderOptimizerProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
-                        ShaderOptimizerProperty.ExemptFromLockedDisabling = true;
+                        ShaderOptimizerProperty.SetIsExemptFromLockedDisabling(true);
                         break;
                     case ThryPropertyType.in_shader_presets:
                         InShaderPresetsProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);

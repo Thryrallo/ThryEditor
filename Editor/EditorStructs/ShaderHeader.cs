@@ -94,9 +94,9 @@ namespace Thry
                 EditorGUI.BeginChangeCheck();
 
                 int xOffset = refProperty.XOffset;
-                refProperty.XOffset = 0;
+                refProperty.SetTemporaryXOffset(0);
                 refProperty.Draw(togglePropertyRect, new GUIContent(), isInHeader: true);
-                refProperty.XOffset = xOffset;
+                refProperty.ResetTemporaryXOffset();
                 EditorGUIUtility.fieldWidth = fieldWidth;
 
                 // Change expand state if reference is toggled
