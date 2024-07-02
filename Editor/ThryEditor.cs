@@ -12,6 +12,7 @@ using Thry.ThryEditor;
 using System.Reflection;
 using static Thry.UnityHelper;
 using Thry.ThryEditor.ShaderTranslations;
+using JetBrains.Annotations;
 
 namespace Thry
 {
@@ -87,6 +88,9 @@ namespace Thry
         ShaderProperty ShaderOptimizerProperty { get; set; }
         ShaderProperty LocaleProperty { get; set; }
         ShaderProperty InShaderPresetsProperty { get; set; }
+
+        [PublicAPI]
+        public float ShaderRenderingPreset { get => InShaderPresetsProperty.FloatValue; set => InShaderPresetsProperty.FloatValue = value; }
 
         private DefineableAction[] _onSwapToActions = null;
 
