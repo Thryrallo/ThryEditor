@@ -178,6 +178,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 }
                 _editor.PropertyDictionary[trans.Target].FloatValue = (int)f;
             }
+#endif
 
             void _HandlePropertyModifications(ShaderEditor editor, Shader originShader, List<ShaderNameMatchedModifications> modifications)
             {
@@ -210,7 +211,6 @@ namespace Thry.ThryEditor.ShaderTranslations
                     }
                 }
             }
-#endif
         }
 
         void SetPropertyValue(ShaderEditor editor, string propertyName, float value)
