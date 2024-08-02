@@ -180,11 +180,11 @@ namespace Thry.ThryEditor.ShaderTranslations
             }
 #endif
 
-            void _HandlePropertyModifications(ShaderEditor editor, Shader originShader, List<ShaderNameMatchedModifications> modifications)
+            void _HandlePropertyModifications(ShaderEditor _editor, Shader _originShader, List<ShaderNameMatchedModifications> modifications)
             {
                 foreach(var mod in modifications)
                 {
-                    if(!mod.IsShaderNameMatch(originShader.name))
+                    if(!mod.IsShaderNameMatch(_originShader.name))
                         continue;
 
                     foreach(var action in mod.propertyModifications)
@@ -194,17 +194,17 @@ namespace Thry.ThryEditor.ShaderTranslations
                             case ShaderModificationAction.ActionType.ChangeTargetShader:
                                 Shader newShader = Shader.Find(action.targetValue);
                                 if(newShader)
-                                    editor.Materials[0].shader = newShader;
+                                    _editor.Materials[0].shader = newShader;
                                 break;
                             case ShaderModificationAction.ActionType.SetTargetPropertyValue:
                                 if(float.TryParse(action.targetValue, out float parsedFloat))
                                 {
                                     if(action.propertyName == ShaderEditor.PROPERTY_NAME_IN_SHADER_PRESETS)
                                     {
-                                        editor.ShaderRenderingPreset = parsedFloat;
+                                        _editor.ShaderRenderingPreset = parsedFloat;
                                     }
                                     else
-                                        SetPropertyValue(editor, action.propertyName, parsedFloat);
+                                        SetPropertyValue(_editor, action.propertyName, parsedFloat);
                                 }
                                 break;
                         }
