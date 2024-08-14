@@ -1845,7 +1845,7 @@ namespace Thry
             Shader originalShader = null;
 
             string originalShaderPath = AssetDatabase.GUIDToAssetPath(originalShaderGUID);
-            if (!string.IsNullOrWhiteSpace(originalShaderPath) == false)
+            if (!string.IsNullOrWhiteSpace(originalShaderPath))
                 originalShader = AssetDatabase.LoadAssetAtPath<Shader>(originalShaderPath);
 
             if (originalShader == null)
