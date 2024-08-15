@@ -1749,7 +1749,7 @@ namespace Thry
             shader = Shader.Find(closestShaderName);
             return shader != null && closestDistance < name.Length * 0.5f;
         }
-        private static UnlockSuccess UnlockConcrete (Material material)
+        private static UnlockSuccess UnlockConcrete(Material material)
         {
             Shader lockedShader = material.shader;
             // Check if shader is Hidden
@@ -1758,46 +1758,9 @@ namespace Thry
                 Debug.LogWarning("[Shader Optimizer] Shader " + lockedShader.name + " is not locked.");
                 return UnlockSuccess.wasNotLocked;
             }
-            Shader orignalShader = null;
-            // Check for original shader by name
-            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, "");
-            if(originalShaderName == "")
-            {
-                Debug.LogWarning("[Shader Optimizer] Original shader name not saved to material.");
-            }else
-            {
-                orignalShader = Shader.Find(originalShaderName);
-                if (orignalShader == null)
-                {
-                    Debug.LogWarning("[Shader Optimizer] Original shader " + originalShaderName + " could not be found");
-                }
-            }
-            // Check for original shader by GUID
-            if(orignalShader == null)
-            {
-                string originalShaderGUID = material.GetTag(TAG_ORIGINAL_SHADER_GUID, false, "");
-                if(originalShaderGUID != "")
-                {
-                    Debug.LogWarning("[Shader Optimizer] Original shader GUID found. Searching by GUID.");
-                    string originalShaderPath = AssetDatabase.GUIDToAssetPath(originalShaderGUID);
-                    if(string.IsNullOrWhiteSpace(originalShaderPath) == false)
-                        orignalShader = AssetDatabase.LoadAssetAtPath<Shader>(originalShaderPath);
-                    if (orignalShader == null)
-                    {
-                        Debug.LogWarning("[Shader Optimizer] Original shader " + originalShaderGUID + " could not be found");
-                    }
-                }
-            }
-            // Check for original shader by guessing name
-            if(orignalShader == null)
-            {
-                if(GuessShader(lockedShader, out orignalShader))
-                    Debug.LogWarning("[Shader Optimizer] Original shader not saved to material. Guessing shader name.");
-                else
-                    lockedShader = null;
-            }
 
-            if(orignalShader == null)
+            Shader originalShader = GetOriginalShader(material);
+            if (originalShader == null)
             {
                 Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
                 if(EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) {}
@@ -1810,7 +1773,7 @@ namespace Thry
             int renderQueue = material.renderQueue;
             string unlockedMaterialGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
             DetourApplyMaterialPropertyDrawers();
-            material.shader = orignalShader;
+            material.shader = originalShader;
             RestoreApplyMaterialPropertyDrawers();
             material.SetOverrideTag("RenderType", renderType);
             material.renderQueue = renderQueue;
@@ -1851,6 +1814,58 @@ namespace Thry
             }
 
             return UnlockSuccess.success;
+        }
+
+        private static Shader GetOriginalShaderByName(Material material)
+        {
+            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, string.Empty);
+            if (string.IsNullOrEmpty(originalShaderName))
+            {
+                Debug.LogWarning("[Shader Optimizer] Original shader name not saved to material.");
+
+                return null;
+            }
+
+            Shader originalShader = Shader.Find(originalShaderName);
+            Debug.LogWarning($"[Shader Optimizer] Original shader {originalShaderName} could not be found");
+
+            return originalShader;
+        }
+
+        private static Shader GetOriginalShaderByGUID(Material material)
+        {
+            string originalShaderGUID = material.GetTag(TAG_ORIGINAL_SHADER_GUID, false, string.Empty);
+            if (string.IsNullOrEmpty(originalShaderGUID))
+            {
+                Debug.LogWarning("[Shader Optimizer] Original shader GUID not saved to material.");
+
+                return null;
+            }
+
+            Shader originalShader = null;
+
+            string originalShaderPath = AssetDatabase.GUIDToAssetPath(originalShaderGUID);
+            if (!string.IsNullOrWhiteSpace(originalShaderPath))
+                originalShader = AssetDatabase.LoadAssetAtPath<Shader>(originalShaderPath);
+
+            if (originalShader == null)
+                Debug.LogWarning($"[Shader Optimizer] Original shader {originalShaderGUID} could not be found");
+
+            return originalShader;
+        }
+
+        public static Shader GetOriginalShader(Material material)
+        {
+            Shader originalShader = GetOriginalShaderByGUID(material);
+
+            // Check for original shader by GUID
+            if (originalShader == null) originalShader = GetOriginalShaderByName(material);
+
+            // Check for original shader by guessing name
+            if (originalShader == null && GuessShader(material.shader, out originalShader))
+                Debug.LogWarning("[Shader Optimizer] Original shader not saved to material. Guessing shader name.");
+
+            return originalShader;
         }
 
         public static void DeleteTags(Material[] materials)
@@ -2559,20 +2574,15 @@ namespace Thry
 
             foreach (Material material in lockedMaterials)
             {
-                string originalShaderName = material.GetTag(ShaderOptimizer.TAG_ORIGINAL_SHADER, false, "");
-                Shader originalShader = null;
-                if (originalShaderName == "" && originalShader == null) ShaderOptimizer.GuessShader(material.shader, out originalShader);
-                if (originalShader == null) originalShader = Shader.Find(originalShaderName);
+                Shader originalShader = ShaderOptimizer.GetOriginalShader(material);
+                if (originalShader == null) continue;
+                
+                if (!lockedMaterialsByShader.ContainsKey(originalShader))
+                    lockedMaterialsByShader[originalShader] = new List<Material>();
+                lockedMaterialsByShader[originalShader].Add(material);
 
-                if (originalShader != null)
-                {
-                    if (!lockedMaterialsByShader.ContainsKey(originalShader))
-                        lockedMaterialsByShader[originalShader] = new List<Material>();
-                    lockedMaterialsByShader[originalShader].Add(material);
-
-                    if (!lockedFoldouts.ContainsKey(originalShader.name))
-                        lockedFoldouts.Add(originalShader.name, false);
-                }
+                if (!lockedFoldouts.ContainsKey(originalShader.name))
+                    lockedFoldouts.Add(originalShader.name, false);
             }
             EditorUtility.ClearProgressBar();
         }
