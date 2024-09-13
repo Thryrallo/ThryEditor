@@ -2021,53 +2021,63 @@ namespace Thry
             return SelectedObjectsAreLockableMaterials();
         }
 
+        //This does not work for folders on the left side of the project explorer, because they are not exposed to Selection
+        internal static IEnumerable<string> GetSelectedFolders()
+        {
+            return Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p));
+        }
+
+        internal static List<Material> FindMaterials(string folderPath, bool recursive = true)
+        {
+            List<Material> materials = new List<Material>();
+            foreach (string f in Directory.GetFiles(folderPath))
+            {
+                if (AssetDatabase.GetMainAssetTypeAtPath(f) != typeof(Material)) continue;
+
+                materials.Add(AssetDatabase.LoadAssetAtPath<Material>(f));
+            }
+
+            if (!recursive) return materials;
+
+            foreach (string f in Directory.GetDirectories(folderPath)) materials.AddRange(FindMaterials(f, true));
+
+            return materials;
+        }
+
+        internal static List<Material> FindMaterials(IEnumerable<string> folders, bool recursive = true)
+        {
+            List<Material> materials = new List<Material>();
+
+            foreach (string f in folders) materials.AddRange(FindMaterials(f, recursive));
+
+            return materials;
+        }
+
         //----Folder Lock
 
-        //This does not work for folders on the left side of the project explorer, because they are not exposed to Selection
         [MenuItem("Assets/Thry/Materials/Lock Folder", false, 303)]
         static void LockFolder()
         {
-            IEnumerable<string> folderPaths = Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p));
-            List<Material> materials = new List<Material>();
-            foreach (string f in folderPaths) FindMaterialsRecursive(f, materials);
-            SetLockedForAllMaterials(materials, 1, true);
+            SetLockedForAllMaterials(FindMaterials(GetSelectedFolders()), 1, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Lock Folder", true)]
         static bool LockFolderValidator()
         {
-            return Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p)).Count() == Selection.objects.Length;
+            return GetSelectedFolders().Count() > 0;
         }
 
         //-----Folder Unlock
-
         [MenuItem("Assets/Thry/Materials/Unlock Folder", false, 303)]
         static void UnLockFolder()
         {
-            IEnumerable<string> folderPaths = Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p));
-            List<Material> materials = new List<Material>();
-            foreach (string f in folderPaths) FindMaterialsRecursive(f, materials);
-            SetLockedForAllMaterials(materials, 0, true);
+            SetLockedForAllMaterials(FindMaterials(GetSelectedFolders()), 0, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Unlock Folder", true)]
         static bool UnLockFolderValidator()
         {
-            return Selection.objects.Select(o => AssetDatabase.GetAssetPath(o)).Where(p => Directory.Exists(p)).Count() == Selection.objects.Length;
-        }
-
-        private static void FindMaterialsRecursive(string folderPath, List<Material> materials)
-        {
-            foreach(string f in Directory.GetFiles(folderPath))
-            {
-                if(AssetDatabase.GetMainAssetTypeAtPath(f) == typeof(Material))
-                {
-                    materials.Add(AssetDatabase.LoadAssetAtPath<Material>(f));
-                }
-            }
-            foreach(string f in Directory.GetDirectories(folderPath)){
-                FindMaterialsRecursive(f, materials);
-            }
+            return GetSelectedFolders().Count() > 0;
         }
 
         //----Folder Unlock
