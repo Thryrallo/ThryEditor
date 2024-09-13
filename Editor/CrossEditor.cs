@@ -34,7 +34,7 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Add to Cross Shader Editor", true, 400)]
         private static bool OpenInCrossShaderEditorValidation()
         {
-            return Selection.objects.Any(o => o is Material) || ShaderOptimizer.GetSelectedFolders().Count() > 0;
+            return Selection.objects.Any(o => o is Material) || ShaderOptimizer.GetSelectedFolders().Any();
         }
 
         [MenuItem("GameObject/Thry/Materials/Open All in Cross Shader Editor", false, 10)]

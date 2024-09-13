@@ -2064,7 +2064,7 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Lock Folder", true)]
         static bool LockFolderValidator()
         {
-            return GetSelectedFolders().Count() > 0;
+            return GetSelectedFolders().Any();
         }
 
         //-----Folder Unlock
@@ -2077,7 +2077,7 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Unlock Folder", true)]
         static bool UnLockFolderValidator()
         {
-            return GetSelectedFolders().Count() > 0;
+            return GetSelectedFolders().Any();
         }
 
         //----Folder Unlock
