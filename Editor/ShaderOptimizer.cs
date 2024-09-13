@@ -506,7 +506,7 @@ namespace Thry
                 }
 
                 string animateTag = material.GetTag(prop.name + AnimatedTagSuffix, false, "");
-                if(string.IsNullOrEmpty(animateTag) == false)
+                if (!string.IsNullOrEmpty(animateTag))
                 {
                     // check if we're renaming the property as well
                     if (animateTag == "2")
@@ -877,6 +877,37 @@ namespace Thry
 #endif
         }
 
+        private static bool CopyProperty(Material material, MaterialProperty source, string targetName)
+        {
+            switch (source.type)
+            {
+                case MaterialProperty.PropType.Color:
+                    material.SetColor(targetName, source.colorValue);
+                    break;
+                case MaterialProperty.PropType.Vector:
+                    material.SetVector(targetName, source.vectorValue);
+                    break;
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    material.SetFloat(targetName, source.floatValue);
+                    break;
+#if UNITY_2022_1_OR_NEWER
+                case MaterialProperty.PropType.Int:
+                    material.SetInt(targetName, source.intValue);
+                    break;
+#endif
+                case MaterialProperty.PropType.Texture:
+                    material.SetTexture(targetName, source.textureValue);
+                    material.SetTextureScale(targetName, new Vector2(source.textureScaleAndOffset.x, source.textureScaleAndOffset.y));
+                    material.SetTextureOffset(targetName, new Vector2(source.textureScaleAndOffset.z, source.textureScaleAndOffset.w));
+                    break;
+                default:
+                    return false;
+            }
+
+            return true;
+        }
+
         private static bool LockApplyShader(ApplyStruct applyStruct)
         {
             Material material = applyStruct.material;
@@ -949,69 +980,13 @@ namespace Thry
             foreach (string keyword in material.shaderKeywords)
                 if(material.IsKeywordEnabled(keyword)) material.DisableKeyword(keyword);
 
-            foreach (var animProp in animatedPropsToRename)
+            var propertiesToCopy = animatedPropsToRename.Union(animatedPropsToDuplicate);
+            foreach (var animProp in propertiesToCopy)
             {
-                var newName = animProp.Prop.name + "_" + animPropertySuffix;
-                switch (animProp.Prop.type)
-                {
-                    case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.Prop.colorValue);
-                        break;
-                    case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.Prop.vectorValue);
-                        break;
-                    case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.Prop.floatValue);
-                        break;
-#if UNITY_2022_1_OR_NEWER
-                    case MaterialProperty.PropType.Int:
-                        material.SetInt(newName, animProp.Prop.intValue);
-                        break;
-#endif
-                    case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.Prop.floatValue);
-                        break;
-                    case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.Prop.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
-                }
+                if(!CopyProperty(material, animProp.Prop, $"{animProp.Prop.name}_{animPropertySuffix}"))
+                    throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
             }
 
-            foreach (var animProp in animatedPropsToDuplicate)
-            {
-                var newName = animProp.Prop.name + "_" + animPropertySuffix;
-                switch (animProp.Prop.type)
-                {
-                    case MaterialProperty.PropType.Color:
-                        material.SetColor(newName, animProp.Prop.colorValue);
-                        break;
-                    case MaterialProperty.PropType.Vector:
-                        material.SetVector(newName, animProp.Prop.vectorValue);
-                        break;
-                    case MaterialProperty.PropType.Float:
-                        material.SetFloat(newName, animProp.Prop.floatValue);
-                        break;
-#if UNITY_2022_1_OR_NEWER
-                    case MaterialProperty.PropType.Int:
-                        material.SetInt(newName, animProp.Prop.intValue);
-                        break;
-#endif
-                    case MaterialProperty.PropType.Range:
-                        material.SetFloat(newName, animProp.Prop.floatValue);
-                        break;
-                    case MaterialProperty.PropType.Texture:
-                        material.SetTexture(newName, animProp.Prop.textureValue);
-                        material.SetTextureScale(newName, new Vector2(animProp.Prop.textureScaleAndOffset.x, animProp.Prop.textureScaleAndOffset.y));
-                        material.SetTextureOffset(newName, new Vector2(animProp.Prop.textureScaleAndOffset.z, animProp.Prop.textureScaleAndOffset.w));
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(material), "This property type should not be renamed and can not be set.");
-                }
-            }
             return true;
         }
 
@@ -1718,7 +1693,7 @@ namespace Thry
         private static void Unlock(Material material, MaterialProperty shaderOptimizer = null)
         {
             //if unlock success set floats. not done for locking cause the sucess is checked later when applying the shaders
-            UnlockSuccess success = ShaderOptimizer.UnlockConcrete(material);
+            UnlockSuccess success = UnlockConcrete(material);
             if (success == UnlockSuccess.success || success == UnlockSuccess.wasNotLocked
                 || success == UnlockSuccess.couldNotDeleteLockedShader)
             {
@@ -1767,6 +1742,25 @@ namespace Thry
                 return UnlockSuccess.hasNoSavedShader;
             }
 
+            // Build list of renamed properties
+            string animPropertySuffix = $"_{GetRenamedPropertySuffix(material)}";
+            List<MaterialProperty> renamedProperties = new List<MaterialProperty>();
+            MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new Object[] { material });
+            foreach (MaterialProperty prop in props)
+            {
+                if (prop == null ||
+                    !prop.name.EndsWith(animPropertySuffix, StringComparison.Ordinal)) continue;
+
+                string propName = prop.name.Substring(0, prop.name.Length - animPropertySuffix.Length);
+
+                string animateTag = material.GetTag(propName + AnimatedTagSuffix, false, "");
+                if (string.IsNullOrEmpty(animateTag) || animateTag != "2" || // Property was not renamed.
+                    propName.EndsWith("UV", StringComparison.Ordinal) || propName.EndsWith("Pan", StringComparison.Ordinal) || // Skip over stuff that doesn't get renamed.
+                    IllegalPropertyRenames.Contains(propName)) continue; // This stuff gets duplicated instead of renamed, should this still get reverted?
+
+                renamedProperties.Add(prop); // Properties fetched now retain their value after switching to the unlocked shader.
+            }
+
             // For some reason when shaders are swapped on a material the RenderType override tag gets completely deleted and render queue set back to -1
             // So these are saved as temp values and reassigned after switching shaders
             string renderType = material.GetTag("RenderType", false, "");
@@ -1788,6 +1782,22 @@ namespace Thry
                     material.SetOverrideTag("_stripped_tex_" + tex, "");
                     material.SetTexture(tex, AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath(guid)));
                 }
+            }
+
+            // Restore values from renamed properties
+            foreach (MaterialProperty prop in renamedProperties)
+            {
+                if (prop == null) continue; // Shouldn't happen but included just in case Unity decides otherwise, maybe raise a warning?
+
+                string propName = prop.name.Substring(0, prop.name.Length - animPropertySuffix.Length);
+                if (!material.HasProperty(propName))
+                {
+                    Debug.LogError($"The expected property ({propName}) for renamed property \"{prop.name}\" was not found on the unlocked shader ({originalShader.name}).");
+
+                    continue;
+                }
+
+                CopyProperty(material, prop, propName);
             }
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
@@ -1875,16 +1885,14 @@ namespace Thry
                 var it = new SerializedObject(m).GetIterator();
                 while (it.Next(true))
                 {
-                    if (it.name == "stringTagMap")
+                    if (it.name != "stringTagMap") continue;
+                    
+                    for (int i = 0; i < it.arraySize; i++)
                     {
-                        for (int i = 0; i < it.arraySize; i++)
-                        {
-                            string tagName = it.GetArrayElementAtIndex(i).displayName;
-                            if (tagName.EndsWith(AnimatedTagSuffix))
-                            {
-                                m.SetOverrideTag(tagName, "");
-                            }
-                        }
+                        string tagName = it.GetArrayElementAtIndex(i).displayName;
+                        if (!tagName.EndsWith(AnimatedTagSuffix)) continue;
+
+                        m.SetOverrideTag(tagName, "");
                     }
                 }
             }
@@ -1902,7 +1910,7 @@ namespace Thry
         public static void UpgradeAnimatedPropertiesToTags(IEnumerable<Material> iMaterials)
         {
             IEnumerable<Material> materialsToChange = iMaterials.Where(m => m != null &&
-                string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
+                !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))
                 && IsShaderUsingThryOptimizer(m.shader)).Distinct().OrderBy(m => m.shader.name);
 
             int i = 0;
@@ -1922,13 +1930,10 @@ namespace Thry
                     {
                         string[] parts = line.Substring(6, line.Length - 6).Split(':');
                         float f;
-                        if (float.TryParse(parts[1], out f))
+                        if (float.TryParse(parts[1], out f) && f != 0)
                         {
-                            if( f != 0)
-                            {
-                                string name = parts[0].Substring(0, parts[0].Length - AnimatedPropertySuffix.Length);
-                                m.SetOverrideTag(name + AnimatedTagSuffix, "" + f);
-                            }
+                            string name = parts[0].Substring(0, parts[0].Length - AnimatedPropertySuffix.Length);
+                            m.SetOverrideTag(name + AnimatedTagSuffix, "" + f);
                         }
                     }
                 }
@@ -2259,10 +2264,9 @@ namespace Thry
             }
 
             // https://forum.unity.com/threads/hash-function-for-game.452779/
-            ASCIIEncoding encoding = new ASCIIEncoding();
-            byte[] bytes = encoding.GetBytes(stringBuilder.ToString());
-            var sha = new MD5CryptoServiceProvider();
-            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLower();
+            byte[] bytes = Encoding.ASCII.GetBytes(stringBuilder.ToString());
+            using (var sha = new MD5CryptoServiceProvider())
+                return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLower();
         }
 
         public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
@@ -2282,9 +2286,9 @@ namespace Thry
 
             //Get cleaned materia list
             // The GetPropertyDefaultFloatValue is changed from 0 to 1 when the shader is locked in
-            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null 
-                && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m)) == false 
-                && string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader)) == false
+            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null
+                && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m))
+                && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))
                 && IsShaderUsingThryOptimizer(m.shader)
                 &&  (   m.shader.name.StartsWith("Hidden/Locked/")
                     || (m.shader.name.StartsWith("Hidden/") && m.GetTag("OriginalShader",false,"") != "" 
@@ -2352,8 +2356,8 @@ namespace Thry
                         // Create new locked shader
                         else
                         {
-                            ShaderOptimizer.Lock(m,
-                                MaterialEditor.GetMaterialProperties(new UnityEngine.Object[] { m }),
+                            Lock(m,
+                                MaterialEditor.GetMaterialProperties(new Object[] { m }),
                                 applyShaderLater: true);
                             s_shaderPropertyCombinations[hash] = new List<Material>();
                         }
@@ -2366,7 +2370,7 @@ namespace Thry
                     }
                     else if (!isLocking)
                     {
-                        ShaderOptimizer.Unlock(m, shaderOptimizer);
+                        Unlock(m, shaderOptimizer);
                     }
                 }
                 catch (Exception e)
