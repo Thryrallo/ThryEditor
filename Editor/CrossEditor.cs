@@ -76,36 +76,33 @@ namespace Thry
 
         private void OnGUI()
         {
-            // List of materials, remove button next to each
-            // Add button at bottom
-
             _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
             _showMaterials = EditorGUILayout.Foldout(_showMaterials, "Materials");
+
             EditorGUI.BeginChangeCheck();
             DrawMaterials();
 
             // Check if targets have changed
-            bool didShadersChange = false;
+            bool didShadersChange = EditorGUI.EndChangeCheck();
             foreach (Material m in _materialList)
             {
-                if (m != null && (!_targetShaders.ContainsKey(m) || _targetShaders[m] != m.shader))
-                {
-                    didShadersChange = true;
-                    _targetShaders[m] = m.shader;
-                }
-            }
-            if (EditorGUI.EndChangeCheck() || didShadersChange)
-            {
-                _shaderEditor = null;
-                UpdateTargets();
+                if (m == null || // Material is null
+                    _targetShaders.ContainsKey(m) && _targetShaders[m] == m.shader) // Shader hasn't changed
+                    continue;
+
+                didShadersChange = true;
+                _targetShaders[m] = m.shader;
             }
 
-            // Draw shader editor
+            if (didShadersChange) UpdateTargets();
+
             DrawShaderEditor();
 
             EditorGUILayout.EndScrollView();
         }
 
+        // List of materials, remove button next to each
+        // Add and Remove All buttons at bottom
         private void DrawMaterials()
         {
             if (!_showMaterials) return;
@@ -129,7 +126,14 @@ namespace Thry
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                _materialList[i] = (Material)EditorGUILayout.ObjectField(_materialList[i], typeof(Material), false);
+                Material material = (Material)EditorGUILayout.ObjectField(_materialList[i], typeof(Material), false);
+
+                if (material != _materialList[i])
+                {
+                    if (_materialList.Contains(material)) material = null;
+
+                    _materialList[i] = material;
+                }
 
                 if (GUILayout.Button("Remove", GUILayout.Width(100))) _materialList.RemoveAt(i);
             }
