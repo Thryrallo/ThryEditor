@@ -21,6 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.**/
 
+//#define DEBUG_IF_DEF_REMOVAL
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -75,7 +77,6 @@ namespace Thry
         public const string TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER = "AllLockedGUIDS";
         //When locking don't include code from define blocks that are not enabled
         const bool REMOVE_UNUSED_IF_DEFS = true;
-        const bool DEBUG_IF_DEF_REMOVAL = false;
 
         // For some reason, 'if' statements with replaced constant (literal) conditions cause some compilation error
         // So until that is figured out, branches will be removed by default
@@ -1185,13 +1186,10 @@ namespace Thry
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
 
-#pragma warning disable CS0162 // Unreachable code detected
-                        if (DEBUG_IF_DEF_REMOVAL)
-                        {
-                            removeEndifStackDebugging.AppendLine($"push {ifStacking}" + lineParsed);
-                            removeEndifStackIfLines.Push(lineParsed);
-                        }
-#pragma warning restore CS0162 // Unreachable code detected
+#if DEBUG_IF_DEF_REMOVAL
+                        removeEndifStackDebugging.AppendLine($"push {ifStacking}" + lineParsed);
+                        removeEndifStackIfLines.Push(lineParsed);
+#endif
 
                         if (!hasMultiple && lineParsed.StartsWith("#ifdef", StringComparison.Ordinal))
                         {
@@ -1262,13 +1260,10 @@ namespace Thry
                             Debug.LogError(removeEndifStackDebugging.ToString());
                             GUIUtility.systemCopyBuffer = string.Join(Environment.NewLine, includedLines);
                         }
-#pragma warning disable CS0162 // Unreachable code detected
-                        if (DEBUG_IF_DEF_REMOVAL)
-                        {
+#if DEBUG_IF_DEF_REMOVAL
                             fileLines[i] += $" // {removeEndifStackIfLines.Peek()}";
                             removeEndifStackDebugging.AppendLine($"pop {ifStacking}" + removeEndifStackIfLines.Pop());
-                        }
-#pragma warning restore CS0162 // Unreachable code detected
+#endif
 
                         if (removeEndifStack.Pop()) continue;
                     }
@@ -1365,9 +1360,11 @@ namespace Thry
         private static void ReplaceShaderValues(Material material, string[] lines, int startLine, int endLine, 
         MaterialProperty[] props, Dictionary<string,PropertyData> constants, Macro[] macros, GrabPassReplacement[] grabPassVariables)
         {
+#if DEBUG_IF_DEF_REMOVAL
             // print macros and constants
             string c = string.Join("\n" , constants.Select(m => m.Key + " : " + m.Value));
             GUIUtility.systemCopyBuffer = c;
+#endif
 
             List <TextureProperty> uniqueSampledTextures = new List<TextureProperty>();
 
