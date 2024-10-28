@@ -123,7 +123,7 @@ namespace Thry
 
         public int ShaderPropertyId { protected set; get; } = -1;
         public int ShaderPropertyIndex { protected set; get; } = -1;
-
+        private string[] ShaderPropertyAttributes = null;
 
         public bool has_not_searchedFor = false; //used for property search
 
@@ -175,6 +175,11 @@ namespace Thry
             IsExemptFromLockedDisabling = b;
         }
 
+        public bool HasAttribute(string attribute)
+        {
+            if (ShaderPropertyAttributes == null) return false;
+            return ShaderPropertyAttributes.Contains(attribute, StringComparer.OrdinalIgnoreCase);
+        }
 
         public ShaderPart(string propertyIdentifier, int xOffset, string displayName, string tooltip, ShaderEditor shaderEditor)
         {
@@ -325,6 +330,8 @@ namespace Thry
             this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = Options.reference_property != null;
             this.XOffset += Options.offset;
+            this.ShaderPropertyAttributes = ShaderEditor.Active.Shader.GetPropertyAttributes(this.ShaderPropertyIndex);
+            this.IsAnimatable &= !HasAttribute("DoNotAnimate");
         }
 
         public void SetReferenceProperty(string s)
