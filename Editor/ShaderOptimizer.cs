@@ -2380,7 +2380,7 @@ namespace Thry
                         Material reference = null;
                         if(s_shaderPropertyCombinations.ContainsKey(hash))
                         {
-
+                            s_shaderPropertyCombinations[hash].RemoveAll(m2 => m2 == null);
                             reference = s_shaderPropertyCombinations[hash].FirstOrDefault(m2 => m2 != m && (materialsToChangeLock.Contains(m2) || Shader.Find(applyStructsLater[m2].newShaderName) != null));
                         }
                         if (reference != null)
