@@ -168,7 +168,6 @@ namespace Thry
             DrawingData.IsCollectingProperties = true;
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
 
-            this.IsAnimatable = !DrawingData.LastPropertyDoesntAllowAnimation && IsAnimatable; // &&, so that IsAnimatable can be set to false before InitializeDrawers
             this._hasDrawer = DrawingData.LastPropertyUsedCustomDrawer;
 
             if (MaterialProperty.type == MaterialProperty.PropType.Vector && _doForceIntoOneLine == false)
