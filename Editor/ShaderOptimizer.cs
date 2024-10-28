@@ -1987,7 +1987,7 @@ namespace Thry
         #endregion
 
         // ifex indenting
-        [MenuItem("Assets/Thry/Shaders/Ifex Indenting", false, 303)]
+        [MenuItem("Assets/Thry/Shaders/Ifex Indenting", false, 305)]
         static void IfExIndenting()
         {
             Shader s = Selection.objects[0] as Shader;
