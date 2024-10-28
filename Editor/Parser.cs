@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,9 +15,15 @@ namespace Thry
     public class Parser
     {
 
-        public static string Serialize(object o)
+        public static string Serialize(object o, bool prettyPrint = false)
         {
-            return Parser.ObjectToString(o);
+            return Serialize(o, prettyPrint, 0);
+        }
+
+        [System.Obsolete("Use Deserialize<T> instead")]
+        public static string ObjectToString(object obj)
+        {
+            return Serialize(obj, false, 0);
         }
 
         public static T Deserialize<T>(string s)
@@ -29,16 +36,16 @@ namespace Thry
             return DeserializeInternal(s, t);
         }
 
-        public static string ObjectToString(object obj)
+        private static string Serialize(object obj, bool prettyPrint, int indent)
         {
             if (obj == null) return "null";
             if (Helper.IsPrimitive(obj.GetType())) return SerializePrimitive(obj);
-            if (obj is IList) return SerializeList(obj);
-            if (obj.GetType().IsGenericType && obj.GetType().GetGenericTypeDefinition() == typeof(Dictionary<,>)) return SerializeDictionary(obj);
-            if (obj.GetType().IsArray) return SerializeList(obj);
+            if (obj is IList) return SerializeList(obj, prettyPrint, indent);
+            if (obj.GetType().IsGenericType && obj.GetType().GetGenericTypeDefinition() == typeof(Dictionary<,>)) return SerializeDictionary(obj, prettyPrint, indent);
+            if (obj.GetType().IsArray) return SerializeList(obj, prettyPrint, indent);
             if (obj.GetType().IsEnum) return obj.ToString();
-            if (obj.GetType().IsClass) return SerializeClass(obj);
-            if (obj.GetType().IsValueType && !obj.GetType().IsEnum) return SerializeClass(obj);
+            if (obj.GetType().IsClass) return SerializeClass(obj, prettyPrint, indent);
+            if (obj.GetType().IsValueType && !obj.GetType().IsEnum) return SerializeClass(obj, prettyPrint, indent);
             return "";
         }
 
@@ -197,7 +204,11 @@ namespace Thry
             // Debug.Log("Parse Primitive: " + input);
             // string
             if (input.StartsWith("\"", StringComparison.Ordinal))
+            {
+                input = input.Trim(new char[] { '\r', '\n', ' ','\t' });
                 return input.Trim(new char[] { '"' });
+            }
+                
 
             // boolean
             // StartsWith ordinal, because it's faster than toLower and trim (in case of spaces after)
@@ -349,49 +360,92 @@ namespace Thry
         }
 
         //Serilizer
-
-        private static string SerializeDictionary(object obj)
+        private static string PrintIndent(int indent) => new string(' ', indent * 4);
+        private static string SerializeDictionary(object obj, bool prettyPrint = false, int indent = 0)
         {
-            string ret = "{";
-            foreach (var item in (dynamic)obj)
+            indent += 1;
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("{");
+            foreach (KeyValuePair<object,object> item in (dynamic)obj)
             {
-                object key = item.Key;
-                object val = item.Value;
-                ret += Serialize(key) + ":" + Serialize(val)+",";
+                if (prettyPrint)
+                {
+                    stringBuilder.Append("\n");
+                    stringBuilder.Append(PrintIndent(indent));
+                }
+                stringBuilder.Append(Serialize(item.Key, prettyPrint, indent) + ": " + Serialize(item.Value, prettyPrint, indent) + ",");
             }
-            ret = ret.TrimEnd(new char[] { ',' });
-            ret += "}";
-            return ret;
+            if (stringBuilder.Length > 1)
+                stringBuilder.Remove(stringBuilder.Length - 1, 1);
+            if (prettyPrint)
+            {
+                stringBuilder.Append("\n");
+                stringBuilder.Append(PrintIndent(indent-1));
+            }
+            stringBuilder.Append("}");
+            return stringBuilder.ToString();
         }
 
-        private static string SerializeClass(object obj)
+        private static string SerializeClass(object obj, bool prettyPrint = false, int indent = 0)
         {
-            string ret = "{";
+            indent += 1;
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("{");
             foreach(FieldInfo field in obj.GetType().GetFields())
             {
+                if(prettyPrint)
+                {
+                    stringBuilder.Append("\n");
+                    stringBuilder.Append(PrintIndent(indent));
+                }
                 if(field.IsPublic)
-                    ret += "\""+field.Name + "\"" + ":" + ObjectToString(field.GetValue(obj)) + ",";
+                    stringBuilder.Append("\""+field.Name + "\"" + ": " + Serialize(field.GetValue(obj), prettyPrint, indent) + ",");
             }
             foreach (PropertyInfo property in obj.GetType().GetProperties())
             {
+                if (prettyPrint)
+                {
+                    stringBuilder.Append("\n");
+                    stringBuilder.Append(PrintIndent(indent));
+                }
                 if(property.CanWrite && property.CanRead && property.GetIndexParameters().Length==0)
-                    ret += "\""+ property.Name + "\"" + ":" + ObjectToString(property.GetValue(obj,null)) + ",";
+                    stringBuilder.Append("\""+ property.Name + "\"" + ": " + Serialize(property.GetValue(obj,null), prettyPrint, indent) + ",");
             }
-            ret = ret.TrimEnd(new char[] { ',' });
-            ret += "}";
-            return ret;
+            if (stringBuilder.Length > 1)
+                stringBuilder.Remove(stringBuilder.Length - 1, 1);
+            if (prettyPrint)
+            {
+                stringBuilder.Append("\n");
+                stringBuilder.Append(PrintIndent(indent-1));
+            }
+            stringBuilder.Append("}");
+            return stringBuilder.ToString();
         }
 
-        private static string SerializeList(object obj)
+        private static string SerializeList(object obj, bool prettyPrint = false, int indent = 0)
         {
-            string ret = "[";
+            indent += 1;
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("[");
             foreach (object o in obj as IEnumerable)
             {
-                ret += ObjectToString(o) + ",";
+                if(prettyPrint)
+                {
+                    stringBuilder.Append("\n");
+                    stringBuilder.Append(PrintIndent(indent));
+                }
+                stringBuilder.Append(Serialize(o, prettyPrint, indent));
+                stringBuilder.Append(",");
             }
-            ret = ret.TrimEnd(new char[] { ',' });
-            ret += "]";
-            return ret;
+            if(stringBuilder.Length > 1)
+                stringBuilder.Remove(stringBuilder.Length - 1, 1);
+            if (prettyPrint)
+            {
+                stringBuilder.Append("\n");
+                stringBuilder.Append(PrintIndent(indent-1));
+            }
+            stringBuilder.Append("]");
+            return stringBuilder.ToString();
         }
 
         private static string SerializePrimitive(object obj)
