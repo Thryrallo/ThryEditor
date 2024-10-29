@@ -88,27 +88,61 @@ namespace Thry
             parts.Add(part);
         }
 
-        public override void CopyFromMaterial(Material m, bool isTopCall = false)
+        public override void CopyFrom(Material src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
-            if (Options.reference_property != null)
-                ActiveShaderEditor.PropertyDictionary[Options.reference_property].CopyFromMaterial(m);
+            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            CopyReferencePropertiesFrom(src, skipPropertyTypes);
+
             foreach (ShaderPart p in parts)
-                p.CopyFromMaterial(m);
+                p.CopyFrom(src, skipPropertyTypes: skipPropertyTypes);
+
             if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
 
-        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyFrom(ShaderPart srcPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            if (srcPart is ShaderGroup == false) return;
+            ShaderGroup src = srcPart as ShaderGroup;
+            CopyReferencePropertiesFrom(src, skipPropertyTypes);
 
-            if (Options.reference_property != null)
-                ActiveShaderEditor.PropertyDictionary[Options.reference_property].CopyToMaterial(m);
+            for (int i = 0; i < src.parts.Count && i < parts.Count; i++)
+            {
+                if (!ShouldSkipProperty(parts[i].MaterialProperty, skipPropertyTypes))
+                    parts[i].CopyFrom(src.parts[i], skipPropertyTypes: skipPropertyTypes);
+            }
+
+            if (isTopCall) ActiveShaderEditor.ApplyDrawers();
+        }
+
+        public override void CopyTo(Material target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            CopyReferencePropertiesTo(target, skipPropertyTypes);
+
             foreach (ShaderPart p in parts)
             {
                 if (!ShouldSkipProperty(p.MaterialProperty, skipPropertyTypes))
-                    p.CopyToMaterial(m);
+                    p.CopyTo(target, skipPropertyTypes: skipPropertyTypes);
             }
-            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(m);
+
+            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(target);
+        }
+
+        public override void CopyTo(ShaderPart targetPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            if (targetPart is ShaderGroup == false) return;
+            ShaderGroup target = targetPart as ShaderGroup;
+            CopyReferencePropertiesTo(target, skipPropertyTypes);
+
+            for(int i = 0; i < parts.Count && i < target.parts.Count; i++)
+            {
+                if (!ShouldSkipProperty(parts[i].MaterialProperty, skipPropertyTypes))
+                    parts[i].CopyTo(target.parts[i], skipPropertyTypes: skipPropertyTypes);
+            }
+
+            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(target.MaterialProperty.targets);
         }
 
         public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -121,21 +155,6 @@ namespace Thry
             {
                 part.Draw();
             }
-        }
-
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null)
-        {
-            if (ShouldSkipProperty(MaterialProperty, propertyTypesToSkip)) return;
-            if (p is ShaderGroup == false) return;
-            ShaderGroup group = p as ShaderGroup;
-            if (Options.reference_property != null && group.Options.reference_property != null)
-                ActiveShaderEditor.PropertyDictionary[Options.reference_property].TransferFromMaterialAndGroup(m, group.ActiveShaderEditor.PropertyDictionary[group.Options.reference_property]);
-            for (int i = 0; i < group.parts.Count && i < parts.Count; i++)
-            {
-                if (!ShouldSkipProperty(parts[i].MaterialProperty, propertyTypesToSkip))
-                    parts[i].TransferFromMaterialAndGroup(m, group.parts[i]);
-            }
-            if (isTopCall) ActiveShaderEditor.ApplyDrawers();
         }
 
         public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
@@ -153,7 +172,7 @@ namespace Thry
             List<Material> linked_materials = MaterialLinker.GetLinked(MaterialProperty);
             if (linked_materials != null)
                 foreach (Material m in linked_materials)
-                    this.CopyToMaterial(m);
+                    this.CopyTo(m);
         }
 
         protected void FoldoutArrow(Rect rect, Event e)

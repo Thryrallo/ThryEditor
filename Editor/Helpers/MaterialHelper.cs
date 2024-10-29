@@ -39,12 +39,12 @@ namespace Thry
         /// </summary>
         /// <param name="key">Property Name or "render_queue"</param>
         /// <param name="value"></param>
-        public static void SetMaterialValue(string key, string value)
+        public static void SetValueAdvanced(string key, string value)
         {
             Material[] materials = ShaderEditor.Active.Materials;
             if (ShaderEditor.Active.PropertyDictionary.TryGetValue(key, out ShaderProperty p))
             {
-                MaterialHelper.SetMaterialPropertyValue(p.MaterialProperty, value);
+                MaterialHelper.SetValue(p.MaterialProperty, value);
                 p.UpdateKeywordFromValue();
             }
             else if (key == "render_queue")
@@ -69,7 +69,7 @@ namespace Thry
             }
         }
 
-        public static void SetMaterialPropertyValue(MaterialProperty p, string value)
+        public static void SetValue(MaterialProperty p, string value)
         {
             object prev = null;
             if (p.type == MaterialProperty.PropType.Texture)
@@ -103,7 +103,7 @@ namespace Thry
                 p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
-        public static void CopyPropertyValueFromMaterial(MaterialProperty p, Material source)
+        public static void CopyValueFrom(MaterialProperty p, Material source)
         {
             if (!source.HasProperty(p.name)) return;
             object prev = null;
@@ -140,7 +140,7 @@ namespace Thry
                 p.applyPropertyCallback.Invoke(p, 1, prev);
         }
 
-        public static void CopyMaterialValueFromProperty(MaterialProperty target, MaterialProperty source)
+        public static void CopyValueFrom(MaterialProperty target, MaterialProperty source)
         {
             object prev = null;
             switch (target.type)
@@ -174,9 +174,14 @@ namespace Thry
                 target.applyPropertyCallback.Invoke(target, 1, prev);
         }
 
-        public static void CopyPropertyValueToMaterial(MaterialProperty source, Material target)
+        public static void CopyValueTo(MaterialProperty source, Material target)
         {
-            CopyMaterialValueFromProperty(MaterialEditor.GetMaterialProperty(new Material[] { target }, source.name), source);
+            CopyValueFrom(MaterialEditor.GetMaterialProperty(new Material[] { target }, source.name), source);
+        }
+
+        public static void CopyValueTo(MaterialProperty src, MaterialProperty target)
+        {
+            CopyValueFrom(target, src);
         }
     }
 

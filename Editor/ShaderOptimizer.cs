@@ -303,7 +303,7 @@ namespace Thry
             public string newName;
         }
 
-        public static void CopyAnimatedTagToMaterials(Material[] targets, MaterialProperty source)
+        public static void CopyAnimatedTag(MaterialProperty source, Material[] targets)
         {
             string val = (source.targets[0] as Material).GetTag(source.name + AnimatedTagSuffix, false, "");
             foreach (Material m in targets)
@@ -312,7 +312,7 @@ namespace Thry
             }
         }
 
-        public static void CopyAnimatedTagFromMaterial(Material source, MaterialProperty target)
+        public static void CopyAnimatedTag(Material source, MaterialProperty target)
         {
             string val = source.GetTag(target.name + AnimatedTagSuffix, false, "");
             foreach (Material m in target.targets)
@@ -321,7 +321,7 @@ namespace Thry
             }
         }
 
-        public static void CopyAnimatedTagFromProperty(MaterialProperty source, MaterialProperty target)
+        public static void CopyAnimatedTag(MaterialProperty source, MaterialProperty target)
         {
             string val = (source.targets[0] as Material).GetTag(source.name + AnimatedTagSuffix, false, "");
             foreach (Material m in target.targets)

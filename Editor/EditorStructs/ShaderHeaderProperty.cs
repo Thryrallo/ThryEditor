@@ -57,19 +57,21 @@ namespace Thry
             }
         }
 
-        public override void CopyFromMaterial(Material m, bool isTopCall = false)
+        public override void CopyFrom(Material src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
-
-        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyFrom(ShaderPart src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
-
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+        public override void CopyTo(ShaderPart target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            throw new NotImplementedException();
         }
 
         public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)

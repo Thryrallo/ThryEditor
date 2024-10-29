@@ -352,40 +352,74 @@ namespace Thry
         }
 
         public abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
-        public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
-        public abstract void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
+        public abstract void CopyFrom(Material src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
+        public abstract void CopyFrom(ShaderPart src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
+        public abstract void CopyTo(Material target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
+        public abstract void CopyTo(ShaderPart target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
 
-        protected void CopyReferencePropertiesToMaterial(Material target)
+        protected void CopyReferencePropertiesTo(Material target, MaterialProperty.PropType[] skipPropertyTypes)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+                    property.CopyTo(target, skipPropertyTypes: skipPropertyTypes);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
-                MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+                property.CopyTo(target, skipPropertyTypes: skipPropertyTypes);
             }
         }
 
-        protected void CopyReferencePropertiesFromMaterial(Material source)
+        protected void CopyReferencePropertiesFrom(Material source, MaterialProperty.PropType[] skipPropertyTypes)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+                    property.CopyFrom(source, skipPropertyTypes: skipPropertyTypes);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
-                MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+                property.CopyFrom(source, skipPropertyTypes: skipPropertyTypes);
             }
         }
 
-        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null);
+        protected void CopyReferencePropertiesFrom(ShaderPart src, MaterialProperty.PropType[] skipPropertyTypes)
+        {
+            if (Options.reference_properties != null && src.Options.reference_properties != null)
+                for(int i = 0; i < Options.reference_properties.Length && i < src.Options.reference_properties.Length; i++)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_properties[i]];
+                    ShaderProperty srcProperty = src.ActiveShaderEditor.PropertyDictionary[src.Options.reference_properties[i]];
+                    property.CopyFrom(srcProperty, skipPropertyTypes: skipPropertyTypes);
+                }
+            if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(src.Options.reference_property))
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                ShaderProperty srcProperty = src.ActiveShaderEditor.PropertyDictionary[src.Options.reference_property];
+                property.CopyFrom(srcProperty, skipPropertyTypes: skipPropertyTypes);
+            }
+        }
+
+        protected void CopyReferencePropertiesTo(ShaderPart target, MaterialProperty.PropType[] skipPropertyTypes)
+        {
+            if (Options.reference_properties != null && target.Options.reference_properties != null)
+                for (int i = 0; i < Options.reference_properties.Length && i < target.Options.reference_properties.Length; i++)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_properties[i]];
+                    ShaderProperty targetProperty = target.ActiveShaderEditor.PropertyDictionary[target.Options.reference_properties[i]];
+                    property.CopyTo(targetProperty, skipPropertyTypes: skipPropertyTypes);
+                }
+            if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(target.Options.reference_property))
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                ShaderProperty targetProperty = target.ActiveShaderEditor.PropertyDictionary[target.Options.reference_property];
+                property.CopyTo(targetProperty, skipPropertyTypes: skipPropertyTypes);
+            }
+        }
 
         bool hasAddedDisabledGroup = false;
         public void Draw(Rect? rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)

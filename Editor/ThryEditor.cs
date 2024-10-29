@@ -273,7 +273,6 @@ namespace Thry
             groupStack.Push(MainGroup); //add top object a second time, because it get's popped with first actual header item
             _footers = new List<FooterButton>(); //init footer list
             int offsetDepthCount = 0;
-            DrawingData.IsCollectingProperties = true;
 
             HashSet<string> duplicatePropertiesSearch = new HashSet<string>(); // for debugging
             List<string> duplicateProperties = new List<string>(); // for debugging
@@ -297,8 +296,6 @@ namespace Thry
                     duplicateProperties.Add(props[i].name);
                 else
                     duplicatePropertiesSearch.Add(props[i].name);
-
-                DrawingData.ResetLastDrawerData();
 
                 ThryPropertyType type = GetPropertyType(props[i]);
                 ShaderProperty NewProperty = null;
@@ -397,8 +394,6 @@ namespace Thry
 
             if(duplicateProperties.Count > 0 && Config.Singleton.enableDeveloperMode)
                 _duplicatePropertyNamesString = string.Join("\n ", duplicateProperties.ToArray());
-
-            DrawingData.IsCollectingProperties = false;
         }
 
         //-------------Draw Functions----------------

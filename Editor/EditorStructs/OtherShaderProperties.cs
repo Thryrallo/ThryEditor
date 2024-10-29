@@ -24,13 +24,21 @@ namespace Thry
             ActiveShaderEditor.Editor.RenderQueueField();
         }
 
-        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        public override void CopyFrom(Material sourceM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             targetM.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
+        }
+        public override void CopyFrom(ShaderPart srcPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material, isTopCall, skipPropertyTypes);
+        }
+        public override void CopyTo(ShaderPart targetPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            this.CopyTo(targetPart.MaterialProperty.targets[0] as Material, isTopCall, skipPropertyTypes);
         }
     }
     public class VRCFallbackProperty : ShaderProperty
@@ -68,15 +76,23 @@ namespace Thry
             }
         }
 
-        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        public override void CopyFrom(Material sourceM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             string value = sourceM.GetTag("VRCFallback", false, "None");
             foreach (Material m in ActiveShaderEditor.Materials) m.SetOverrideTag("VRCFallback", value);
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
         {
             string value = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
             targetM.SetOverrideTag("VRCFallback", value);
+        }
+        public override void CopyFrom(ShaderPart srcPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material, isTopCall, skipPropertyTypes);
+        }
+        public override void CopyTo(ShaderPart targetPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        {
+            this.CopyTo(targetPart.MaterialProperty.targets[0] as Material, isTopCall, skipPropertyTypes);
         }
     }
     public class InstancingProperty : ShaderProperty

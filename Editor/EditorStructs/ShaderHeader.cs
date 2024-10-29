@@ -209,38 +209,38 @@ namespace Thry
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
-                property.CopyFromMaterial(new Material(material.shader), true);
+                property.CopyFrom(new Material(material.shader), true);
                 List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
-                        property.CopyToMaterial(m, true);
+                        property.CopyTo(m, true);
             });
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
                 Mediator.copy_material = new Material(material);
-                Mediator.transfer_group = property;
+                Mediator.copy_part = property;
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate ()
             {
-                if (Mediator.copy_material != null || Mediator.transfer_group != null)
+                if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true);
+                    property.CopyFrom(Mediator.copy_part, true);
                     List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                     if (linked_materials != null)
                         foreach (Material m in linked_materials)
-                            property.CopyToMaterial(m, true);
+                            property.CopyTo(m, true);
                 }
             });
             menu.AddItem(new GUIContent("Paste without Textures"), false, delegate ()
             {
-                if (Mediator.copy_material != null || Mediator.transfer_group != null)
+                if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
                     var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture };
-                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true, propsToIgnore);
+                    property.CopyFrom(Mediator.copy_part, true, propsToIgnore);
                     List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                     if (linked_materials != null)
                         foreach (Material m in linked_materials)
-                            property.CopyToMaterial(m, true, propsToIgnore);
+                            property.CopyTo(m, true, propsToIgnore);
                 }
             });
             menu.DropDown(position);

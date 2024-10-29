@@ -495,7 +495,7 @@ namespace Thry.ThryEditor
                 {
                     if (IsPreset(preset, prop))
                     {
-                        prop.CopyFromMaterial(preset);
+                        prop.CopyFrom(preset);
                     }
                 }
             }else if(parent is ShaderGroup)
@@ -516,7 +516,7 @@ namespace Thry.ThryEditor
                 {
                     if (IsPreset(preset, prop))
                     {
-                        prop.CopyFromMaterial(preset);
+                        prop.CopyFrom(preset);
                     }
                 }
             }
