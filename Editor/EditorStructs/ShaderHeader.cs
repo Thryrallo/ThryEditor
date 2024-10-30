@@ -215,6 +215,7 @@ namespace Thry
                     foreach (Material m in linked_materials)
                         property.CopyToMaterial(m, true);
             });
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
                 Mediator.copy_material = new Material(material);
@@ -242,6 +243,39 @@ namespace Thry
                         foreach (Material m in linked_materials)
                             property.CopyToMaterial(m, true, propsToIgnore);
                 }
+            });
+            menu.AddItem(new GUIContent("Paste Special..."), false, () =>
+            {
+                if(Mediator.copy_material == null || Mediator.transfer_group == null)
+                    return;
+                
+                var popup = ScriptableObject.CreateInstance<ListTogglesPopup>();
+                popup.Init(Mediator.transfer_group);
+                popup.titleContent = new GUIContent("Paste Special");
+                popup.minSize = new Vector2(460, 400);
+                popup.ShowUtility();
+                
+                popup.OnPasteClicked += (enabledPartsList) =>
+                {
+                    if (Mediator.copy_material != null || Mediator.transfer_group != null)
+                    {
+                        foreach(var part in enabledPartsList)
+                        {
+                            if(part is ShaderGroup)
+                                continue;
+
+                            part.CopyToMaterial(material);
+
+                            /*
+                            List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
+                            if(linked_materials != null)
+                                foreach(Material m in linked_materials)
+                                    property.CopyToMaterial(m, true, null);
+                            */
+                        }
+                    }
+                };
+                
             });
             menu.DropDown(position);
         }
