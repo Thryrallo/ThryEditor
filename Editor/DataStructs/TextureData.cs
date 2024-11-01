@@ -99,6 +99,7 @@ namespace Thry
 
         private static TextureData ParseForThryParser(string s)
         {
+            s = s.Trim(' ', '"');
             if (s.StartsWith("{") == false)
             {
                 return new TextureData()
