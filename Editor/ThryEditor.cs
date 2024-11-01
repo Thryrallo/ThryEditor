@@ -353,7 +353,8 @@ namespace Thry
                 }
                 if (newPart != null)
                 {
-                    PropertyDictionary.TryAdd(props[i].name, NewProperty);
+                    if(!PropertyDictionary.ContainsKey(props[i].name))
+                        PropertyDictionary.Add(props[i].name, NewProperty);
                     ShaderParts.Add(newPart);
                 }
             }

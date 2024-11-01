@@ -216,7 +216,7 @@ namespace Thry
             {
                 if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture }.ToHashSet();
+                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
                 }
