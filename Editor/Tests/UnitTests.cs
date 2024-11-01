@@ -7,6 +7,22 @@ namespace Thry
 {
     public class UnitTests
     {
+        [MenuItem("Thry/ShaderUI/Test/Run Timed Tests")]
+        static void RunTimeTest()
+        {
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                RunUnitTests();
+            }
+
+            sw.Stop();
+
+            Debug.Log($"Ran 1000 tests in {sw.ElapsedMilliseconds}ms");
+        }
+
         [MenuItem("Thry/ShaderUI/Test/Run Parser Tests")]
         public static void RunUnitTests()
         {
@@ -33,13 +49,14 @@ namespace Thry
                     continue;
                 }
                 bool passed = serialized1 == serialized2 && serialized1 != null;
-                Debug.Assert(passed, $"Serialization of {test.t.Name} failed. Serialized1: {serialized1} Serialized2: {serialized2}");
+                Debug.Assert(passed, $"Serialization of {test.t.Name} failed. \nSerialized1: {serialized1} \nSerialized2: {serialized2}");
                 passedTests += passed ? 1 : 0;
                 testCount++;
             }
 
             TextAsset prettyPrint = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetDatabase.GUIDToAssetPath("8a14ffedc8094d1409692f3adda63884"));
-            object deserialized = Parser.ParseJson(prettyPrint.text);
+            Person deserialized = Parser.Deserialize<Person>(prettyPrint.text);
+            Debug.Log($"Deserialized: {deserialized.surname}");
             string serialized = Parser.Serialize(deserialized, prettyPrint: true);
             bool passedPrettyPrint = prettyPrint.text.Replace("\r","") == serialized;
             Debug.Assert(passedPrettyPrint, $"Pretty print test failed. Expected: {prettyPrint.text} Got: {serialized}");
@@ -52,6 +69,19 @@ namespace Thry
             }else
             {
                 Debug.Log($"<color=#ff7f00ff>Passed {passedTests}/{testCount} tests</color>");
+            }
+        }
+
+        class Person
+        {
+            public string surname;
+            public string name;
+            public int age;
+            public House house;
+            public class House
+            {
+                public string address;
+                public string[] rooms;
             }
         }
 
