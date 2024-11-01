@@ -495,7 +495,7 @@ namespace Thry.ThryEditor
                 {
                     if (IsPreset(preset, prop))
                     {
-                        prop.CopyFromMaterial(preset);
+                        prop.CopyFrom(preset);
                     }
                 }
             }else if(parent is ShaderGroup)
@@ -507,7 +507,7 @@ namespace Thry.ThryEditor
         
         static void ApplyPresetRecursive(ShaderEditor shaderEditor, Material preset, ShaderGroup parent)
         {
-            foreach (ShaderPart prop in parent.parts)
+            foreach (ShaderPart prop in parent.Children)
             {
                 if(prop is ShaderGroup)
                 {
@@ -516,7 +516,7 @@ namespace Thry.ThryEditor
                 {
                     if (IsPreset(preset, prop))
                     {
-                        prop.CopyFromMaterial(preset);
+                        prop.CopyFrom(preset);
                     }
                 }
             }

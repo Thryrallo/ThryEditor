@@ -338,6 +338,50 @@ namespace Thry
                 return (bytesCount, add);
             }
         }
+
+        [MenuItem("Assets/Thry/Textures/Find References", true)]
+        private static bool FindReferencesValidate()
+        {
+            return Selection.activeObject is Texture;
+        }
+
+        [MenuItem("Assets/Thry/Textures/Find References", false, 304)]
+        private static void FindReferences()
+        {
+            Texture texture = Selection.activeObject as Texture;
+            string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(texture));
+            Material[] materials = Resources.FindObjectsOfTypeAll<Material>();
+            Dictionary<Material, string> textureUses = new Dictionary<Material,string>();
+            // Search files for references
+            foreach (Material material in materials)
+            {
+                string path = AssetDatabase.GetAssetPath(material);
+                if (File.Exists(path))
+                {
+                    string[] lines = File.ReadAllLines(path);
+                    for(int i = 0; i < lines.Length; i++)
+                    {
+                        if (lines[i].Contains(guid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            textureUses.Add(material, lines[i-1].Substring(6, lines[i-1].Length - 7));
+                        }
+                    }
+                }
+            }
+
+            string output = "";
+            foreach (KeyValuePair<Material, string> entry in textureUses)
+            {
+                output += entry.Key.name + " -> " + entry.Value + "\n";
+            }
+            if (output == "")
+            {
+                EditorUtility.DisplayDialog("Texture not used", "The texture is not used in any material.", "OK");
+            }else
+            {
+                EditorUtility.DisplayDialog("Texture used in", output, "OK");
+            }
+        }
     }
 
 }

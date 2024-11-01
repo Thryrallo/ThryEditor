@@ -19,18 +19,26 @@ namespace Thry
             CustomStringTagID = "RenderQueue";
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             ActiveShaderEditor.Editor.RenderQueueField();
         }
 
-        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            targetM.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
+            foreach (Material m in targetsM) m.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
+        }
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material);
+        }
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            this.CopyTo(targetPart.MaterialProperty.targets.Cast<Material>().ToArray());
         }
     }
     public class VRCFallbackProperty : ShaderProperty
@@ -53,7 +61,7 @@ namespace Thry
             IsExemptFromLockedDisabling = true;
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             string current = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
             EditorGUI.BeginChangeCheck();
@@ -68,15 +76,23 @@ namespace Thry
             }
         }
 
-        public override void CopyFromMaterial(Material sourceM, bool isTopCall = false)
+        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = sourceM.GetTag("VRCFallback", false, "None");
             foreach (Material m in ActiveShaderEditor.Materials) m.SetOverrideTag("VRCFallback", value);
         }
-        public override void CopyToMaterial(Material targetM, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
-            targetM.SetOverrideTag("VRCFallback", value);
+            foreach (Material m in targetsM) m.SetOverrideTag("VRCFallback", value);
+        }
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material, applyDrawers);
+        }
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            this.CopyTo(targetPart.MaterialProperty.targets.Cast<Material>().ToArray(), applyDrawers);
         }
     }
     public class InstancingProperty : ShaderProperty
@@ -87,7 +103,7 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             ActiveShaderEditor.Editor.EnableInstancingField();
         }
@@ -100,12 +116,12 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             base.DrawInternal(content, rect, useEditorIndent, isInHeader);
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             LightmapEmissionFlagsProperty(XOffset, false);
         }
@@ -178,7 +194,7 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             ActiveShaderEditor.Editor.DoubleSidedGIField();
         }
@@ -191,7 +207,7 @@ namespace Thry
             IsAnimatable = false;
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ShaderEditor.Active.Locale.DrawDropdown(rect.Value);
         }

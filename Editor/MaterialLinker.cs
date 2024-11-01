@@ -49,7 +49,7 @@ namespace Thry
                 }
                 save_structre.Add(value);
             }
-            FileHelper.WriteStringToFile(Parser.ObjectToString(save_structre),PATH.LINKED_MATERIALS_FILE);
+            FileHelper.WriteStringToFile(Parser.Serialize(save_structre, prettyPrint: true),PATH.LINKED_MATERIALS_FILE);
         }
 
         public static bool IsLinked(MaterialProperty p)

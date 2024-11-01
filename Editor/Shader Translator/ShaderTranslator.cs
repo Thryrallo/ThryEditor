@@ -296,7 +296,7 @@ namespace Thry.ThryEditor.ShaderTranslations
             TranslationDefinitions[selected].Apply(userData as ShaderEditor);
         }
 
-        [MenuItem("Assets/Thry/Shader Translator/New Definition", priority = 380)]
+        [MenuItem("Assets/Thry/Shaders/New Translator Definition", priority = 380)]
         static void CreateNewTranslationDefinition()
         {
             // This allows you to name your asset before creating it

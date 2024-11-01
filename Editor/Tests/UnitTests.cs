@@ -7,15 +7,7 @@ namespace Thry
 {
     public class UnitTests
     {
-        [MenuItem("Thry/ShaderUI/Test/Custom Test")]
-        public static void CustomTest()
-        {
-            List<(Type, string)> tests = GetParserTests();
-            (Type, string) problem = tests[2];
-            Parser.Deserialize(problem.Item2, problem.Item1);
-        }
-
-        [MenuItem("Thry/ShaderUI/Test/Run Unit Tests")]
+        [MenuItem("Thry/ShaderUI/Test/Run Parser Tests")]
         public static void RunUnitTests()
         {
             int testCount = 0;
@@ -45,6 +37,15 @@ namespace Thry
                 passedTests += passed ? 1 : 0;
                 testCount++;
             }
+
+            TextAsset prettyPrint = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetDatabase.GUIDToAssetPath("8a14ffedc8094d1409692f3adda63884"));
+            object deserialized = Parser.ParseJson(prettyPrint.text);
+            string serialized = Parser.Serialize(deserialized, prettyPrint: true);
+            bool passedPrettyPrint = prettyPrint.text.Replace("\r","") == serialized;
+            Debug.Assert(passedPrettyPrint, $"Pretty print test failed. Expected: {prettyPrint.text} Got: {serialized}");
+            testCount ++;
+            passedTests += passedPrettyPrint ? 1 : 0;
+
             if(testCount == passedTests)
             {
                 Debug.Log($"<color=#00ff00ff>Passed all tests</color>");

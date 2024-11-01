@@ -21,7 +21,7 @@ namespace Thry
         {
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
@@ -43,7 +43,7 @@ namespace Thry
 
                 EditorGUILayout.Space();
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
-                foreach (ShaderPart part in parts)
+                foreach (ShaderPart part in Children)
                 {
                     part.Draw();
                 }
@@ -51,7 +51,7 @@ namespace Thry
                 EditorGUILayout.Space();
             }
             if (EditorGUI.EndChangeCheck())
-                HandleLinkedMaterials();
+                UpdateLinkedMaterials();
             DrawingData.LastGuiObjectHeaderRect = headerRect;
             DrawingData.LastGuiObjectRect = headerRect;
         }
@@ -93,10 +93,9 @@ namespace Thry
 
                 EditorGUI.BeginChangeCheck();
 
-                int xOffset = refProperty.XOffset;
-                refProperty.SetTemporaryXOffset(0);
+                refProperty.XOffset.SetTemporaryOffset(0);
                 refProperty.Draw(togglePropertyRect, new GUIContent(), isInHeader: true);
-                refProperty.ResetTemporaryXOffset();
+                refProperty.XOffset.ResetTemporaryOffset();
                 EditorGUIUtility.fieldWidth = fieldWidth;
 
                 // Change expand state if reference is toggled
@@ -105,22 +104,6 @@ namespace Thry
                     IsExpanded = refProperty.MaterialProperty.GetNumber() == 1;
                 }
             }
-            // else if(keyword != null)
-            // {
-            //     GUI.Box(rect, "     " + content.text, Styles.dropDownHeader);
-            //     DrawIcons(rect, options, e);
-
-            //     Rect togglePropertyRect = new Rect(rect);
-            //     togglePropertyRect.x += 20;
-            //     togglePropertyRect.width = 20;
-
-            //     EditorGUI.BeginChangeCheck();
-            //     bool keywordOn = EditorGUI.Toggle(togglePropertyRect, "", ShaderEditor.Active.Materials[0].IsKeywordEnabled(keyword));
-            //     if (EditorGUI.EndChangeCheck())
-            //     {
-            //         MaterialHelper.ToggleKeyword(ShaderEditor.Active.Materials, keyword, keywordOn);
-            //     }
-            // }
             else
             {
                 GUI.Box(rect, content, Styles.dropDownHeader);
@@ -190,7 +173,7 @@ namespace Thry
                 float maxY = GUIUtility.ScreenToGUIPoint(new Vector2(0, EditorWindow.focusedWindow.position.y + Screen.height)).y - 2.5f * buttonRect.height;
                 buttonRect.y = Mathf.Min(buttonRect.y - buttonRect.height / 2, maxY);
 
-                ShowHeaderContextMenu(buttonRect, ShaderEditor.Active.CurrentProperty, ShaderEditor.Active.Materials[0]);
+                ShowHeaderContextMenu(buttonRect, this, ShaderEditor.Active.Materials[0]);
             }
         }
 
@@ -204,43 +187,37 @@ namespace Thry
             }
         }
 
-        void ShowHeaderContextMenu(Rect position, ShaderPart property, Material material)
+        void ShowHeaderContextMenu(Rect position, ShaderHeader property, Material material)
         {
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
-                property.CopyFromMaterial(new Material(material.shader), true);
+                property.CopyFrom(new Material(material.shader), true);
                 List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
-                        property.CopyToMaterial(m, true);
+                        property.CopyTo(m, true);
             });
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
                 Mediator.copy_material = new Material(material);
-                Mediator.transfer_group = property;
+                Mediator.copy_part = property;
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate ()
             {
-                if (Mediator.copy_material != null || Mediator.transfer_group != null)
+                if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true);
-                    List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
-                    if (linked_materials != null)
-                        foreach (Material m in linked_materials)
-                            property.CopyToMaterial(m, true);
+                    property.CopyFrom(Mediator.copy_part);
+                    property.UpdateLinkedMaterials();
                 }
             });
             menu.AddItem(new GUIContent("Paste without Textures"), false, delegate ()
             {
-                if (Mediator.copy_material != null || Mediator.transfer_group != null)
+                if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture };
-                    property.TransferFromMaterialAndGroup(Mediator.copy_material, Mediator.transfer_group, true, propsToIgnore);
-                    List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
-                    if (linked_materials != null)
-                        foreach (Material m in linked_materials)
-                            property.CopyToMaterial(m, true, propsToIgnore);
+                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture }.ToHashSet();
+                    property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
+                    property.UpdateLinkedMaterials();
                 }
             });
             menu.DropDown(position);

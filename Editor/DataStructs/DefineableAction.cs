@@ -21,7 +21,7 @@ namespace Thry
                 case DefineableActionType.SET_PROPERTY:
                     string[] set = Regex.Split(data, @"=");
                     if (set.Length > 1)
-                        MaterialHelper.SetMaterialValue(set[0].Trim(), set[1].Trim());
+                        MaterialHelper.SetValueAdvanced(set[0].Trim(), set[1].Trim());
                     break;
                 case DefineableActionType.SET_TAG:
                     string[] keyValue = Regex.Split(data, @"=");

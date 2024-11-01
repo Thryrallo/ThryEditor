@@ -30,11 +30,11 @@ namespace Thry
             }
         }
 
-        public override void HandleRightClickToggles(bool isInHeader)
+        protected override void HandleRightClickToggles(bool isInHeader)
         {
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (rect == null)
             {
@@ -57,23 +57,28 @@ namespace Thry
             }
         }
 
-        public override void CopyFromMaterial(Material m, bool isTopCall = false)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override void TransferFromMaterialAndGroup(Material m, ShaderPart p, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
-        {
-            throw new System.NotImplementedException();
-        }
-
         public override void FindUnusedTextures(List<string> unusedList, bool isEnabled)
         {
+        }
+
+        public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        {
+            throw new NotImplementedException();
         }
     }
 

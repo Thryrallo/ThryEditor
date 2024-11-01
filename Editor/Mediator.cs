@@ -20,6 +20,6 @@ namespace Thry
             }
         }
 
-        public static ShaderPart transfer_group;
+        public static ShaderPart copy_part;
     }
 }
