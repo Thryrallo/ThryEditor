@@ -3,10 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Policy;
+using JetBrains.Annotations;
 using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using static UnityEditor.MaterialProperty;
 
 namespace Thry
 {
@@ -96,6 +99,29 @@ namespace Thry
         }
     }
 
+    public class XOffsetManager
+    {
+        private int _xOffset;
+        private int _tempXOffset = -1;
+        public XOffsetManager(int xOffset)
+        {
+            _xOffset = xOffset;
+        }
+        public static implicit operator int(XOffsetManager xOffsetManager)
+        {
+            if (xOffsetManager._tempXOffset != -1) return xOffsetManager._tempXOffset;
+            return xOffsetManager._xOffset;
+        }
+        public void SetTemporaryOffset(int value)
+        {
+            _tempXOffset = value;
+        }
+        public void ResetTemporaryOffset()
+        {
+            _tempXOffset = -1;
+        }
+    }
+    
     public abstract class ShaderPart
     {
         public ShaderEditor ActiveShaderEditor { protected set; get; }
@@ -116,22 +142,20 @@ namespace Thry
         public bool IsAnimated { protected set; get; } = false;
         public bool IsRenaming { protected set; get; } = false;
 
-
-
         public bool DoReferencePropertiesExist { protected set; get; } = false;
         public bool DoesReferencePropertyExist { protected set; get; } = false;
 
         public int ShaderPropertyId { protected set; get; } = -1;
         public int ShaderPropertyIndex { protected set; get; } = -1;
-
+        private string[] ShaderPropertyAttributes = null;
 
         public bool has_not_searchedFor = false; //used for property search
 
         GenericMenu _contextMenu;
+        public XOffsetManager XOffset { private set; get; }
 
         protected string _optionsRaw;
         private bool _doOptionsNeedInitilization = true;
-
         private PropertyOptions _options;
         public PropertyOptions Options
         {
@@ -145,43 +169,48 @@ namespace Thry
             }
         }
 
-        private int _xoffset = 0;
-        private int _tempXOffset = -1;
-        public int XOffset
-        {
-            protected set
-            {
-                _xoffset = value;
-            }
-            get
-            {
-                if (_tempXOffset != -1) return _tempXOffset;
-                return _xoffset;
-            }
-        }
-
-        public void SetTemporaryXOffset(int value)
-        {
-            _tempXOffset = value;
-        }
-
-        public void ResetTemporaryXOffset()
-        {
-            _tempXOffset = -1;
-        }
-
+#region Setters
         public void SetIsExemptFromLockedDisabling(bool b)
         {
             IsExemptFromLockedDisabling = b;
         }
 
+        protected void SetReferenceProperty(string s)
+        {
+            Options.reference_property = s;
+            this.DoesReferencePropertyExist = Options.reference_property != null;
+        }
 
+        protected void SetReferenceProperties(string[] properties)
+        {
+            Options.reference_properties = properties;
+            this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
+        }
+
+        protected void SetTooltip(string tooltip)
+        {
+            this.Tooltip.SetText(tooltip);
+        }
+
+        protected void UpdatedMaterialPropertyReference()
+        {
+            this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
+        }
+#endregion
+#region Getters
+        public bool HasAttribute(string attribute)
+        {
+            if (ShaderPropertyAttributes == null) return false;
+            return ShaderPropertyAttributes.Contains(attribute, StringComparer.OrdinalIgnoreCase);
+        }
+#endregion
+#region Initialization
         public ShaderPart(string propertyIdentifier, int xOffset, string displayName, string tooltip, ShaderEditor shaderEditor)
         {
             this._optionsRaw = null;
             this.ActiveShaderEditor = shaderEditor;
             this.PropertyIdentifier = propertyIdentifier;
-            this.XOffset = xOffset;
+            this.XOffset = new XOffsetManager(xOffset);
             this.Content = new GUIContent(displayName);
             this.Tooltip = new BetterTooltips.Tooltip(tooltip);
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
@@ -192,7 +221,7 @@ namespace Thry
             this._optionsRaw = optionsRaw;
             this.ActiveShaderEditor = shaderEditor;
             this.MaterialProperty = prop;
-            this.XOffset = xOffset;
+            this.XOffset = new XOffsetManager(xOffset);
             this.Content = new GUIContent(displayName);
             this.IsPreset = shaderEditor.IsPresetEditor && Presets.IsPreset(shaderEditor.Materials[0], this);
 
@@ -208,13 +237,6 @@ namespace Thry
                 if (Options.alts != null && Options.alts.Length > 0)
                     CopyAlternativeUpgradeValues();
             }
-
-            this.IsExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(prop);
-        }
-
-        protected void UpdatedMaterialPropertyReference()
-        {
-            this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
         }
 
         private void CopyAlternativeUpgradeValues()
@@ -324,61 +346,126 @@ namespace Thry
             this.Tooltip = new BetterTooltips.Tooltip(Options.tooltip);
             this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = Options.reference_property != null;
-            this.XOffset += Options.offset;
+            this.XOffset.ResetTemporaryOffset();
+            this.XOffset = new XOffsetManager(Options.offset + XOffset);
+            this.ShaderPropertyAttributes = ShaderEditor.Active.Shader.GetPropertyAttributes(this.ShaderPropertyIndex);
+            this.IsAnimatable &= !HasAttribute("DoNotAnimate");
+            this.IsExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(this);
         }
+#endregion
 
-        public void SetReferenceProperty(string s)
+        
+#region Copying
+        [PublicAPI]
+        /// <summary> Copy the values for this property from the source material </summary>
+        /// <param name="src"> The source material to copy from </param>
+        /// <param name="applyDrawers"> Apply the property drawers after copying </param>
+        /// <param name="deepCopy"> Copy the values of the children of this property </param>
+        /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
+        /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
+        public abstract void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        [PublicAPI]
+        /// <summary> Copy the values for this property from the source property </summary>
+        /// <param name="src"> The source property to copy from </param>
+        /// <param name="applyDrawers"> Apply the property drawers after copying </param>
+        /// <param name="deepCopy"> Copy the values of the children of this property </param>
+        /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
+        /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
+        public abstract void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        [PublicAPI]
+        /// <summary> Copy the values of property to the target materials </summary>
+        /// <param name="targets"> The target materials to copy to </param>
+        /// <param name="applyDrawers"> Apply the property drawers after copying </param>
+        /// <param name="deepCopy"> Copy the values of the children of this property </param>
+        /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
+        /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
+        public abstract void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        [PublicAPI]
+        /// <summary> Copy the values of property to the target property </summary>
+        /// <param name="target"> The target property to copy to </param>
+        /// <param name="applyDrawers"> Apply the property drawers after copying </param>
+        /// <param name="deepCopy"> Copy the values of the children of this property </param>
+        /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
+        /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
+        public abstract void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        [PublicAPI]
+        /// <summary> Copy the values of property from the source material </summary>
+        /// <param name="target"> The target material to copy to </param>
+        /// <param name="applyDrawers"> Apply the property drawers after copying </param>
+        /// <param name="deepCopy"> Copy the values of the children of this property </param>
+        /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
+        /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
+        public void CopyTo(Material target, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            Options.reference_property = s;
-            this.DoesReferencePropertyExist = Options.reference_property != null;
+            CopyTo(new Material[] { target }, applyDrawers, deepCopy, skipPropertyTypes, skipPropertyNames);
         }
 
-        public void SetReferenceProperties(string[] properties)
-        {
-            Options.reference_properties = properties;
-            this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
-        }
-
-        public void SetTooltip(string tooltip)
-        {
-            this.Tooltip.SetText(tooltip);
-        }
-
-        public abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
-        public abstract void CopyFromMaterial(Material m, bool isTopCall = false);
-        public abstract void CopyToMaterial(Material m, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null);
-
-        protected void CopyReferencePropertiesToMaterial(Material target)
+        protected void CopyReferencePropertiesTo(Material[] targets, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+                    property.CopyTo(targets, false, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
-                MaterialHelper.CopyPropertyValueToMaterial(property.MaterialProperty, target);
+                property.CopyTo(targets, false, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 
-        protected void CopyReferencePropertiesFromMaterial(Material source)
+        protected void CopyReferencePropertiesFrom(Material source, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = ActiveShaderEditor.PropertyDictionary[r_property];
-                    MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+                    property.CopyFrom(source, false, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
-                MaterialHelper.CopyPropertyValueFromMaterial(property.MaterialProperty, source);
+                property.CopyFrom(source, false, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 
-        public abstract void TransferFromMaterialAndGroup(Material m, ShaderPart g, bool isTopCall = false, MaterialProperty.PropType[] propertyTypesToSkip = null);
+        protected void CopyReferencePropertiesFrom(ShaderPart src, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        {
+            if (Options.reference_properties != null && src.Options.reference_properties != null)
+                for(int i = 0; i < Options.reference_properties.Length && i < src.Options.reference_properties.Length; i++)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_properties[i]];
+                    ShaderProperty srcProperty = src.ActiveShaderEditor.PropertyDictionary[src.Options.reference_properties[i]];
+                    property.CopyFrom(srcProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                }
+            if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(src.Options.reference_property))
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                ShaderProperty srcProperty = src.ActiveShaderEditor.PropertyDictionary[src.Options.reference_property];
+                property.CopyFrom(srcProperty, false, true, skipPropertyTypes, skipPropertyNames);
+            }
+        }
+
+        protected void CopyReferencePropertiesTo(ShaderPart target, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        {
+            if (Options.reference_properties != null && target.Options.reference_properties != null)
+                for (int i = 0; i < Options.reference_properties.Length && i < target.Options.reference_properties.Length; i++)
+                {
+                    ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_properties[i]];
+                    ShaderProperty targetProperty = target.ActiveShaderEditor.PropertyDictionary[target.Options.reference_properties[i]];
+                    property.CopyTo(targetProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                }
+            if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(target.Options.reference_property))
+            {
+                ShaderProperty property = ActiveShaderEditor.PropertyDictionary[Options.reference_property];
+                ShaderProperty targetProperty = target.ActiveShaderEditor.PropertyDictionary[target.Options.reference_property];
+                property.CopyTo(targetProperty, false, true, skipPropertyTypes, skipPropertyNames);
+            }
+        }
+
+#endregion
+#region Drawing
 
         bool hasAddedDisabledGroup = false;
         public void Draw(Rect? rect = null, GUIContent content = null, bool useEditorIndent = false, bool isInHeader = false)
@@ -412,8 +499,31 @@ namespace Thry
                 EditorGUI.EndDisabledGroup();
             }
         }
+        
+        protected abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
+        
+        private void DrawLockedAnimated()
+        {
+            for (int i = 0; i < DrawingData.IconsPositioningCount; i++)
+            {
+                Rect r = new Rect(14, DrawingData.IconsPositioningHeights[i], 16, 16);
+                if (IsRenaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
+                else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
+            }
+        }
 
-        public virtual void HandleRightClickToggles(bool isInHeader)
+        private void DrawPresetProperty()
+        {
+            for (int i = 0; i < DrawingData.IconsPositioningCount; i++)
+            {
+                Rect r = new Rect(3, DrawingData.IconsPositioningHeights[i], 8, 16);
+                GUI.Label(r, "P", Styles.presetIndicatorStyle);
+            }
+        }
+
+#endregion
+#region ContextMenu
+        protected virtual void HandleRightClickToggles(bool isInHeader)
         {
             if (this is ShaderGroup) return;
             if (DrawingData.TooltipCheckRect.y < 25) return; // Happens in Layout event, with some dynamic properties
@@ -820,29 +930,11 @@ namespace Thry
                 else if (Options.onClick != null) Options.onClick.Perform(ShaderEditor.Active.Materials);
             }
         }
-
+#endregion
+#region Actions / Callbacks
         protected virtual void OnPropertyValueChanged()
         {
 
-        }
-
-        private void DrawLockedAnimated()
-        {
-            for (int i = 0; i < DrawingData.IconsPositioningCount; i++)
-            {
-                Rect r = new Rect(14, DrawingData.IconsPositioningHeights[i], 16, 16);
-                if (IsRenaming) GUI.Label(r, "RA", Styles.animatedIndicatorStyle);
-                else GUI.Label(r, "A", Styles.animatedIndicatorStyle);
-            }
-        }
-
-        private void DrawPresetProperty()
-        {
-            for (int i = 0; i < DrawingData.IconsPositioningCount; i++)
-            {
-                Rect r = new Rect(3, DrawingData.IconsPositioningHeights[i], 8, 16);
-                GUI.Label(r, "P", Styles.presetIndicatorStyle);
-            }
         }
 
         protected void ExecuteOnValueActions(Material[] targets)
@@ -855,14 +947,6 @@ namespace Thry
         }
 
         public abstract void FindUnusedTextures(List<string> unusedList, bool isEnabled);
-
-        protected bool ShouldSkipProperty(MaterialProperty property, MaterialProperty.PropType[] propertyTypesToSkip)
-        {
-            if (propertyTypesToSkip != null)
-                foreach (MaterialProperty.PropType typeToSkip in propertyTypesToSkip)
-                    if (property.type == typeToSkip)
-                        return true;
-            return false;
-        }
+#endregion
     }
 }

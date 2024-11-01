@@ -132,8 +132,8 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
-            DrawingData.LastPropertyUsedCustomDrawer = true;
-            DrawingData.LastPropertyDoesntAllowAnimation = true;
+            ShaderProperty.RegisterDrawer(this);
+            ShaderProperty.DisallowAnimation();
             ShaderEditor.Active.DoUseShaderOptimizer = true;
             return -2;
         }

@@ -23,6 +23,7 @@ namespace Thry
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)
         {
+            ShaderProperty.RegisterDrawer(this);
             return _size + 4;
         }
 

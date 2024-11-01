@@ -86,8 +86,9 @@ namespace Thry
             if (hasKeyword)
             {
                 CheckKeyword(prop);
-                DrawingData.LastPropertyDoesntAllowAnimation = true;
+                ShaderProperty.DisallowAnimation();
             }
+            ShaderProperty.RegisterDrawer(this);
             return base.GetPropertyHeight(prop, label, editor);
         }
 

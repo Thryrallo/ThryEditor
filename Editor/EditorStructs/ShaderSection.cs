@@ -21,7 +21,7 @@ namespace Thry
         {
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (Options.margin_top > 0)
             {
@@ -84,7 +84,7 @@ namespace Thry
             if (IsExpanded)
             {
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
-                foreach (ShaderPart part in parts)
+                foreach (ShaderPart part in Children)
                 {
                     part.Draw();
                 }

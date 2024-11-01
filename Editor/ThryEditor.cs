@@ -22,7 +22,6 @@ namespace Thry
         public const float MATERIAL_NOT_RESET = 69.12f;
 
         public const string PROPERTY_NAME_MASTER_LABEL = "shader_master_label";
-        public const string PROPERTY_NAME_LABEL_FILE = "shader_properties_label_file";
         public const string PROPERTY_NAME_LOCALE = "shader_locale";
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
@@ -128,39 +127,13 @@ namespace Thry
 
         //-------------Init functions--------------------
 
-        private Dictionary<string, string> LoadDisplayNamesFromFile()
-        {
-            //load display names from file if it exists
-            MaterialProperty label_file_property = GetMaterialProperty(PROPERTY_NAME_LABEL_FILE);
-            Dictionary<string, string> labels = new Dictionary<string, string>();
-            if (label_file_property != null)
-            {
-                string[] guids = AssetDatabase.FindAssets(label_file_property.displayName);
-                if (guids.Length == 0)
-                {
-                    Debug.LogWarning("Label File could not be found");
-                    return labels;
-                }
-                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                string[] data = Regex.Split(Thry.FileHelper.ReadFileIntoString(path), @"\r?\n");
-                foreach (string d in data)
-                {
-                    string[] set = Regex.Split(d, ":=");
-                    if (set.Length > 1) labels[set[0]] = set[1];
-                }
-            }
-            return labels;
-        }
-
         public static string SplitOptionsFromDisplayName(ref string displayName)
         {
-            if (displayName.Contains(EXTRA_OPTIONS_PREFIX))
-            {
-                string[] parts = displayName.Split(new string[] { EXTRA_OPTIONS_PREFIX }, 2, System.StringSplitOptions.None);
-                displayName = parts[0];
-                return parts[1];
-            }
-            return null;
+            int index = displayName.IndexOf(EXTRA_OPTIONS_PREFIX, StringComparison.Ordinal);
+            if(index == -1) return null;
+            string options = displayName.Substring(index + EXTRA_OPTIONS_PREFIX.Length);
+            displayName = displayName.Substring(0, index);
+            return options;
         }
 
         private enum ThryPropertyType
@@ -262,7 +235,6 @@ namespace Thry
 
             //load display names from file if it exists
             MaterialProperty[] props = Properties;
-            Dictionary<string, string> labels = LoadDisplayNamesFromFile();
             LoadLocales();
 
             PropertyDictionary = new Dictionary<string, ShaderProperty>();
@@ -273,7 +245,6 @@ namespace Thry
             groupStack.Push(MainGroup); //add top object a second time, because it get's popped with first actual header item
             _footers = new List<FooterButton>(); //init footer list
             int offsetDepthCount = 0;
-            DrawingData.IsCollectingProperties = true;
 
             HashSet<string> duplicatePropertiesSearch = new HashSet<string>(); // for debugging
             List<string> duplicateProperties = new List<string>(); // for debugging
@@ -281,9 +252,6 @@ namespace Thry
             for (int i = 0; i < props.Length; i++)
             {
                 string displayName = props[i].displayName;
-
-                //Load from label file
-                if (labels.ContainsKey(props[i].name)) displayName = labels[props[i].name];
 
                 //extract json data from display name
                 string optionsRaw = SplitOptionsFromDisplayName(ref displayName);
@@ -293,12 +261,8 @@ namespace Thry
                 int offset = offsetDepthCount;
                 
                 // Duplicate property name check
-                if (duplicatePropertiesSearch.Contains(props[i].name))
+                if(duplicatePropertiesSearch.Add(props[i].name) == false)
                     duplicateProperties.Add(props[i].name);
-                else
-                    duplicatePropertiesSearch.Add(props[i].name);
-
-                DrawingData.ResetLastDrawerData();
 
                 ThryPropertyType type = GetPropertyType(props[i]);
                 ShaderProperty NewProperty = null;
@@ -331,7 +295,7 @@ namespace Thry
                 // push if needed
                 if(newPart != null)
                 {
-                    groupStack.Peek().addPart(newPart);
+                    groupStack.Peek().AddPart(newPart);
                     groupStack.Push(newPart as ShaderGroup);
                 }
                 
@@ -385,20 +349,17 @@ namespace Thry
                 {
                     newPart = NewProperty;
                     if (type != ThryPropertyType.none)
-                        groupStack.Peek().addPart(NewProperty);
+                        groupStack.Peek().AddPart(NewProperty);
                 }
                 if (newPart != null)
                 {
-                    if (!PropertyDictionary.ContainsKey(props[i].name))
-                        PropertyDictionary.Add(props[i].name, NewProperty);
+                    PropertyDictionary.TryAdd(props[i].name, NewProperty);
                     ShaderParts.Add(newPart);
                 }
             }
 
             if(duplicateProperties.Count > 0 && Config.Singleton.enableDeveloperMode)
                 _duplicatePropertyNamesString = string.Join("\n ", duplicateProperties.ToArray());
-
-            DrawingData.IsCollectingProperties = false;
         }
 
         //-------------Draw Functions----------------
@@ -542,7 +503,7 @@ namespace Thry
             //PROPERTIES
             using ( new DetourMaterialPropertyVariantIcon())
             {
-                foreach (ShaderPart part in MainGroup.parts)
+                foreach (ShaderPart part in MainGroup.Children)
                 {
                     part.Draw();
                 }
@@ -839,7 +800,7 @@ namespace Thry
             part.has_not_searchedFor = includesSearchTerm || parentIsSearchResult;
             if (part is ShaderGroup)
             {
-                foreach (ShaderPart p in (part as ShaderGroup).parts)
+                foreach (ShaderPart p in (part as ShaderGroup).Children)
                 {
                     UpdateSearch(p, includesSearchTerm);
                     part.has_not_searchedFor |= !p.has_not_searchedFor;
