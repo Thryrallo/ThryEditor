@@ -238,7 +238,7 @@ namespace Thry
                     {
                         foreach(var part in enabledPartsList)
                         {
-                            part.CopyTo(material, true, false);                            
+                            part.CopyTo(material, false, false);                            
                         }
                     }
                 };
