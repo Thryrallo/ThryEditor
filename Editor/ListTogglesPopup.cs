@@ -43,7 +43,7 @@ namespace Thry
                 ShaderPart = shaderPart;
                 if(shaderPart is ShaderGroup group)
                 {
-                    foreach(var child in group.parts)
+                    foreach(var child in group.Children)
                         children.Add(new ShaderPartUIAdapter(child));
                 }
             }
@@ -119,8 +119,11 @@ namespace Thry
         void OnGUI()
         {
             if(partAdapter?.ShaderPart == null)
+            {
                 Close();
-            
+                return;
+            }
+
             using(var scroll = new EditorGUILayout.ScrollViewScope(scrollPosition))
             {
                 partAdapter.DrawUI();
