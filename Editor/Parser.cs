@@ -83,8 +83,7 @@ namespace Thry
             return ret;
         }
 
-        //Parser methods
-
+#region Json to Object Parser
         public static object ParseJson(string input)
         {
             return ParseJsonPart(input, 0, input.Length);
@@ -233,8 +232,8 @@ namespace Thry
             return input;
         }
 
-        //converter methods
-
+#endregion
+#region Converters
         public static float ParseFloat(string s, float defaultF = 0)
         {
             float f;
@@ -276,6 +275,25 @@ namespace Thry
             return returnObject;
         }
 
+        private static Dictionary<Type,FieldInfo[]> fieldCache = new Dictionary<Type, FieldInfo[]>();
+        private static Dictionary<Type, PropertyInfo[]> propertyCache = new Dictionary<Type, PropertyInfo[]>();
+
+        private static Dictionary<Type, MethodInfo> thryObjectMethodCache = new Dictionary<Type, MethodInfo>();
+        private static bool TryThryParser(object parsed, Type objtype, out object returnObject)
+        {
+            returnObject = null;
+            if(Helper.IsPrimitive(parsed.GetType()) == false) return false;
+            MethodInfo method = null;
+            if (!thryObjectMethodCache.TryGetValue(objtype, out method))
+            {
+                method = objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic);
+                thryObjectMethodCache.Add(objtype, method);
+            }
+            if (method == null) return false;
+            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
+            return true;
+        }
+
         private static object ConvertToObject(object parsed, Type objtype)
         {
             object returnObject;
@@ -284,32 +302,33 @@ namespace Thry
             if (parsed.GetType() != typeof(Dictionary<object, object>)) return null;
             returnObject = Activator.CreateInstance(objtype);
             Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
-            foreach (FieldInfo field in objtype.GetFields())
+            FieldInfo[] fields;
+            if (!fieldCache.TryGetValue(objtype, out fields))
             {
-                if (dict.ContainsKey(field.Name))
+                fields = objtype.GetFields();
+                fieldCache.Add(objtype, fields);
+            }
+            foreach (FieldInfo field in fields)
+            {
+                if(dict.TryGetValue(field.Name, out object value))
                 {
-                    field.SetValue(returnObject, ParsedToObject(dict[field.Name], field.FieldType));
+                    field.SetValue(returnObject, ParsedToObject(value, field.FieldType));
                 }
             }
-            foreach (PropertyInfo property in objtype.GetProperties())
+            PropertyInfo[] properties;
+            if (!propertyCache.TryGetValue(objtype, out properties))
             {
-                if (property.CanWrite && property.CanRead && property.GetIndexParameters().Length == 0 && dict.ContainsKey(property.Name))
+                properties = objtype.GetProperties().Where(p => p.CanWrite && p.CanRead && p.GetIndexParameters().Length == 0).ToArray();
+                propertyCache.Add(objtype, properties);
+            }
+            foreach (PropertyInfo property in properties)
+            {
+                if(dict.TryGetValue(property.Name, out object value))
                 {
-                    property.SetValue(returnObject, ParsedToObject(dict[property.Name], property.PropertyType), null);
+                    property.SetValue(returnObject, ParsedToObject(value, property.PropertyType), null);
                 }
             }
             return returnObject;
-        }
-
-        private static bool TryThryParser(object parsed, Type objtype, out object returnObject)
-        {
-            returnObject = null;
-            if(Helper.IsPrimitive(parsed.GetType()) == false) return false;
-            MethodInfo method = objtype.GetMethod("ParseForThryParser", BindingFlags.Static | BindingFlags.NonPublic);
-            if (method == null) return false;
-                
-            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
-            return true;
         }
 
         private static object ConvertToList(object parsed, Type objtype)
@@ -322,10 +341,27 @@ namespace Thry
             return return_list;
         }
 
+        private static Dictionary<Type, MethodInfo> thryArrayMethodCache = new Dictionary<Type, MethodInfo>();
+        private static bool TryThryArrayParser(object parsed, Type objtype, out object returnObject)
+        {
+            returnObject = null;
+            if (objtype.BaseType != typeof(System.Array)) return false;
+            if (parsed.GetType() != typeof(string)) return false;
+            MethodInfo method = null;
+            if (!thryArrayMethodCache.TryGetValue(objtype, out method))
+            {
+                method = objtype.GetMethod("ParseToArrayForThryParser", BindingFlags.Static | BindingFlags.NonPublic);
+                thryArrayMethodCache.Add(objtype, method);
+            }
+            if (method == null) return false;
+            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
+            return true;
+        }
+
         private static object ConvertToArray(object parsed, Type objtype)
         {
-            if (objtype.BaseType == typeof(System.Array) && parsed.GetType() == typeof(string) && objtype.GetElementType().GetMethod("ParseToArrayForThryParser", BindingFlags.Static | BindingFlags.NonPublic) != null)
-                return objtype.GetElementType().GetMethod("ParseToArrayForThryParser", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { parsed });
+            if(TryThryArrayParser(parsed, objtype, out object returnObject))
+                return returnObject;
             if (parsed == null || (parsed is string && (string)parsed == ""))
                 return null;
             Type array_obj_type = objtype.GetElementType();
@@ -358,7 +394,8 @@ namespace Thry
                 return ((string)parsed)[0];
             return parsed;
         }
-
+#endregion
+#region Serializer
         //Serilizer
         private static string PrintIndent(int indent) => new string(' ', indent * 4);
         private static string SerializeDictionary(object obj, bool prettyPrint = false, int indent = 0)
@@ -454,8 +491,10 @@ namespace Thry
                 return "\"" + obj + "\"";
             return obj.ToString().Replace(",", "."); ;
         }
+#endregion
     }
 
+#region Animation Parser
     public class AnimationParser
     {
         public class Animation
@@ -532,4 +571,5 @@ namespace Thry
             return animation;
         }
     }
+#endregion
 }

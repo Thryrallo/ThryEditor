@@ -401,8 +401,28 @@ namespace Thry
 
         public static bool IsPropertyExcemptFromLocking(MaterialProperty prop)
         {
+            if(prop == null) return false;
             // if not a texture, but has non-modifiable texture data flag, is used as indicator to prevent locking
-            return prop.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal) || (prop.type != MaterialProperty.PropType.Texture && prop.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData));
+            return prop.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal) 
+                || (prop.type != MaterialProperty.PropType.Texture && prop.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData))
+                || GetAttributes(prop).Contains("DoNotLock");
+        }
+
+        public static bool IsPropertyExcemptFromLocking(ShaderPart part)
+        {
+            if(part.MaterialProperty == null) return false;
+            return part.HasAttribute("DoNotLock")
+            || (part.MaterialProperty.type != MaterialProperty.PropType.Texture && part.MaterialProperty.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData))
+            || part.MaterialProperty.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal);
+        }
+
+        private static string[] GetAttributes(MaterialProperty prop)
+        {
+            Shader s = (prop.targets[0] as Material).shader;
+            if(s == null) return new string[0];
+            int index = s.FindPropertyIndex(prop.name);
+            if(index < 0) return new string[0];
+            return s.GetPropertyAttributes(index);
         }
 
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)

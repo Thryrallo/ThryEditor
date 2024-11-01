@@ -1,18 +1,20 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
-using Thry.ThryEditor;
+using JetBrains.Annotations;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
+using static UnityEditor.MaterialProperty;
 
 namespace Thry
 {
     public class ShaderGroup : ShaderPart
     {
-        public List<ShaderPart> parts = new List<ShaderPart>();
+        private List<ShaderPart> _children = new List<ShaderPart>();
+        private ReadOnlyCollection<ShaderPart> _readonlychildren => new ReadOnlyCollection<ShaderPart>(_children);
+        [PublicAPI]
+        public ReadOnlyCollection<ShaderPart> Children => _readonlychildren;
+
         protected bool _isExpanded;
 
         public ShaderGroup(ShaderEditor shaderEditor) : base(null, 0, "", null, shaderEditor)
@@ -83,75 +85,68 @@ namespace Thry
             }
         }
 
-        public void addPart(ShaderPart part)
+        public void AddPart(ShaderPart part)
         {
-            parts.Add(part);
+            _children.Add(part);
         }
 
-        public override void CopyFrom(Material src, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
-            CopyReferencePropertiesFrom(src, skipPropertyTypes);
+            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
-            foreach (ShaderPart p in parts)
-                p.CopyFrom(src, skipPropertyTypes: skipPropertyTypes);
+            if(deepCopy)
+                foreach (ShaderPart p in Children)
+                    p.CopyFrom(src, false, true, skipPropertyTypes, skipPropertyNames);
 
-            if (isTopCall) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
         }
 
-        public override void CopyFrom(ShaderPart srcPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
             if (srcPart is ShaderGroup == false) return;
             ShaderGroup src = srcPart as ShaderGroup;
-            CopyReferencePropertiesFrom(src, skipPropertyTypes);
+            CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
-            for (int i = 0; i < src.parts.Count && i < parts.Count; i++)
-            {
-                if (!ShouldSkipProperty(parts[i].MaterialProperty, skipPropertyTypes))
-                    parts[i].CopyFrom(src.parts[i], skipPropertyTypes: skipPropertyTypes);
-            }
+            for (int i = 0; deepCopy && i < src.Children.Count && i < Children.Count; i++)
+                Children[i].CopyFrom(src.Children[i], false, true, skipPropertyTypes, skipPropertyNames);
 
-            if (isTopCall) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
         }
 
-        public override void CopyTo(Material target, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
-            CopyReferencePropertiesTo(target, skipPropertyTypes);
+            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            CopyReferencePropertiesTo(targets, skipPropertyTypes, skipPropertyNames);
 
-            foreach (ShaderPart p in parts)
-            {
-                if (!ShouldSkipProperty(p.MaterialProperty, skipPropertyTypes))
-                    p.CopyTo(target, skipPropertyTypes: skipPropertyTypes);
-            }
+            if(deepCopy)
+                foreach (ShaderPart p in Children)
+                    p.CopyTo(targets, false, true, skipPropertyTypes, skipPropertyNames);
 
-            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(target);
+            if (applyDrawers) MaterialEditor.ApplyMaterialPropertyDrawers(targets);
         }
 
-        public override void CopyTo(ShaderPart targetPart, bool isTopCall = false, MaterialProperty.PropType[] skipPropertyTypes = null)
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            if (ShouldSkipProperty(MaterialProperty, skipPropertyTypes)) return;
+            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
             if (targetPart is ShaderGroup == false) return;
             ShaderGroup target = targetPart as ShaderGroup;
-            CopyReferencePropertiesTo(target, skipPropertyTypes);
+            CopyReferencePropertiesTo(target, skipPropertyTypes, skipPropertyNames);
+            
+            for(int i = 0; deepCopy && i < Children.Count && i < target.Children.Count; i++)
+                Children[i].CopyTo(target.Children[i], false, true, skipPropertyTypes, skipPropertyNames);
 
-            for(int i = 0; i < parts.Count && i < target.parts.Count; i++)
-            {
-                if (!ShouldSkipProperty(parts[i].MaterialProperty, skipPropertyTypes))
-                    parts[i].CopyTo(target.parts[i], skipPropertyTypes: skipPropertyTypes);
-            }
-
-            if (isTopCall) MaterialEditor.ApplyMaterialPropertyDrawers(target.MaterialProperty.targets);
+            if (applyDrawers) MaterialEditor.ApplyMaterialPropertyDrawers(target.MaterialProperty.targets);
         }
 
-        public override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
+        protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             if (Options.margin_top > 0)
             {
                 GUILayoutUtility.GetRect(0, Options.margin_top);
             }
-            foreach (ShaderPart part in parts)
+            foreach (ShaderPart part in Children)
             {
                 part.Draw();
             }
@@ -163,16 +158,15 @@ namespace Thry
             {
                 isEnabled &= Options.condition_enable.Test();
             }
-            foreach (ShaderPart p in (this as ShaderGroup).parts)
+            foreach (ShaderPart p in (this as ShaderGroup).Children)
                 p.FindUnusedTextures(unusedList, isEnabled);
         }
 
-        protected void HandleLinkedMaterials()
+        protected void UpdateLinkedMaterials()
         {
             List<Material> linked_materials = MaterialLinker.GetLinked(MaterialProperty);
             if (linked_materials != null)
-                foreach (Material m in linked_materials)
-                    this.CopyTo(m);
+                this.CopyTo(linked_materials.ToArray());
         }
 
         protected void FoldoutArrow(Rect rect, Event e)

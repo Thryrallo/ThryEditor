@@ -49,7 +49,7 @@ namespace Thry
             _isVRAMDirty = true;
         }
 
-        public override void PreDraw()
+        protected override void PreDraw()
         {
             DrawingData.CurrentTextureProperty = this;
             this._doCustomDrawLogic = _drawer == null;
@@ -60,7 +60,7 @@ namespace Thry
             }
         }
 
-        public override void DrawDefault()
+        protected override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(Content, Styles.vectorPropertyStyle);
             GUILib.ConfigTextureProperty(pos, MaterialProperty, Content, ActiveShaderEditor.Editor, hasFoldoutProperties);

@@ -507,7 +507,7 @@ namespace Thry.ThryEditor
         
         static void ApplyPresetRecursive(ShaderEditor shaderEditor, Material preset, ShaderGroup parent)
         {
-            foreach (ShaderPart prop in parent.parts)
+            foreach (ShaderPart prop in parent.Children)
             {
                 if(prop is ShaderGroup)
                 {
