@@ -198,6 +198,7 @@ namespace Thry
                     foreach (Material m in linked_materials)
                         property.CopyTo(m, true);
             });
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
                 Mediator.copy_material = new Material(material);
@@ -215,10 +216,33 @@ namespace Thry
             {
                 if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture }.ToHashSet();
+                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
                 }
+            });
+            menu.AddItem(new GUIContent("Paste Special..."), false, () =>
+            {
+                if(Mediator.copy_material == null || Mediator.copy_part == null)
+                    return;
+                
+                var popup = ScriptableObject.CreateInstance<ListTogglesPopup>();
+                popup.Init(Mediator.copy_part);
+                popup.titleContent = new GUIContent("Paste Special");
+                popup.minSize = new Vector2(460, 400);
+                popup.ShowUtility();
+                
+                popup.OnPasteClicked += (enabledPartsList) =>
+                {
+                    if (Mediator.copy_material != null || Mediator.copy_part != null)
+                    {
+                        foreach(var part in enabledPartsList)
+                        {
+                            part.CopyTo(material, false, false);                            
+                        }
+                    }
+                };
+                
             });
             menu.DropDown(position);
         }
