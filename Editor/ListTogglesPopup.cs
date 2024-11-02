@@ -34,7 +34,6 @@ namespace Thry
             }
 
             bool _isExpanded = false;
-            bool _isEnabled = true;
 
             private ShaderPartUIAdapter() {}
 
