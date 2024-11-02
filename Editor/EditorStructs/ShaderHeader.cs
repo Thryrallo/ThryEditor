@@ -182,7 +182,7 @@ namespace Thry
             if (GUILib.Button(rect, Styles.icon_style_linked, Styles.COLOR_ICON_ACTIVE_CYAN, MaterialLinker.IsLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty)))
             {
                 ShaderEditor.Input.Use();
-                List<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty);
+                IEnumerable<Material> linked_materials = MaterialLinker.GetLinked(ShaderEditor.Active.CurrentProperty.MaterialProperty);
                 MaterialLinker.Popup(rect, linked_materials, ShaderEditor.Active.CurrentProperty.MaterialProperty);
             }
         }
@@ -193,7 +193,7 @@ namespace Thry
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
                 property.CopyFrom(new Material(materials[0].shader), true);
-                List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
+                IEnumerable<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
                         property.CopyTo(m, true);
