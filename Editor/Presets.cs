@@ -234,7 +234,7 @@ namespace Thry.ThryEditor
                         RemovePreset(material);
                         AddPreset(material);
                     }
-                    Debug.Log($"OnPostprocessAllAssets: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
+                    // Debug.Log($"OnPostprocessAllAssets: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
                     KnownMaterials.Add(AssetDatabase.AssetPathToGUID(asset));
                 }
             }
