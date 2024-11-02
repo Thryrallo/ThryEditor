@@ -16,15 +16,13 @@ namespace Thry
 
             List<ShaderPartUIAdapter> children = new List<ShaderPartUIAdapter>();
 
-            void SetChildrenEnabledRecursive(bool enabled)
+            void SetChildrenEnabled(bool enabled)
             {
                 if(!HasChildren)
                     return;
+
                 foreach(var child in children)
-                {
                     child.IsEnabled = enabled;
-                    child.SetChildrenEnabledRecursive(enabled);
-                }
             }
 
             bool IsExpanded
@@ -75,9 +73,9 @@ namespace Thry
                     IsExpanded = EditorGUI.Foldout(foldoutRect, IsExpanded, string.Empty, true);
                     EditorGUI.LabelField(labelRect, ShaderPart.Content);
                     if(GUILayout.Button("None", GUILayout.MaxWidth(40f)))
-                        SetChildrenEnabledRecursive(false);
+                        SetChildrenEnabled(false);
                     if(GUILayout.Button("All", GUILayout.MaxWidth(40f)))
-                        SetChildrenEnabledRecursive(true);
+                        SetChildrenEnabled(true);
                     EditorGUILayout.EndHorizontal();
                     if(IsExpanded)
                     {
