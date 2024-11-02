@@ -41,7 +41,7 @@ namespace Thry
                 if (ShaderEditor.Input.Click && border_position.Contains(Event.current.mousePosition))
                     Open(prop);
                 GUILib.SmallTextureProperty(position, prop, label, editor, DrawingData.CurrentTextureProperty.hasFoldoutProperties);
-                GradientField();
+                GradientField(prop);
             }
             else
             {
@@ -117,7 +117,7 @@ namespace Thry
                     GUILib.OpenTexturePicker(prop);
                 }
 
-                GradientField();
+                GradientField(prop);
                 GUI.Label(label_rect, label);
 
                 GUILayoutUtility.GetRect(0, 5);
@@ -139,10 +139,10 @@ namespace Thry
             gradient_position = new Rect(border_position.x + 1, border_position.y + 1, border_position.width - 2, border_position.height - 2);
         }
 
-        private void GradientField()
+        private void GradientField(MaterialProperty prop)
         {
             DrawBackgroundTexture();
-            if (data.PreviewTexture != null)
+            if (prop.textureValue != null && data.PreviewTexture != null)
                 DrawGradientTexture();
             else
                 GUI.DrawTexture(border_position, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, Color.grey, 1, 1);

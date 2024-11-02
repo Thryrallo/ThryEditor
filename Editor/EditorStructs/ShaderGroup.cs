@@ -168,7 +168,6 @@ namespace Thry
         {
             if(ShaderEditor.Active.IsInAnimationMode) return;
             IEnumerable<Material> linked_materials = MaterialLinker.GetLinked(MaterialProperty);
-            Debug.Log("Linked materials: " + MaterialProperty.name);
             if (linked_materials != null)
                 this.CopyTo(linked_materials.ToArray());
         }
