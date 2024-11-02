@@ -113,6 +113,16 @@ namespace Thry
             }
         }
 
+        public enum DrawerType{ None, Toggle, Slider }
+        [PublicAPI]
+        public DrawerType GetDrawerType()
+        {
+            if (_drawer == null) return DrawerType.None;
+            if (_drawer.GetType().Name.Contains("Toggle", StringComparison.OrdinalIgnoreCase)) return DrawerType.Toggle;
+            if (_drawer.GetType().Name.Contains("Slider", StringComparison.OrdinalIgnoreCase)) return DrawerType.Slider;
+            return DrawerType.None;
+        }
+
         public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             if(skipPropertyTypes?.Contains(MaterialProperty.type) == true) return;

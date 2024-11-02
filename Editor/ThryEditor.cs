@@ -463,6 +463,15 @@ namespace Thry
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
+            // Undos throw errors because the structure of the UI changes between layout and repaint
+            // This is a workaround to prevent the error by exiting the GUI call early
+            if((Event.current.type == EventType.ExecuteCommand || Event.current.type == EventType.ValidateCommand)
+                && Event.current.commandName == "UndoRedoPerformed")
+            {
+                GUIUtility.ExitGUI();
+                return;
+            }
+
 #if UNITY_2022_1_OR_NEWER
             EditorGUI.indentLevel -= 2;
 #endif

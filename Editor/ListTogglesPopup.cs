@@ -57,7 +57,7 @@ namespace Thry
                     if(!HasChildren)
                     {
                         EditorGUILayout.BeginHorizontal();
-                        IsEnabled = EditorGUILayout.ToggleLeft(ShaderPart.Content, IsEnabled);
+                        IsEnabled = IsEnabled = EditorGUILayout.ToggleLeft(ShaderPart.Content, IsEnabled , Styles.richtext);
                         DrawMaterialPropertyValue(ShaderPart.MaterialProperty);
                         EditorGUILayout.EndHorizontal();
                         return;
