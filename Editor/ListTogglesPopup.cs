@@ -90,16 +90,14 @@ namespace Thry
                 }
             }
 
-            public void AddEnabledShaderPartsToListRecursive(ref List<ShaderPart> enabledParts)
+            public void AddDisabledShaderPartsToListRecursive(ref List<ShaderPart> disabledParts)
             {
                 if(!IsEnabled)
-                    return;
-                
-                enabledParts.Add(ShaderPart);
+                    disabledParts.Add(ShaderPart);
                 
                 if(HasChildren)
                     foreach(var child in children)
-                        child.AddEnabledShaderPartsToListRecursive(ref enabledParts);
+                        child.AddDisabledShaderPartsToListRecursive(ref disabledParts);
             }
         }
         
@@ -138,9 +136,9 @@ namespace Thry
 
             if(GUILayout.Button("Paste Selected", GUILayout.Height(30)))
             {
-                List<ShaderPart> enabledParts = new List<ShaderPart>();
-                partAdapter.AddEnabledShaderPartsToListRecursive(ref enabledParts);
-                OnPasteClicked?.Invoke(enabledParts);
+                List<ShaderPart> disabledParts = new List<ShaderPart>();
+                partAdapter.AddDisabledShaderPartsToListRecursive(ref disabledParts);
+                OnPasteClicked?.Invoke(disabledParts);
 
                 Close();
             }

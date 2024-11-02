@@ -74,11 +74,7 @@ namespace Thry
             _is_init = true;
 
             if (thry_message == null)
-                WebHelper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, (Action<string>)delegate (string s) { 
-                    Debug.Log(s);
-                    thry_message = Parser.Deserialize<ButtonData>(s);
-                    Debug.Log(Parser.Serialize(thry_message));
-                     });
+                WebHelper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, (Action<string>)delegate (string s) { thry_message = Parser.Deserialize<ButtonData>(s);});
         }
 
         //------------------Main GUI

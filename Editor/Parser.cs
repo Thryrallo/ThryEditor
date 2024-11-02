@@ -102,13 +102,6 @@ namespace Thry
                 isInQuotes = true;
             }
             string trimmedStr = input.Substring(start, end - start);
-
-            if (t == typeof(string))
-            {
-                if(isInQuotes) return trimmedStr;
-                else if(trimmedStr == "null") return null;
-                else return input.Substring(rawStart, rawEnd - rawStart);
-            }
             
             switch
             (Type.GetTypeCode(t))
@@ -121,6 +114,9 @@ namespace Thry
                     return ParseFloat(trimmedStr);
                 case TypeCode.Char:
                     return trimmedStr[0];
+                case TypeCode.String:
+                    if(!isInQuotes && trimmedStr == "null") return null;
+                    return trimmedStr;
                 default:
                     return trimmedStr;
             }
