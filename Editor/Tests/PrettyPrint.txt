@@ -3,7 +3,7 @@
     "name": "Cool",
     "age": 25,
     "house": {
-        "adress": "Street Name 123",
+        "address": "Street Name 123",
         "rooms": [
             "bedroom",
             "kitchen"

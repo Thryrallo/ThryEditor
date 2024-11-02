@@ -57,12 +57,12 @@ namespace Thry
         }
 
         private static DefineableAction ParseForThryParser(string s)
-        {
+        { 
             return Parse(s);
         }
         public static DefineableAction Parse(string s)
         {
-            s = s.Trim();
+            s = s.Trim(' ', '"');
             DefineableAction action = new DefineableAction();
             if (s.StartsWith("http", StringComparison.Ordinal) || s.StartsWith("www", StringComparison.Ordinal))
             {

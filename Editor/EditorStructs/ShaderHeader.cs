@@ -173,7 +173,7 @@ namespace Thry
                 float maxY = GUIUtility.ScreenToGUIPoint(new Vector2(0, EditorWindow.focusedWindow.position.y + Screen.height)).y - 2.5f * buttonRect.height;
                 buttonRect.y = Mathf.Min(buttonRect.y - buttonRect.height / 2, maxY);
 
-                ShowHeaderContextMenu(buttonRect, this, ShaderEditor.Active.Materials[0]);
+                ShowHeaderContextMenu(buttonRect, this, ShaderEditor.Active.Materials);
             }
         }
 
@@ -187,20 +187,21 @@ namespace Thry
             }
         }
 
-        void ShowHeaderContextMenu(Rect position, ShaderHeader property, Material material)
+        void ShowHeaderContextMenu(Rect position, ShaderHeader property, Material[] materials)
         {
             var menu = new GenericMenu();
             menu.AddItem(new GUIContent("Reset"), false, delegate ()
             {
-                property.CopyFrom(new Material(material.shader), true);
+                property.CopyFrom(new Material(materials[0].shader), true);
                 List<Material> linked_materials = MaterialLinker.GetLinked(property.MaterialProperty);
                 if (linked_materials != null)
                     foreach (Material m in linked_materials)
                         property.CopyTo(m, true);
             });
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent("Copy"), false, delegate ()
             {
-                Mediator.copy_material = new Material(material);
+                Mediator.copy_material = new Material(materials[0]);
                 Mediator.copy_part = property;
             });
             menu.AddItem(new GUIContent("Paste"), false, delegate ()
@@ -215,10 +216,32 @@ namespace Thry
             {
                 if (Mediator.copy_material != null || Mediator.copy_part != null)
                 {
-                    var propsToIgnore = new MaterialProperty.PropType[] { MaterialProperty.PropType.Texture }.ToHashSet();
+                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
                 }
+            });
+            menu.AddItem(new GUIContent("Paste Special..."), false, () =>
+            {
+                if(Mediator.copy_material == null || Mediator.copy_part == null)
+                    return;
+                
+                var popup = ScriptableObject.CreateInstance<ListTogglesPopup>();
+                popup.Init(Mediator.copy_part);
+                popup.titleContent = new GUIContent("Paste Special");
+                popup.minSize = new Vector2(460, 400);
+                popup.ShowUtility();
+                
+                popup.OnPasteClicked += (disabledPartsList) =>
+                {
+                    HashSet<string> ignoreProperties = new HashSet<string>(disabledPartsList.Select(p => p.MaterialProperty.name));
+                    if (Mediator.copy_material != null || Mediator.copy_part != null)
+                    {
+                        property.CopyFrom(Mediator.copy_part, skipPropertyNames: ignoreProperties);
+                        property.UpdateLinkedMaterials();
+                    }
+                };
+                
             });
             menu.DropDown(position);
         }

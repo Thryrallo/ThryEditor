@@ -353,7 +353,12 @@ namespace Thry
                 }
                 if (newPart != null)
                 {
+#if UNITY_2022_1_OR_NEWER // Unity 2019 needs to check if key exists before adding? (Information from pumkin did not check)
                     PropertyDictionary.TryAdd(props[i].name, NewProperty);
+#else
+                    if(!PropertyDictionary.ContainsKey(props[i].name))
+                        PropertyDictionary.Add(props[i].name, NewProperty);
+#endif
                     ShaderParts.Add(newPart);
                 }
             }

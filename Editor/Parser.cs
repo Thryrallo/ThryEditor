@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using BestHTTP.JSON;
 using UnityEditor;
 using UnityEngine;
 
@@ -51,189 +52,76 @@ namespace Thry
 
         private static T DeserializeInternal<T>(string s)
         {
-            object parsed = ParseJson(s);
-            object ret = null;
-            try
-            {
-                ret = (T)ParsedToObject(parsed, typeof(T));
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning(e.ToString());
-                Debug.LogWarning(s + " cannot be parsed to object of type " + typeof(T).ToString());
-                ret = Activator.CreateInstance(typeof(T));
-            }
-            return (T)ret;
+            return (T)DeserializeInternal(s, typeof(T));
         }
 
         private static object DeserializeInternal(string s, Type t)
         {
-            object parsed = ParseJson(s);
-            object ret = null;
             try
             {
-                ret = ParsedToObject(parsed, t);
+                return ParseJsonPart(s, 0, s.Length, t);
             }
             catch (Exception e)
             {
                 Debug.LogWarning(e.ToString());
                 Debug.LogWarning(s + " cannot be parsed to object of type " + t.ToString());
-                ret = Activator.CreateInstance(t);
+                return Activator.CreateInstance(t);
             }
-            return ret;
         }
 
 #region Json to Object Parser
-        public static object ParseJson(string input)
+        private static object ParseJsonPart(string input, int start, int end, Type t)
         {
-            return ParseJsonPart(input, 0, input.Length);
+            if (input == null) return null;
+            if (Helper.IsPrimitive(t)) return ParseToPrimitive(input, start, end, t);
+            if (t.IsGenericType && t.GetInterfaces().Contains(typeof(IList))) return ParseToList(input, start, end, t);
+            // if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>)) return ParseToDictionary(input, start, end, t);
+            if (t.IsArray) return ParseToArray(input, start, end, t);
+            if (t.IsEnum) return ParseToEnum(input, start, end, t);
+            if (t.IsClass) return ParseToObject(input, start, end, t);
+            if (t.IsValueType && !t.IsEnum) return ParseToObject(input, start, end, t);
+            return null;
         }
 
-        private static object ParseJsonPart(string input, int start, int end)
+        // Primitive
+        private static object ParseToPrimitive(string input, int start, int end, Type t)
         {
             int rawStart = start;
             int rawEnd = end;
 
-            while (start < end && (input[start] == ' ' || input[start] == '\t' || input[start] == '\n' || input[start] == '\r'))
+            while(input[start] == ' ' || input[start] == '\t' || input[start] == '\n' || input[start] == '\r')
                 start++;
-            if (start == end)
-                return input; // empty string
-            if (input[start] == '{')
+            while(input[end - 1] == ' ' || input[end - 1] == '\t' || input[end - 1] == '\n' || input[end - 1] == '\r')
+                end--;
+
+            bool isInQuotes = false;
+            if(input[start] == '"' && input[end - 1] == '"')
             {
                 start++;
                 end--;
-                while (end > start && (input[end] == ' ' || input[end] == '\t' || input[end] == '\n' || input[end] == '\r'))
-                    end--;
-                if (input[end] == '}')
-                {
-                    return ParseObject(input, start, end);
-                }else
-                {
-                    Debug.LogWarning("Invalid json object: " + input.Substring(rawStart, rawEnd - rawStart));
-                    return null;
-                }
+                isInQuotes = true;
             }
-            if (input[start] == '[')
+            string trimmedStr = input.Substring(start, end - start);
+            
+            switch
+            (Type.GetTypeCode(t))
             {
-                start++;
-                end--;
-                while (end > start && (input[end] == ' ' || input[end] == '\t' || input[end] == '\n' || input[end] == '\r'))
-                    end--;
-                if (input[end] == ']')
-                {
-                    return ParseArray(input, start, end);
-                }
-                else
-                {
-                    Debug.LogWarning("Invalid json array: " + input);
-                    return null;
-                }
+                case TypeCode.Boolean:
+                    return trimmedStr.ToLower() == "true" || trimmedStr == "1";
+                case TypeCode.Int32:
+                    return (int)ParseFloat(trimmedStr);
+                case TypeCode.Single:
+                    return ParseFloat(trimmedStr);
+                case TypeCode.Char:
+                    return trimmedStr[0];
+                case TypeCode.String:
+                    if(!isInQuotes && trimmedStr == "null") return null;
+                    return trimmedStr;
+                default:
+                    return trimmedStr;
             }
-            return ParsePrimitive(input.Substring(start, end - start));
         }
 
-        private static Dictionary<object, object> ParseObject(string input, int start, int end)
-        {
-            // Debug.Log("Parse Object: "+ input.Substring(start, end - start));
-            int depth = 0;
-            int variableStart = start;
-            bool isString = false;
-            Dictionary<object, object> variables = new Dictionary<object, object>();
-            for (int i = start; i < end; i++)
-            {
-                bool escaped = i != 0 && input[i - 1] == '\\';
-                if (input[i] == '\"' && !escaped)
-                    isString = !isString;
-                if (!isString)
-                {
-                    if ((depth == 0 && input[i] == ',' && !escaped) || (!escaped && depth == 0 && input[i] == '}'))
-                    {
-                        int seperatorIndex = input.IndexOf(':', variableStart, i - variableStart);
-                        if (seperatorIndex == -1)
-                            break;
-                        string key = "" + ParseJsonPart(input, variableStart, seperatorIndex);
-                        object value = ParseJsonPart(input, seperatorIndex + 1, i);
-                        variables.Add(key, value);
-                        variableStart = i + 1;
-                    }else if(i == end - 1)
-                    {
-                        int seperatorIndex = input.IndexOf(':', variableStart, i - variableStart);
-                        if (seperatorIndex == -1)
-                            break;
-                        string key = "" + ParseJsonPart(input, variableStart, seperatorIndex);
-                        object value = ParseJsonPart(input, seperatorIndex + 1, i + 1);
-                        variables.Add(key, value);
-                    }
-                    else if ((input[i] == '{' || input[i] == '[') && !escaped)
-                        depth++;
-                    else if ((input[i] == '}' || input[i] == ']') && !escaped)
-                        depth--;
-                }
-
-            }
-            return variables;
-        }
-
-        private static List<object> ParseArray(string input, int start, int end)
-        {
-            // Debug.Log("Parse Array: " + input.Substring(start, end - start));
-            int depth = 0;
-            int variableStart = start;
-            List<object> variables = new List<object>();
-            for (int i = start; i < end; i++)
-            {
-                if(depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\'))
-                {
-                    variables.Add(ParseJsonPart(input, variableStart, i));
-                    variableStart = i + 1;
-                }else if(i == end - 1)
-                {
-                    variables.Add(ParseJsonPart(input, variableStart, i + 1));
-                }
-                else if (input[i] == '{' || input[i] == '[')
-                    depth++;
-                else if (input[i] == '}' || input[i] == ']')
-                    depth--;
-            }
-            return variables;
-        }
-
-        private static object ParsePrimitive(string input)
-        {
-            // Debug.Log("Parse Primitive: " + input);
-            // string
-            if (input.StartsWith("\"", StringComparison.Ordinal))
-            {
-                input = input.Trim(new char[] { '\r', '\n', ' ','\t' });
-                return input.Trim(new char[] { '"' });
-            }
-                
-
-            // boolean
-            // StartsWith ordinal, because it's faster than toLower and trim (in case of spaces after)
-            if (input.StartsWith("true", StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (input.StartsWith("false", StringComparison.OrdinalIgnoreCase))
-                return false;
-            // null
-            if (input == "null" || input == "NULL" || input == "Null")
-                return null;
-
-            // number
-            float floatValue;
-            // parse float invariant
-            if(float.TryParse(input, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out floatValue))
-            {
-                if ((int)floatValue == floatValue)
-                    return (int)floatValue;
-                return floatValue;
-            }
-
-            return input;
-        }
-
-#endregion
-#region Converters
         public static float ParseFloat(string s, float defaultF = 0)
         {
             float f;
@@ -244,45 +132,12 @@ namespace Thry
             return defaultF;
         }
 
-        public static type ConvertParsedToObject<type>(object parsed)
-        {
-            return (type)ParsedToObject(parsed, typeof(type));
-        }
-
-        private static object ParsedToObject(object parsed,Type objtype)
-        {
-            if (parsed == null) return null;
-            if (Helper.IsPrimitive(objtype)) return ConvertToPrimitive(parsed, objtype);
-            if (objtype.IsGenericType && objtype.GetInterfaces().Contains(typeof(IList))) return ConvertToList(parsed, objtype);
-            if (objtype.IsGenericType && objtype.GetGenericTypeDefinition() == typeof(Dictionary<,>)) return ConvertToDictionary(parsed,objtype);
-            if (objtype.IsArray) return ConvertToArray(parsed, objtype);
-            if (objtype.IsEnum) return ConvertToEnum(parsed, objtype);
-            if (objtype.IsClass) return ConvertToObject(parsed, objtype);
-            if (objtype.IsValueType && !objtype.IsEnum) return ConvertToObject(parsed, objtype);
-            return null;
-        }
-
-        private static object ConvertToDictionary(object parsed, Type objtype)
-        {
-            var returnObject = (dynamic)Activator.CreateInstance(objtype);
-            Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
-            foreach (KeyValuePair<object, object> keyvalue in dict)
-            {
-                dynamic key = ParsedToObject(keyvalue.Key, objtype.GetGenericArguments()[0]);
-                dynamic value = ParsedToObject(keyvalue.Value, objtype.GetGenericArguments()[1]);
-                returnObject.Add(key , value );
-            }
-            return returnObject;
-        }
-
-        private static Dictionary<Type,FieldInfo[]> fieldCache = new Dictionary<Type, FieldInfo[]>();
-        private static Dictionary<Type, PropertyInfo[]> propertyCache = new Dictionary<Type, PropertyInfo[]>();
+        // Object
 
         private static Dictionary<Type, MethodInfo> thryObjectMethodCache = new Dictionary<Type, MethodInfo>();
-        private static bool TryThryParser(object parsed, Type objtype, out object returnObject)
+        private static bool TryThryParser(string input, int start, int end, Type objtype, out object returnObject)
         {
             returnObject = null;
-            if(Helper.IsPrimitive(parsed.GetType()) == false) return false;
             MethodInfo method = null;
             if (!thryObjectMethodCache.TryGetValue(objtype, out method))
             {
@@ -290,63 +145,111 @@ namespace Thry
                 thryObjectMethodCache.Add(objtype, method);
             }
             if (method == null) return false;
-            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
+            returnObject = method.Invoke(null, new object[] { input.Substring(start, end - start) });
             return true;
         }
 
-        private static object ConvertToObject(object parsed, Type objtype)
+        private static Dictionary<Type,Dictionary<string,FieldInfo>> fieldCache = new Dictionary<Type,Dictionary<string,FieldInfo>>();
+        private static Dictionary<Type,Dictionary<string,PropertyInfo>> propertyCache = new Dictionary<Type,Dictionary<string,PropertyInfo>>();
+        private static object ParseToObject(string input, int start, int end, Type t)
         {
+            while(start < end && (input[start] == ' ' || input[start] == '\t' || input[start] == '\n' || input[start] == '\r'))
+                start++;
+            while(end > start && (input[end-1] == ' ' || input[end-1] == '\t' || input[end-1] == '\n' || input[end-1] == '\r'))
+                end--;
+            if(end - start == 4 && input.Substring(start, 4) == "null")
+                return null;
             object returnObject;
-            if (TryThryParser(parsed, objtype, out returnObject))
-                return returnObject;
-            if (parsed.GetType() != typeof(Dictionary<object, object>)) return null;
-            returnObject = Activator.CreateInstance(objtype);
-            Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
-            FieldInfo[] fields;
-            if (!fieldCache.TryGetValue(objtype, out fields))
+            if(input[start] != '{' || input[end - 1] != '}')
             {
-                fields = objtype.GetFields();
-                fieldCache.Add(objtype, fields);
+                if (TryThryParser(input, start, end, t, out returnObject))
+                    return returnObject;
+                return null;
             }
-            foreach (FieldInfo field in fields)
+            start += 1;
+            end -= 1;
+
+            Dictionary<string,FieldInfo> fields;
+            if (!fieldCache.TryGetValue(t, out fields))
             {
-                if(dict.TryGetValue(field.Name, out object value))
+                fields = new Dictionary<string, FieldInfo>();
+                foreach (FieldInfo field in t.GetFields())
+                    fields.Add(field.Name, field);
+                fieldCache.Add(t, fields);
+            }
+            Dictionary<string, PropertyInfo> properties;
+            if (!propertyCache.TryGetValue(t, out properties))
+            {
+                properties = new Dictionary<string, PropertyInfo>();
+                foreach (PropertyInfo property in t.GetProperties().Where(p => p.CanWrite && p.CanRead && p.GetIndexParameters().Length == 0))
+                    properties.Add(property.Name, property);
+                propertyCache.Add(t, properties);
+            }
+
+            returnObject = Activator.CreateInstance(t);
+
+            void parseVariable(int varStart, int varEnd)
+            {
+                int seperatorIndex = input.IndexOf(':', varStart, varEnd - varStart);
+                if (seperatorIndex == -1)
+                    return;
+
+                int keyStart = varStart;
+                int keyEnd = seperatorIndex;
+                while (input[keyStart] == ' ' || input[keyStart] == '\t' || input[keyStart] == '\n' || input[keyStart] == '\r')
+                    keyStart++;
+                while (input[keyEnd - 1] == ' ' || input[keyEnd - 1] == '\t' || input[keyEnd - 1] == '\n' || input[keyEnd - 1] == '\r')
+                    keyEnd--;
+                if(input[keyStart] == '\"')
+                    keyStart++;
+                if(input[keyEnd - 1] == '\"')
+                    keyEnd--;
+                string key = input.Substring(keyStart, keyEnd - keyStart);
+                if (fields.TryGetValue(key, out FieldInfo field))
                 {
-                    field.SetValue(returnObject, ParsedToObject(value, field.FieldType));
+                    object value = ParseJsonPart(input, seperatorIndex + 1, varEnd, field.FieldType);
+                    field.SetValue(returnObject, value);
+                }
+                else if (properties.TryGetValue(key, out PropertyInfo property))
+                {
+                    object value = ParseJsonPart(input, seperatorIndex + 1, varEnd, property.PropertyType);
+                    property.SetValue(returnObject, value, null);
                 }
             }
-            PropertyInfo[] properties;
-            if (!propertyCache.TryGetValue(objtype, out properties))
+        
+            int depth = 0;
+            int variableStart = start;
+            bool isString = false;
+            for (int i = start; i < end; i++)
             {
-                properties = objtype.GetProperties().Where(p => p.CanWrite && p.CanRead && p.GetIndexParameters().Length == 0).ToArray();
-                propertyCache.Add(objtype, properties);
-            }
-            foreach (PropertyInfo property in properties)
-            {
-                if(dict.TryGetValue(property.Name, out object value))
+                bool escaped = i != 0 && input[i - 1] == '\\';
+                if (input[i] == '\"' && !escaped)
+                    isString = !isString;
+                if (!isString)
                 {
-                    property.SetValue(returnObject, ParsedToObject(value, property.PropertyType), null);
+                    if ((depth == 0 && input[i] == ',' && !escaped) || (!escaped && depth == 0 && input[i] == '}'))
+                    {
+                        parseVariable(variableStart, i);
+                        variableStart = i + 1;
+                    }else if(i == end - 1)
+                    {
+                        parseVariable(variableStart, i + 1);
+                    }
+                    else if ((input[i] == '{' || input[i] == '[') && !escaped)
+                        depth++;
+                    else if ((input[i] == '}' || input[i] == ']') && !escaped)
+                        depth--;
                 }
+
             }
             return returnObject;
         }
 
-        private static object ConvertToList(object parsed, Type objtype)
-        {
-            Type list_obj_type = objtype.GetGenericArguments()[0];
-            List<object> list_strings = (List<object>)parsed;
-            IList return_list = (IList)Activator.CreateInstance(objtype);
-            foreach (object s in list_strings)
-                return_list.Add(ParsedToObject(s, list_obj_type));
-            return return_list;
-        }
-
         private static Dictionary<Type, MethodInfo> thryArrayMethodCache = new Dictionary<Type, MethodInfo>();
-        private static bool TryThryArrayParser(object parsed, Type objtype, out object returnObject)
+        private static bool TryThryArrayParser(string input, int start, int end, Type objtype, out object returnObject)
         {
             returnObject = null;
             if (objtype.BaseType != typeof(System.Array)) return false;
-            if (parsed.GetType() != typeof(string)) return false;
             MethodInfo method = null;
             if (!thryArrayMethodCache.TryGetValue(objtype, out method))
             {
@@ -354,46 +257,92 @@ namespace Thry
                 thryArrayMethodCache.Add(objtype, method);
             }
             if (method == null) return false;
-            returnObject = method.Invoke(null, new object[] { parsed.ToString() });
+
+            int searchIndex = start;
+            while (searchIndex < end && input[searchIndex] != '[')
+                if(input[searchIndex] != ' ' && input[searchIndex] != '\t' && input[searchIndex] != '\n' && input[searchIndex] != '\r')
+                    return false;
+                else
+                    searchIndex++;
+
+            returnObject = method.Invoke(null, new object[] { input.Substring(start, end - start) });
             return true;
         }
 
-        private static object ConvertToArray(object parsed, Type objtype)
+        private static object ParseToArray(string input, int start, int end, Type t)
         {
-            if(TryThryArrayParser(parsed, objtype, out object returnObject))
+            if(TryThryArrayParser(input, start, end, t, out object returnObject))
                 return returnObject;
-            if (parsed == null || (parsed is string && (string)parsed == ""))
-                return null;
-            Type array_obj_type = objtype.GetElementType();
-            List<object> list_strings = (List<object>)parsed;
-            IList return_list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(array_obj_type));
-            foreach (object s in list_strings)
-            {
-                object o = ParsedToObject(s, array_obj_type);
-                if(o!=null)
-                    return_list.Add(o);
-            }
-            object return_array = Activator.CreateInstance(objtype, return_list.Count);
-            return_list.CopyTo(return_array as Array, 0);
+
+            IList list = (IList)ParseToList(input, start, end, t);
+            if(list == null) return null;
+            object return_array = Activator.CreateInstance(t, list.Count);
+            list.CopyTo(return_array as Array, 0);       
+
             return return_array;
         }
-
-        private static object ConvertToEnum(object parsed, Type objtype)
+        
+        private static object ParseToList(string input, int start, int end, Type t)
         {
-            if (Enum.IsDefined(objtype, (string)parsed))
-                return Enum.Parse(objtype, (string)parsed);
+            while(start < end && input[start] != '[')
+                start++;
+            while(end > start && input[end-1] != ']')
+                end--;
+
+            if(start == end)
+                return null;
+
+            start += 1;
+            end -= 1;
+
+            Type array_obj_type = t.GetElementType();
+            IList list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(array_obj_type));
+
+            int depth = 0;
+            int variableStart = start;
+            for (int i = start; i < end; i++)
+            {
+                if(depth == 0 && input[i] == ',' && (i == 0 || input[i - 1] != '\\'))
+                {
+                    list.Add(ParseJsonPart(input, variableStart, i, array_obj_type));
+                    variableStart = i + 1;
+                }else if(i == end - 1)
+                {
+                    list.Add(ParseJsonPart(input, variableStart, i + 1, array_obj_type));
+                }
+                else if (input[i] == '{' || input[i] == '[')
+                    depth++;
+                else if (input[i] == '}' || input[i] == ']')
+                    depth--;
+            }
+            return list;
+        }
+        
+        private static object ParseToEnum(string input, int start, int end, Type objtype)
+        {
+            input = input.Substring(start, end - start).Trim();
+            if(Enum.TryParse(objtype, input, out object result))
+                return result;
             Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Converter.ArrayToString(Enum.GetValues(objtype)));
             return Enum.GetValues(objtype).GetValue(0);
         }
+        
 
-        private static object ConvertToPrimitive(object parsed, Type objtype)
-        {
-            if (typeof(String) == objtype)
-                return parsed!=null?parsed.ToString():null;
-            if (typeof(char) == objtype)
-                return ((string)parsed)[0];
-            return parsed;
-        }
+#endregion
+#region Converters
+
+        // private static object ConvertToDictionary(object parsed, Type objtype)
+        // {
+        //     var returnObject = (dynamic)Activator.CreateInstance(objtype);
+        //     Dictionary<object, object> dict = (Dictionary<object, object>)parsed;
+        //     foreach (KeyValuePair<object, object> keyvalue in dict)
+        //     {
+        //         dynamic key = ParsedToObject(keyvalue.Key, objtype.GetGenericArguments()[0]);
+        //         dynamic value = ParsedToObject(keyvalue.Value, objtype.GetGenericArguments()[1]);
+        //         returnObject.Add(key , value );
+        //     }
+        //     return returnObject;
+        // }
 #endregion
 #region Serializer
         //Serilizer

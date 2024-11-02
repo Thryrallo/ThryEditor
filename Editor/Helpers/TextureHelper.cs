@@ -361,7 +361,7 @@ namespace Thry
                     string[] lines = File.ReadAllLines(path);
                     for(int i = 0; i < lines.Length; i++)
                     {
-                        if (lines[i].Contains(guid, StringComparison.OrdinalIgnoreCase))
+                        if (lines[i].IndexOf(guid, StringComparison.OrdinalIgnoreCase) != -1)
                         {
                             textureUses.Add(material, lines[i-1].Substring(6, lines[i-1].Length - 7));
                         }

@@ -87,7 +87,7 @@ namespace Thry
                     string file_name = GradientFileName(data.Gradient, prop.targets[0].name);
                     Texture saved = TextureHelper.SaveTextureAsPNG((Texture2D)data.PreviewTexture, PATH.TEXTURES_DIR+"/Gradients/" + file_name, textureSettings);
                     file_name = Regex.Replace(file_name, @"\.((png)|(jpg))$", "");
-                    FileHelper.SaveValueToFile(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(saved)), Parser.ObjectToString(data.Gradient), PATH.GRADIENT_INFO_FILE);
+                    FileHelper.SaveValueToFile(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(saved)), Parser.Serialize(data.Gradient), PATH.GRADIENT_INFO_FILE);
                     prop.textureValue = saved;
                     // change importer settings
                     TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GetAssetPath(saved));
@@ -208,7 +208,7 @@ namespace Thry
                 TextureSettingsGUI();
         }
 
-        private void DiscardChanges()
+        private new void DiscardChanges()
         {
             prop.textureValue = privious_preview_texture;
             SetGradient(TextureHelper.GetGradient(privious_preview_texture));
@@ -224,7 +224,7 @@ namespace Thry
             bool changed = GUILib.GUIDataStruct<TextureData>(textureSettings, new string[]{"name"});
             if (changed)
             {
-                FileHelper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.ObjectToString(textureSettings), PATH.PERSISTENT_DATA);
+                FileHelper.SaveValueToFile("gradient_texture_options_" + prop.name, Parser.Serialize(textureSettings), PATH.PERSISTENT_DATA);
                 UpdateGradientPreviewTexture();
             }
         }

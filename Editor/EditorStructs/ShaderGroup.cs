@@ -105,6 +105,7 @@ namespace Thry
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if(skipPropertyNames?.Contains(srcPart.MaterialProperty.name) == true) return;
             if (srcPart is ShaderGroup == false) return;
             ShaderGroup src = srcPart as ShaderGroup;
             CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
@@ -130,6 +131,7 @@ namespace Thry
         public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if(skipPropertyNames?.Contains(targetPart.MaterialProperty.name) == true) return;
             if (targetPart is ShaderGroup == false) return;
             ShaderGroup target = targetPart as ShaderGroup;
             CopyReferencePropertiesTo(target, skipPropertyTypes, skipPropertyNames);

@@ -137,6 +137,7 @@ namespace Thry
         {
             if(skipPropertyTypes?.Contains(MaterialProperty.type) == true) return;
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if(skipPropertyNames?.Contains(srcPart.MaterialProperty.name) == true) return;
             if (srcPart is ShaderProperty == false) return;
             ShaderProperty src = srcPart as ShaderProperty;
 
@@ -178,6 +179,7 @@ namespace Thry
         {
             if(skipPropertyTypes?.Contains(MaterialProperty.type) == true) return;
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if(skipPropertyNames?.Contains(targetPart.MaterialProperty.name) == true) return;
             if (targetPart is ShaderProperty == false) return;
             ShaderProperty target = targetPart as ShaderProperty;
 
