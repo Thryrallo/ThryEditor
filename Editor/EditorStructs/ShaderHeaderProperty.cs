@@ -76,7 +76,7 @@ namespace Thry
             throw new NotImplementedException();
         }
 
-        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups, bool isParentInSearch)
         {
             return true;
         }

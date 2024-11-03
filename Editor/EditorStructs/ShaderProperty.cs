@@ -385,9 +385,10 @@ namespace Thry
             }
         }
 
-        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        public override bool Search(string searchTerm, List<ShaderGroup> foundHeaders, bool isParentInSearch = false)
         {
-            return this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
+            return isParentInSearch
+                || this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
                 || this.MaterialProperty?.name.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }

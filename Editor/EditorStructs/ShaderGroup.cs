@@ -191,16 +191,19 @@ namespace Thry
             }
         }
 
-        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        public override bool Search(string searchTerm, List<ShaderGroup> foundHeaders, bool isParentInSearch = false)
         {
-            bool found = this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
+            bool found = isParentInSearch
+                || this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
                 || this.MaterialProperty?.name.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0;
+            bool foundInChild = false;
             foreach (ShaderPart p in Children)
             {
-                if (p.Search(searchTerm, foundGroups))
-                    found = true;
+                if (p.Search(searchTerm, foundHeaders, isParentInSearch || found))
+                    foundInChild = true;
             }
-            if(found) foundGroups.Add(this);
+            found |= foundInChild;
+            if(found && this is ShaderHeader) foundHeaders.Add(this);
             this.has_not_searchedFor = !found;
             return found;
         }
