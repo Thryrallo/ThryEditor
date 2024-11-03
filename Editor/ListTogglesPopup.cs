@@ -15,15 +15,13 @@ namespace Thry
 
             List<ShaderPartUIAdapter> children = new List<ShaderPartUIAdapter>();
 
-            void SetChildrenEnabledRecursive(bool enabled)
+            void SetChildrenEnabled(bool enabled)
             {
                 if(!HasChildren)
                     return;
+
                 foreach(var child in children)
-                {
                     child.IsEnabled = enabled;
-                    child.SetChildrenEnabledRecursive(enabled);
-                }
             }
 
             bool IsExpanded
@@ -55,9 +53,10 @@ namespace Thry
                 {
                     if(!HasChildren)
                     {
+                        float halfViewWidth = EditorGUIUtility.currentViewWidth * 0.5f; 
                         EditorGUILayout.BeginHorizontal();
-                        IsEnabled = IsEnabled = EditorGUILayout.ToggleLeft(ShaderPart.Content, IsEnabled , Styles.richtext);
-                        DrawMaterialPropertyValue(ShaderPart.MaterialProperty);
+                        IsEnabled = EditorGUILayout.ToggleLeft(ShaderPart.Content, IsEnabled, Styles.richtext);
+                        DrawShaderProperty(ShaderPart.MaterialProperty, GUILayout.Width(halfViewWidth));
                         EditorGUILayout.EndHorizontal();
                         return;
                     }
@@ -74,9 +73,9 @@ namespace Thry
                     IsExpanded = EditorGUI.Foldout(foldoutRect, IsExpanded, string.Empty, true);
                     EditorGUI.LabelField(labelRect, ShaderPart.Content);
                     if(GUILayout.Button("None", GUILayout.MaxWidth(40f)))
-                        SetChildrenEnabledRecursive(false);
+                        SetChildrenEnabled(false);
                     if(GUILayout.Button("All", GUILayout.MaxWidth(40f)))
-                        SetChildrenEnabledRecursive(true);
+                        SetChildrenEnabled(true);
                     EditorGUILayout.EndHorizontal();
                     if(IsExpanded)
                     {
@@ -106,7 +105,13 @@ namespace Thry
         /// OnPasteClicked, comes with a list of shader parts the user left enabled
         /// </summary>
         public event Action<List<ShaderPart>> OnPasteClicked;
-        
+
+        void Awake()
+        {
+            minSize = new Vector2(480, 400);
+            titleContent = new GUIContent("Paste Special");
+        }
+
         public void Init(ShaderPart shaderPart)
         {
             partAdapter = new ShaderPartUIAdapter(shaderPart);
@@ -143,38 +148,40 @@ namespace Thry
             EditorGUILayout.EndHorizontal();
         }
         
-        static void DrawMaterialPropertyValue(MaterialProperty prop)
+        static void DrawShaderProperty(MaterialProperty prop, GUILayoutOption propertyWidth)
         {
-            EditorGUI.BeginDisabledGroup(true);
-            switch(prop.type)
+            using(new EditorGUI.DisabledScope(true))
             {
-                case MaterialProperty.PropType.Color: 
-                    EditorGUILayout.ColorField(prop.colorValue); 
-                    break;
-                case MaterialProperty.PropType.Vector:
-                    EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue);
-                    break;
+                switch(prop.type)
+                {
+                    case MaterialProperty.PropType.Color:
+                        EditorGUILayout.ColorField(prop.colorValue, propertyWidth);
+                        break;
+                    case MaterialProperty.PropType.Vector:
+                        EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue, propertyWidth);
+                        break;
 #if UNITY_2021_1_OR_NEWER
-                case MaterialProperty.PropType.Int:
-                    EditorGUILayout.IntField(prop.intValue);
-                    break;
+                    case MaterialProperty.PropType.Int:
+                        EditorGUILayout.IntField(prop.intValue, propertyWidth);
+                        break;
 #else
-                    EditorGUILayout.FloatField(prop.floatValue);
-                    break;
+                        EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
+                        break;
 #endif
-                case MaterialProperty.PropType.Range:
-                    EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y);
-                    break;
-                case MaterialProperty.PropType.Float:
-                    EditorGUILayout.FloatField(prop.floatValue);
-                    break;
-                case MaterialProperty.PropType.Texture:
-                    EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true);
-                    break;
-                default:
-                    break;
+                    case MaterialProperty.PropType.Range:
+                        EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
+                            propertyWidth);
+                        break;
+                    case MaterialProperty.PropType.Float:
+                        EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
+                        break;
+                    case MaterialProperty.PropType.Texture:
+                        EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true, propertyWidth);
+                        break;
+                    default:
+                        break;
+                }
             }
-            EditorGUI.EndDisabledGroup();
         }
     }
 }
