@@ -224,8 +224,6 @@ namespace Thry
                 
                 var popup = ScriptableObject.CreateInstance<ListTogglesPopup>();
                 popup.Init(Mediator.copy_part);
-                popup.titleContent = new GUIContent("Paste Special");
-                popup.minSize = new Vector2(460, 400);
                 popup.ShowUtility();
                 
                 popup.OnPasteClicked += (disabledPartsList) =>
