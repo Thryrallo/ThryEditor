@@ -10,7 +10,7 @@ namespace Thry
     public class Config
     {
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.58.8";
+        private const string VERSION = "2.59.0";
 
         private static Config config;
 

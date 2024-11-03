@@ -1,12 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Thry
 {
@@ -79,6 +74,11 @@ namespace Thry
         public override void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             throw new NotImplementedException();
+        }
+
+        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        {
+            return true;
         }
     }
 

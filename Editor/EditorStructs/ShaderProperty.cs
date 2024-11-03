@@ -1,14 +1,8 @@
 using JetBrains.Annotations;
 using System;
-using System.CodeDom;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 using static UnityEditor.MaterialProperty;
 
 namespace Thry
@@ -232,6 +226,7 @@ namespace Thry
         }
         public static void RegisterDecorator(MaterialPropertyDrawer drawer)
         {
+            if(_activeProperty == null) return;
             if(_activeProperty._customDecorators.Contains(drawer) == false)
             {
                 _activeProperty._customDecorators.Add(drawer);
@@ -240,6 +235,7 @@ namespace Thry
         }
         public static void DisallowAnimation()
         {
+            if(_activeProperty == null) return;
             _activeProperty.IsAnimatable = false;
         }
 
@@ -248,6 +244,7 @@ namespace Thry
             // Makes Drawers and Decorators Register themself
             _activeProperty = this;
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
+            _activeProperty = null;
 
             if (MaterialProperty.type == MaterialProperty.PropType.Vector && _doForceIntoOneLine == false)
             {
@@ -386,6 +383,12 @@ namespace Thry
             {
                 unusedList.Add(MaterialProperty.name);
             }
+        }
+
+        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        {
+            return this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
+                || this.MaterialProperty?.name.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 

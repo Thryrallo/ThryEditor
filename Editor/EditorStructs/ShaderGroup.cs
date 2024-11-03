@@ -16,6 +16,7 @@ namespace Thry
         public ReadOnlyCollection<ShaderPart> Children => _readonlychildren;
 
         protected bool _isExpanded;
+        private bool _isSearchExpanded;
 
         public ShaderGroup(ShaderEditor shaderEditor) : base(null, 0, "", null, shaderEditor)
         {
@@ -35,7 +36,7 @@ namespace Thry
         protected override void InitOptions()
         {
             base.InitOptions();
-            if (Options.persistent_expand) _isExpanded = this.MaterialProperty.GetNumber() == 1;
+            if (Options.persistent_expand) _isExpanded |= this.MaterialProperty.GetNumber() == 1;
             else _isExpanded = Options.default_expand;
         }
 
@@ -43,16 +44,19 @@ namespace Thry
         {
             get
             {
-                return _isExpanded;
+                return ShaderEditor.Active.IsInSearchMode ? _isSearchExpanded : _isExpanded;
             }
             set
             {
+                if(ShaderEditor.Active.IsInSearchMode)
+                {
+                    _isSearchExpanded = value;
+                    return;
+                }
                 if (Options.persistent_expand)
                 {
                     if (AnimationMode.InAnimationMode())
                     {
-
-
 #if UNITY_2020_1_OR_NEWER
                         // So we do this instead
                         _isExpanded = value;
@@ -75,6 +79,11 @@ namespace Thry
                 }
                 _isExpanded = value;
             }
+        }
+
+        public void SetSearchExpanded(bool value)
+        {
+            _isSearchExpanded = value;
         }
 
         protected bool DoDisableChildren
@@ -178,8 +187,22 @@ namespace Thry
             {
                 Rect arrowRect = new RectOffset(4, 0, 0, 0).Remove(rect);
                 arrowRect.width = 13;
-                EditorStyles.foldout.Draw(arrowRect, false, false, _isExpanded, false);
+                EditorStyles.foldout.Draw(arrowRect, false, false, IsExpanded, false);
             }
+        }
+
+        public override bool Search(string searchTerm, List<ShaderGroup> foundGroups)
+        {
+            bool found = this.Content.text.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0
+                || this.MaterialProperty?.name.IndexOf(searchTerm, System.StringComparison.OrdinalIgnoreCase) >= 0;
+            foreach (ShaderPart p in Children)
+            {
+                if (p.Search(searchTerm, foundGroups))
+                    found = true;
+            }
+            if(found) foundGroups.Add(this);
+            this.has_not_searchedFor = !found;
+            return found;
         }
     }
 

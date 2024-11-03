@@ -3,13 +3,11 @@
 
 using System.Collections.Generic;
 using System.IO;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using System;
 using System.Linq;
 using Thry.ThryEditor;
-using System.Reflection;
 using static Thry.UnityHelper;
 using Thry.ThryEditor.ShaderTranslations;
 using JetBrains.Annotations;
@@ -43,6 +41,7 @@ namespace Thry
 
         private string _enteredSearchTerm = "";
         private string _appliedSearchTerm = "";
+        public bool IsInSearchMode { private set; get; } = false;
 
         // shader specified values
         private ShaderHeaderProperty _shaderHeader = null;
@@ -646,12 +645,11 @@ namespace Thry
 
         private void GUISearchBar()
         {
-            EditorGUI.BeginChangeCheck();
             _enteredSearchTerm = EditorGUILayout.TextField(_enteredSearchTerm, EditorStyles.toolbarSearchField);
-            if (EditorGUI.EndChangeCheck())
+            if(_enteredSearchTerm != _appliedSearchTerm)
             {
-                _appliedSearchTerm = _enteredSearchTerm.ToLower();
-                UpdateSearch(MainGroup);
+                _appliedSearchTerm = _enteredSearchTerm;
+                UpdateSearch();
             }
         }
 
@@ -806,28 +804,33 @@ namespace Thry
             materialPropertyDictionary = null;
         }
 
+        public void SetSearchTerm(string term)
+        {
+            _enteredSearchTerm = term;
+            Editor.Repaint();
+            GUIUtility.ExitGUI();
+        }
+
         //iterate the same way drawing would iterate
         //if display part, display all parents parts
-        private void UpdateSearch(ShaderPart part, bool parentIsSearchResult = false)
+        List<ShaderGroup> _foundGroups = new List<ShaderGroup>();
+        private void UpdateSearch()
         {
-            bool includesSearchTerm = part.Content.text.ToLower().Contains(_appliedSearchTerm);
-            part.has_not_searchedFor = includesSearchTerm || parentIsSearchResult;
-            if (part is ShaderGroup)
+            IsInSearchMode = _enteredSearchTerm.Length > 0;
+            foreach (ShaderGroup g in _foundGroups)
+                g.SetSearchExpanded(false);
+            _foundGroups.Clear();
+            MainGroup.Search(_enteredSearchTerm, _foundGroups);
+            for(int i = 1; i < 11 && i <= _foundGroups.Count; i++)
             {
-                foreach (ShaderPart p in (part as ShaderGroup).Children)
-                {
-                    UpdateSearch(p, includesSearchTerm);
-                    part.has_not_searchedFor |= !p.has_not_searchedFor;
-                }
+                _foundGroups[_foundGroups.Count - i].SetSearchExpanded(true);
             }
-
-            part.has_not_searchedFor = !part.has_not_searchedFor;
         }
 
         private void ClearSearch()
         {
-            _appliedSearchTerm = "";
-            UpdateSearch(MainGroup);
+            _enteredSearchTerm = "";
+            UpdateSearch();
         }
 
         private void HandleReset()

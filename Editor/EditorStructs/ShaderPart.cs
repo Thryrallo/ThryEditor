@@ -3,12 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Security.Policy;
 using JetBrains.Annotations;
 using Thry.ThryEditor;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 using static UnityEditor.MaterialProperty;
 
 namespace Thry
@@ -149,7 +147,7 @@ namespace Thry
         public int ShaderPropertyIndex { protected set; get; } = -1;
         private string[] ShaderPropertyAttributes = null;
 
-        public bool has_not_searchedFor = false; //used for property search
+        protected bool has_not_searchedFor = false; //used for property search
 
         GenericMenu _contextMenu;
         public XOffsetManager XOffset { private set; get; }
@@ -946,6 +944,7 @@ namespace Thry
                 }
         }
 
+        public abstract bool Search(string searchTerm, List<ShaderGroup> foundGroups);
         public abstract void FindUnusedTextures(List<string> unusedList, bool isEnabled);
 #endregion
     }
