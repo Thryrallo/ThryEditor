@@ -87,6 +87,8 @@ texturePackerCompressionNoAlphaOverwrite,Texture Packer Compression | Textures W
 texturePackerCompressionNoAlphaOverwrite_tooltip,,,,,,,,
 gradientEditorCompressionOverwrite,Gradient Editor Compression,,,,,,,,
 gradientEditorCompressionOverwrite_tooltip,,,,,,,,
+
+texture_packer_header,Texture Packer,,,,,,,,
 texturePackerSaveLocation,Texture Packer Save Location,,,,,,,,
 texturePackerSaveLocation_tooltip,,,,,,,,
 texturePackerSaveLocationCustom,Texture Packer Save Path,,,,,,,,
