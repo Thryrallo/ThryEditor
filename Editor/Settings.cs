@@ -172,6 +172,10 @@ namespace Thry
             Dropdown("texturePackerCompressionWithAlphaOverwrite");
             Dropdown("texturePackerCompressionNoAlphaOverwrite");
             Dropdown("gradientEditorCompressionOverwrite");
+            GUILayout.Space(5);
+            Dropdown("texturePackerSaveLocation");
+            if (Config.Singleton.texturePackerSaveLocation == TextureSaveLocation.custom)
+                Text("texturePackerSaveLocationCustom");
 
             EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("technical_header"), EditorStyles.boldLabel);

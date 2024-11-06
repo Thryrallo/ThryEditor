@@ -390,8 +390,32 @@ namespace Thry
         void Confirm()
         {
             if (_current._packedTexture == null) Pack();
-            string path = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
-            path = path + "/" + ShaderEditor.Active.Materials[0].name + _prop.name + ".png";
+            string dir;
+            switch(Config.Singleton.texturePackerSaveLocation)
+            {
+                case TextureSaveLocation.material:
+                    dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
+                    break;
+                case TextureSaveLocation.texture:
+                    if(_current._input_r.GetTexture() != null) dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(_current._input_r.GetTexture()));
+                    else if(_current._input_g.GetTexture() != null) dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(_current._input_g.GetTexture()));
+                    else if(_current._input_b.GetTexture() != null) dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(_current._input_b.GetTexture()));
+                    else if(_current._input_a.GetTexture() != null) dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(_current._input_a.GetTexture()));
+                    else dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
+                    break;
+                case TextureSaveLocation.custom:
+                    dir = Config.Singleton.texturePackerSaveLocationCustom;
+                    break;
+                case TextureSaveLocation.prompt:
+                    dir = EditorUtility.OpenFolderPanel("Select Folder", "Assets", "");
+                    dir = dir.Replace(Application.dataPath, "Assets");
+                    break;
+                default:
+                    dir = "Assets/Textures/Packed";
+                    break;
+            }
+            string fileName = ShaderEditor.Active.Materials[0].name + _prop.name + ".png";
+            string path = dir + "/" + fileName;
             _prop.textureValue = TextureHelper.SaveTextureAsPNG(_current._packedTexture, path);
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
