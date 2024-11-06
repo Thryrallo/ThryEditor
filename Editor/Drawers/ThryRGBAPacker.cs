@@ -391,7 +391,7 @@ namespace Thry
         {
             if (_current._packedTexture == null) Pack();
             string dir;
-            switch(Config.Singleton.texturePackerSaveLocation)
+            switch(Config.Singleton.inlinePackerSaveLocation)
             {
                 case TextureSaveLocation.material:
                     dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
@@ -404,7 +404,7 @@ namespace Thry
                     else dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(ShaderEditor.Active.Materials[0]));
                     break;
                 case TextureSaveLocation.custom:
-                    dir = Config.Singleton.texturePackerSaveLocationCustom;
+                    dir = Config.Singleton.inlinePackerSaveLocationCustom;
                     break;
                 case TextureSaveLocation.prompt:
                     dir = EditorUtility.OpenFolderPanel("Select Folder", "Assets", "");
@@ -419,7 +419,7 @@ namespace Thry
             _prop.textureValue = TextureHelper.SaveTextureAsPNG(_current._packedTexture, path);
             TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
             importer.streamingMipmaps = true;
-            importer.crunchedCompression = true;
+            importer.crunchedCompression = Config.Singleton.inlinePackerChrunchCompression;
             importer.sRGBTexture = _colorSpace == ColorSpace.Gamma;
             importer.filterMode = GetFiltermode();
             importer.alphaIsTransparency = _current._packedTexture.alphaIsTransparency;
