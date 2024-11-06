@@ -2052,14 +2052,13 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Unlock All", false, 303)]
         static void UnlockAllMaterials()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            SetLockedForAllMaterials(mats, 0, true);
+            SetLockedForAllMaterials(GetSelectedLockableMaterials(), 0, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Unlock All", true)]
         static bool UnlockAllMaterialsValidator()
         {
-            return SelectedObjectsAreLockableMaterials();
+            return AreSelectedObjectsMaterials();
         }
 
         //---Asset Locking
@@ -2067,14 +2066,13 @@ namespace Thry
         [MenuItem("Assets/Thry/Materials/Lock All", false, 303)]
         static void LockAllMaterials()
         {
-            IEnumerable<Material> mats = Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g)));
-            SetLockedForAllMaterials(mats, 1, true);
+            SetLockedForAllMaterials(GetSelectedLockableMaterials(), 1, true);
         }
 
         [MenuItem("Assets/Thry/Materials/Lock All", true)]
         static bool LockAllMaterialsValidator()
         {
-            return SelectedObjectsAreLockableMaterials();
+            return AreSelectedObjectsMaterials();
         }
 
         //This does not work for folders on the left side of the project explorer, because they are not exposed to Selection
@@ -2138,19 +2136,18 @@ namespace Thry
 
         //----Folder Unlock
 
-        static bool SelectedObjectsAreLockableMaterials()
+        static bool AreSelectedObjectsMaterials()
         {
             if (Selection.assetGUIDs != null && Selection.assetGUIDs.Length > 0)
             {
-                return Selection.assetGUIDs.All(g =>
-                {
-                    if (AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) != typeof(Material))
-                        return false;
-                    Material m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
-                    return IsShaderUsingThryOptimizer(m.shader);
-                });
+                return Selection.assetGUIDs.All(g => AssetDatabase.GetMainAssetTypeAtPath(AssetDatabase.GUIDToAssetPath(g)) == typeof(Material));
             }
             return false;
+        }
+
+        static IEnumerable<Material> GetSelectedLockableMaterials()
+        {
+            return Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).Where(m => m != null && IsShaderUsingThryOptimizer(m.shader));
         }
 
         //----VRChat Callback to force Locking on upload
