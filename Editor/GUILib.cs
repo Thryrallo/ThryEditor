@@ -130,7 +130,8 @@ namespace Thry
             Rect object_rect = new Rect(position);
             object_rect.height = GUILayoutUtility.GetLastRect().y - object_rect.y + GUILayoutUtility.GetLastRect().height;
             DrawingData.LastGuiObjectRect = object_rect;
-            DrawingData.TooltipCheckRect = tooltipRect;            
+            DrawingData.TooltipCheckRect = tooltipRect;
+            DrawingData.IconsPositioningCount = 1;
             DrawingData.IconsPositioningHeights[0] = iconsPositioningHeight;
 
             // Border Code start
@@ -296,6 +297,7 @@ namespace Thry
 
             DrawingData.LastGuiObjectRect = border;
             DrawingData.TooltipCheckRect = Rect.MinMaxRect(border.x, border.y, scale_offset_rect.xMax, scale_offset_rect.yMax);
+            DrawingData.IconsPositioningCount = 1;
             DrawingData.IconsPositioningHeights[0] = scale_offset_rect.y;
         }
 
@@ -336,6 +338,7 @@ namespace Thry
 
             DrawingData.LastGuiObjectRect = position;
             DrawingData.TooltipCheckRect = tooltipCheckRect;
+            DrawingData.IconsPositioningCount = 1;
             DrawingData.IconsPositioningHeights[0] = iconsPositioningHeight;
         }
 

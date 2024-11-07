@@ -90,6 +90,7 @@ gradientEditorCompressionOverwrite_tooltip,,,,,,,,
 
 texture_packer_header,Inline Texture Packer,,,,,,,,
 inlinePackerChrunchCompression,Enable Chrunch Compression,,,,,,,,
+inlinePackerChrunchCompression_tooltip,,,,,,,,
 inlinePackerSaveLocation,Save Location,,,,,,,,
 inlinePackerSaveLocation_tooltip,,,,,,,,
 inlinePackerSaveLocationCustom,Custom Save Path,,,,,,,,

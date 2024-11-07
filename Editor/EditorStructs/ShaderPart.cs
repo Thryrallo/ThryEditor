@@ -497,6 +497,56 @@ namespace Thry
                 EditorGUI.EndDisabledGroup();
             }
         }
+
+        private void PerformDraw(GUIContent content, Rect? rect, bool useEditorIndent, bool isInHeader = false)
+        {
+            if (content == null)
+                content = this.Content;
+            EditorGUI.BeginChangeCheck();
+
+            DrawingData.IconsPositioningCount = 0;
+
+            DrawInternal(content, rect, useEditorIndent, isInHeader);
+
+            if (this is ShaderTextureProperty == false)
+            {
+                DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
+                if (DrawingData.IconsPositioningCount == 0)
+                {
+                    DrawingData.IconsPositioningCount = 1;
+                    DrawingData.IconsPositioningHeights[0] = DrawingData.LastGuiObjectRect.y + DrawingData.LastGuiObjectRect.height - 14;
+                }
+            }
+            DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
+
+            HandleRightClickToggles(isInHeader);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                OnPropertyValueChanged();
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
+                //Check if property is being animated
+                if (this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
+                {
+                    if (MaterialProperty.type == MaterialProperty.PropType.Texture ?
+                        AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x") :
+                        AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name))
+                        SetAnimated(true, false);
+                }
+            }
+
+            if (IsAnimatable && IsAnimated) DrawLockedAnimated();
+            if (IsPreset) DrawPresetProperty();
+
+            Tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
+
+            //Click testing
+            if (Event.current.type == EventType.MouseDown && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
+            {
+                if ((ShaderEditor.Input.is_alt_down && Options.altClick != null)) Options.altClick.Perform(ShaderEditor.Active.Materials);
+                else if (Options.onClick != null) Options.onClick.Perform(ShaderEditor.Active.Materials);
+            }
+        }
         
         protected abstract void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false);
         
@@ -877,56 +927,6 @@ namespace Thry
             IsAnimated = animated;
             IsRenaming = renamed;
             ShaderOptimizer.SetAnimatedTag(MaterialProperty, IsAnimated ? (IsRenaming ? "2" : "1") : "");
-        }
-
-        private void PerformDraw(GUIContent content, Rect? rect, bool useEditorIndent, bool isInHeader = false)
-        {
-            if (content == null)
-                content = this.Content;
-            EditorGUI.BeginChangeCheck();
-
-            DrawingData.IconsPositioningCount = 0;
-
-            DrawInternal(content, rect, useEditorIndent, isInHeader);
-
-            if (this is ShaderTextureProperty == false)
-            {
-                DrawingData.TooltipCheckRect = DrawingData.LastGuiObjectRect;
-                if (DrawingData.IconsPositioningCount == 0)
-                {
-                    DrawingData.IconsPositioningCount = 1;
-                    DrawingData.IconsPositioningHeights[0] = DrawingData.LastGuiObjectRect.y + DrawingData.LastGuiObjectRect.height - 14;
-                }
-            }
-            DrawingData.TooltipCheckRect.width = EditorGUIUtility.labelWidth;
-
-            HandleRightClickToggles(isInHeader);
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                OnPropertyValueChanged();
-                ExecuteOnValueActions(ShaderEditor.Active.Materials);
-                //Check if property is being animated
-                if (this is ShaderProperty && ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
-                {
-                    if (MaterialProperty.type == MaterialProperty.PropType.Texture ?
-                        AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x") :
-                        AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name))
-                        SetAnimated(true, false);
-                }
-            }
-
-            if (IsAnimatable && IsAnimated) DrawLockedAnimated();
-            if (IsPreset) DrawPresetProperty();
-
-            Tooltip.ConditionalDraw(DrawingData.TooltipCheckRect);
-
-            //Click testing
-            if (Event.current.type == EventType.MouseDown && DrawingData.LastGuiObjectRect.Contains(ShaderEditor.Input.mouse_position))
-            {
-                if ((ShaderEditor.Input.is_alt_down && Options.altClick != null)) Options.altClick.Perform(ShaderEditor.Active.Materials);
-                else if (Options.onClick != null) Options.onClick.Perform(ShaderEditor.Active.Materials);
-            }
         }
 #endregion
 #region Actions / Callbacks
