@@ -74,6 +74,24 @@ namespace Thry
             return saved;
         }
 
+        public static Texture2D ConvertToGamma(Texture2D texture)
+        {
+            Texture2D ret = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, texture.mipmapCount > 0);
+            for (int x = 0; x < texture.width; x++)
+            {
+                for (int y = 0; y < texture.height; y++)
+                {
+                    Color c = texture.GetPixel(x, y);
+                    c.r = Mathf.Pow(c.r, 1/2.2f);
+                    c.g = Mathf.Pow(c.g, 1/2.2f);
+                    c.b = Mathf.Pow(c.b, 1/2.2f);
+                    ret.SetPixel(x, y, c);
+                }
+            }
+            ret.Apply();
+            return ret;
+        }
+
         public static void MakeTextureReadible(string path)
         {
             TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(path);

@@ -595,14 +595,12 @@ namespace Thry
         public static void ColorspaceWarning(MaterialProperty tex, bool shouldHaveSRGB) {
             if (tex.textureValue) {
                 string texPath = AssetDatabase.GetAssetPath(tex.textureValue);
-                TextureImporter texImporter;
-                var importer = TextureImporter.GetAtPath(texPath) as TextureImporter;
+                TextureImporter importer = TextureImporter.GetAtPath(texPath) as TextureImporter;
                 if (importer != null) {
-                    texImporter = (TextureImporter)importer;
-                    if (texImporter.sRGBTexture != shouldHaveSRGB) {
+                    if (importer.sRGBTexture != shouldHaveSRGB) {
                         if (TextureImportWarningBox(shouldHaveSRGB ? EditorLocale.editor.Get("colorSpaceWarningSRGB") : EditorLocale.editor.Get("colorSpaceWarningLinear"))) {
-                            texImporter.sRGBTexture = shouldHaveSRGB;
-                            texImporter.SaveAndReimport();
+                            importer.sRGBTexture = shouldHaveSRGB;
+                            importer.SaveAndReimport();
                         }
                     }
                 }
