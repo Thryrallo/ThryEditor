@@ -37,11 +37,11 @@ namespace Thry
                 ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
         }
 
-        void DiscardSceneTool()
+        void DiscardSceneTool(bool discardChanges = false)
         {
             if (_sceneTool != null)
             {
-                _sceneTool.Deactivate();
+                _sceneTool.Deactivate(discardChanges);
                 _sceneTool = null;
             }
         }
@@ -65,6 +65,8 @@ namespace Thry
                         ShaderEditor.Active.PropertyDictionary[_rotationPropertyName].MaterialProperty,
                         ShaderEditor.Active.PropertyDictionary[_scalePropertyName].MaterialProperty,
                         ShaderEditor.Active.PropertyDictionary[_offsetPropertyName].MaterialProperty);
+                    if(Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Escape)
+                        DiscardSceneTool(true);
                 }
             }
             else
@@ -98,7 +100,7 @@ namespace Thry
             {
                 if (_sceneTool != null && _sceneTool.GetMode() == DecalSceneTool.Mode.Raycast)
                 {
-                    DiscardSceneTool();
+                    DiscardSceneTool(true);
                 }
                 else
                 {
