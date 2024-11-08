@@ -169,6 +169,27 @@ namespace Thry
         {
             CopyValue(source, MaterialEditor.GetMaterialProperty(targets, source.name));
         }
+
+        public static object GetValue(MaterialProperty property)
+        {
+            switch (property.type)
+            {
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
+                    return property.floatValue;
+#if UNITY_2022_1_OR_NEWER
+                case MaterialProperty.PropType.Int:
+                    return property.intValue;
+#endif
+                case MaterialProperty.PropType.Color:
+                    return property.colorValue;
+                case MaterialProperty.PropType.Vector:
+                    return property.vectorValue;
+                case MaterialProperty.PropType.Texture:
+                    return property.textureValue;
+            }
+            return null;
+        }
     }
 
 }

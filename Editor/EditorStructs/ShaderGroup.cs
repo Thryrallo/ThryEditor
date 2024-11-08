@@ -30,13 +30,17 @@ namespace Thry
 
         public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, xOffset, displayName, optionsRaw, propertyIndex)
         {
-
+            PropertyValueChanged += (PropertyValueEventArgs args) => 
+            {
+                if(!_doOptionsNeedInitilization && Options.persistent_expand)
+                    _isExpanded = this.MaterialProperty.GetNumber() == 1;
+            };
         }
 
         protected override void InitOptions()
         {
             base.InitOptions();
-            if (Options.persistent_expand) _isExpanded |= this.MaterialProperty.GetNumber() == 1;
+            if (Options.persistent_expand) _isExpanded = this.MaterialProperty.GetNumber() == 1;
             else _isExpanded = Options.default_expand;
         }
 
@@ -69,12 +73,16 @@ namespace Thry
                         
                         AnimationMode.StopAnimationMode();
                         this.MaterialProperty.SetNumber(value ? 1 : 0);
+                        Undo.SetCurrentGroupName((value ? "Expand" : "Collapse") + $" {Content.text} of {ShaderEditor.Active.TargetName}");
+                        RaisePropertyValueChanged();
                         AnimationMode.StartAnimationMode();
 #endif
                     }
                     else
                     {
                         this.MaterialProperty.SetNumber(value ? 1 : 0);
+                        Undo.SetCurrentGroupName((value ? "Expand" : "Collapse") + $" {Content.text} of {ShaderEditor.Active.TargetName}");
+                        RaisePropertyValueChanged();
                     }
                 }
                 _isExpanded = value;

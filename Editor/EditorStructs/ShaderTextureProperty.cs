@@ -15,6 +15,7 @@ namespace Thry
         {
             _doCustomDrawLogic = forceThryUI;
             this.hasScaleOffset = hasScaleOffset;
+            PropertyValueChanged += (PropertyValueEventArgs args) => _isVRAMDirty = true;
         }
 
         protected override void InitOptions()
@@ -34,12 +35,6 @@ namespace Thry
             {
                 VRAMString = null;
             }
-        }
-
-        protected override void OnPropertyValueChanged()
-        {
-            base.OnPropertyValueChanged();
-            _isVRAMDirty = true;
         }
 
         protected override void PreDraw()

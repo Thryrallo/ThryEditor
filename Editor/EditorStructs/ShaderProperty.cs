@@ -133,7 +133,7 @@ namespace Thry
             }
 
             ExecuteOnValueActions(ShaderEditor.Active.Materials);
-
+            RaisePropertyValueChanged();
             if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
         }
 
@@ -156,7 +156,7 @@ namespace Thry
             }
 
             ExecuteOnValueActions(ShaderEditor.Active.Materials);
-
+            RaisePropertyValueChanged();
             if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
         }
 
@@ -197,7 +197,7 @@ namespace Thry
             }
 
             target.ExecuteOnValueActions(target.MaterialProperty.targets as Material[]);
-
+            target.RaisePropertyValueChanged();
             if (applyDrawers) MaterialEditor.ApplyMaterialPropertyDrawers(target.MaterialProperty.targets as Material[]);
         }
 
@@ -241,6 +241,8 @@ namespace Thry
 
         void InitializeDrawers()
         {
+            if(!_needsDrawerInitlization) return;
+            _needsDrawerInitlization = false;
             // Makes Drawers and Decorators Register themself
             _activeProperty = this;
             ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
@@ -285,14 +287,7 @@ namespace Thry
         protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
             ActiveShaderEditor.CurrentProperty = this;
-            UpdatedMaterialPropertyReference();
-
-            if (_needsDrawerInitlization)
-            {
-                InitializeDrawers();
-                _needsDrawerInitlization = false;
-            }
-
+            InitializeDrawers();
             PreDraw();
             if (ActiveShaderEditor.IsLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !IsExemptFromLockedDisabling);
@@ -309,6 +304,7 @@ namespace Thry
                 }
             }
 
+            EditorGUI.BeginChangeCheck();
             if (_doCustomDrawLogic)
             {
                 DrawDefault();
@@ -362,11 +358,30 @@ namespace Thry
                 }
             }
 
+            if(EditorGUI.EndChangeCheck())
+            {
+                Undo.SetCurrentGroupName($"Modify {Content.text} of {ShaderEditor.Active.TargetName}");
+                RaisePropertyValueChanged();
+                ExecuteOnValueActions(ShaderEditor.Active.Materials);
+                AutomaticAnimatedMarking();
+            }
+
             EditorGUI.indentLevel = oldIndentLevel;
             if (rect == null) DrawingData.LastGuiObjectRect = GUILayoutUtility.GetLastRect();
             else DrawingData.LastGuiObjectRect = rect.Value;
             if (ActiveShaderEditor.IsLockedMaterial)
                 EditorGUI.EndDisabledGroup();
+        }
+
+        private void AutomaticAnimatedMarking()
+        {
+            if (ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
+            {
+                if (MaterialProperty.type == MaterialProperty.PropType.Texture ?
+                    AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x") :
+                    AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name))
+                    SetAnimated(true, false);
+            }
         }
 
         protected virtual void PreDraw() { }
