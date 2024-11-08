@@ -70,13 +70,14 @@ namespace Thry
             // Close() throws an exception, if called from OnGUI
             // GUI Error: Invalid GUILayout state in DockArea view. Verify that all layout Begin/End calls match
             // /shrug, idk how to fix that, so I just disable the log for a frame
+            bool isLoggerEnabled = Debug.unityLogger.logEnabled;
             Debug.unityLogger.logEnabled = false;
             if(!_doDiscard)
             {
                 Undo.SetCurrentGroupName("Apply Decal Texture Tool");
                 Undo.CollapseUndoOperations(_initalUndoGroup);
             }
-            EditorApplication.delayCall += () => Debug.unityLogger.logEnabled = true;
+            EditorApplication.delayCall += () => Debug.unityLogger.logEnabled = isLoggerEnabled;
         }
 
         private Vector2 _lastMousePosition;
