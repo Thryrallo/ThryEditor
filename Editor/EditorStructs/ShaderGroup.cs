@@ -10,6 +10,18 @@ namespace Thry
 {
     public class ShaderGroup : ShaderPart
     {
+        public override bool IsPropertyValueDefault
+        {
+            get
+            {
+                if(_isPropertyValueDefault == null)
+                {
+                    _isPropertyValueDefault = Children.All(p => p.IsPropertyValueDefault);
+                }
+                return _isPropertyValueDefault.Value;
+            }
+        }
+
         private List<ShaderPart> _children = new List<ShaderPart>();
         private ReadOnlyCollection<ShaderPart> _readonlychildren => new ReadOnlyCollection<ShaderPart>(_children);
         [PublicAPI]
@@ -21,11 +33,6 @@ namespace Thry
         public ShaderGroup(ShaderEditor shaderEditor) : base(null, 0, "", null, shaderEditor)
         {
 
-        }
-
-        public ShaderGroup(ShaderEditor shaderEditor, string optionsRaw) : base(null, 0, "", null, shaderEditor)
-        {
-            this._optionsRaw = optionsRaw;
         }
 
         public ShaderGroup(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, xOffset, displayName, optionsRaw, propertyIndex)
@@ -104,6 +111,7 @@ namespace Thry
 
         public void AddPart(ShaderPart part)
         {
+            part.SetParent(this);
             _children.Add(part);
         }
 
