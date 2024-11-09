@@ -19,6 +19,7 @@ namespace Thry
                 if(parsed!=null)
                     foreach (string[] material_cloud in parsed)
                     {
+                        if(material_cloud == null) continue;
                         List<Material> materials = new List<Material>();
                         for (int i = 1; i < material_cloud.Length; i++)
                         {
