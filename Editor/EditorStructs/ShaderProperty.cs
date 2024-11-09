@@ -112,8 +112,8 @@ namespace Thry
         public DrawerType GetDrawerType()
         {
             if (_drawer == null) return DrawerType.None;
-            if (_drawer.GetType().Name.Contains("Toggle", StringComparison.OrdinalIgnoreCase)) return DrawerType.Toggle;
-            if (_drawer.GetType().Name.Contains("Slider", StringComparison.OrdinalIgnoreCase)) return DrawerType.Slider;
+            if (_drawer.GetType().Name.IndexOf("Toggle", StringComparison.OrdinalIgnoreCase) != -1) return DrawerType.Toggle;
+            if (_drawer.GetType().Name.IndexOf("Slider", StringComparison.OrdinalIgnoreCase) != -1) return DrawerType.Slider;
             return DrawerType.None;
         }
 
