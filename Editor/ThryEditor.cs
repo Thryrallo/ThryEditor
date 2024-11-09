@@ -360,7 +360,9 @@ namespace Thry
                 {
                     newPart = NewProperty;
                     if (type != ThryPropertyType.none)
+                    {
                         groupStack.Peek().AddPart(NewProperty);
+                    }
                 }
                 if (newPart != null)
                 {

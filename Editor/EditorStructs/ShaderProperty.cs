@@ -242,6 +242,7 @@ namespace Thry
         void InitializeDrawers()
         {
             if(!_needsDrawerInitlization) return;
+            if(MaterialProperty == null) return;
             _needsDrawerInitlization = false;
             // Makes Drawers and Decorators Register themself
             _activeProperty = this;

@@ -153,6 +153,7 @@ namespace Thry
             Dropdown(nameof(Config.default_texture_type));
             Toggle(nameof(Config.showRenderQueue));
             Toggle(nameof(Config.showColorspaceWarnings));
+            Toggle(nameof(Config.showStarNextToNonDefaultProperties));
 
             EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("shader_ui_features_header"), EditorStyles.boldLabel);

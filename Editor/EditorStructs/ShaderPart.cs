@@ -122,10 +122,27 @@ namespace Thry
     
     public abstract class ShaderPart
     {
+        public ShaderPart Parent { private set; get; }
         public ShaderEditor ActiveShaderEditor { protected set; get; }
         public MaterialProperty MaterialProperty { private set; get; }
-
-        public GUIContent Content { protected set; get; }
+        
+        private GUIContent _content, _contentNonDefault;
+        public GUIContent Content 
+        {
+            protected set
+            {
+                _content = value;
+                if(string.IsNullOrWhiteSpace(value.text))
+                    return;
+                _contentNonDefault = new GUIContent(value.text + '*');
+            }
+            get
+            {
+                if(Config.Singleton.showStarNextToNonDefaultProperties && !IsPropertyValueDefault)
+                    return _contentNonDefault;
+                return _content;
+            }
+        }
         public BetterTooltips.Tooltip Tooltip { protected set; get; }
         public System.Object PropertyData { protected set; get; } = null;
 
@@ -167,7 +184,94 @@ namespace Thry
             }
         }
 
-        public object PropertyValue { get; private set; }
+        // public object PropertyValue { get; private set; }
+        private object _propertyValue;
+        public object PropertyValue
+        {
+            private set
+            {
+                _propertyValue = value;
+            }
+            get
+            {
+                return _propertyValue;
+            }
+        }
+
+        private object _propertyDefaultValue;
+        public object PropertyDefaultValue { 
+            get
+            {
+                if (_propertyDefaultValue == null)
+                {
+                    if(MaterialProperty == null)
+                        return null;
+                    switch (MaterialProperty.type)
+                    {
+                        case PropType.Float:
+                        case PropType.Range:
+                            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultFloatValue(ShaderPropertyIndex);
+                            break;
+                        case PropType.Color:
+                        case PropType.Vector:
+                            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
+                            break;
+                        case PropType.Texture:
+                            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(ShaderPropertyIndex);
+                            break;
+#if UNITY_2022_1_OR_NEWER
+                        case PropType.Int:
+                            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultIntValue(ShaderPropertyIndex);
+                            break;
+#endif
+                        default :
+                            _propertyDefaultValue = -1;
+                            break;
+                    }
+                }
+                return _propertyDefaultValue;
+            }
+        }
+
+        protected bool? _isPropertyValueDefault;
+        public virtual bool IsPropertyValueDefault
+        {
+            get
+            {
+                if(MaterialProperty == null)
+                    return false;
+
+                if(_isPropertyValueDefault == null)
+                {
+                    switch(MaterialProperty.type)
+                    {
+                        case PropType.Float:
+                        case PropType.Range:
+                            _isPropertyValueDefault = (float)PropertyDefaultValue == (float)PropertyValue;
+                            break;
+                        case PropType.Color:
+                            _isPropertyValueDefault = (Vector4)PropertyDefaultValue == (Vector4)((Color)PropertyValue);
+                            break;
+                        case PropType.Vector:
+                            _isPropertyValueDefault = (Vector4)PropertyDefaultValue == (Vector4)PropertyValue;
+                            break;
+                        case PropType.Texture:
+                            _isPropertyValueDefault = PropertyValue == null || (string)PropertyDefaultValue == ((Texture)PropertyValue)?.name;
+                            break;
+    #if UNITY_2022_1_OR_NEWER
+                        case PropType.Int:
+                            _isPropertyValueDefault = (int)PropertyDefaultValue == (int)PropertyValue;
+                            break;
+    #endif
+                        default :
+                            _isPropertyValueDefault = false;
+                            break;
+                    }
+                    _isPropertyValueDefault = _isPropertyValueDefault.Value && !MaterialProperty.hasMixedValue;
+                }
+                return _isPropertyValueDefault.Value;
+            }
+        }
 
 #region Setters
         public void SetIsExemptFromLockedDisabling(bool b)
@@ -196,6 +300,17 @@ namespace Thry
         {
             if(ShaderPropertyIndex != -1)
                 this.MaterialProperty = ActiveShaderEditor.Properties[ShaderPropertyIndex];
+        }
+
+        public void SetParent(ShaderPart parent)
+        {
+            Parent = parent;
+        }
+
+        private void SetIsPropertyValueDefaultDirty()
+        {
+            _isPropertyValueDefault = null;
+            Parent?.SetIsPropertyValueDefaultDirty();
         }
 #endregion
 #region Getters
@@ -249,44 +364,13 @@ namespace Thry
 
             int index = ShaderEditor.Active.Shader.FindPropertyIndex(this.MaterialProperty.name);
 
-            object defaultValue = null;
-            if (type == MaterialProperty.PropType.Float)
-                defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultFloatValue(index);
-#if UNITY_2022_1_OR_NEWER
-            else if (type == MaterialProperty.PropType.Int)
-                defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultIntValue(index);
-#endif
-            else if (type == MaterialProperty.PropType.Vector)
-                defaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(index);
-            else if (type == MaterialProperty.PropType.Texture)
-                defaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(index);
+            
 
             foreach (Material m in ShaderEditor.Active.Materials)
             {
                 // Check if is not default value
-                if (type == MaterialProperty.PropType.Float)
-                {
-                    if (m.GetNumber(this.MaterialProperty) != (float)defaultValue)
-                        continue;
-                }
-#if UNITY_2022_1_OR_NEWER
-                else if (type == MaterialProperty.PropType.Int)
-                {
-                    if (m.GetInt(this.MaterialProperty.name) != (int)defaultValue)
-                        continue;
-                }
-#endif
-                else if (type == MaterialProperty.PropType.Vector)
-                {
-                    if (m.GetVector(this.MaterialProperty.name) != (Vector4)defaultValue)
-                        continue;
-                }
-                else if (type == MaterialProperty.PropType.Texture)
-                {
-                    if (m.GetTexture(this.MaterialProperty.name) != null &&
-                        m.GetTexture(this.MaterialProperty.name).name != (string)defaultValue)
-                        continue;
-                }
+                if(IsPropertyValueDefault)
+                    continue;
 
                 // Material as serializedObject
                 SerializedObject serializedObject = new SerializedObject(m);
@@ -345,15 +429,16 @@ namespace Thry
 
         protected virtual void InitOptions()
         {
+            _doOptionsNeedInitilization = false;
             this.Tooltip = new BetterTooltips.Tooltip(Options.tooltip);
             this.DoReferencePropertiesExist = Options.reference_properties != null && Options.reference_properties.Length > 0;
             this.DoesReferencePropertyExist = Options.reference_property != null;
             this.XOffset.ResetTemporaryOffset();
             this.XOffset = new XOffsetManager(Options.offset + XOffset);
+            if(MaterialProperty == null) return;
             this.ShaderPropertyAttributes = ShaderEditor.Active.Shader.GetPropertyAttributes(this.ShaderPropertyIndex);
             this.IsAnimatable &= !HasAttribute("DoNotAnimate");
             this.IsExemptFromLockedDisabling |= ShaderOptimizer.IsPropertyExcemptFromLocking(this);
-            _doOptionsNeedInitilization = false;
         }
 #endregion
 
@@ -931,6 +1016,7 @@ namespace Thry
         {
             object previousValue = PropertyValue;
             PropertyValue = MaterialHelper.GetValue(MaterialProperty);
+            SetIsPropertyValueDefaultDirty();
             if(PropertyValueChanged != null)
                 PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty.type, previousValue, PropertyValue));
         }
