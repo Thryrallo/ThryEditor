@@ -320,8 +320,13 @@ namespace Thry
         private static object ParseToEnum(string input, int start, int end, Type objtype)
         {
             input = input.Substring(start, end - start).Trim();
+#if UNITY_2021_1_OR_NEWER
             if(Enum.TryParse(objtype, input, out object result))
                 return result;
+#else
+            if(Enum.IsDefined(objtype, input))
+                return Enum.Parse(objtype, input);
+#endif
             Debug.LogWarning("The specified enum for " + objtype.Name + " does not exist. Existing Values are: " + Converter.ArrayToString(Enum.GetValues(objtype)));
             return Enum.GetValues(objtype).GetValue(0);
         }

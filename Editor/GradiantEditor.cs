@@ -178,7 +178,7 @@ namespace Thry
 #if UNITY_2020_1_OR_NEWER
             _gradient_editor_init.Invoke(_gradient_editor, new object[] { gradient, 0, true, ColorSpace.Linear });
 #else
-            gradient_editor_init.Invoke(gradient_editor, new object[] { gradient, 0, true });
+            _gradient_editor_init.Invoke(_gradient_editor, new object[] { gradient, 0, true });
 #endif
             UpdateGradientPreviewTexture();
         }
