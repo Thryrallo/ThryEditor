@@ -442,20 +442,29 @@ namespace Thry
             Materials[0].SetFloat(PROPERTY_NAME_EDITOR_DETECT, 69);
         }
 
+        
         private void RegisterCallacks()
         {
             if (_didRegisterCallbacks) return;
             _didRegisterCallbacks = true;
+            //TODO: Handle these in Unity <2022.2
+            #if UNITY_2022_2_OR_NEWER
             Undo.undoRedoEvent += UndoRedoEvent;
+            #endif
         }
 
         private void UnregisterCallbacks()
         {
             if (_didRegisterCallbacks == false) return;
             _didRegisterCallbacks = false;
+            //TODO: Handle these in Unity <2022.2
+            #if UNITY_2022_2_OR_NEWER
             Undo.undoRedoEvent -= UndoRedoEvent;
+            #endif
         }
-
+        
+        //TODO: Handle these in Unity <2022.2
+        #if UNITY_2022_2_OR_NEWER
         private void UndoRedoEvent(in UndoRedoInfo undo)
         {
             if(Materials[0] != null && (undo.undoName.EndsWith(Materials[0].name, StringComparison.Ordinal) 
@@ -475,6 +484,7 @@ namespace Thry
                 };   
             }
         }
+        #endif
 
         public override void OnClosed(Material material)
         {

@@ -164,9 +164,6 @@ namespace Thry
                     case MaterialProperty.PropType.Int:
                         EditorGUILayout.IntField(prop.intValue, propertyWidth);
                         break;
-#else
-                        EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
-                        break;
 #endif
                     case MaterialProperty.PropType.Range:
                         EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
