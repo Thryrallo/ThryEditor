@@ -24,6 +24,7 @@ namespace Thry
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
         public const string PROPERTY_NAME_IN_SHADER_PRESETS = "_Mode";
+        public const string PROPERTY_NAME_EDITOR_DETECT = "shader_is_using_thry_editor";
 
         //Static
         private static string s_edtiorDirectoryPath;
@@ -406,6 +407,8 @@ namespace Thry
             _vRCFallbackProperty = new VRCFallbackProperty(this);
             ShaderParts.Add(_renderQueueProperty);
             ShaderParts.Add(_vRCFallbackProperty);
+            
+            AddResetProperty();
 
             if(Config.Singleton.forceAsyncCompilationPreview)
             {
@@ -429,6 +432,16 @@ namespace Thry
             return null;
         }
 
+        private void AddResetProperty()
+        {
+            if(!Materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT))
+            {
+                string path = AssetDatabase.GetAssetPath(Materials[0].shader);
+                AddShaderPropertyToSourceCode(path, $"[HideInInspector] {PROPERTY_NAME_EDITOR_DETECT}(\"\", Float)", "0");
+            }
+            Materials[0].SetFloat(PROPERTY_NAME_EDITOR_DETECT, 69);
+        }
+
         private void RegisterCallacks()
         {
             if (_didRegisterCallbacks) return;
@@ -445,8 +458,8 @@ namespace Thry
 
         private void UndoRedoEvent(in UndoRedoInfo undo)
         {
-            if(undo.undoName.EndsWith(Materials[0].name, StringComparison.Ordinal) 
-                || undo.undoName.EndsWith("Materials", StringComparison.Ordinal))
+            if(Materials[0] != null && (undo.undoName.EndsWith(Materials[0].name, StringComparison.Ordinal) 
+                || undo.undoName.EndsWith("Materials", StringComparison.Ordinal)))
             {
                 EditorApplication.delayCall += () =>
                 {
@@ -828,7 +841,7 @@ namespace Thry
             //test if material has been reset
             if (_wasUsed && e.type == EventType.Repaint)
             {
-                if (Materials[0].HasProperty("shader_is_using_thry_editor") && Materials[0].GetFloat("shader_is_using_thry_editor") != 69)
+                if (Materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT) && Materials[0].GetFloat(PROPERTY_NAME_EDITOR_DETECT) != 69)
                 {
                     _doReloadNextDraw = true;
                     HandleReset();
