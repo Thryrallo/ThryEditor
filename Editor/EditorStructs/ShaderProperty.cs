@@ -287,6 +287,9 @@ namespace Thry
 
         protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
+            if(content == null)
+                content = GUIContent.none;
+            
             ActiveShaderEditor.CurrentProperty = this;
             InitializeDrawers();
             PreDraw();
