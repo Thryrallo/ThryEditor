@@ -179,29 +179,6 @@ namespace Thry
                         break;
                 }
             }
-        }
-
-        //TODO: Need to check children as well for this to be viable
-        static bool IsMaterialValueTheSameAsShaderProperty(Material mat, ShaderProperty prop)
-        {
-            switch(prop.MaterialProperty.type)
-            {
-                case MaterialProperty.PropType.Color: 
-                    return mat.GetColor(prop.MaterialProperty.name) == (Color)prop.PropertyValue;
-                case MaterialProperty.PropType.Vector: 
-                    return mat.GetVector(prop.MaterialProperty.name) == (Vector4)prop.PropertyValue;
-                case MaterialProperty.PropType.Range:
-                case MaterialProperty.PropType.Float: 
-                    return Mathf.Approximately(mat.GetFloat(prop.MaterialProperty.name), (float)prop.PropertyValue);
-                case MaterialProperty.PropType.Texture:
-                    return mat.GetTexture(prop.MaterialProperty.name) == (Texture)prop.PropertyValue;
-#if UNITY_2021_1_OR_NEWER
-                case MaterialProperty.PropType.Int:
-                    return mat.GetInt(prop.MaterialProperty.name) == (int)prop.PropertyValue;
-#endif
-                default:
-                    return false;
-            }
-        }
+        }        
     }
 }
