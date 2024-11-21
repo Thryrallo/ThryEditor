@@ -364,7 +364,7 @@ namespace Thry
 
             if(EditorGUI.EndChangeCheck())
             {
-                Undo.SetCurrentGroupName($"Modify {Content.text} of {ShaderEditor.Active.TargetName}");
+                Undo.SetCurrentGroupName($"Modify {content.text} of {ShaderEditor.Active.TargetName}");
                 RaisePropertyValueChanged();
                 ExecuteOnValueActions(ShaderEditor.Active.Materials);
                 AutomaticAnimatedMarking();

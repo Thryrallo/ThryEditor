@@ -274,8 +274,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                 GUI.backgroundColor = Color.green;
                 if(GUILayout.Button($"Apply {editor.SuggestedTranslationDefinition.Name}"))
                 {
-                    editor.SuggestedTranslationDefinition.Apply(editor);
-                    editor.SuggestedTranslationDefinition = null;
+                    editor.ApplySuggestedTranslationDefinition();
                 }
                 GUI.backgroundColor = backup;
                 GUILayoutUtility.GetRect(0, 5);

@@ -17,23 +17,20 @@ namespace Thry
     public class ShaderEditor : ShaderGUI
     {
         public const string EXTRA_OPTIONS_PREFIX = "--";
-        public const float MATERIAL_NOT_RESET = 69.12f;
-
         public const string PROPERTY_NAME_MASTER_LABEL = "shader_master_label";
         public const string PROPERTY_NAME_LOCALE = "shader_locale";
         public const string PROPERTY_NAME_ON_SWAP_TO_ACTIONS = "shader_on_swap_to";
         public const string PROPERTY_NAME_SHADER_VERSION = "shader_version";
         public const string PROPERTY_NAME_IN_SHADER_PRESETS = "_Mode";
-        public const string PROPERTY_NAME_EDITOR_DETECT = "shader_is_using_thry_editor";
 
         //Static
         private static string s_edtiorDirectoryPath;
 
         public static InputEvent Input = new InputEvent();
-        public static ShaderEditor Active;
+        public static ShaderEditor Active { get; private set; }
 
         // Stores the different shader properties
-        public ShaderGroup MainGroup;
+        private ShaderGroup _mainGroup;
         private RenderQueueProperty _renderQueueProperty;
         private VRCFallbackProperty _vRCFallbackProperty;
 
@@ -49,30 +46,31 @@ namespace Thry
 
         // sates
         private bool _isFirstOnGUICall = true;
-        private bool _wasUsed = false;
         private bool _doReloadNextDraw = false;
         private bool _didSwapToShader = false;
         private bool _didRegisterCallbacks = false;
 
         //EditorData
-        public MaterialEditor Editor;
-        public MaterialProperty[] Properties;
-        public Material[] Materials;
-        public Shader Shader;
-        public Shader LastShader;
-        public ShaderPart CurrentProperty;
-        public Dictionary<string, ShaderProperty> PropertyDictionary;
-        public List<ShaderPart> ShaderParts;
-        public List<ShaderProperty> TextureArrayProperties;
-        public bool IsFirstCall;
         public bool DoUseShaderOptimizer;
-        public bool IsLockedMaterial;
-        public bool IsInAnimationMode;
-        public Renderer ActiveRenderer;
         public string RenamedPropertySuffix;
         public bool HasCustomRenameSuffix;
-        public Localization Locale;
-        public ShaderTranslator SuggestedTranslationDefinition;
+        public bool IsLockedMaterial;
+
+        public MaterialEditor Editor { get; private set; }
+        public MaterialProperty[] Properties { get; private set; }
+        public Material[] Materials { get; private set; }
+        public Shader Shader { get; private set; }
+        public ShaderImporter ImporterShader { get; private set; }
+        public Shader LastShader { get; private set; }
+        public ShaderPart CurrentProperty;
+        public Dictionary<string, ShaderProperty> PropertyDictionary { get; private set; }
+        public List<ShaderPart> ShaderParts { get; private set; }
+        public List<ShaderProperty> TextureArrayProperties { get; private set; }
+        public bool IsFirstCall { get; private set; }
+        public bool IsInAnimationMode { get; private set; }
+        public Renderer ActiveRenderer { get; private set; }
+        public Localization Locale { get; private set; }
+        public ShaderTranslator SuggestedTranslationDefinition { get; private set; }
         private string _duplicatePropertyNamesString = null;
 
         //Shader Versioning
@@ -134,6 +132,22 @@ namespace Thry
                     return Materials[0].name;
                 }
                 return $"{Materials.Length} Materials";
+            }
+        }
+
+        public void SetShader(Shader shader, Shader lastShader = null)
+        {
+            Shader = shader;
+            LastShader = lastShader;
+            ImporterShader = ShaderImporter.GetAtPath(AssetDatabase.GetAssetPath(Shader)) as ShaderImporter;
+        }
+
+        public void ApplySuggestedTranslationDefinition()
+        {
+            if(SuggestedTranslationDefinition != null)
+            {
+                SuggestedTranslationDefinition.Apply(this);
+                SuggestedTranslationDefinition = null;
             }
         }
 
@@ -251,10 +265,10 @@ namespace Thry
 
             PropertyDictionary = new Dictionary<string, ShaderProperty>();
             ShaderParts = new List<ShaderPart>();
-            MainGroup = new ShaderGroup(this); //init top object that all Shader Objects are childs of
+            _mainGroup = new ShaderGroup(this); //init top object that all Shader Objects are childs of
             Stack<ShaderGroup> groupStack = new Stack<ShaderGroup>(); //header stack. used to keep track if editorData header to parent new objects to
-            groupStack.Push(MainGroup); //add top object as top object to stack
-            groupStack.Push(MainGroup); //add top object a second time, because it get's popped with first actual header item
+            groupStack.Push(_mainGroup); //add top object as top object to stack
+            groupStack.Push(_mainGroup); //add top object a second time, because it get's popped with first actual header item
             _footers = new List<FooterButton>(); //init footer list
             int offsetDepthCount = 0;
 
@@ -393,7 +407,7 @@ namespace Thry
             //get material targets
             Materials = Editor.targets.Select(o => o as Material).ToArray();
 
-            Shader = Materials[0].shader;
+            SetShader(Materials[0].shader);
 
             RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
             HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
@@ -407,8 +421,6 @@ namespace Thry
             _vRCFallbackProperty = new VRCFallbackProperty(this);
             ShaderParts.Add(_renderQueueProperty);
             ShaderParts.Add(_vRCFallbackProperty);
-            
-            AddResetProperty();
 
             if(Config.Singleton.forceAsyncCompilationPreview)
             {
@@ -430,16 +442,6 @@ namespace Thry
             if (materialPropertyDictionary.ContainsKey(name))
                 return materialPropertyDictionary[name];
             return null;
-        }
-
-        private void AddResetProperty()
-        {
-            if(!Materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT))
-            {
-                string path = AssetDatabase.GetAssetPath(Materials[0].shader);
-                AddShaderPropertyToSourceCode(path, $"[HideInInspector] {PROPERTY_NAME_EDITOR_DETECT}(\"\", Float)", "0");
-            }
-            Materials[0].SetFloat(PROPERTY_NAME_EDITOR_DETECT, 69);
         }
 
         
@@ -493,6 +495,25 @@ namespace Thry
             _isFirstOnGUICall = true;
         }
 
+        public override void ValidateMaterial(Material material)
+        {
+            base.ValidateMaterial(material);
+            if(Undo.GetCurrentGroupName() == "Reset Material")
+            {
+                if(Active != null && Active.Materials[0] == material)
+                    Active.OnReset();
+            }
+        }
+
+        private void OnReset()
+        {
+            ShaderOptimizer.DeleteTags(Materials);
+            foreach(Material m in Materials)
+                MaterialLinker.UnlinkAll(m);
+            _vRCFallbackProperty?.SetPropertyValue((string)_vRCFallbackProperty.PropertyDefaultValue);
+            _doReloadNextDraw = true;
+        }
+
         public override void AssignNewShaderToMaterial(Material material, Shader oldShader, Shader newShader)
         {
             this.ShaderOptimizerProperty = null;
@@ -508,8 +529,7 @@ namespace Thry
             FixKeywords(new Material[] { material });
             _doReloadNextDraw = true;
             _didSwapToShader = true;
-            LastShader = oldShader;
-            Shader = newShader;
+            SetShader(newShader, oldShader);
         }
 
         void InitEditorData(MaterialEditor materialEditor)
@@ -532,7 +552,6 @@ namespace Thry
 
             //Update Data
             Properties = props;
-            Shader = Materials[0].shader;
             Input.Update(IsLockedMaterial);
             ActiveRenderer = Selection.activeTransform?.GetComponent<Renderer>();
             IsInAnimationMode = AnimationMode.InAnimationMode();
@@ -544,6 +563,7 @@ namespace Thry
             if((Event.current.type == EventType.ExecuteCommand || Event.current.type == EventType.ValidateCommand)
                 && Event.current.commandName == "UndoRedoPerformed")
             {
+                _doReloadNextDraw = true;
                 GUIUtility.ExitGUI();
                 return;
             }
@@ -582,7 +602,7 @@ namespace Thry
             //PROPERTIES
             using ( new DetourMaterialPropertyVariantIcon())
             {
-                foreach (ShaderPart part in MainGroup.Children)
+                foreach (ShaderPart part in _mainGroup.Children)
                 {
                     part.Draw();
                 }
@@ -753,7 +773,7 @@ namespace Thry
             int unboundTextures = MaterialCleaner.CountUnusedProperties(MaterialCleaner.CleanPropertyType.Texture, Materials);
             int unboundProperties = MaterialCleaner.CountAllUnusedProperties(Materials);
             List<string> unusedTextures = new List<string>();
-            MainGroup.FindUnusedTextures(unusedTextures, true);
+            _mainGroup.FindUnusedTextures(unusedTextures, true);
             if (unboundTextures > 0 && !IsLockedMaterial)
             {
                 menu.AddItem(new GUIContent($"Unbound Textures: {unboundTextures}/List in console"), false, delegate ()
@@ -835,11 +855,6 @@ namespace Thry
             //if reloaded, set reload to false
             if (_doReloadNextDraw && Event.current.type == EventType.Layout) _doReloadNextDraw = false;
 
-            //if was undo, reload
-            bool isUndo = (e.type == EventType.ExecuteCommand || e.type == EventType.ValidateCommand) && e.commandName == "UndoRedoPerformed";
-            if (isUndo) _doReloadNextDraw = true;
-
-
             //on swap
             if (_onSwapToActions != null && _didSwapToShader)
             {
@@ -848,18 +863,6 @@ namespace Thry
                 _onSwapToActions = null;
             }
 
-            //test if material has been reset
-            if (_wasUsed && e.type == EventType.Repaint)
-            {
-                if (Materials[0].HasProperty(PROPERTY_NAME_EDITOR_DETECT) && Materials[0].GetFloat(PROPERTY_NAME_EDITOR_DETECT) != 69)
-                {
-                    _doReloadNextDraw = true;
-                    HandleReset();
-                    _wasUsed = true;
-                }
-            }
-
-            if (e.type == EventType.Used) _wasUsed = true;
             if (Input.HadMouseDownRepaint) Input.HadMouseDown = false;
             Input.HadMouseDownRepaint = false;
             IsFirstCall = false;
@@ -882,7 +885,7 @@ namespace Thry
             foreach (ShaderGroup g in _foundGroups)
                 g.SetSearchExpanded(false);
             _foundGroups.Clear();
-            MainGroup.Search(_enteredSearchTerm, _foundGroups);
+            _mainGroup.Search(_enteredSearchTerm, _foundGroups);
             for(int i = 1; i < 11 && i <= _foundGroups.Count; i++)
             {
                 _foundGroups[_foundGroups.Count - i].SetSearchExpanded(true);
@@ -893,12 +896,6 @@ namespace Thry
         {
             _enteredSearchTerm = "";
             UpdateSearch();
-        }
-
-        private void HandleReset()
-        {
-            MaterialLinker.UnlinkAll(Materials[0]);
-            ShaderOptimizer.DeleteTags(Materials);
         }
 
         public void Repaint()

@@ -19,6 +19,14 @@ namespace Thry
             ActiveShaderEditor.Editor.RenderQueueField();
         }
 
+        public override object FetchPropertyValue()
+        {
+            return ActiveShaderEditor.Materials[0].renderQueue;
+        }
+
+        public override object PropertyDefaultValue => ShaderEditor.Active.Shader.renderQueue;
+        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.renderQueue == ShaderEditor.Active.Shader.renderQueue);
+
         public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
@@ -71,6 +79,23 @@ namespace Thry
             }
         }
 
+        public void SetPropertyValue(string value)
+        {
+            foreach (Material m in ActiveShaderEditor.Materials)
+            {
+                m.SetOverrideTag("VRCFallback", value);
+                EditorUtility.SetDirty(m);
+            }
+        }
+
+        public override object FetchPropertyValue()
+        {
+            return ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+        }
+
+        public override object PropertyDefaultValue => "None";
+        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.GetTag("VRCFallback", false, "None") == "None");
+
         public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = sourceM.GetTag("VRCFallback", false, "None");
@@ -97,6 +122,13 @@ namespace Thry
             _doCustomDrawLogic = true;
             IsAnimatable = false;
         }
+
+        public override object FetchPropertyValue()
+        {
+            return ActiveShaderEditor.Materials[0].enableInstancing;
+        }
+        public override object PropertyDefaultValue => false;
+        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.enableInstancing == false);
 
         protected override void DrawDefault()
         {
@@ -180,6 +212,14 @@ namespace Thry
                 }
             }
         }
+
+        public override object FetchPropertyValue()
+        {
+            return ActiveShaderEditor.Materials[0].globalIlluminationFlags;
+        }
+
+        public override object PropertyDefaultValue => MaterialGlobalIlluminationFlags.AnyEmissive;
+        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.globalIlluminationFlags == MaterialGlobalIlluminationFlags.AnyEmissive);
     }
     public class DSGIProperty : ShaderProperty
     {
@@ -193,6 +233,13 @@ namespace Thry
         {
             ActiveShaderEditor.Editor.DoubleSidedGIField();
         }
+
+        public override object FetchPropertyValue()
+        {
+            return ActiveShaderEditor.Materials[0].doubleSidedGI;
+        }
+        public override object PropertyDefaultValue => false;
+        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.doubleSidedGI == false);
     }
     public class LocaleProperty : ShaderProperty
     {

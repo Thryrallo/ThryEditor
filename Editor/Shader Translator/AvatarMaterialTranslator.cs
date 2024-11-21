@@ -279,11 +279,8 @@ namespace Thry.ThryEditor.ShaderTranslations
 
         void TranslateMaterial(Material mat, Shader newShader, ShaderTranslator translator)
         {
-            var shaderEditor = new ShaderEditor()
-            {
-                LastShader = mat.shader,
-                Shader = newShader
-            };
+            var shaderEditor = new ShaderEditor();
+            shaderEditor.SetShader(newShader, mat.shader);
 
             int renderQueue = mat.renderQueue;
 

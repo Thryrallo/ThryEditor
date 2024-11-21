@@ -198,8 +198,15 @@ namespace Thry
             }
         }
 
+        public virtual object FetchPropertyValue()
+        {
+            if(MaterialProperty == null)
+                return null;
+            return MaterialHelper.GetValue(MaterialProperty);
+        }
+
         private object _propertyDefaultValue;
-        public object PropertyDefaultValue { 
+        public virtual object PropertyDefaultValue { 
             get
             {
                 if (_propertyDefaultValue == null)
@@ -217,7 +224,9 @@ namespace Thry
                             _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
                             break;
                         case PropType.Texture:
-                            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(ShaderPropertyIndex);
+                            Texture tex = ShaderEditor.Active.ImporterShader.GetDefaultTexture(MaterialProperty.name);
+                            if(tex != null) _propertyDefaultValue = tex.name;
+                            else            _propertyDefaultValue = ShaderEditor.Active.Shader.GetPropertyTextureDefaultName(ShaderPropertyIndex);
                             break;
 #if UNITY_2022_1_OR_NEWER
                         case PropType.Int:
@@ -256,7 +265,9 @@ namespace Thry
                             _isPropertyValueDefault = (Vector4)PropertyDefaultValue == (Vector4)PropertyValue;
                             break;
                         case PropType.Texture:
-                            _isPropertyValueDefault = PropertyValue == null || (string)PropertyDefaultValue == ((Texture)PropertyValue)?.name;
+                            _isPropertyValueDefault = PropertyValue == null
+                                 || ((Texture)PropertyValue)?.name == (string)PropertyDefaultValue;
+                            if(!_isPropertyValueDefault.Value) Debug.Log($"{MaterialProperty.name} {PropertyDefaultValue} {PropertyValue}");
                             break;
     #if UNITY_2022_1_OR_NEWER
                         case PropType.Int:
@@ -1015,18 +1026,15 @@ namespace Thry
         protected void RaisePropertyValueChanged()
         {
             object previousValue = PropertyValue;
-            PropertyValue = MaterialHelper.GetValue(MaterialProperty);
+            PropertyValue = FetchPropertyValue();
             SetIsPropertyValueDefaultDirty();
             if(PropertyValueChanged != null)
-                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty.type, previousValue, PropertyValue));
+                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty == null ? null : MaterialProperty.type, previousValue, PropertyValue));
         }
 
         public bool CheckForValueChange()
         {
-            if (MaterialProperty == null)
-                return false;
-
-            object newValue = MaterialHelper.GetValue(MaterialProperty);
+            object newValue = FetchPropertyValue();
             if((newValue != null && newValue.Equals(PropertyValue)) || (newValue == null && PropertyValue == null))
                 return false;
 
@@ -1051,10 +1059,10 @@ namespace Thry
     [PublicAPI]
         public class PropertyValueEventArgs : EventArgs
     {
-        public PropType propertyType { get; private set; }
+        public PropType? propertyType { get; private set; }
         public object previousValue { get; private set; }
         public object currentValue { get; private set; }
-        public PropertyValueEventArgs(PropType propertyType, object previousValue, object newValue)
+        public PropertyValueEventArgs(PropType? propertyType, object previousValue, object newValue)
         {
             this.propertyType = propertyType;
             this.previousValue = previousValue;
