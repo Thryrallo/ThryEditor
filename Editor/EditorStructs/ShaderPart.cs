@@ -1029,7 +1029,7 @@ namespace Thry
             PropertyValue = FetchPropertyValue();
             SetIsPropertyValueDefaultDirty();
             if(PropertyValueChanged != null)
-                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty == null ? null : MaterialProperty.type, previousValue, PropertyValue));
+                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty?.type, previousValue, PropertyValue));
         }
 
         public bool CheckForValueChange()
