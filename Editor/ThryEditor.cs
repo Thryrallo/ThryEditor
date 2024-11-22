@@ -822,6 +822,31 @@ namespace Thry
                 menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
             menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Debug/Copy All Material Settings"), false, () =>
+            {
+                string materialString = Materials[0].ToYamlString(false); 
+                if(string.IsNullOrEmpty(materialString))
+                {
+                    Debug.LogError($"Failed to copy material settings to clipboard");
+                    return;
+                }
+
+                EditorGUIUtility.systemCopyBuffer = materialString;
+                Debug.Log($"Copied material settings to clipboard:\n{materialString}");
+            });
+            menu.AddItem(new GUIContent("Debug/Copy Non-Default Material Settings"), false, () =>
+            {
+                string materialString = Materials[0].ToYamlString(true); 
+                if(string.IsNullOrEmpty(materialString))
+                {
+                    Debug.LogError($"Failed to copy material settings to clipboard");
+                    return;
+                }
+
+                EditorGUIUtility.systemCopyBuffer = materialString;
+                Debug.Log($"Copied material settings to clipboard:\n{materialString}");
+            });
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent("Is Preset"), Presets.IsPreset(Materials[0]), delegate ()
             {
                 Presets.SetPreset(Materials, !Presets.IsPreset(Materials[0]));
