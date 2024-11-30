@@ -755,7 +755,7 @@ namespace Thry
 #if UNITY_2022_1_OR_NEWER
             if(Materials[0].isVariant)
             {
-                EditorGUILayout.HelpBox("This material is a variant. It cannot be locked or uploaded to VRChat.", MessageType.Warning);
+                EditorGUILayout.HelpBox("This material is a variant, which isn't supported by Poiyomi at this time.\nThe material cannot be locked or uploaded to VRChat. To continue using this material, clear the Parent box above.", MessageType.Warning);
             }
 #endif
         }
@@ -822,9 +822,9 @@ namespace Thry
                 menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
             menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Debug/Copy All Material Settings"), false, () =>
+            menu.AddItem(new GUIContent("Debug/Copy Non-Default Material Settings"), false, () =>
             {
-                string materialString = Materials[0].ToYamlString(false); 
+                string materialString = MaterialToDebugString.ConvertMaterialToDebugString(this, true);
                 if(string.IsNullOrEmpty(materialString))
                 {
                     Debug.LogError($"Failed to copy material settings to clipboard");
@@ -834,9 +834,9 @@ namespace Thry
                 EditorGUIUtility.systemCopyBuffer = materialString;
                 Debug.Log($"Copied material settings to clipboard:\n{materialString}");
             });
-            menu.AddItem(new GUIContent("Debug/Copy Non-Default Material Settings"), false, () =>
+            menu.AddItem(new GUIContent("Debug/Copy All Material Settings"), false, () =>
             {
-                string materialString = Materials[0].ToYamlString(true); 
+                string materialString = MaterialToDebugString.ConvertMaterialToDebugString(this, false); 
                 if(string.IsNullOrEmpty(materialString))
                 {
                     Debug.LogError($"Failed to copy material settings to clipboard");
