@@ -822,6 +822,10 @@ namespace Thry
                 menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
             menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Debug/Screenshot Material Inspector"),false, () =>
+            {
+                InspectorCapture.CaptureActiveInspector(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            });
             menu.AddItem(new GUIContent("Debug/Copy Non-Default Material Settings"), false, () =>
             {
                 string materialString = MaterialToDebugString.ConvertMaterialToDebugString(this, true);

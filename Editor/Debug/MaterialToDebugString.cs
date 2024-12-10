@@ -18,6 +18,21 @@ namespace Thry
                 public string propertyName;
                 public object propertyValue;
                 public bool propertyValueIsDefault;
+                
+                public int propertyDepth;
+
+                public string IndentString
+                {
+                    get
+                    {
+                        if(_indentString == null)
+                            _indentString = new string(' ', propertyDepth);
+                        return _indentString;
+                    }
+
+                }
+
+                string _indentString;
 
                 public List<MaterialPropertyInfo> childProperties;
 
@@ -25,11 +40,11 @@ namespace Thry
                 public override string ToString()
                 {
                     if(!HasChildren)
-                        return $"{propertyName}: {propertyValue}";
+                        return $"{IndentString}{propertyName}: {propertyValue}";
                     
-                    StringBuilder sb = new StringBuilder($"{propertyName}: {propertyValue}");
+                    StringBuilder sb = new StringBuilder($"{propertyName}: {propertyValue}\n");
                     foreach(var child in childProperties)
-                        sb.AppendLine($"  {child}");
+                        sb.AppendLine($"{child.IndentString}{child}");
                     return sb.ToString();
                 }
             }
@@ -50,6 +65,18 @@ namespace Thry
 
             public MaterialMetaInfo metaInfo;
             public List<MaterialPropertyInfo> materialProperties;
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(metaInfo.ToString());
+                sb.AppendLine();
+                
+                foreach(var child in materialProperties)
+                    sb.AppendLine(child.ToString());
+                
+                return sb.ToString();
+            }
         }
 
         public static string ConvertMaterialToDebugString(Material material, bool onlyNonDefaultProperties)
@@ -75,23 +102,27 @@ namespace Thry
                     materialName = material.name,
                 }
             };
+            
             info.materialProperties = thryEditor.ShaderParts
-                //.Where(x => IsValidShaderPart(x, onlyNonDefaultProperties))
                 .Where(x => x is ShaderGroup)
-                .Select(ShaderPartToMaterialPropertyInfo)
+                .Where(x => IsValidShaderPart(x, onlyNonDefaultProperties))
+                .Select(x => ShaderPartToMaterialPropertyInfo(x, onlyNonDefaultProperties))
                 .ToList();
             
-            return EditorJsonUtility.ToJson(info, true);
+            return info.ToString();
         }
 
         static bool IsValidShaderPart(ShaderPart shaderPart, bool onlyNonDefaultProperties)
         {
-            bool isHidden = shaderPart.IsHidden || (shaderPart.MaterialProperty != null && shaderPart.MaterialProperty.flags.HasFlag(MaterialProperty.PropFlags.HideInInspector));
-            if(isHidden)
+            if(shaderPart.IsHidden)
                 return false;
-
+            if(shaderPart.MaterialProperty == null)
+                return false;
+            if(shaderPart.HasAttribute("HelpBox"))
+                return false;
             if(onlyNonDefaultProperties && ShaderPartIsDefault(shaderPart))
                 return false;
+            
             return true;
         }
 
@@ -102,17 +133,43 @@ namespace Thry
             return part.IsPropertyValueDefault;
         }
 
-        static MaterialDebugInfo.MaterialPropertyInfo ShaderPartToMaterialPropertyInfo(ShaderPart shaderPart)
+        static MaterialDebugInfo.MaterialPropertyInfo ShaderPartToMaterialPropertyInfo(ShaderPart shaderPart, bool onlyNonDefaultProperties)
         {
+            string propertyDisplayName;
+            if(shaderPart.MaterialProperty != null)
+            {
+                int dashIndex = shaderPart.MaterialProperty.displayName.IndexOf("--");
+                if(dashIndex == -1)
+                    propertyDisplayName = shaderPart.MaterialProperty.displayName;
+                else
+                    propertyDisplayName = shaderPart.MaterialProperty.displayName.Substring(0,dashIndex);
+            }
+            else
+            {
+                propertyDisplayName = shaderPart.PropertyIdentifier;
+            }
+
             var partInfo = new MaterialDebugInfo.MaterialPropertyInfo()
             {
-                propertyName = shaderPart.MaterialProperty?.name ?? shaderPart.PropertyIdentifier,
+                propertyName = propertyDisplayName,
                 propertyValue = shaderPart.PropertyValue,
             };
-            
+
+            ShaderPart parentShaderPart = shaderPart.Parent;
+            while(parentShaderPart != null)
+            {
+                parentShaderPart = parentShaderPart.Parent;
+                partInfo.propertyDepth++;
+            }
+
             if(shaderPart is ShaderGroup group && group.Children != null)
-                partInfo.childProperties = group.Children.Select(ShaderPartToMaterialPropertyInfo).ToList();
-            
+            {
+                partInfo.childProperties = group.Children
+                    .Where(x => IsValidShaderPart(x, onlyNonDefaultProperties))
+                    .Select(x => ShaderPartToMaterialPropertyInfo(x, onlyNonDefaultProperties))
+                    .ToList();
+            }
+
             return partInfo;
         }
     }
