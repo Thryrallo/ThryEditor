@@ -407,7 +407,7 @@ namespace Thry
             //get material targets
             Materials = Editor.targets.Select(o => o as Material).ToArray();
 
-            SetShader(Materials[0].shader);
+            SetShader(Materials[0].shader, LastShader);
 
             RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
             HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
