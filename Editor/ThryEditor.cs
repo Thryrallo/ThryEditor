@@ -407,7 +407,7 @@ namespace Thry
             //get material targets
             Materials = Editor.targets.Select(o => o as Material).ToArray();
 
-            SetShader(Materials[0].shader);
+            SetShader(Materials[0].shader, LastShader);
 
             RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(Materials[0]);
             HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
@@ -757,7 +757,7 @@ namespace Thry
 #if UNITY_2022_1_OR_NEWER
             if(Materials[0].isVariant)
             {
-                EditorGUILayout.HelpBox("This material is a variant. It cannot be locked or uploaded to VRChat.", MessageType.Warning);
+                EditorGUILayout.HelpBox("This material is a variant, which isn't supported by Poiyomi at this time.\nThe material cannot be locked or uploaded to VRChat. To continue using this material, clear the Parent box above.", MessageType.Warning);
             }
 #endif
         }
@@ -823,6 +823,35 @@ namespace Thry
             {
                 menu.AddDisabledItem(new GUIContent($"Unbound properties: 0"));
             }
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Debug/Screenshot Material Inspector"),false, () =>
+            {
+                InspectorCapture.CaptureActiveInspector(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
+            });
+            menu.AddItem(new GUIContent("Debug/Copy Non-Default Material Settings"), false, () =>
+            {
+                string materialString = MaterialToDebugString.ConvertMaterialToDebugString(this, true);
+                if(string.IsNullOrEmpty(materialString))
+                {
+                    Debug.LogError($"Failed to copy material settings to clipboard");
+                    return;
+                }
+
+                EditorGUIUtility.systemCopyBuffer = materialString;
+                Debug.Log($"Copied material settings to clipboard:\n{materialString}");
+            });
+            menu.AddItem(new GUIContent("Debug/Copy All Material Settings"), false, () =>
+            {
+                string materialString = MaterialToDebugString.ConvertMaterialToDebugString(this, false); 
+                if(string.IsNullOrEmpty(materialString))
+                {
+                    Debug.LogError($"Failed to copy material settings to clipboard");
+                    return;
+                }
+
+                EditorGUIUtility.systemCopyBuffer = materialString;
+                Debug.Log($"Copied material settings to clipboard:\n{materialString}");
+            });
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("Is Preset"), Presets.IsPreset(Materials[0]), delegate ()
             {
