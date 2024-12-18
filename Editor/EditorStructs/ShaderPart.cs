@@ -267,7 +267,7 @@ namespace Thry
                         case PropType.Texture:
                             _isPropertyValueDefault = PropertyValue == null
                                  || ((Texture)PropertyValue)?.name == (string)PropertyDefaultValue;
-                            if(!_isPropertyValueDefault.Value) Debug.Log($"{MaterialProperty.name} {PropertyDefaultValue} {PropertyValue}");
+                            //if(!_isPropertyValueDefault.Value) Debug.Log($"{MaterialProperty.name} {PropertyDefaultValue} {PropertyValue}");
                             break;
     #if UNITY_2022_1_OR_NEWER
                         case PropType.Int:
@@ -1029,7 +1029,7 @@ namespace Thry
             PropertyValue = FetchPropertyValue();
             SetIsPropertyValueDefaultDirty();
             if(PropertyValueChanged != null)
-                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty == null ? null : MaterialProperty.type, previousValue, PropertyValue));
+                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty?.type, previousValue, PropertyValue));
         }
 
         public bool CheckForValueChange()

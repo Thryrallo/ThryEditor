@@ -119,9 +119,10 @@ namespace Thry
         {
             GetMesh();
 
-            _uvTriangles = new Vector2[_mesh.triangles.Length / 3][];
-            _worldTriangles = new Vector3[_mesh.triangles.Length / 3][];
-            _worldNormals = new Vector3[_mesh.triangles.Length / 3][];
+            int meshTriangleLength = _mesh.triangles.Length;
+            _uvTriangles = new Vector2[meshTriangleLength / 3][];
+            _worldTriangles = new Vector3[meshTriangleLength / 3][];
+            _worldNormals = new Vector3[meshTriangleLength / 3][];
             int[] triangles = _mesh.triangles;
             Vector2[] uvs;
             if(_uvIndex == 1) uvs = _mesh.uv2;
@@ -132,6 +133,9 @@ namespace Thry
             Transform root = _renderer.transform;
             Vector3 inverseScale = new Vector3(1.0f / root.lossyScale.x, 1.0f / root.lossyScale.y, 1.0f / root.lossyScale.z);
             bool isSMR = _renderer is SkinnedMeshRenderer;
+
+            Vector3[] meshNormals = _mesh.normals; // Repeatedly accessing _mesh.normals in a loop is veeeery slow
+            
             for(int i = 0; i < triangles.Length; i += 3)
             {
                 _uvTriangles[i / 3] = new Vector2[3];
@@ -143,12 +147,12 @@ namespace Thry
                     if(isSMR)
                     {
                         _worldTriangles[i / 3][j] = root.TransformPoint(Vector3.Scale(vertices[triangles[i + j]], inverseScale));
-                        _worldNormals[i / 3][j] = root.TransformDirection(_mesh.normals[triangles[i + j]]);
+                        _worldNormals[i / 3][j] = root.TransformDirection(meshNormals[triangles[i + j]]);
                     }
                     else
                     {
                         _worldTriangles[i / 3][j] = root.TransformPoint(vertices[triangles[i + j]]);
-                        _worldNormals[i / 3][j] = _mesh.normals[triangles[i + j]];
+                        _worldNormals[i / 3][j] = meshNormals[triangles[i + j]];
                     }
                 }
             }

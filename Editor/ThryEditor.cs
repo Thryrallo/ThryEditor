@@ -495,6 +495,7 @@ namespace Thry
             _isFirstOnGUICall = true;
         }
 
+        #if UNITY_2021_2_OR_NEWER
         public override void ValidateMaterial(Material material)
         {
             base.ValidateMaterial(material);
@@ -504,6 +505,7 @@ namespace Thry
                     Active.OnReset();
             }
         }
+        #endif
 
         private void OnReset()
         {
