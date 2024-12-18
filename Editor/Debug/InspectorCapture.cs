@@ -43,7 +43,11 @@ namespace Thry
             var finalPath = $"{saveDirectory}/{filename}";
             if(Directory.Exists(saveDirectory))
             {
+                #if UNITY_2021_1_OR_NEWER
                 await File.WriteAllBytesAsync(finalPath, bytes);
+                #else
+                File.WriteAllBytes(finalPath, bytes);
+                #endif
                 Debug.Log($"Saved screenshot to {finalPath}");
             }
             else
