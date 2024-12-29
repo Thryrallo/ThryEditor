@@ -133,7 +133,10 @@ namespace Thry
             {
                 _content = value;
                 if(string.IsNullOrWhiteSpace(value.text))
+                {
+                    _contentNonDefault = GUIContent.none;
                     return;
+                }
                 _contentNonDefault = new GUIContent(value.text + '*');
             }
             get
