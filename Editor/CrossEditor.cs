@@ -163,7 +163,7 @@ namespace Thry
         {
             if (_shaderEditor != null) return;
 
-            _shaderEditor = new ShaderEditor();
+            _shaderEditor = new ShaderEditor(){ IsCrossEditor = true };
             _materialEditor = Editor.CreateEditor(_targets.ToArray()) as MaterialEditor;
 
             // group targets by shader, take one material per shader

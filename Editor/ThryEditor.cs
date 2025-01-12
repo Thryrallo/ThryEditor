@@ -55,6 +55,7 @@ namespace Thry
         public string RenamedPropertySuffix;
         public bool HasCustomRenameSuffix;
         public bool IsLockedMaterial;
+        public bool IsCrossEditor = false;
 
         public MaterialEditor Editor { get; private set; }
         public MaterialProperty[] Properties { get; private set; }
@@ -140,6 +141,18 @@ namespace Thry
             Shader = shader;
             LastShader = lastShader;
             ImporterShader = ShaderImporter.GetAtPath(AssetDatabase.GetAssetPath(Shader)) as ShaderImporter;
+        }
+
+        static Dictionary<Shader, ShaderImporter> shaderImporterCache = new Dictionary<Shader, ShaderImporter>();
+        public ShaderImporter GetShaderImporter(Shader shader)
+        {
+            if(shaderImporterCache.ContainsKey(shader))
+            {
+                return shaderImporterCache[shader];
+            }
+            ShaderImporter importer = ShaderImporter.GetAtPath(AssetDatabase.GetAssetPath(shader)) as ShaderImporter;
+            shaderImporterCache.Add(shader, importer);
+            return importer;
         }
 
         public void ApplySuggestedTranslationDefinition()
