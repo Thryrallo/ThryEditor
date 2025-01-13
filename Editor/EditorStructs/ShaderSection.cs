@@ -21,7 +21,7 @@ namespace Thry
                 GUILayoutUtility.GetRect(0, Options.margin_top);
             }
 
-            ShaderProperty reference = Options.reference_property != null ? ActiveShaderEditor.PropertyDictionary[Options.reference_property] : null;
+            ShaderProperty reference = Options.reference_property != null ? MyShaderUI.PropertyDictionary[Options.reference_property] : null;
             bool has_header = string.IsNullOrWhiteSpace(this.Content.text) == false || reference != null;
 
             int headerTextX = 18;

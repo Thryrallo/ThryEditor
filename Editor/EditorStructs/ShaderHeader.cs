@@ -19,7 +19,7 @@ namespace Thry
 
         protected override void DrawInternal(GUIContent content, Rect? rect = null, bool useEditorIndent = false, bool isInHeader = false)
         {
-            ActiveShaderEditor.CurrentProperty = this;
+            MyShaderUI.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
             Rect position = GUILayoutUtility.GetRect(content, Styles.dropDownHeader);
             DrawHeader(position, content);
@@ -152,7 +152,7 @@ namespace Thry
                 if (GUILib.Button(rect, Styles.icon_style_presets))
                 {
                     ShaderEditor.Input.Use();
-                    Presets.OpenPresetsMenu(rect, ActiveShaderEditor, true, this.MaterialProperty.name);
+                    Presets.OpenPresetsMenu(rect, MyShaderUI, true, this.MaterialProperty.name);
                 }
             }
         }

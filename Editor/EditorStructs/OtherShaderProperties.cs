@@ -16,24 +16,24 @@ namespace Thry
 
         protected override void DrawDefault()
         {
-            ActiveShaderEditor.Editor.RenderQueueField();
+            MyShaderUI.Editor.RenderQueueField();
         }
 
         public override object FetchPropertyValue()
         {
-            return ActiveShaderEditor.Materials[0].renderQueue;
+            return MyShaderUI.Materials[0].renderQueue;
         }
 
         public override object PropertyDefaultValue => ShaderEditor.Active.Shader.renderQueue;
-        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.renderQueue == ShaderEditor.Active.Shader.renderQueue);
+        public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.renderQueue == ShaderEditor.Active.Shader.renderQueue);
 
         public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            foreach (Material m in ActiveShaderEditor.Materials) m.renderQueue = sourceM.renderQueue;
+            foreach (Material m in MyShaderUI.Materials) m.renderQueue = sourceM.renderQueue;
         }
         public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            foreach (Material m in targetsM) m.renderQueue = ActiveShaderEditor.Materials[0].renderQueue;
+            foreach (Material m in targetsM) m.renderQueue = MyShaderUI.Materials[0].renderQueue;
         }
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
@@ -66,12 +66,12 @@ namespace Thry
 
         protected override void DrawDefault()
         {
-            string current = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+            string current = MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
             EditorGUI.BeginChangeCheck();
             int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
             if (EditorGUI.EndChangeCheck())
             {
-                foreach (Material m in ActiveShaderEditor.Materials)
+                foreach (Material m in MyShaderUI.Materials)
                 {
                     m.SetOverrideTag("VRCFallback", s_vRCFallbackOptionsValues[selected]);
                     EditorUtility.SetDirty(m);
@@ -81,7 +81,7 @@ namespace Thry
 
         public void SetPropertyValue(string value)
         {
-            foreach (Material m in ActiveShaderEditor.Materials)
+            foreach (Material m in MyShaderUI.Materials)
             {
                 m.SetOverrideTag("VRCFallback", value);
                 EditorUtility.SetDirty(m);
@@ -90,20 +90,20 @@ namespace Thry
 
         public override object FetchPropertyValue()
         {
-            return ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+            return MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
         }
 
         public override object PropertyDefaultValue => "None";
-        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.GetTag("VRCFallback", false, "None") == "None");
+        public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.GetTag("VRCFallback", false, "None") == "None");
 
         public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = sourceM.GetTag("VRCFallback", false, "None");
-            foreach (Material m in ActiveShaderEditor.Materials) m.SetOverrideTag("VRCFallback", value);
+            foreach (Material m in MyShaderUI.Materials) m.SetOverrideTag("VRCFallback", value);
         }
         public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            string value = ActiveShaderEditor.Materials[0].GetTag("VRCFallback", false, "None");
+            string value = MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
             foreach (Material m in targetsM) m.SetOverrideTag("VRCFallback", value);
         }
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
@@ -125,14 +125,14 @@ namespace Thry
 
         public override object FetchPropertyValue()
         {
-            return ActiveShaderEditor.Materials[0].enableInstancing;
+            return MyShaderUI.Materials[0].enableInstancing;
         }
         public override object PropertyDefaultValue => false;
-        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.enableInstancing == false);
+        public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.enableInstancing == false);
 
         protected override void DrawDefault()
         {
-            ActiveShaderEditor.Editor.EnableInstancingField();
+            MyShaderUI.Editor.EnableInstancingField();
         }
     }
     public class GIProperty : ShaderProperty
@@ -183,11 +183,11 @@ namespace Thry
         {
             // Calculate isMixed
             MaterialGlobalIlluminationFlags any_em = MaterialGlobalIlluminationFlags.AnyEmissive;
-            MaterialGlobalIlluminationFlags giFlags = ActiveShaderEditor.Materials[0].globalIlluminationFlags & any_em;
+            MaterialGlobalIlluminationFlags giFlags = MyShaderUI.Materials[0].globalIlluminationFlags & any_em;
             bool isMixed = false;
-            for (int i = 1; i < ActiveShaderEditor.Materials.Length; i++)
+            for (int i = 1; i < MyShaderUI.Materials.Length; i++)
             {
-                if ((ActiveShaderEditor.Materials[i].globalIlluminationFlags & any_em) != giFlags)
+                if ((MyShaderUI.Materials[i].globalIlluminationFlags & any_em) != giFlags)
                 {
                     isMixed = true;
                     break;
@@ -203,7 +203,7 @@ namespace Thry
 
             // Apply flags. But only the part that this tool modifies (RealtimeEmissive, BakedEmissive, None)
             bool applyFlags = EditorGUI.EndChangeCheck();
-            foreach (Material mat in ActiveShaderEditor.Materials)
+            foreach (Material mat in MyShaderUI.Materials)
             {
                 mat.globalIlluminationFlags = applyFlags ? giFlags : mat.globalIlluminationFlags;
                 if (!ignoreEmissionColor)
@@ -215,11 +215,11 @@ namespace Thry
 
         public override object FetchPropertyValue()
         {
-            return ActiveShaderEditor.Materials[0].globalIlluminationFlags;
+            return MyShaderUI.Materials[0].globalIlluminationFlags;
         }
 
         public override object PropertyDefaultValue => MaterialGlobalIlluminationFlags.AnyEmissive;
-        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.globalIlluminationFlags == MaterialGlobalIlluminationFlags.AnyEmissive);
+        public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.globalIlluminationFlags == MaterialGlobalIlluminationFlags.AnyEmissive);
     }
     public class DSGIProperty : ShaderProperty
     {
@@ -231,15 +231,15 @@ namespace Thry
 
         protected override void DrawDefault()
         {
-            ActiveShaderEditor.Editor.DoubleSidedGIField();
+            MyShaderUI.Editor.DoubleSidedGIField();
         }
 
         public override object FetchPropertyValue()
         {
-            return ActiveShaderEditor.Materials[0].doubleSidedGI;
+            return MyShaderUI.Materials[0].doubleSidedGI;
         }
         public override object PropertyDefaultValue => false;
-        public override bool IsPropertyValueDefault => ActiveShaderEditor.Materials.All(m => m.doubleSidedGI == false);
+        public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.doubleSidedGI == false);
     }
     public class LocaleProperty : ShaderProperty
     {

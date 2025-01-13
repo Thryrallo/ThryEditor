@@ -51,7 +51,7 @@ namespace Thry
         protected override void DrawDefault()
         {
             Rect pos = GUILayoutUtility.GetRect(Content, Styles.vectorPropertyStyle);
-            GUILib.ConfigTextureProperty(pos, MaterialProperty, Content, ActiveShaderEditor.Editor, hasFoldoutProperties);
+            GUILib.ConfigTextureProperty(pos, MaterialProperty, Content, MyMaterialEditor, hasFoldoutProperties);
             DrawingData.LastGuiObjectRect = pos;
         }
     }

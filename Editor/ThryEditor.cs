@@ -143,16 +143,31 @@ namespace Thry
             ImporterShader = ShaderImporter.GetAtPath(AssetDatabase.GetAssetPath(Shader)) as ShaderImporter;
         }
 
-        static Dictionary<Shader, ShaderImporter> shaderImporterCache = new Dictionary<Shader, ShaderImporter>();
+        // Needed for the CrossEditor
+        static Dictionary<Shader, ShaderImporter> s_shaderImporterCache = new Dictionary<Shader, ShaderImporter>();
         public ShaderImporter GetShaderImporter(Shader shader)
         {
-            if(shaderImporterCache.ContainsKey(shader))
+            if(s_shaderImporterCache.ContainsKey(shader))
             {
-                return shaderImporterCache[shader];
+                return s_shaderImporterCache[shader];
             }
             ShaderImporter importer = ShaderImporter.GetAtPath(AssetDatabase.GetAssetPath(shader)) as ShaderImporter;
-            shaderImporterCache.Add(shader, importer);
+            s_shaderImporterCache.Add(shader, importer);
             return importer;
+        }
+
+        // Needed for the CrossEditor
+        Dictionary<string, MaterialEditor> s_editorCache = new Dictionary<string, MaterialEditor>();
+        public MaterialEditor GetMaterialEditor(UnityEngine.Object[] targets)
+        {
+            string key = string.Join(",", targets.Select(t => t.name));
+            if(s_editorCache.ContainsKey(key))
+            {
+                return s_editorCache[key];
+            }
+            MaterialEditor editor = MaterialEditor.CreateEditor(targets) as MaterialEditor;
+            s_editorCache.Add(key, editor);
+            return editor;
         }
 
         public void ApplySuggestedTranslationDefinition()

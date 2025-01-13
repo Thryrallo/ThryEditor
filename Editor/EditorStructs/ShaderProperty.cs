@@ -125,7 +125,7 @@ namespace Thry
             MaterialHelper.CopyValue(src, MaterialProperty);
             CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
-            if (Keyword != null) SetKeywordState(ActiveShaderEditor.Materials, src.GetNumber(MaterialProperty) == 1);
+            if (Keyword != null) SetKeywordState(MyShaderUI.Materials, src.GetNumber(MaterialProperty) == 1);
             if (IsAnimatable)
             {
                 ShaderOptimizer.CopyAnimatedTag(src, MaterialProperty);
@@ -134,7 +134,7 @@ namespace Thry
 
             ExecuteOnValueActions(ShaderEditor.Active.Materials);
             RaisePropertyValueChanged();
-            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
@@ -148,7 +148,7 @@ namespace Thry
             MaterialHelper.CopyValue(src.MaterialProperty, MaterialProperty);
             CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
-            if (Keyword != null) SetKeywordState(ActiveShaderEditor.Materials, (src.MaterialProperty.targets[0] as Material).GetNumber(MaterialProperty) == 1);
+            if (Keyword != null) SetKeywordState(MyShaderUI.Materials, (src.MaterialProperty.targets[0] as Material).GetNumber(MaterialProperty) == 1);
             if (IsAnimatable)
             {
                 ShaderOptimizer.CopyAnimatedTag(src.MaterialProperty, MaterialProperty);
@@ -157,7 +157,7 @@ namespace Thry
 
             ExecuteOnValueActions(ShaderEditor.Active.Materials);
             RaisePropertyValueChanged();
-            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
         public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
@@ -215,7 +215,7 @@ namespace Thry
 
         public void UpdateKeywordFromValue()
         {
-            if (Keyword != null) SetKeywordState(ActiveShaderEditor.Materials, MaterialProperty.GetNumber() == 1);
+            if (Keyword != null) SetKeywordState(MyShaderUI.Materials, MaterialProperty.GetNumber() == 1);
         }
 
         private static ShaderProperty _activeProperty;
@@ -246,7 +246,7 @@ namespace Thry
             _needsDrawerInitlization = false;
             // Makes Drawers and Decorators Register themself
             _activeProperty = this;
-            ShaderEditor.Active.Editor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
+            MyMaterialEditor.GetPropertyHeight(MaterialProperty, MaterialProperty.displayName);
             _activeProperty = null;
 
             if (MaterialProperty.type == MaterialProperty.PropType.Vector && _doForceIntoOneLine == false)
@@ -290,10 +290,10 @@ namespace Thry
             if(content == null)
                 content = GUIContent.none;
             
-            ActiveShaderEditor.CurrentProperty = this;
+            MyShaderUI.CurrentProperty = this;
             InitializeDrawers();
             PreDraw();
-            if (ActiveShaderEditor.IsLockedMaterial)
+            if (MyShaderUI.IsLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !IsExemptFromLockedDisabling);
 
             int oldIndentLevel = EditorGUI.indentLevel;
@@ -304,8 +304,13 @@ namespace Thry
             {
                 for (int i = 0; i < _customDecoratorRects.Length; i++)
                 {
-                    _customDecoratorRects[i] = EditorGUILayout.GetControlRect(false, GUILayout.Height(_customDecorators[i].GetPropertyHeight(MaterialProperty, content.text, ActiveShaderEditor.Editor)));
+                    _customDecoratorRects[i] = EditorGUILayout.GetControlRect(false, GUILayout.Height(_customDecorators[i].GetPropertyHeight(MaterialProperty, content.text, MyMaterialEditor)));
                 }
+            }
+
+            if(MaterialProperty?.name == "_EnableGrabpass")
+            {
+                Debug.Log(string.Join(",", MyShader.GetPropertyAttributes(ShaderPropertyIndex)));
             }
 
             EditorGUI.BeginChangeCheck();
@@ -318,23 +323,23 @@ namespace Thry
                 Rect r = GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle);
                 float labelWidth = (r.width - EditorGUIUtility.labelWidth) / 2; ;
                 r.width -= labelWidth;
-                ActiveShaderEditor.Editor.ShaderProperty(r, this.MaterialProperty, content);
+                MyMaterialEditor.ShaderProperty(r, this.MaterialProperty, content);
 
                 r.x += r.width;
                 r.width = labelWidth;
                 float prevLabelW = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = 0;
-                ActiveShaderEditor.PropertyDictionary[Options.reference_property].Draw(r, new GUIContent());
+                MyShaderUI.PropertyDictionary[Options.reference_property].Draw(r, new GUIContent());
                 EditorGUIUtility.labelWidth = prevLabelW;
             }
             else if (_doForceIntoOneLine)
             {
-                ActiveShaderEditor.Editor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.MaterialProperty, content);
+                MyMaterialEditor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.MaterialProperty, content);
             }
             else if (_doCustomHeightOffset)
             {
-                ActiveShaderEditor.Editor.ShaderProperty(
-                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, ActiveShaderEditor.Editor.GetPropertyHeight(this.MaterialProperty, content.text) + _customHeightOffset)
+                MyMaterialEditor.ShaderProperty(
+                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, MyMaterialEditor.GetPropertyHeight(this.MaterialProperty, content.text) + _customHeightOffset)
                     , this.MaterialProperty, content);
             }
             else if (rect != null)
@@ -346,19 +351,19 @@ namespace Thry
                 }
                 else
                 {
-                    ActiveShaderEditor.Editor.ShaderProperty(rect.Value, this.MaterialProperty, content);
+                    MyMaterialEditor.ShaderProperty(rect.Value, this.MaterialProperty, content);
                 }
             }
             else
             {
-                ActiveShaderEditor.Editor.ShaderProperty(this.MaterialProperty, content);
+                MyMaterialEditor.ShaderProperty(this.MaterialProperty, content);
             }
 
             if (_customDecorators != null && _doCustomDrawLogic)
             {
                 for (int i = 0; i < _customDecorators.Count; i++)
                 {
-                    _customDecorators[i].OnGUI(_customDecoratorRects[i], MaterialProperty, content, ShaderEditor.Active.Editor);
+                    _customDecorators[i].OnGUI(_customDecoratorRects[i], MaterialProperty, content, MyMaterialEditor);
                 }
             }
 
@@ -373,17 +378,17 @@ namespace Thry
             EditorGUI.indentLevel = oldIndentLevel;
             if (rect == null) DrawingData.LastGuiObjectRect = GUILayoutUtility.GetLastRect();
             else DrawingData.LastGuiObjectRect = rect.Value;
-            if (ActiveShaderEditor.IsLockedMaterial)
+            if (MyShaderUI.IsLockedMaterial)
                 EditorGUI.EndDisabledGroup();
         }
 
         private void AutomaticAnimatedMarking()
         {
-            if (ActiveShaderEditor.ActiveRenderer != null && ActiveShaderEditor.IsInAnimationMode && IsAnimatable && !IsAnimated)
+            if (MyShaderUI.ActiveRenderer != null && MyShaderUI.IsInAnimationMode && IsAnimatable && !IsAnimated)
             {
                 if (MaterialProperty.type == MaterialProperty.PropType.Texture ?
-                    AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x") :
-                    AnimationMode.IsPropertyAnimated(ActiveShaderEditor.ActiveRenderer, "material." + MaterialProperty.name))
+                    AnimationMode.IsPropertyAnimated(MyShaderUI.ActiveRenderer, "material." + MaterialProperty.name + "_ST.x") :
+                    AnimationMode.IsPropertyAnimated(MyShaderUI.ActiveRenderer, "material." + MaterialProperty.name))
                     SetAnimated(true, false);
             }
         }

@@ -124,7 +124,7 @@ namespace Thry
                 foreach (ShaderPart p in Children)
                     p.CopyFrom(src, false, true, skipPropertyTypes, skipPropertyNames);
 
-            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
@@ -138,7 +138,7 @@ namespace Thry
             for (int i = 0; deepCopy && i < src.Children.Count && i < Children.Count; i++)
                 Children[i].CopyFrom(src.Children[i], false, true, skipPropertyTypes, skipPropertyNames);
 
-            if (applyDrawers) ActiveShaderEditor.ApplyDrawers();
+            if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
         public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
