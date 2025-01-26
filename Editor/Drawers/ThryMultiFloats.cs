@@ -1,3 +1,4 @@
+using PlasticGui.Help;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,24 +34,33 @@ namespace Thry
             contentR.x += labelR.width;
 
             for (int i = 0; i < _otherProperties.Length; i++)
-                _otherMaterialProps[i] = ShaderEditor.Active.PropertyDictionary[_otherProperties[i]].MaterialProperty;
-            EditorGUI.BeginChangeCheck();
-
-            EditorGUI.LabelField(labelR, label);
-            int indentLevel = EditorGUI.indentLevel; //else it double indents
-            EditorGUI.indentLevel = 0;
-            PropGUI(prop, contentR, 0);
-            if (ShaderEditor.Active.IsInAnimationMode)
-                MaterialEditor.PrepareMaterialPropertiesForAnimationMode(_otherMaterialProps, true);
-            for (int i = 0; i < _otherProperties.Length; i++)
             {
-                PropGUI(_otherMaterialProps[i], contentR, i + 1);
+                var sProp = ShaderEditor.Active.PropertyDictionary[_otherProperties[i]];
+                sProp.UpdatedMaterialPropertyReference();
+                _otherMaterialProps[i] = sProp.MaterialProperty;
             }
-            EditorGUI.indentLevel = indentLevel;
+
+            bool anyChanged;
+            using (var change_scope = new EditorGUI.ChangeCheckScope())
+            {
+                using(var temp_indent = new GUILib.IndentOverrideScope(0))
+                {
+                    PropGUI(prop, editor, contentR, 0);
+                    editor.EndAnimatedCheck();
+                    for (int i = 0; i < _otherProperties.Length; i++)
+                    {
+                        PropGUI(_otherMaterialProps[i], editor, contentR, i + 1);
+                    }
+                    editor.BeginAnimatedCheck(prop);
+                }
+
+                anyChanged = change_scope.changed;
+            }
 
             //If edited in animation mode mark as animated (needed cause other properties isnt checked in draw)
-            if (EditorGUI.EndChangeCheck() && ShaderEditor.Active.IsInAnimationMode && !ShaderEditor.Active.CurrentProperty.IsAnimated)
+            if (anyChanged && ShaderEditor.Active.IsInAnimationMode && !ShaderEditor.Active.CurrentProperty.IsAnimated)
                 ShaderEditor.Active.CurrentProperty.SetAnimated(true, false);
+
             //make sure all are animated together
             bool animated = ShaderEditor.Active.CurrentProperty.IsAnimated;
             bool renamed = ShaderEditor.Active.CurrentProperty.IsRenaming;
@@ -58,19 +68,25 @@ namespace Thry
                 ShaderEditor.Active.PropertyDictionary[_otherProperties[i]].SetAnimated(animated, renamed);
         }
 
-        void PropGUI(MaterialProperty prop, Rect contentRect, int index)
+        void PropGUI(MaterialProperty prop, MaterialEditor editor, Rect contentRect, int index)
         {
             contentRect.x += contentRect.width * index;
             contentRect.width -= 5;
-
-            float val = prop.floatValue;
-            EditorGUI.showMixedValue = prop.hasMixedValue;
-            EditorGUI.BeginChangeCheck();
-            if (_displayAsToggles) val = EditorGUI.Toggle(contentRect, val == 1) ? 1 : 0;
-            else val = EditorGUI.FloatField(contentRect, val);
-            if (EditorGUI.EndChangeCheck())
+            
+            using (new GUILib.AnimationScope(editor, prop))
             {
-                prop.floatValue = val;
+                using(var change_scope = new EditorGUI.ChangeCheckScope())
+                {
+                    float val = prop.floatValue;
+                    EditorGUI.showMixedValue = prop.hasMixedValue;
+                    if (_displayAsToggles) val = EditorGUI.Toggle(contentRect, val == 1) ? 1 : 0;
+                    else val = EditorGUI.FloatField(contentRect, val);
+
+                    if(change_scope.changed)
+                    {
+                        prop.floatValue = val;
+                    }
+                }
             }
         }
 

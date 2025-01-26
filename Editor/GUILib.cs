@@ -622,6 +622,36 @@ namespace Thry
             }
         }
 
+        public class IndentOverrideScope : IDisposable
+        {
+            int _prev;
+            public IndentOverrideScope(int indent)
+            {
+                _prev = EditorGUI.indentLevel;
+                EditorGUI.indentLevel = indent;
+            }
+
+            public void Dispose()
+            {
+                EditorGUI.indentLevel = _prev;
+            }
+        }
+
+        public class AnimationScope : IDisposable
+        {
+            MaterialEditor _editor;
+            public AnimationScope(MaterialEditor editor, MaterialProperty prop)
+            {
+                _editor = editor;
+                _editor.BeginAnimatedCheck(prop);
+            }
+
+            public void Dispose()
+            {
+                _editor.EndAnimatedCheck();
+            }
+        }
+
         public static bool Button(Rect r, GUIStyle style)
         {
             return GUI.Button(r, GUIContent.none, style);

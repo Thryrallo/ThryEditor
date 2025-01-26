@@ -321,7 +321,7 @@ namespace Thry
             this.Tooltip.SetText(tooltip);
         }
 
-        protected void UpdatedMaterialPropertyReference()
+        public void UpdatedMaterialPropertyReference()
         {
             if(ThryPropertyIndex != -1)
                 this.MaterialProperty = MyShaderUI.Properties[ThryPropertyIndex];

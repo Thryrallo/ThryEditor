@@ -308,11 +308,6 @@ namespace Thry
                 }
             }
 
-            if(MaterialProperty?.name == "_EnableGrabpass")
-            {
-                Debug.Log(string.Join(",", MyShader.GetPropertyAttributes(ShaderPropertyIndex)));
-            }
-
             EditorGUI.BeginChangeCheck();
             if (_doCustomDrawLogic)
             {
