@@ -5,11 +5,12 @@ using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
 using Thry.ThryEditor;
+using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
 using static UnityEditor.MaterialProperty;
 
-namespace Thry
+namespace Thry.ThryEditor
 {
     public class InputEvent
     {

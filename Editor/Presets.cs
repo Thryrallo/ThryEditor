@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
 
@@ -502,7 +503,7 @@ namespace Thry.ThryEditor
                 {
                     if (IsPreset(preset, part))
                     {
-                        part.CopyFrom(copyFrom);
+                        part.CopyFrom(copyFrom, applyDrawers: false);
                     }
                 }
             }else if(parent is ShaderGroup)
@@ -523,7 +524,7 @@ namespace Thry.ThryEditor
                 }
                 if (IsPreset(preset, part))
                 {
-                    part.CopyFrom(copyFrom);
+                    part.CopyFrom(copyFrom, applyDrawers: false);
                 }
             }
         }

@@ -47,9 +47,11 @@ using VRC.SDKBase.Editor.BuildPipeline;
 #if VRC_SDK_VRCSDK3 && !UDON
 using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 using VRC.SDK3.Avatars.Components;
+using Thry.ThryEditor.Helpers;
+using Thry.ThryEditor.Drawers;
 #endif
 
-namespace Thry
+namespace Thry.ThryEditor
 {
     
     public enum LightMode

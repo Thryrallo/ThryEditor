@@ -4,11 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
-namespace Thry
+namespace Thry.ThryEditor
 {
     public abstract class ModuleSettings
     {
@@ -71,7 +72,7 @@ namespace Thry
             _is_init = true;
 
             if (thry_message == null)
-                WebHelper.DownloadStringASync(Thry.URL.SETTINGS_MESSAGE_URL, (Action<string>)delegate (string s) { thry_message = Parser.Deserialize<ButtonData>(s);});
+                WebHelper.DownloadStringASync(URL.SETTINGS_MESSAGE_URL, (Action<string>)delegate (string s) { thry_message = Parser.Deserialize<ButtonData>(s);});
         }
 
         //------------------Main GUI

@@ -2,15 +2,16 @@
 // Copyright (C) 2019 Thryrallo
 
 using System.IO;
+using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
 
-namespace Thry
+namespace Thry.ThryEditor
 {
     public class Config
     {
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.62.5";
+        private const string VERSION = "2.62.6";
 
         private static Config config;
 
