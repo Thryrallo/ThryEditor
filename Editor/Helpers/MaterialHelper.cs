@@ -170,6 +170,13 @@ namespace Thry.ThryEditor.Helpers
             CopyValue(source, MaterialEditor.GetMaterialProperty(targets, source.name));
         }
 
+        public static object GetValue(Material material, string propertyName)
+        {
+            if (!material.HasProperty(propertyName)) return null;
+            MaterialProperty property = MaterialEditor.GetMaterialProperty(new Material[] { material }, propertyName);
+            return GetValue(property);
+        }
+
         public static object GetValue(MaterialProperty property)
         {
             switch (property.type)

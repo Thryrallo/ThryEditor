@@ -142,7 +142,10 @@ namespace Thry.ThryEditor.Drawers
             return base.GetPropertyHeight(prop, label, editor);
         }
     }
+}
 
+namespace Thry
+{
     public enum ColorMask
     {
         None,

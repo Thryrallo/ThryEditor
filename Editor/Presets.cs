@@ -27,6 +27,17 @@ namespace Thry.ThryEditor
             public Material preset;
             public Material prePresetState;
             public ShaderPart parent;
+
+            public static AppliedPreset Create(string name, Material preset, Material currentState, ShaderPart parent)
+            {
+                AppliedPreset appliedPreset = new AppliedPreset();
+                appliedPreset.name = name;
+                appliedPreset.preset = preset;
+                appliedPreset.prePresetState = new Material(currentState);
+                appliedPreset.prePresetState.name = "Before " + name;
+                appliedPreset.parent = parent;
+                return appliedPreset;
+            }
         }
 
         static Dictionary<Material, AppliedPreset> s_appliedPresets = new Dictionary<Material, AppliedPreset>();
@@ -155,8 +166,6 @@ namespace Thry.ThryEditor
             {
                 CreatePresetCache();
             }
-            // Log time
-            // Debug.Log($"Presets: {p_presetNames.Length} presets found in {System.DateTime.Now - time}");
         }
 
         static void CreatePresetCache()
@@ -241,7 +250,7 @@ namespace Thry.ThryEditor
                         RemovePreset(material);
                         AddPreset(material);
                     }
-                    // Debug.Log($"OnPostprocessAllAssets: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
+                    ThryDebug.Detail($"Presets OnPostprocessAllAssets: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
                     KnownMaterials.Add(AssetDatabase.AssetPathToGUID(asset));
                 }
             }
@@ -306,7 +315,7 @@ namespace Thry.ThryEditor
                         
                         if(!PresetCollections[collectionName].Guids.Contains(guid))
                         {
-                            //Debug.Log($"AddPreset: {name} ({guid})");
+                            ThryDebug.Detail($"AddPreset: {name} ({guid})");
                             PresetCollections[collectionName].Names.Add(name);
                             PresetCollections[collectionName].Guids.Add(guid);
                         }
@@ -318,7 +327,7 @@ namespace Thry.ThryEditor
                 string name = material.GetTag(TAG_PRESET_NAME, false, material.name).Replace(';', '_');
                 if(!PresetCollections["_full_"].Guids.Contains(guid))
                 {
-                    //Debug.Log($"AddPreset: {name} ({guid})");
+                    ThryDebug.Detail($"AddPreset: {name} ({guid})");
                     PresetCollections["_full_"].Names.Add(name);
                     PresetCollections["_full_"].Guids.Add(guid);
                 }
@@ -347,7 +356,7 @@ namespace Thry.ThryEditor
                     // if guid matches, remove from collection
                     if(collection.Value.Guids[i] == guid)
                     {
-                        //Debug.Log($"RemovePreset: {collection.Value.Names[i]} ({guid})");
+                        ThryDebug.Detail($"RemovePreset: {collection.Value.Names[i]} ({guid})");
                         collection.Value.Guids.RemoveAt(i);
                         collection.Value.Names.RemoveAt(i);
                         break;
@@ -396,7 +405,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                // Debug.Log($"Open Quick Presets Menu: {collection} ({PresetCollections[collection].Names.Count} presets)");
+                ThryDebug.Log($"Open Quick Presets Menu: {collection} ({PresetCollections[collection].Names.Count} presets)");
                 EditorUtility.DisplayCustomMenu(r, 
                     PresetCollections[collection].Names.Select(s => new GUIContent(s)).ToArray(), -1, 
                     ApplyQuickPreset, new object[]{shaderEditor, collection, shaderEditor.CurrentProperty});
@@ -405,7 +414,7 @@ namespace Thry.ThryEditor
 
         static void ApplyQuickPreset(object userData, string[] options, int selected)
         {
-            // Debug.Log($"Apply Quick Preset: {options[selected]}");
+            ThryDebug.Log($"Apply quick preset '{options[selected]}'");
             ShaderEditor shaderEditor = (userData as object[])[0] as ShaderEditor;
             string collection = (userData as object[])[1] as string;
             ShaderPart parent = (userData as object[])[2] as ShaderPart;
@@ -459,7 +468,7 @@ namespace Thry.ThryEditor
             string guid = PresetCollections[collection].Guids[PresetCollections[collection].Names.IndexOf(name)];
             Material preset = GetPresetMaterial(guid);
 
-            s_appliedPresets[key] = new AppliedPreset(){ name=name, preset = preset, prePresetState = new Material(shaderEditor.Materials[0]), parent = parent};
+            s_appliedPresets[key] = AppliedPreset.Create(name, preset, shaderEditor.Materials[0], parent);
             ApplyPresetInternal(shaderEditor, preset, preset, parent);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
@@ -470,7 +479,7 @@ namespace Thry.ThryEditor
             Material key = shaderEditor.Materials[0];
             AppliedPreset appliedPreset = s_appliedPresets[key];
             
-            // Debug.Log($"Revert Preset: {appliedPreset.preset.name}");
+            ThryDebug.Log($"Revert '{appliedPreset.preset.name}' from '{key.name}'");
             ApplyPresetInternal(shaderEditor, appliedPreset.preset, appliedPreset.prePresetState, appliedPreset.parent);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
@@ -508,22 +517,23 @@ namespace Thry.ThryEditor
                 }
             }else if(parent is ShaderGroup)
             {
-                // Debug.Log($"Apply Section Preset to: {parent.Content.text}");
-                ApplyPresetRecursive(shaderEditor, preset, copyFrom, parent as ShaderGroup);
+                ThryDebug.Detail($"Apply values from '{copyFrom.name}' to '{parent.Content.text}' group");
+                ApplyPresetRecursive(preset, copyFrom, parent as ShaderGroup);
             }
             preset.shader = prev;
         }
         
-        static void ApplyPresetRecursive(ShaderEditor shaderEditor, Material preset, Material copyFrom, ShaderGroup parent)
+        static void ApplyPresetRecursive(Material preset, Material copyFrom, ShaderGroup parent)
         {
             foreach (ShaderPart part in parent.Children)
             {
                 if(part is ShaderGroup)
                 {
-                    ApplyPresetRecursive(shaderEditor, preset, copyFrom, part as ShaderGroup);
+                    ApplyPresetRecursive(preset, copyFrom, part as ShaderGroup);
                 }
                 if (IsPreset(preset, part))
                 {
+                    // ThryDebug.Detail($"Apply values from '{copyFrom.name}' to '{part.Content.text}' ({copyFrom.name} -> {part.MaterialProperty.targets[0].name}) ({MaterialHelper.GetValue(part.MaterialProperty)} -> {MaterialHelper.GetValue(copyFrom, part.MaterialProperty.name)})");
                     part.CopyFrom(copyFrom, applyDrawers: false);
                 }
             }
@@ -613,12 +623,12 @@ namespace Thry.ThryEditor
     	        
                 if(!PresetCollections[headerPropName].Guids.Contains(guid))
                 {
-                    Debug.Log($"AddPreset: {name} ({guid})");
+                    ThryDebug.Detail($"AddPreset: {name} ({guid})");
                     PresetCollections[headerPropName].Names.Add(name);
                     PresetCollections[headerPropName].Guids.Add(guid);
                 }else
                 {
-                    Debug.Log($"SetSectionPreset: {name} ({guid})");
+                    ThryDebug.Detail($"SetSectionPreset: {name} ({guid})");
                     PresetCollections[headerPropName].Names[PresetCollections[headerPropName].Guids.IndexOf(guid)] = name;
                 }
             }else
@@ -627,7 +637,7 @@ namespace Thry.ThryEditor
                 {
                     if(PresetCollections[headerPropName].Guids.Contains(guid))
                     {
-                        Debug.Log($"RemovePreset: {PresetCollections[headerPropName].Names[PresetCollections[headerPropName].Guids.IndexOf(guid)]} ({guid})");
+                        ThryDebug.Detail($"RemovePreset: {PresetCollections[headerPropName].Names[PresetCollections[headerPropName].Guids.IndexOf(guid)]} ({guid})");
                         PresetCollections[headerPropName].Names.RemoveAt(PresetCollections[headerPropName].Guids.IndexOf(guid));
                         PresetCollections[headerPropName].Guids.RemoveAt(PresetCollections[headerPropName].Guids.IndexOf(guid));
                     }
@@ -684,7 +694,7 @@ namespace Thry.ThryEditor
 
             if(cacheInvalid)
             {
-                Debug.Log("Preset cache invalid, rebuilding...");
+                ThryDebug.Log("Preset cache invalid, rebuilding...");
                 CreatePresetCache();
             }
         }

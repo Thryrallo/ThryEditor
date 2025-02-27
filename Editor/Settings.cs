@@ -190,6 +190,7 @@ namespace Thry.ThryEditor
 
             EditorGUILayout.Space();
             GUILayout.Label(EditorLocale.editor.Get("developer_header"), EditorStyles.boldLabel);
+            Dropdown(nameof(Config.loggingLevel));
             Toggle(nameof(Config.showManualReloadButton));
             Toggle(nameof(Config.enableDeveloperMode));
             if(Config.Singleton.enableDeveloperMode)

@@ -8,10 +8,12 @@ using UnityEngine;
 
 namespace Thry.ThryEditor
 {
+    
+
     public class Config
     {
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.62.6";
+        private const string VERSION = "2.62.7";
 
         private static Config config;
 
@@ -59,6 +61,7 @@ namespace Thry.ThryEditor
         }
 
         //actual config class
+        public LoggingLevel loggingLevel = LoggingLevel.Normal;
         public TextureDisplayType default_texture_type = TextureDisplayType.small;
         public bool showRenderQueue = true;
         public bool showManualReloadButton = false;

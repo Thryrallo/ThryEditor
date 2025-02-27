@@ -123,6 +123,8 @@ namespace Thry.ThryEditor
             if(skipPropertyTypes?.Contains(MaterialProperty.type) == true) return;
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
 
+            UpdatedMaterialPropertyReference();
+
             MaterialHelper.CopyValue(src, MaterialProperty);
             CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
@@ -146,6 +148,9 @@ namespace Thry.ThryEditor
             if (srcPart is ShaderProperty == false) return;
             ShaderProperty src = srcPart as ShaderProperty;
 
+            UpdatedMaterialPropertyReference();
+            src.UpdatedMaterialPropertyReference();
+
             MaterialHelper.CopyValue(src.MaterialProperty, MaterialProperty);
             CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
@@ -165,6 +170,8 @@ namespace Thry.ThryEditor
         {
             if(skipPropertyTypes?.Contains(MaterialProperty.type) == true) return;
             if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+
+            UpdatedMaterialPropertyReference();
 
             MaterialHelper.CopyValue(MaterialProperty, targets);
             CopyReferencePropertiesTo(targets, skipPropertyTypes, skipPropertyNames);
@@ -187,6 +194,9 @@ namespace Thry.ThryEditor
             if(skipPropertyNames?.Contains(targetPart.MaterialProperty.name) == true) return;
             if (targetPart is ShaderProperty == false) return;
             ShaderProperty target = targetPart as ShaderProperty;
+
+            UpdatedMaterialPropertyReference();
+            target.UpdatedMaterialPropertyReference();
 
             MaterialHelper.CopyValue(MaterialProperty, target.MaterialProperty);
             CopyReferencePropertiesTo(target, skipPropertyTypes, skipPropertyNames);
