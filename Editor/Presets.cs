@@ -20,7 +20,15 @@ namespace Thry.ThryEditor
         const string FILE_NAME_KNOWN_MATERIALS = "Thry/presets_known_materials.txt";
         const string PRESET_VERSION = "1.0.0";
 
-        static Dictionary<Material, (string name, string guid, Material prePreset)> s_appliedPresets = new Dictionary<Material, (string, string, Material)>();
+        struct AppliedPreset
+        {
+            public string name;
+            public Material preset;
+            public Material prePresetState;
+            public ShaderPart parent;
+        }
+
+        static Dictionary<Material, AppliedPreset> s_appliedPresets = new Dictionary<Material, AppliedPreset>();
         
         class PresetsCollection
         {
@@ -387,7 +395,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                Debug.Log($"OpenPresetsMenu: {collection} ({PresetCollections[collection].Names.Count} presets)");
+                // Debug.Log($"Open Quick Presets Menu: {collection} ({PresetCollections[collection].Names.Count} presets)");
                 EditorUtility.DisplayCustomMenu(r, 
                     PresetCollections[collection].Names.Select(s => new GUIContent(s)).ToArray(), -1, 
                     ApplyQuickPreset, new object[]{shaderEditor, collection, shaderEditor.CurrentProperty});
@@ -396,6 +404,7 @@ namespace Thry.ThryEditor
 
         static void ApplyQuickPreset(object userData, string[] options, int selected)
         {
+            // Debug.Log($"Apply Quick Preset: {options[selected]}");
             ShaderEditor shaderEditor = (userData as object[])[0] as ShaderEditor;
             string collection = (userData as object[])[1] as string;
             ShaderPart parent = (userData as object[])[2] as ShaderPart;
@@ -445,11 +454,12 @@ namespace Thry.ThryEditor
 
         public static void Apply(string collection, string name, ShaderEditor shaderEditor, ShaderPart parent)
         {
+            Material key = shaderEditor.Materials[0];
             string guid = PresetCollections[collection].Guids[PresetCollections[collection].Names.IndexOf(name)];
-            Material presetMaterial = GetPresetMaterial(guid);
+            Material preset = GetPresetMaterial(guid);
 
-            s_appliedPresets[shaderEditor.Materials[0]] = (name, guid, new Material(shaderEditor.Materials[0]));
-            ApplyPresetInternal(shaderEditor, presetMaterial, presetMaterial, parent);
+            s_appliedPresets[key] = new AppliedPreset(){ name=name, preset = preset, prePresetState = new Material(shaderEditor.Materials[0]), parent = parent};
+            ApplyPresetInternal(shaderEditor, preset, preset, parent);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
         }
@@ -457,11 +467,10 @@ namespace Thry.ThryEditor
         static void Revert(ShaderEditor shaderEditor)
         {
             Material key = shaderEditor.Materials[0];
-            string name = s_appliedPresets[key].name;
-            Material presetMaterial = GetPresetMaterial(s_appliedPresets[key].guid);
-            Material prePreset = s_appliedPresets[key].prePreset;
-            ShaderPart parent = shaderEditor.ShaderParts.FirstOrDefault(p => p.MaterialProperty?.name == name);
-            ApplyPresetInternal(shaderEditor, presetMaterial, prePreset, parent);
+            AppliedPreset appliedPreset = s_appliedPresets[key];
+            
+            // Debug.Log($"Revert Preset: {appliedPreset.preset.name}");
+            ApplyPresetInternal(shaderEditor, appliedPreset.preset, appliedPreset.prePresetState, appliedPreset.parent);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
             s_appliedPresets.Remove(key);
@@ -489,33 +498,32 @@ namespace Thry.ThryEditor
 
             if(!IsMaterialSectionedPreset(preset))
             {
-                foreach (ShaderPart prop in shaderEditor.ShaderParts)
+                foreach (ShaderPart part in shaderEditor.ShaderParts)
                 {
-                    if (IsPreset(preset, prop))
+                    if (IsPreset(preset, part))
                     {
-                        prop.CopyFrom(preset);
+                        part.CopyFrom(copyFrom);
                     }
                 }
             }else if(parent is ShaderGroup)
             {
-                ApplyPresetRecursive(shaderEditor, preset, parent as ShaderGroup);
+                // Debug.Log($"Apply Section Preset to: {parent.Content.text}");
+                ApplyPresetRecursive(shaderEditor, preset, copyFrom, parent as ShaderGroup);
             }
             preset.shader = prev;
         }
         
-        static void ApplyPresetRecursive(ShaderEditor shaderEditor, Material preset, ShaderGroup parent)
+        static void ApplyPresetRecursive(ShaderEditor shaderEditor, Material preset, Material copyFrom, ShaderGroup parent)
         {
-            foreach (ShaderPart prop in parent.Children)
+            foreach (ShaderPart part in parent.Children)
             {
-                if(prop is ShaderGroup)
+                if(part is ShaderGroup)
                 {
-                    ApplyPresetRecursive(shaderEditor, preset, prop as ShaderGroup);
-                }else
+                    ApplyPresetRecursive(shaderEditor, preset, copyFrom, part as ShaderGroup);
+                }
+                if (IsPreset(preset, part))
                 {
-                    if (IsPreset(preset, prop))
-                    {
-                        prop.CopyFrom(preset);
-                    }
+                    part.CopyFrom(copyFrom);
                 }
             }
         }
