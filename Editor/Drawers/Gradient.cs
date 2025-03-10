@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Thry.ThryEditor;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;

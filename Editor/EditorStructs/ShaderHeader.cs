@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Thry.ThryEditor;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
