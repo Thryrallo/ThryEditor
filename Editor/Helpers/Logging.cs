@@ -5,7 +5,7 @@ namespace Thry.ThryEditor.Helpers
 {
     public enum LoggingLevel { None, Normal, Detailed, StackTraced }
 
-    public class ThryDebug
+    public class ThryLogger
     {
         private static string GetPrefixFromStackTrace()
         {
@@ -25,33 +25,33 @@ namespace Thry.ThryEditor.Helpers
             Print(prefix, "#ff78e0", message);
         }
 
-        public static void Detail(string message)
+        public static void LogDetail(string message)
         {
-            Detail(GetPrefixFromStackTrace(), message);
+            LogDetail(GetPrefixFromStackTrace(), message);
         }
 
-        public static void Detail(string prefix, string message)
+        public static void LogDetail(string prefix, string message)
         {
             if ((int)Config.Singleton.loggingLevel < (int)LoggingLevel.Detailed) return;
             Print(prefix, "#d778ff", message);
         }
 
-        public static void Error(string message)
+        public static void LogErr(string message)
         {
-            Error(GetPrefixFromStackTrace(), message);
+            LogErr(GetPrefixFromStackTrace(), message);
         }
 
-        public static void Error(string prefix, string message)
+        public static void LogErr(string prefix, string message)
         {
             Print(prefix, "#ff0000", message);
         }
 
-        public static void Warning(string message)
+        public static void LogWarn(string message)
         {
-            Warning(GetPrefixFromStackTrace(), message);
+            LogWarn(GetPrefixFromStackTrace(), message);
         }
 
-        public static void Warning(string prefix, string message)
+        public static void LogWarn(string prefix, string message)
         {
             Print(prefix, "#ff7800", message);
         }

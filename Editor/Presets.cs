@@ -222,7 +222,7 @@ namespace Thry.ThryEditor
             {
                 if(isOutOfDate)
                 {
-                    ThryDebug.Warning("Preset cache is out of date, rebuilding...");
+                    ThryLogger.LogWarn("Preset cache is out of date, rebuilding...");
                 }
                 CreatePresetCache();
                 return;
@@ -322,7 +322,7 @@ namespace Thry.ThryEditor
                 foreach (string asset in importedAssets.Where(a => a.EndsWith(".mat")))
                 {
                     Material material = AssetDatabase.LoadAssetAtPath<Material>(asset);
-                    ThryDebug.Detail($"Material Changed: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
+                    ThryLogger.LogDetail($"Material Changed: {material.name} ({AssetDatabase.AssetPathToGUID(asset)})");
                     // Check if asset is preset
                     if (IsPreset(material))
                     {
@@ -372,7 +372,7 @@ namespace Thry.ThryEditor
                         string name = material.GetTag(header + TAG_POSTFIX_SECTION_NAME, false, "").Replace(';', '_');
                         if(string.IsNullOrEmpty(name))
                         {
-                            ThryDebug.Error($"Preset {material.name} has no name for section '{header}'");
+                            ThryLogger.LogErr($"Preset {material.name} has no name for section '{header}'");
                             continue;
                         }
                         if(!PresetCollections.ContainsKey(collectionName))
@@ -382,10 +382,10 @@ namespace Thry.ThryEditor
                         
                         if(PresetCollections[collectionName].Add(name, guid))
                         {
-                            ThryDebug.Detail($"Add preset for section '{header}': {name} ({guid})");
+                            ThryLogger.LogDetail($"Add preset for section '{header}': {name} ({guid})");
                         }else
                         {
-                            ThryDebug.Warning($"Preset '{name}' already exists in section '{header}'");
+                            ThryLogger.LogWarn($"Preset '{name}' already exists in section '{header}'");
                         }
                     }
                 }
@@ -395,10 +395,10 @@ namespace Thry.ThryEditor
                 string name = material.GetTag(TAG_MATERIAL_PRESET_NAME, false, material.name).Replace(';', '_');
                 if(PresetCollections["_full_"].Add(name, guid))
                 {
-                    ThryDebug.Detail($"Add preset: {name} ({guid})");
+                    ThryLogger.LogDetail($"Add preset: {name} ({guid})");
                 }else
                 {
-                    ThryDebug.Warning($"Preset '{name}' already exists");
+                    ThryLogger.LogWarn($"Preset '{name}' already exists");
                 }
             }
             s_materalCache[guid] = material;
@@ -410,7 +410,7 @@ namespace Thry.ThryEditor
         static void RemovePreset(Material material)
         {
             // Get guid
-            ThryDebug.Detail($"Remove preset: {material.name}");
+            ThryLogger.LogDetail($"Remove preset: {material.name}");
             string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
             RemovePreset(guid);
         }
@@ -463,7 +463,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                ThryDebug.Log($"Open Quick Presets Menu: {collection} ({PresetCollections[collection].Count} presets)");
+                ThryLogger.Log($"Open Quick Presets Menu: {collection} ({PresetCollections[collection].Count} presets)");
                 EditorUtility.DisplayCustomMenu(r, 
                     PresetCollections[collection].Names.Select(s => new GUIContent(s)).ToArray(), -1, 
                     ApplyQuickPreset, new object[]{shaderEditor, collection, shaderEditor.CurrentProperty});
@@ -472,7 +472,7 @@ namespace Thry.ThryEditor
 
         static void ApplyQuickPreset(object userData, string[] options, int selected)
         {
-            ThryDebug.Log($"Apply quick preset '{options[selected]}'");
+            ThryLogger.Log($"Apply quick preset '{options[selected]}'");
             ShaderEditor shaderEditor = (userData as object[])[0] as ShaderEditor;
             string collection = (userData as object[])[1] as string;
             ShaderPart parent = (userData as object[])[2] as ShaderPart;
@@ -537,7 +537,7 @@ namespace Thry.ThryEditor
             Material key = shaderEditor.Materials[0];
             AppliedPreset appliedPreset = s_appliedPresets[key];
             
-            ThryDebug.Log($"Revert '{appliedPreset.preset.name}' from '{key.name}'");
+            ThryLogger.Log($"Revert '{appliedPreset.preset.name}' from '{key.name}'");
             ApplyPresetInternal(shaderEditor, appliedPreset.preset, appliedPreset.prePresetState, appliedPreset.parent);
             foreach (Material m in shaderEditor.Materials)
                 MaterialEditor.ApplyMaterialPropertyDrawers(m);
@@ -575,7 +575,7 @@ namespace Thry.ThryEditor
                 }
             }else if(parent is ShaderGroup)
             {
-                ThryDebug.Detail($"Apply values from '{copyFrom.name}' to '{parent.Content.text}' group");
+                ThryLogger.LogDetail($"Apply values from '{copyFrom.name}' to '{parent.Content.text}' group");
                 ApplyPresetRecursive(preset, copyFrom, parent as ShaderGroup);
             }
             preset.shader = prev;
@@ -680,13 +680,13 @@ namespace Thry.ThryEditor
                 }
     	        
                 PresetCollections[headerPropName].AddOrUpdate(name, guid);
-                ThryDebug.Detail($"Add preset for section '{headerPropName}': {name} ({guid})");
+                ThryLogger.LogDetail($"Add preset for section '{headerPropName}': {name} ({guid})");
             }else
             {
                 if(PresetCollections.ContainsKey(headerPropName))
                 {
                     PresetCollections[headerPropName].Remove(guid);
-                    ThryDebug.Detail($"Remove preset for section '{headerPropName}' ({guid})");
+                    ThryLogger.LogDetail($"Remove preset for section '{headerPropName}' ({guid})");
                 }
             }
         }
@@ -722,7 +722,7 @@ namespace Thry.ThryEditor
 
             if(cacheInvalid)
             {
-                ThryDebug.Log("Preset cache invalid, rebuilding...");
+                ThryLogger.Log("Preset cache invalid, rebuilding...");
                 CreatePresetCache();
             }
         }
