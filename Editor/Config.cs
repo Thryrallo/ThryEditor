@@ -13,7 +13,7 @@ namespace Thry.ThryEditor
     public class Config
     {
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private const string VERSION = "2.62.8";
+        private const string VERSION = "2.62.9";
 
         private static Config config;
 
@@ -34,7 +34,7 @@ namespace Thry.ThryEditor
             else if (versionComparision == -1)
             {
                 config.OnUpgrade(prevVersion);
-                Debug.Log(">>> Thry Editor has been updated to version " + installedVersion);
+                ThryDebug.Log("ThryEditor", "Updated to version " + installedVersion);
             }
         }
 

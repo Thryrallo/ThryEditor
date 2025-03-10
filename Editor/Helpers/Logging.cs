@@ -36,6 +36,26 @@ namespace Thry.ThryEditor.Helpers
             Print(prefix, "#d778ff", message);
         }
 
+        public static void Error(string message)
+        {
+            Error(GetPrefixFromStackTrace(), message);
+        }
+
+        public static void Error(string prefix, string message)
+        {
+            Print(prefix, "#ff0000", message);
+        }
+
+        public static void Warning(string message)
+        {
+            Warning(GetPrefixFromStackTrace(), message);
+        }
+
+        public static void Warning(string prefix, string message)
+        {
+            Print(prefix, "#ff7800", message);
+        }
+
         private static void Print(string prefix, string color, string message)
         {
             StringBuilder sb = new StringBuilder();
