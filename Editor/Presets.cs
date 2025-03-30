@@ -797,10 +797,10 @@ namespace Thry.ThryEditor
                 }
                 if(structure.Count > 0)
                 {
-                    Rect r = GUILayoutUtility.GetRect(new GUIContent(), Styles.dropDownHeader);
+                    Rect r = GUILayoutUtility.GetRect(new GUIContent(), Styles.dropdownHeader);
                     r.x = EditorGUI.indentLevel * 15;
                     r.width -= r.x;
-                    GUI.Box(r, name, Styles.dropDownHeader);
+                    GUI.Box(r, name, Styles.dropdownHeader);
                     if (Event.current.type == EventType.Repaint)
                     {
                         var toggleRect = new Rect(r.x + 4f, r.y + 2f, 13f, 13f);

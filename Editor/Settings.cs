@@ -124,7 +124,7 @@ namespace Thry.ThryEditor
                 if(thry_message.text.Length > 0)
                 {
                     doDrawLine = true;
-                    GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), thry_message.center_position?Styles.richtext_center: Styles.richtext);
+                    GUILayout.Label(new GUIContent(thry_message.text,thry_message.hover), thry_message.center_position?Styles.middleCenter_richText_wordWrap: Styles.upperLeft_richText_wordWrap);
                     Rect r = GUILayoutUtility.GetLastRect();
                     if(thry_message.action.type != DefineableActionType.NONE)
                         EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
@@ -391,9 +391,9 @@ namespace Thry.ThryEditor
 
         private static bool Foldout(GUIContent content, bool expanded)
         {
-            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.dropDownHeader);
+            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.dropdownHeader);
             rect = EditorGUI.IndentedRect(rect);
-            GUI.Box(rect, content, Styles.dropDownHeader);
+            GUI.Box(rect, content, Styles.dropdownHeader);
             var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
             Event e = Event.current;
             if (e.type == EventType.Repaint)

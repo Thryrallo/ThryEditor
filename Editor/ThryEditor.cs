@@ -701,19 +701,19 @@ namespace Thry
 
             Rect topBarRect = RectifiedLayout.GetRect(25);
             Rect iconRect = new Rect(topBarRect.x, topBarRect.y, 25, 25);
-            if(GUILib.ButtonWithCursor(iconRect, Styles.icon_style_settings, "Settings"))
+            if(GUILib.ButtonWithCursor(iconRect, Icons.settings, "Settings"))
             {
                 EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
             }
             iconRect.x += 25;
-            if (GUILib.ButtonWithCursor(iconRect, Styles.icon_style_tools, "Tools"))
+            if (GUILib.ButtonWithCursor(iconRect, Icons.tools, "Tools"))
             {
                 PopupTools(iconRect);
             }
             iconRect.x += 25;
             ShaderTranslator.TranslationSelectionGUI(iconRect, this);
             iconRect.x += 25;
-            if (GUILib.ButtonWithCursor(iconRect, Styles.icon_style_thryIcon, "Thryrallo"))
+            if (GUILib.ButtonWithCursor(iconRect, Icons.thryIcon, "Thryrallo"))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
 
             Rect headerRect = new Rect(topBarRect);
@@ -757,7 +757,7 @@ namespace Thry
             presetsIcon.height = 18;
             presetsIcon.x = presetsRect.width - 20;
 
-            if (GUI.Button(presetsRect, "Presets") | GUILib.Button(presetsIcon, Styles.icon_style_presets))
+            if (GUI.Button(presetsRect, "Presets") | GUILib.Button(presetsIcon, Icons.presets))
                 Presets.OpenPresetsMenu(barRect, this, false);
             ThryWideEnumDrawer.RenderLabel = false;
             if (InShaderPresetsProperty!= null)
@@ -785,7 +785,7 @@ namespace Thry
             {
                 Debug.LogWarning(ex);
             }
-            if (GUILayout.Button("@UI Made by Thryrallo", Styles.made_by_style))
+            if (GUILayout.Button("@UI Made by Thryrallo", Styles.madeByLabel))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
         }
