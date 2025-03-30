@@ -65,8 +65,6 @@ namespace Thry.ThryEditor
 
         public static void OnCompile()
         {
-            Debug.Log($"ThryEditor: OnCompile called. Version: {INSTALLED_VERSION} Current: {Instance.lastVersion}");
-
             if (Instance.lastVersion == null)
             {
                 ThryLogger.Log("ThryEditor", "Installed version " + INSTALLED_VERSION);
