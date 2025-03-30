@@ -429,7 +429,7 @@ namespace Thry
                 }
             }
 
-            if(duplicateProperties.Count > 0 && Config.Singleton.enableDeveloperMode)
+            if(duplicateProperties.Count > 0 && Config.Instance.enableDeveloperMode)
                 _duplicatePropertyNamesString = string.Join("\n ", duplicateProperties.ToArray());
         }
 
@@ -437,7 +437,7 @@ namespace Thry
 
         public void InitlizeThryUI()
         {
-            Config config = Config.Singleton;
+            Config config = Config.Instance;
             Active = this;
             Helper.RegisterEditorUse();
             RegisterCallacks();
@@ -460,7 +460,7 @@ namespace Thry
             ShaderParts.Add(_renderQueueProperty);
             ShaderParts.Add(_vRCFallbackProperty);
 
-            if(Config.Singleton.forceAsyncCompilationPreview)
+            if(Config.Instance.forceAsyncCompilationPreview)
             {
                 ShaderUtil.allowAsyncCompilation = true;
             }
@@ -650,7 +650,7 @@ namespace Thry
 
             //Render Queue selection
             if(VRCInterface.IsVRCSDKInstalled()) _vRCFallbackProperty.Draw();
-            if (Config.Singleton.showRenderQueue) _renderQueueProperty.Draw();
+            if (Config.Instance.showRenderQueue) _renderQueueProperty.Draw();
 
             BetterTooltips.DrawActive();
 
@@ -660,7 +660,7 @@ namespace Thry
 
         private void GUIManualReloadButton()
         {
-            if (Config.Singleton.showManualReloadButton)
+            if (Config.Instance.showManualReloadButton)
             {
                 if(GUILayout.Button("Manual Reload"))
                 {
@@ -671,7 +671,7 @@ namespace Thry
 
         private void GUIDevloperMode()
         {
-            if (Config.Singleton.enableDeveloperMode)
+            if (Config.Instance.enableDeveloperMode)
             {
                 // Show duplicate property names
                 if(_duplicatePropertyNamesString != null)
@@ -1025,7 +1025,7 @@ namespace Thry
             IEnumerable<Shader> shadersWithThryEditor = uniqueShadersMaterials.Where(m => ShaderHelper.IsShaderUsingThryEditor(m)).Select(m => m.shader);
 
             // Clear cache every time if in developer mode, so that changes aren't missed
-            if(Config.Singleton.enableDeveloperMode)
+            if(Config.Instance.enableDeveloperMode)
                 PropertyKeywordsByShader.Clear();
 
             float f = 0;

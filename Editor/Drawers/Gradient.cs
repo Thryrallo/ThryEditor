@@ -37,7 +37,7 @@ namespace Thry.ThryEditor.Drawers
             Init(prop);
             ShaderEditor.Active.Editor.EndAnimatedCheck(); // Fixes all dropdoen properties being animated / highlighted
 
-            if (Config.Singleton.default_texture_type == TextureDisplayType.small)
+            if (Config.Instance.default_texture_type == TextureDisplayType.small)
             {
                 UpdateRects(position, prop);
                 if (ShaderEditor.Input.Click && _border_position.Contains(Event.current.mousePosition))

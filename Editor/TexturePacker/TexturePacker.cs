@@ -1362,7 +1362,7 @@ namespace Thry.ThryEditor
             importer.alphaIsTransparency = _alphaIsTransparency;
             importer.textureCompression = TextureImporterCompression.Compressed;
             TextureImporterFormat overwriteFormat = importer.DoesSourceTextureHaveAlpha() ? 
-                Config.Singleton.texturePackerCompressionWithAlphaOverwrite : Config.Singleton.texturePackerCompressionNoAlphaOverwrite;
+                Config.Instance.texturePackerCompressionWithAlphaOverwrite : Config.Instance.texturePackerCompressionNoAlphaOverwrite;
             if(overwriteFormat != TextureImporterFormat.Automatic)
             {
                 importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
@@ -1413,7 +1413,7 @@ namespace Thry.ThryEditor
             importer.alphaIsTransparency = texture.alphaIsTransparency;
             importer.textureCompression = TextureImporterCompression.Compressed;
             TextureImporterFormat overwriteFormat = importer.DoesSourceTextureHaveAlpha() ? 
-                Config.Singleton.texturePackerCompressionWithAlphaOverwrite : Config.Singleton.texturePackerCompressionNoAlphaOverwrite;
+                Config.Instance.texturePackerCompressionWithAlphaOverwrite : Config.Instance.texturePackerCompressionNoAlphaOverwrite;
             if(overwriteFormat != TextureImporterFormat.Automatic)
             {
                 importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()

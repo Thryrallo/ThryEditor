@@ -13,7 +13,7 @@ namespace Thry.ThryEditor
 
         public static void ConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
-            switch (Config.Singleton.default_texture_type)
+            switch (Config.Instance.default_texture_type)
             {
                 case TextureDisplayType.small:
                     SmallTextureProperty(position, prop, label, editor, hasFoldoutProperties);
