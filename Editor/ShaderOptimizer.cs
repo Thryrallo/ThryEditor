@@ -677,7 +677,7 @@ namespace Thry.ThryEditor
             SetLockedForAllMaterialsInternal(prop.targets.Select(t => t as Material), prop.GetNumber() == 1 ? 0 : 1, true, false, false, prop);
         }
 
-        [Obsolete("Use ShaderOptimizer.LockChildren or ShaderOptimizer.UnlockChildren instead")]
+        [Obsolete("Use ShaderOptimizer.LockMaterials or ShaderOptimizer.UnlockMaterials instead")]
         public static bool SetLockForAllChildren(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
             return SetLockForAllChildrenInternal(objects, lockState, showProgressbar, showDialog, allowCancel);

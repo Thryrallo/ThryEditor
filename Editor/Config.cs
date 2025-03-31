@@ -12,7 +12,7 @@ namespace Thry.ThryEditor
     public class Config
     {
         private const string PATH_CONFIG_FILE = "Thry/Config.json";
-        private static readonly Version INSTALLED_VERSION = "2.63.3";
+        private static readonly Version INSTALLED_VERSION = "2.63.4";
 
         private static Config s_config;
 
