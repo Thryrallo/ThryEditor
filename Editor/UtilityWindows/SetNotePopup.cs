@@ -39,8 +39,13 @@ namespace Thry.ThryEditor
                 Close();
             }
 
-            if(Event.current.isKey && Event.current.keyCode == KeyCode.Return)
-                UpdateNoteAndClose(true);
+            if(Event.current.isKey)
+            {
+                if(Event.current.keyCode == KeyCode.Return)
+                    UpdateNoteAndClose(true);
+                else if(Event.current.keyCode == KeyCode.Escape)
+                    Close();
+            }
 
             if(GUILayout.Button("Ok", GUILayout.Height(30)))
                 UpdateNoteAndClose(false);
