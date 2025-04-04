@@ -94,7 +94,7 @@ namespace Thry.ThryEditor
                 }else
                 {
                     GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);                    
-                    if(Config.Singleton.showNotes && !string.IsNullOrWhiteSpace(Note))
+                    if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
                         noteRect.width -= 60;
@@ -129,7 +129,7 @@ namespace Thry.ThryEditor
             else
             {
                 GUI.Box(rect, content, Styles.dropdownHeader);                
-                if(Config.Singleton.showNotes && !string.IsNullOrWhiteSpace(Note))
+                if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);
                     noteRect.width -= 60;
@@ -295,7 +295,7 @@ namespace Thry.ThryEditor
                 
             });
             menu.AddSeparator("");
-            if(Config.Singleton.showNotes)
+            if(Config.Instance.showNotes)
             {
                 menu.AddItem(new GUIContent("Set Note"), false, () =>
                 {
