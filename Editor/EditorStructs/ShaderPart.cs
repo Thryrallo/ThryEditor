@@ -299,7 +299,23 @@ namespace Thry.ThryEditor
             }
         }
 
-#region Setters
+        public string Note
+        {
+            get
+            {
+                if(_cachedNote == null)
+                    MyShaderUI.NotesContainer.TryGetNoteForProperty(MaterialProperty.name, out _cachedNote);
+                return _cachedNote;
+            }
+            set
+            {
+                _cachedNote = value;
+                MyShaderUI.NotesContainer.SetNote(MaterialProperty.name, value);
+            }
+        }
+        string _cachedNote = null;
+
+        #region Setters
         public void SetIsExemptFromLockedDisabling(bool b)
         {
             IsExemptFromLockedDisabling = b;

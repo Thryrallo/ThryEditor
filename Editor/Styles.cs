@@ -72,6 +72,13 @@ namespace Thry.ThryEditor
         public static readonly GUIContent resetContent = EditorGUIUtility.TrTextContent("Reset");
 
         public static Texture texture_icon_shaders = EditorGUIUtility.IconContent("d_ShaderVariantCollection Icon").image;
+        
+        public static GUIStyle label_property_note { get; private set; } = new GUIStyle(EditorStyles.label)
+        {
+            alignment = TextAnchor.MiddleRight, 
+            padding = new RectOffset(0, 0, 0, 4), 
+            normal = new GUIStyleState { textColor = new Color(1f, 1f, 1f, 0.6f) },
+        };
 
         static GUIStyle CreateIconStyle(GUIContent content)
         {
