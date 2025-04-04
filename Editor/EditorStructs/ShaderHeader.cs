@@ -93,7 +93,7 @@ namespace Thry.ThryEditor
                     }
                 }else
                 {
-                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);                    
+                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);
                     if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
@@ -128,7 +128,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                GUI.Box(rect, content, Styles.dropdownHeader);                
+                GUI.Box(rect, content, Styles.dropdownHeader);
                 if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);
