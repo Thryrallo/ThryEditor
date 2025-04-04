@@ -49,6 +49,7 @@ namespace Thry.ThryEditor
         {
             string json = EditorJsonUtility.ToJson(this, false);
             OwnerMaterial.SetOverrideTag(NotesTagKey, json);
+            EditorUtility.SetDirty(OwnerMaterial);
         }
 
         public static MaterialPropertyNotesContainer GetNoteContainerForMaterial(Material material)
