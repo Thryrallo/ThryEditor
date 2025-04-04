@@ -304,13 +304,31 @@ namespace Thry.ThryEditor
             get
             {
                 if(_cachedNote == null)
-                    MyShaderUI.NotesContainer.TryGetNoteForProperty(MaterialProperty.name, out _cachedNote);
+                {
+                    MyShaderUI.NoteContainers.First().TryGetNoteForProperty(MaterialProperty.name, out string firstNote);
+                    if(MyShaderUI.NoteContainers.Length > 1)
+                    {
+                        bool allNotesAreTheSame = MyShaderUI.NoteContainers.All(x =>
+                        {
+                            x.TryGetNoteForProperty(MaterialProperty.name, out string currentNote);
+                            return firstNote == currentNote;
+                        });
+                        
+                        _cachedNote = allNotesAreTheSame ? firstNote : "...";
+                    }
+                    else
+                    {
+                        _cachedNote = firstNote;
+                    }
+                }
+
                 return _cachedNote;
             }
             set
             {
                 _cachedNote = value;
-                MyShaderUI.NotesContainer.SetNote(MaterialProperty.name, value);
+                foreach(var container in MyShaderUI.NoteContainers)
+                    container.SetNote(MaterialProperty.name, value);
             }
         }
         string _cachedNote = null;

@@ -10,6 +10,7 @@ namespace Thry.ThryEditor
     public class MaterialPropertyNotesContainer : ISerializationCallbackReceiver
     {
         const string NotesTagKey = "Thry_MaterialPropertyNotes";
+        const int MaxNoteCharacters = 256;
         
         Dictionary<string, string> PropertyNotes = new Dictionary<string, string>();
 
@@ -52,13 +53,31 @@ namespace Thry.ThryEditor
             EditorUtility.SetDirty(OwnerMaterial);
         }
 
+        public static MaterialPropertyNotesContainer[] GetNoteContainersForMaterials(Material[] materials)
+        {
+            List<MaterialPropertyNotesContainer> noteContainers = new List<MaterialPropertyNotesContainer>();
+            foreach(var material in materials)
+                noteContainers.Add(GetNoteContainerForMaterial(material));
+            return noteContainers.ToArray();
+        }
+
         public static MaterialPropertyNotesContainer GetNoteContainerForMaterial(Material material)
         {
             MaterialPropertyNotesContainer newContainer = new MaterialPropertyNotesContainer(material);
             string json = material.GetTag(NotesTagKey, false, null);
             if(!string.IsNullOrWhiteSpace(json))
-                EditorJsonUtility.FromJsonOverwrite(json, newContainer);
-            
+            {
+                try
+                {
+                    EditorJsonUtility.FromJsonOverwrite(json, newContainer);
+                }
+                catch(Exception ex)
+                {
+                    Debug.LogError($"Failed to load notes for material {material.name}. Json:\n{json}");
+                    Debug.LogException(ex);
+                }
+            }
+
             return newContainer;
         }
 
@@ -74,7 +93,7 @@ namespace Thry.ThryEditor
 
         public void SetNote(string propertyName, string note)
         {
-            PropertyNotes[propertyName] = note;
+            PropertyNotes[propertyName] = note.Length > MaxNoteCharacters ? note.Substring(0, MaxNoteCharacters) : note;
             SaveNotesToMaterial();
         }
 
