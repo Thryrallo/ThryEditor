@@ -76,6 +76,8 @@ namespace Thry
         public ShaderTranslator SuggestedTranslationDefinition { get; private set; }
         private string _duplicatePropertyNamesString = null;
 
+        public MaterialPropertyNotesContainer NotesContainer { get; private set; }
+
         //Shader Versioning
         private ThryEditor.Version _shaderVersionLocal;
         private ThryEditor.Version _shaderVersionRemote;
@@ -451,6 +453,8 @@ namespace Thry
             HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
 
             IsPresetEditor = Materials.Length == 1 && Presets.ArePreset(Materials);
+            
+            NotesContainer = MaterialPropertyNotesContainer.GetNoteContainerForMaterial(Materials[0]);
 
             //collect shader properties
             CollectAllProperties();
@@ -549,7 +553,11 @@ namespace Thry
         {
             ShaderOptimizer.DeleteTags(Materials);
             foreach(Material m in Materials)
+            {
                 MaterialLinker.UnlinkAll(m);
+                NotesContainer.ClearAllNotes();
+            }
+
             _vRCFallbackProperty?.SetPropertyValue((string)_vRCFallbackProperty.PropertyDefaultValue);
             _doReloadNextDraw = true;
         }
