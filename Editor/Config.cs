@@ -40,6 +40,7 @@ namespace Thry.ThryEditor
         public bool allowCustomLockingRenaming = false;
         public bool autoMarkPropertiesAnimated = true;
         public bool showStarNextToNonDefaultProperties = true;
+        public bool showNotes = true;
         public TextureImporterFormat texturePackerCompressionWithAlphaOverwrite = TextureImporterFormat.Automatic;
         public TextureImporterFormat texturePackerCompressionNoAlphaOverwrite = TextureImporterFormat.Automatic;
         public TextureImporterFormat gradientEditorCompressionOverwrite = TextureImporterFormat.Automatic;
