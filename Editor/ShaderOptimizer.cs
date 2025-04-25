@@ -214,7 +214,12 @@ namespace Thry.ThryEditor
             "UnityStandardParticles.cginc",
             "UnityStandardParticleShadow.cginc",
             "UnityStandardShadow.cginc",
-            "UnityStandardUtils.cginc"
+            "UnityStandardUtils.cginc",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl",
+            "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RealtimeLights.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
         };
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
