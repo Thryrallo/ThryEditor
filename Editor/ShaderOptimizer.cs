@@ -149,7 +149,7 @@ namespace Thry.ThryEditor
         // attribute if it exists.
         public static readonly string TessellationMaxFactorPropertyName = "_TessellationFactorMax";
 
-        enum LightModeType { None, ForwardBase, ForwardAdd, ShadowCaster, Meta };
+        enum LightModeType { None, ForwardBase, ForwardAdd, ShadowCaster, Meta, DepthOnly, DepthNormals };
         private static LightModeType CurrentLightmode = LightModeType.None;
 
         // In-order list of inline sampler state names that will be replaced by InlineSamplerState() lines
@@ -1197,7 +1197,8 @@ namespace Thry.ThryEditor
                 
 
                 // Shader file specific stuff
-                if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal))
+                if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal) ||
+                    psf.filePath.EndsWith(".hlsl", StringComparison.Ordinal))
                 {
                     for (int i=0; i<psf.lines.Length;i++)
                     {
@@ -1241,21 +1242,37 @@ namespace Thry.ThryEditor
                             psf.lines[i] = "GrabPass { \"" + gpr.newName + "\" }";
                             grabPassVariables.Add(gpr);
                         }
+#if UNITY_6000_0_OR_NEWER
+                        else if (trimmedLine.StartsWith("CBUFFER_START(UnityPerMaterial)", StringComparison.Ordinal))
+#else
                         else if (trimmedLine.StartsWith("CGINCLUDE", StringComparison.Ordinal))
+#endif
                         {
                             for (int j=i+1; j<psf.lines.Length;j++)
+#if UNITY_6000_0_OR_NEWER
+                                if (psf.lines[j].TrimStart().StartsWith("CBUFFER_END", StringComparison.Ordinal))
+#else
                                 if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
+#endif
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
+#if UNITY_6000_0_OR_NEWER
+                        else if (trimmedLine.StartsWith("HLSLPROGRAM", StringComparison.Ordinal))
+#else
                         else if (trimmedLine.StartsWith("CGPROGRAM", StringComparison.Ordinal))
+#endif
                         {
                             if(commentKeywords == 0)
                                 psf.lines[i] += optimizerDefines;
                             for (int j=i+1; j<psf.lines.Length;j++)
+#if UNITY_6000_0_OR_NEWER
+                                if (psf.lines[j].TrimStart().StartsWith("ENDHLSL", StringComparison.Ordinal))
+#else
                                 if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
+#endif
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
@@ -1271,8 +1288,12 @@ namespace Thry.ThryEditor
                                 string lightModeName = lineFullyTrimmed.Split('\"')[3];
                                 // Store current lightmode name in a static, useful for per-pass geometry and tessellation removal
                                 if (lightModeName == "ForwardBase") CurrentLightmode = LightModeType.ForwardBase;
+                                // URP: Pretend forward lit is the old forward pass??
+                                if (lightModeName == "ForwardLit") CurrentLightmode = LightModeType.ForwardBase;
                                 else if (lightModeName == "ForwardAdd") CurrentLightmode = LightModeType.ForwardAdd;
                                 else if (lightModeName == "ShadowCaster") CurrentLightmode = LightModeType.ShadowCaster;
+                                else if (lightModeName == "DepthOnly") CurrentLightmode = LightModeType.DepthOnly;
+                                else if (lightModeName == "DepthNormals") CurrentLightmode = LightModeType.DepthNormals;
                                 else if (lightModeName == "Meta") CurrentLightmode = LightModeType.Meta;
                                 else CurrentLightmode = LightModeType.None;
                                 if (disabledLightModes.Contains(lightModeName))
