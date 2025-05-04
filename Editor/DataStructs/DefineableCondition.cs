@@ -178,7 +178,7 @@ namespace Thry.ThryEditor
                     if (condition1 != null) return "!" + condition1.ToString();
                     break;
             }
-            return "";
+            return "True(NONE)";
         }
 
         private static DefineableCondition ParseForThryParser(string s)
@@ -197,13 +197,19 @@ namespace Thry.ThryEditor
             int depth = 0;
             int bracketStart = -1;
             int bracketEnd = -1;
+            bool allPreviousCharsAreEmpty = true;
             for (int i = start; i < end; i++)
             {
                 char c = s[i];
+                if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+                {
+                    if(allPreviousCharsAreEmpty) start += 1;
+                    continue;
+                }
                 if (c == '(')
                 {
                     depth += 1;
-                    if (depth == 1)
+                    if (depth == 1 && allPreviousCharsAreEmpty)
                     {
                         bracketStart = i;
                     }
@@ -240,6 +246,7 @@ namespace Thry.ThryEditor
                         return con;
                     }
                 }
+                allPreviousCharsAreEmpty = false;
             }
 
 
