@@ -323,13 +323,13 @@ namespace Thry.ThryEditor
             if (s.StartsWith("isNotAnimated(", StringComparison.Ordinal))
             {
                 con.type = DefineableConditionType.PROPERTY_IS_NOT_ANIMATED;
-                con.data = s.Replace("isNotAnimated(", "").TrimEnd(')');
+                con.data = s.Replace("isNotAnimated(", "").TrimEnd(')', ' ');
                 return con;
             }
             if (s.StartsWith("isAnimated(", StringComparison.Ordinal))
             {
                 con.type = DefineableConditionType.PROPERTY_IS_ANIMATED;
-                con.data = s.Replace("isAnimated(", "").TrimEnd(')');
+                con.data = s.Replace("isAnimated(", "").TrimEnd(')', ' ');
                 return con;
             }
             if (s.Equals("true", StringComparison.OrdinalIgnoreCase))

@@ -1530,7 +1530,9 @@ namespace Thry.ThryEditor
                     if(lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
                     {
                         if(!doExclude){ // If already excluding, only track depth
+                            // Debug.Log(lineParsed.Substring(6));
                             var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
+                            // Debug.Log(condition.ToString() + " => " + condition.Test());
                             if(condition.Test())
                             {
                                 doExclude = true;
