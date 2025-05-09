@@ -219,7 +219,10 @@ namespace Thry.ThryEditor
             "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl",
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl",
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RealtimeLights.hlsl",
-            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl",
+            "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
         };
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
