@@ -25,6 +25,7 @@ SOFTWARE.**/
 
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEditor;
 using System;
 using System.IO;
@@ -58,7 +59,6 @@ using VRC.SDK3.Avatars.Components;
 
 namespace Thry.ThryEditor
 {
-    
     public enum LightMode
     {
         Always=1,
@@ -149,7 +149,7 @@ namespace Thry.ThryEditor
         // attribute if it exists.
         public static readonly string TessellationMaxFactorPropertyName = "_TessellationFactorMax";
 
-        enum LightModeType { None, ForwardBase, ForwardAdd, ShadowCaster, Meta };
+        enum LightModeType { None, ForwardBase, ForwardAdd, ShadowCaster, Meta, DepthOnly, DepthNormals };
         private static LightModeType CurrentLightmode = LightModeType.None;
 
         // In-order list of inline sampler state names that will be replaced by InlineSamplerState() lines
@@ -214,7 +214,15 @@ namespace Thry.ThryEditor
             "UnityStandardParticles.cginc",
             "UnityStandardParticleShadow.cginc",
             "UnityStandardShadow.cginc",
-            "UnityStandardUtils.cginc"
+            "UnityStandardUtils.cginc",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl",
+            "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RealtimeLights.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl",
+            "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
         };
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
@@ -266,6 +274,37 @@ namespace Thry.ThryEditor
         {
             "shader_master_label",
             "shader_is_using_thry_editor"
+        };
+
+        public enum RenderPipeline
+        {
+            BuiltIn,
+            URP,
+            Other
+        };
+
+        public static readonly string[] PreprocessStructureStart = new string[]
+        {
+            "CGINCLUDE",
+            "CBUFFER_START(UnityPerMaterial)"
+        };
+
+        public static readonly string[] PreprocessStructureEnd = new string[]
+        {
+            "ENDCG",
+            "CBUFFER_END"
+        };
+
+        public static readonly string[] CodeBlockStart = new string[]
+        {
+            "CGPROGRAM",
+            "HLSLPROGRAM"
+        };
+
+        public static readonly string[] CodeBlockEnd = new string[]
+        {
+            "ENDCG",
+            "ENDHLSL"
         };
 
         public enum PropertyType
@@ -587,6 +626,28 @@ namespace Thry.ThryEditor
 #endregion
 
 #region Shader Property Helpers
+
+        public static RenderPipeline GetActiveRenderPipeline()
+        {
+            var pipelineAsset = GraphicsSettings.defaultRenderPipeline;
+            if (pipelineAsset != null)
+            {
+                if (pipelineAsset.GetType().Name == "UniversalRenderPipelineAsset")
+                {
+                    // URP
+                    return RenderPipeline.URP;
+                }
+                else
+                {
+                    return RenderPipeline.Other;
+                }
+            }
+            else
+            {
+                // Built-in pipeline
+                return RenderPipeline.BuiltIn;
+            }
+        }
 
         public static string GetRenamedPropertySuffix(Material m)
         {
@@ -929,6 +990,12 @@ namespace Thry.ThryEditor
 #region Locking
         private static bool Lock(Material material, MaterialProperty[] props, bool applyShaderLater = false)
         {
+            RenderPipeline pipeline = GetActiveRenderPipeline();
+            if (pipeline == RenderPipeline.Other)
+            {
+                Debug.LogError("Locking is not supported for this render pipeline. Please use the built-in pipeline or URP.");
+                return false;
+            }
             // File filepaths and names
             Shader shader = material.shader;
             string shaderFilePath = AssetDatabase.GetAssetPath(shader);
@@ -940,8 +1007,6 @@ namespace Thry.ThryEditor
                 guid = AssetDatabase.AssetPathToGUID(materialFilePath);
                 isSubAsset = false;
             }
-
-
 
             string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid + (isSubAsset ? $"_{fileId}" : "");
             string shaderOptimizerButtonDrawerName = $"[{nameof(ThryShaderOptimizerLockButtonDrawer).Replace("Drawer", "")}]";
@@ -1192,7 +1257,8 @@ namespace Thry.ThryEditor
                 
 
                 // Shader file specific stuff
-                if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal))
+                if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal) ||
+                    psf.filePath.EndsWith(".hlsl", StringComparison.Ordinal))
                 {
                     for (int i=0; i<psf.lines.Length;i++)
                     {
@@ -1236,21 +1302,21 @@ namespace Thry.ThryEditor
                             psf.lines[i] = "GrabPass { \"" + gpr.newName + "\" }";
                             grabPassVariables.Add(gpr);
                         }
-                        else if (trimmedLine.StartsWith("CGINCLUDE", StringComparison.Ordinal))
+                        else if (trimmedLine.StartsWith(PreprocessStructureStart[(int) pipeline], StringComparison.Ordinal))
                         {
                             for (int j=i+1; j<psf.lines.Length;j++)
-                                if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
+                                if (psf.lines[j].TrimStart().StartsWith(PreprocessStructureEnd[(int) pipeline], StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
-                        else if (trimmedLine.StartsWith("CGPROGRAM", StringComparison.Ordinal))
+                        else if (trimmedLine.StartsWith(CodeBlockStart[(int) pipeline], StringComparison.Ordinal))
                         {
                             if(commentKeywords == 0)
                                 psf.lines[i] += optimizerDefines;
                             for (int j=i+1; j<psf.lines.Length;j++)
-                                if (psf.lines[j].TrimStart().StartsWith("ENDCG", StringComparison.Ordinal))
+                                if (psf.lines[j].TrimStart().StartsWith(CodeBlockEnd[(int) pipeline], StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
@@ -1266,8 +1332,12 @@ namespace Thry.ThryEditor
                                 string lightModeName = lineFullyTrimmed.Split('\"')[3];
                                 // Store current lightmode name in a static, useful for per-pass geometry and tessellation removal
                                 if (lightModeName == "ForwardBase") CurrentLightmode = LightModeType.ForwardBase;
+                                // URP: Pretend forward lit is the old forward pass??
+                                if (lightModeName == "ForwardLit") CurrentLightmode = LightModeType.ForwardBase;
                                 else if (lightModeName == "ForwardAdd") CurrentLightmode = LightModeType.ForwardAdd;
                                 else if (lightModeName == "ShadowCaster") CurrentLightmode = LightModeType.ShadowCaster;
+                                else if (lightModeName == "DepthOnly") CurrentLightmode = LightModeType.DepthOnly;
+                                else if (lightModeName == "DepthNormals") CurrentLightmode = LightModeType.DepthNormals;
                                 else if (lightModeName == "Meta") CurrentLightmode = LightModeType.Meta;
                                 else CurrentLightmode = LightModeType.None;
                                 if (disabledLightModes.Contains(lightModeName))
