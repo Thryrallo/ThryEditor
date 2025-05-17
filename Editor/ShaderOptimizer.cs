@@ -280,6 +280,30 @@ namespace Thry.ThryEditor
             public string name;
             public Vector4 value;
             public string lastDeclarationType;
+
+            public void ToCode(StringBuilder sb)
+            {
+                switch (type)
+                {
+                    case PropertyType.Float:
+                        string constantValue;
+                        // Special Handling for ints 
+                        if(lastDeclarationType == "int")
+                            constantValue = value.x.ToString("F0", CultureInfo.InvariantCulture);
+                        else
+                            constantValue = value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
+
+                        // Add comment with property name, for easier debug
+                        sb.Append($"({constantValue} /*{name}*/)");
+                        break;
+                    case PropertyType.Vector:
+                        sb.Append("float4("+value.x.ToString(CultureInfo.InvariantCulture)+","
+                                        +value.y.ToString(CultureInfo.InvariantCulture)+","
+                                        +value.z.ToString(CultureInfo.InvariantCulture)+","
+                                        +value.w.ToString(CultureInfo.InvariantCulture)+")");
+                        break;
+                }
+            }
         }
 
         public class Macro
@@ -320,6 +344,16 @@ namespace Thry.ThryEditor
             public string animPropertySuffix;
             public bool shared;
             public List<string> stripTextures;
+        }
+
+        private static string GetColorMaskString(int colorMask)
+        {
+            string mask = "";
+            if ((colorMask & 8) != 0) mask += "R";
+            if ((colorMask & 4) != 0) mask += "G";
+            if ((colorMask & 2) != 0) mask += "B";
+            if ((colorMask & 1) != 0) mask += "A";
+            return mask;
         }
 
         private static Dictionary<Material, ApplyStruct> s_applyStructsLater = new Dictionary<Material, ApplyStruct>();
@@ -1117,6 +1151,10 @@ namespace Thry.ThryEditor
                 }
             }
 
+            // Fix some properties that require special handling
+            // _ColorMask should write RGBA string instead of 0-15
+            PropertyData colorMaskProp = constantProps.FirstOrDefault(x => x.name == "_ColorMask");
+
             // Get list of lightmode passes to delete
             List<string> disabledLightModes = new List<string>();
             var disabledLightModesProperty = Array.Find(props, x => x.name == DisabledLightModesPropertyName);
@@ -1293,6 +1331,12 @@ namespace Thry.ThryEditor
                                             break;
                                     }
                                 }
+                            }
+                        }else if(trimmedLine.StartsWith("ColorMask", StringComparison.Ordinal))
+                        {
+                            if (colorMaskProp != null)
+                            {
+                                psf.lines[i] = psf.lines[i].Replace("[_ColorMask]", GetColorMaskString((int)colorMaskProp.value.x));
                             }
                         }
                     }
@@ -2068,26 +2112,7 @@ namespace Thry.ThryEditor
                             // This could technically be more efficient by being outside the IndexOf loop
                             StringBuilder sb = new StringBuilder(lines[i].Length * 2);
                             sb.Append(lines[i], 0, constantIndex);
-                            switch (constant.type)
-                            {
-                                case PropertyType.Float:
-                                    string constantValue;
-                                    // Special Handling for ints 
-                                    if(constant.lastDeclarationType == "int")
-                                        constantValue = constant.value.x.ToString("F0", CultureInfo.InvariantCulture);
-                                    else
-                                        constantValue = constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
-
-                                    // Add comment with property name, for easier debug
-                                    sb.Append($"({constantValue} /*{constant.name}*/)");
-                                    break;
-                                case PropertyType.Vector:
-                                    sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.y.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.z.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.w.ToString(CultureInfo.InvariantCulture)+")");
-                                    break;
-                            }
+                            constant.ToCode(sb);
                             sb.Append(lines[i], constantIndex+constant.name.Length, lines[i].Length-constantIndex-constant.name.Length);
                             lines[i] = sb.ToString();
 
