@@ -365,6 +365,7 @@ namespace Thry
                     groupStack.Push(newPart as ShaderGroup);
                 }
                 
+                bool doAssignPropertyToGroup = true;
                 switch (type)
                 {
                     case ThryPropertyType.on_swap_to:
@@ -406,27 +407,32 @@ namespace Thry
                     case ThryPropertyType.optimizer:
                         ShaderOptimizerProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         ShaderOptimizerProperty.SetIsExemptFromLockedDisabling(true);
+                        NewProperty = ShaderOptimizerProperty;
+                        doAssignPropertyToGroup = false;
                         break;
                     case ThryPropertyType.in_shader_presets:
                         InShaderPresetsProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
+                        NewProperty = InShaderPresetsProperty;
+                        doAssignPropertyToGroup = false;
                         break;
                 }
                 if (NewProperty != null)
                 {
                     newPart = NewProperty;
-                    if (type != ThryPropertyType.none)
+                    if (type != ThryPropertyType.none && doAssignPropertyToGroup)
                     {
                         groupStack.Peek().AddPart(NewProperty);
                     }
-                }
-                if (newPart != null)
-                {
+                    
 #if UNITY_2022_1_OR_NEWER // Unity 2019 needs to check if key exists before adding? (Information from pumkin did not check)
                     PropertyDictionary.TryAdd(props[i].name, NewProperty);
 #else
                     if(!PropertyDictionary.ContainsKey(props[i].name))
                         PropertyDictionary.Add(props[i].name, NewProperty);
 #endif
+                }
+                if (newPart != null)
+                {
                     ShaderParts.Add(newPart);
                 }
             }
