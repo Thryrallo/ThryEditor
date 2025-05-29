@@ -56,7 +56,7 @@ namespace Thry.ThryEditor.Drawers
             // Custom Change Check, so it triggers on reselect too
             EditorGUI.BeginChangeCheck();
             int newMask = mask;
-            if(RenderLabel)
+            if (RenderLabel)
                 newMask = EditorGUI.MaskField(position, label, newMask, _options);
             else
                 newMask = EditorGUI.MaskField(position, newMask, _options);
@@ -87,6 +87,9 @@ namespace Thry
 {
     public enum ColorMaskFlags
     {
-        Red, Green, Blue, Alpha
+        Alpha, // bit 0
+        Blue, // bit 1
+        Green, // bit 2
+        Red, // bit 3
     }
 }
