@@ -61,6 +61,7 @@ namespace Thry.ThryEditor
             private bool _isConstant;
             private MaterialRenference _materialReference;
             private string _key;
+            private bool _isErrorLogged = false;
 
             public object Value
             {
@@ -82,14 +83,24 @@ namespace Thry.ThryEditor
                     if (_type == DataType.MATERIAL_PROPERTY)
                     {
                         MaterialProperty prop = _materialReference.GetMaterialProperty(_key);
-                        if (prop == null) return null;
-                        return prop.type switch
+                        if (prop == null)
                         {
-                            MaterialProperty.PropType.Color => prop.colorValue,
-                            MaterialProperty.PropType.Vector => prop.vectorValue,
-                            MaterialProperty.PropType.Texture => prop.textureValue != null ? prop.textureValue.name : "null",
-                            _ => prop.GetNumber()
-                        };
+                            if( !_isErrorLogged)
+                            {
+                                _isErrorLogged = true;
+                                ThryLogger.LogDetail(
+                                    $"Failed to get material property '{_key}' from material '{_materialReference.Material?.name}' for condition. "
+                                );
+                            }
+                            return 0f;
+                        }
+                        return prop.type switch
+                            {
+                                MaterialProperty.PropType.Color => prop.colorValue,
+                                MaterialProperty.PropType.Vector => prop.vectorValue,
+                                MaterialProperty.PropType.Texture => prop.textureValue != null ? prop.textureValue.name : "null",
+                                _ => prop.GetNumber()
+                            };
                     }
 
                     return 0;
@@ -208,7 +219,9 @@ namespace Thry.ThryEditor
                 }
                 else
                 {
-                    Debug.LogWarning($"Failed to compare values: {_left.Value} and {_right.Value}. Comparision: {this.ToString()}");
+                    ThryLogger.LogDetail(
+                        $"Failed to compare values: {_left.Value} and {_right.Value}. Comparision: {this.ToString()}"
+                    );
                 }
                 return false;
             }
