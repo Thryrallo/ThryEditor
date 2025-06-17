@@ -1,10 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using Algolia.Search.Models.Rules;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
-using UnityEditorInternal;
 using UnityEngine;
 
 namespace Thry.ThryEditor
