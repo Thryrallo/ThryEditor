@@ -292,19 +292,8 @@ namespace Thry.ThryEditor
             {
                 return s_headersInShader[m.shader];
             }
-            MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new Material[] { m });
-            List<string> headers = new List<string>();
-            foreach (MaterialProperty prop in props)
-            {
-                if (prop.flags == MaterialProperty.PropFlags.HideInInspector &&
-                    prop.name.StartsWith("m_", StringComparison.Ordinal)
-                    )
-                {
-                    headers.Add(prop.name);
-                }
-            }
-            s_headersInShader[m.shader] = headers;
-            return headers;
+            string[] props = MaterialHelper.GetFloatPropertiesFromSerializedObject(m);
+            return props.Where(p => p.StartsWith("m_", StringComparison.Ordinal)).ToList();
         }
 
         static void Save()
