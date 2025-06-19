@@ -29,8 +29,11 @@ namespace Thry.ThryEditor
                     _material = useThisMaterialInsteadOfOpenEditor;
                     _forceUseMaterialInsteadOfEditor = true;
                 }
-                _material = ShaderEditor.Active.Materials[0];
-                _forceUseMaterialInsteadOfEditor = false;
+                else
+                {
+                    _material = ShaderEditor.Active.Materials[0];
+                    _forceUseMaterialInsteadOfEditor = false;
+                }
             }
 
             public MaterialProperty GetMaterialProperty(string key)
