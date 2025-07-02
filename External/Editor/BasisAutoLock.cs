@@ -12,8 +12,16 @@ namespace Thry.ThryEditor.UploadCallbacks
         [InitializeOnLoadMethod]
         private static void Initialize()
         {
-            // Subscribe to the event
-            BasisBundleBuild.PreBuildBundleEvents += HandlePreBuildEvent;
+            try
+            {
+                // Subscribe to the event
+                BasisBundleBuild.PreBuildBundleEvents += HandlePreBuildEvent;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Failed to hook to Basis Prebuild Events: {e.Message}");
+                Debug.LogWarning("ThryEditor will not auto-lock materials for Basis builds. Please ensure you have the Basis SDK installed and configured correctly.");
+            }
         }
 
         private static Task HandlePreBuildEvent(BasisContentBase basisContentBase, List<BuildTarget> targets)
