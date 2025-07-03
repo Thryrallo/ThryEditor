@@ -132,17 +132,20 @@ namespace Thry.ThryEditor
             protected set
             {
                 _content = value;
-                if(string.IsNullOrWhiteSpace(value.text))
-                {
-                    _contentNonDefault = GUIContent.none;
-                    return;
-                }
-                _contentNonDefault = new GUIContent(value.text + '*');
             }
             get
             {
-                if(Config.Instance.showStarNextToNonDefaultProperties && !IsPropertyValueDefault)
+                if (Config.Instance.showStarNextToNonDefaultProperties && !IsPropertyValueDefault)
+                {
+                    if (_contentNonDefault == null)
+                    {
+                        if (_content == null || string.IsNullOrWhiteSpace(_content.text))
+                            _contentNonDefault = GUIContent.none;
+                        else
+                            _contentNonDefault = new GUIContent(_content.text + '*');
+                    }
                     return _contentNonDefault;
+                }
                 return _content;
             }
         }
@@ -212,6 +215,25 @@ namespace Thry.ThryEditor
             return MaterialHelper.GetValue(MaterialProperty);
         }
 
+        // private static Vector4 GetPropertyDefaultValue([NotNull("ArgumentNullException")] Shader shader, int propertyIndex)
+        static MethodInfo s_fastGetPropertyDefaultValueMethod = 
+            typeof(Shader).GetMethod("GetPropertyDefaultValue", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(Shader), typeof(int) }, null);
+
+        static Func<Shader, int , Vector4> FastGetPropertyDefaultValue =
+            (Func<Shader, int, Vector4>)Delegate.CreateDelegate(typeof(Func<Shader, int, Vector4>), s_fastGetPropertyDefaultValueMethod);
+
+        // private static extern int GetPropertyDefaultIntValue([NotNull("ArgumentNullException")] Shader shader, int propertyIndex);
+        static MethodInfo s_fastGetPropertyDefaultIntValueMethod =
+            typeof(Shader).GetMethod("GetPropertyDefaultIntValue", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(Shader), typeof(int) }, null);
+        static Func<Shader, int, int> FastGetPropertyDefaultIntValue = 
+            (Func<Shader, int, int>)Delegate.CreateDelegate(typeof(Func<Shader, int, int>), s_fastGetPropertyDefaultIntValueMethod);
+
+        // private static extern string GetPropertyTextureDefaultName([NotNull("ArgumentNullException")] Shader shader, int propertyIndex);
+        static MethodInfo s_fastGetPropertyTextureDefaultNameMethod =
+            typeof(Shader).GetMethod("GetPropertyTextureDefaultName", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(Shader), typeof(int) }, null);
+        static Func<Shader, int, string> FastGetPropertyTextureDefaultName =
+            (Func<Shader, int, string>)Delegate.CreateDelegate(typeof(Func<Shader, int, string>), s_fastGetPropertyTextureDefaultNameMethod);
+
         private object _propertyDefaultValue;
         public virtual object PropertyDefaultValue { 
             get
@@ -220,34 +242,34 @@ namespace Thry.ThryEditor
                 {
                     try
                     {
-                    if(MaterialProperty == null)
-                        return null;
-                    switch (MaterialProperty.type)
-                    {
-                        case PropType.Float:
-                        case PropType.Range:
-                            _propertyDefaultValue = MyShader.GetPropertyDefaultFloatValue(ShaderPropertyIndex);
-                            break;
-                        case PropType.Color:
-                        case PropType.Vector:
-                            _propertyDefaultValue = MyShader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
-                            break;
-                        case PropType.Texture:
-                            Texture tex = ShaderEditor.Active.GetShaderImporter(MyShader).GetDefaultTexture(MaterialProperty.name);
-                            if(tex != null) _propertyDefaultValue = tex.name;
-                            else            _propertyDefaultValue = MyShader.GetPropertyTextureDefaultName(ShaderPropertyIndex);
-                            break;
+                        if (MaterialProperty == null)
+                            return null;
+                        switch (MaterialProperty.type)
+                        {
+                            case PropType.Float:
+                            case PropType.Range:
+                                _propertyDefaultValue = FastGetPropertyDefaultValue(MyShader, ShaderPropertyIndex).x;
+                                break;
+                            case PropType.Color:
+                            case PropType.Vector:
+                                _propertyDefaultValue = FastGetPropertyDefaultValue(MyShader, ShaderPropertyIndex);
+                                break;
+                            case PropType.Texture:
+                                Texture tex = ShaderEditor.Active.GetShaderImporter(MyShader).GetDefaultTexture(MaterialProperty.name);
+                                if (tex != null) _propertyDefaultValue = tex.name;
+                                else _propertyDefaultValue = FastGetPropertyTextureDefaultName(MyShader, ShaderPropertyIndex);
+                                break;
 #if UNITY_2022_1_OR_NEWER
-                        case PropType.Int:
-                            _propertyDefaultValue = MyShader.GetPropertyDefaultIntValue(ShaderPropertyIndex);
-                            break;
+                            case PropType.Int:
+                                _propertyDefaultValue = FastGetPropertyDefaultIntValue(MyShader, ShaderPropertyIndex);
+                                break;
 #endif
-                        default :
-                            _propertyDefaultValue = -1;
-                            break;
+                            default:
+                                _propertyDefaultValue = -1;
+                                break;
+                        }
                     }
-                    }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Debug.LogError(e);
                         Debug.Log($"{MyShader.name} {MaterialProperty.name} {ShaderPropertyIndex}  {MyShader.FindPropertyIndex(MaterialProperty.name)} {MyShader.GetPropertyType(ShaderPropertyIndex)}");
@@ -299,7 +321,41 @@ namespace Thry.ThryEditor
             }
         }
 
-#region Setters
+        public string Note
+        {
+            get
+            {
+                if(_cachedNote == null)
+                {
+                    MyShaderUI.NoteContainers.First().TryGetNoteForProperty(MaterialProperty.name, out string firstNote);
+                    if(MyShaderUI.NoteContainers.Length > 1)
+                    {
+                        bool allNotesAreTheSame = MyShaderUI.NoteContainers.All(x =>
+                        {
+                            x.TryGetNoteForProperty(MaterialProperty.name, out string currentNote);
+                            return firstNote == currentNote;
+                        });
+                        
+                        _cachedNote = allNotesAreTheSame ? firstNote : "...";
+                    }
+                    else
+                    {
+                        _cachedNote = firstNote;
+                    }
+                }
+
+                return _cachedNote;
+            }
+            set
+            {
+                _cachedNote = value;
+                foreach(var container in MyShaderUI.NoteContainers)
+                    container.SetNote(MaterialProperty.name, value);
+            }
+        }
+        string _cachedNote = null;
+
+        #region Setters
         public void SetIsExemptFromLockedDisabling(bool b)
         {
             IsExemptFromLockedDisabling = b;
@@ -345,8 +401,17 @@ namespace Thry.ThryEditor
             if (ShaderPropertyAttributes == null) return false;
             return ShaderPropertyAttributes.Contains(attribute, StringComparer.OrdinalIgnoreCase);
         }
+
+        public ShaderProperty TryFetchReferenceProperty()
+        {
+            if (string.IsNullOrWhiteSpace(Options.reference_property) == false && MyShaderUI.PropertyDictionary.TryGetValue(Options.reference_property, out ShaderProperty referenceProp))
+            {
+                return referenceProp;
+            }
+            return null;
+        }
 #endregion
-#region Initialization
+        #region Initialization
         public ShaderPart(string propertyIdentifier, int xOffset, string displayName, string tooltip, ShaderEditor shaderEditor)
         {
             this._optionsRaw = null;
@@ -488,7 +553,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values for this property from the source property </summary>
         /// <param name="src"> The source property to copy from </param>
@@ -496,7 +561,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property to the target materials </summary>
         /// <param name="targets"> The target materials to copy to </param>
@@ -504,7 +569,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property to the target property </summary>
         /// <param name="target"> The target property to copy to </param>
@@ -512,7 +577,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property from the source material </summary>
         /// <param name="target"> The target material to copy to </param>
@@ -520,9 +585,9 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public void CopyTo(Material target, bool applyDrawers = true, bool deepCopy = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public void CopyTo(Material target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
-            CopyTo(new Material[] { target }, applyDrawers, deepCopy, skipPropertyTypes, skipPropertyNames);
+            CopyTo(new Material[] { target }, applyDrawers, deepCopy, copyReferenceProperties, skipPropertyTypes, skipPropertyNames);
         }
 
         protected void CopyReferencePropertiesTo(Material[] targets, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
@@ -531,12 +596,12 @@ namespace Thry.ThryEditor
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = MyShaderUI.PropertyDictionary[r_property];
-                    property.CopyTo(targets, false, true, skipPropertyTypes, skipPropertyNames);
+                    property.CopyTo(targets, false, true, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_property];
-                property.CopyTo(targets, false, true, skipPropertyTypes, skipPropertyNames);
+                property.CopyTo(targets, false, true, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 
@@ -546,12 +611,12 @@ namespace Thry.ThryEditor
                 foreach (string r_property in Options.reference_properties)
                 {
                     ShaderProperty property = MyShaderUI.PropertyDictionary[r_property];
-                    property.CopyFrom(source, false, true, skipPropertyTypes, skipPropertyNames);
+                    property.CopyFrom(source, false, true, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (string.IsNullOrWhiteSpace(Options.reference_property) == false)
             {
                 ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_property];
-                property.CopyFrom(source, false, true, skipPropertyTypes, skipPropertyNames);
+                property.CopyFrom(source, false, true, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 
@@ -562,13 +627,13 @@ namespace Thry.ThryEditor
                 {
                     ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_properties[i]];
                     ShaderProperty srcProperty = src.MyShaderUI.PropertyDictionary[src.Options.reference_properties[i]];
-                    property.CopyFrom(srcProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                    property.CopyFrom(srcProperty, false, true, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(src.Options.reference_property))
             {
                 ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_property];
                 ShaderProperty srcProperty = src.MyShaderUI.PropertyDictionary[src.Options.reference_property];
-                property.CopyFrom(srcProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                property.CopyFrom(srcProperty, false, true, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 
@@ -579,13 +644,13 @@ namespace Thry.ThryEditor
                 {
                     ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_properties[i]];
                     ShaderProperty targetProperty = target.MyShaderUI.PropertyDictionary[target.Options.reference_properties[i]];
-                    property.CopyTo(targetProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                    property.CopyTo(targetProperty, false, true, true, skipPropertyTypes, skipPropertyNames);
                 }
             if (!string.IsNullOrWhiteSpace(Options.reference_property) && !string.IsNullOrWhiteSpace(target.Options.reference_property))
             {
                 ShaderProperty property = MyShaderUI.PropertyDictionary[Options.reference_property];
                 ShaderProperty targetProperty = target.MyShaderUI.PropertyDictionary[target.Options.reference_property];
-                property.CopyTo(targetProperty, false, true, skipPropertyTypes, skipPropertyNames);
+                property.CopyTo(targetProperty, false, true, true, skipPropertyTypes, skipPropertyNames);
             }
         }
 

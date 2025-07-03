@@ -39,19 +39,29 @@ namespace Thry.ThryEditor
                 return appliedPreset;
             }
         }
+        
+        static Comparer<string> s_nameComparer = Comparer<string>.Create((a, b) =>
+        {
+            // Compare by name, names with more slashes (/) are considered to be more specific
+            int aSlashCount = a.Count(c => c == '/');
+            int bSlashCount = b.Count(c => c == '/');
+            if (aSlashCount > bSlashCount) return -1;
+            if (aSlashCount < bSlashCount) return 1;
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+        });
 
         class PresetsCollection
         {
-            private Dictionary<string, string> _nameToGuid = new Dictionary<string, string>();
+            private SortedDictionary<string, string> _nameToGuid = new SortedDictionary<string, string>(s_nameComparer);
             private Dictionary<string, string> _guidToName = new Dictionary<string, string>();
-            public IEnumerable<string> Guids => _guidToName.Keys;
-            public IEnumerable<string> Names => _nameToGuid.Keys;
-            public IEnumerable<string> Paths => _guidToName.Keys.Select(g => AssetDatabase.GUIDToAssetPath(g));
+            public IEnumerable<string> Guids => _nameToGuid.Values;
+            public IEnumerable<string> Paths => _nameToGuid.Values.Select(g => AssetDatabase.GUIDToAssetPath(g));
+            public IEnumerable<string> Names => _nameToGuid.Keys.OrderBy(s => s, s_nameComparer);
             public int Count => _nameToGuid.Count;
 
             public void Remove(string guid)
             {
-                if(_guidToName.ContainsKey(guid))
+                if (_guidToName.ContainsKey(guid))
                 {
                     _nameToGuid.Remove(_guidToName[guid]);
                     _guidToName.Remove(guid);
@@ -60,11 +70,11 @@ namespace Thry.ThryEditor
 
             public bool Add(string name, string guid)
             {
-                if(_nameToGuid.ContainsKey(name))
+                if (_nameToGuid.ContainsKey(name))
                 {
                     return false;
                 }
-                if(_guidToName.ContainsKey(guid))
+                if (_guidToName.ContainsKey(guid))
                 {
                     return false;
                 }
@@ -75,7 +85,7 @@ namespace Thry.ThryEditor
 
             public void AddOrUpdate(string name, string guid)
             {
-                if(_guidToName.ContainsKey(guid))
+                if (_guidToName.ContainsKey(guid))
                 {
                     _nameToGuid.Remove(_guidToName[guid]);
                 }
@@ -86,7 +96,7 @@ namespace Thry.ThryEditor
             public void RemoveWithoutPath()
             {
                 var guids = _guidToName.Keys.Where(k => string.IsNullOrWhiteSpace(AssetDatabase.GUIDToAssetPath(k))).ToList();
-                foreach(string guid in guids)
+                foreach (string guid in guids)
                 {
                     _nameToGuid.Remove(_guidToName[guid]);
                     _guidToName.Remove(guid);
@@ -105,7 +115,7 @@ namespace Thry.ThryEditor
 
             public void Serialize(StringBuilder sb)
             {
-                foreach(KeyValuePair<string, string> entry in _nameToGuid)
+                foreach (KeyValuePair<string, string> entry in _nameToGuid)
                 {
                     sb.AppendLine($"{entry.Key};{entry.Value}");
                 }
@@ -280,6 +290,11 @@ namespace Thry.ThryEditor
             EditorUtility.ClearProgressBar();
         }
 
+        public static void RebuildCache()
+        {
+            CreatePresetCache();
+        }
+
         static Dictionary<Shader, List<string>> s_headersInShader = new Dictionary<Shader, List<string>>();
         static List<string> GetHeadersInShader(Material m)
         {       
@@ -287,19 +302,8 @@ namespace Thry.ThryEditor
             {
                 return s_headersInShader[m.shader];
             }
-            MaterialProperty[] props = MaterialEditor.GetMaterialProperties(new Material[] { m });
-            List<string> headers = new List<string>();
-            foreach (MaterialProperty prop in props)
-            {
-                if (prop.flags == MaterialProperty.PropFlags.HideInInspector &&
-                    prop.name.StartsWith("m_", StringComparison.Ordinal)
-                    )
-                {
-                    headers.Add(prop.name);
-                }
-            }
-            s_headersInShader[m.shader] = headers;
-            return headers;
+            string[] props = MaterialHelper.GetFloatPropertiesFromSerializedObject(m);
+            return props.Where(p => p.StartsWith("m_", StringComparison.Ordinal)).ToList();
         }
 
         static void Save()
@@ -555,14 +559,14 @@ namespace Thry.ThryEditor
 
         public static void ApplyFullList(ShaderEditor shaderEditor, Material[] originals, List<Material> presets)
         {
-            for(int i=0;i<shaderEditor.Materials.Length && i < originals.Length;i++)
-                shaderEditor.Materials[i].CopyPropertiesFromMaterial(originals[i]);
+            // for(int i=0;i<shaderEditor.Materials.Length && i < originals.Length;i++)
+            //     shaderEditor.Materials[i].CopyPropertiesFromMaterial(originals[i]);
+            shaderEditor.ShaderParts.ForEach(p => p.CopyFrom(originals[0], applyDrawers: false, copyReferenceProperties: false, deepCopy: false));
             foreach (Material preset in presets)
             {
                 ApplyPresetInternal(shaderEditor, preset, preset, null);
             }
-            foreach(Material m in shaderEditor.Materials)
-                MaterialEditor.ApplyMaterialPropertyDrawers(m);
+            shaderEditor.ApplyDrawers();
             shaderEditor.Reload();
         }
 
@@ -575,11 +579,15 @@ namespace Thry.ThryEditor
 
             if(!IsMaterialSectionedPreset(preset))
             {
+                ThryLogger.LogDetail($"Apply preset '{preset.name}' to '{shaderEditor.Materials[0].name}'");
                 foreach (ShaderPart part in shaderEditor.ShaderParts)
                 {
                     if (IsPreset(preset, part))
                     {
-                        part.CopyFrom(copyFrom, applyDrawers: false);
+                        if(part is ShaderGroup)
+                            part.CopyFrom(copyFrom, applyDrawers: false, copyReferenceProperties: true, deepCopy: true);
+                        else
+                            part.CopyFrom(copyFrom, applyDrawers: false, copyReferenceProperties: false);
                     }
                 }
             }else if(parent is ShaderGroup)
@@ -608,15 +616,15 @@ namespace Thry.ThryEditor
 
         public static void SetProperty(Material m, ShaderPart prop, bool value)
         {
-            if (prop.CustomStringTagID != null) m.SetOverrideTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PROPERTY_PRESET, value ? "true" : "");
-            if (prop.MaterialProperty != null)   m.SetOverrideTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PROPERTY_PRESET, value ? "true" : "");
+            if (prop.CustomStringTagID  != null) m.SetOverrideTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PROPERTY_PRESET, value ? "true" : "");
+            if (prop.MaterialProperty   != null) m.SetOverrideTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PROPERTY_PRESET, value ? "true" : "");
             if (prop.PropertyIdentifier != null) m.SetOverrideTag(prop.PropertyIdentifier    + TAG_POSTFIX_IS_PROPERTY_PRESET, value ? "true" : "");
         }
 
         public static bool IsPreset(Material m, ShaderPart prop)
         {
-            if (prop.CustomStringTagID != null) return m.GetTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
-            if (prop.MaterialProperty != null)   return m.GetTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
+            if (prop.CustomStringTagID  != null) return m.GetTag(prop.CustomStringTagID + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
+            if (prop.MaterialProperty   != null) return m.GetTag(prop.MaterialProperty.name + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
             if (prop.PropertyIdentifier != null) return m.GetTag(prop.PropertyIdentifier    + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
             return false;
         }
@@ -736,14 +744,6 @@ namespace Thry.ThryEditor
             }
         }
 
-#endregion
-
-#region Unity Menu Hooks
-        [MenuItem("Thry/Presets/Rebuild Cache", priority = 100)]
-        static void RebuildCache()
-        {
-            Presets.CreatePresetCache();
-        }
 #endregion
     }
 
@@ -935,7 +935,7 @@ namespace Thry.ThryEditor
             EditorUtility.ClearProgressBar();
             mainStruct.Reset();
             tickedPresets.Clear();
-            shaderEditor.Reload();
+            shaderEditor.Reload(true);
         }
     }
 }

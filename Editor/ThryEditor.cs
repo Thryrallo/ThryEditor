@@ -76,6 +76,8 @@ namespace Thry
         public ShaderTranslator SuggestedTranslationDefinition { get; private set; }
         private string _duplicatePropertyNamesString = null;
 
+        public MaterialPropertyNotesContainer[] NoteContainers { get; private set; }
+
         //Shader Versioning
         private ThryEditor.Version _shaderVersionLocal;
         private ThryEditor.Version _shaderVersionRemote;
@@ -202,7 +204,7 @@ namespace Thry
 
         private enum ThryPropertyType
         {
-            none, property, master_label, footer, header, header_end, header_start, group_start, group_end, section_start, section_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version, optimizer, in_shader_presets
+            hidden_property, shown_property, master_label, footer, header, header_end, header_start, group_start, group_end, section_start, section_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version, optimizer, in_shader_presets
         }
 
         private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -212,53 +214,47 @@ namespace Thry
 
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
-                if (name == PROPERTY_NAME_MASTER_LABEL)
-                    return ThryPropertyType.master_label;
-                if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS)
-                    return ThryPropertyType.on_swap_to;
-                if (name == PROPERTY_NAME_SHADER_VERSION)
-                    return ThryPropertyType.shader_version;
+                if (name[0] == '_')
+                {
+                    return ThryPropertyType.hidden_property;
+                }
 
-                if (name.StartsWith("m_start", StringComparison.Ordinal))
-                    return ThryPropertyType.header_start;
-                if (name.StartsWith("m_end", StringComparison.Ordinal))
-                    return ThryPropertyType.header_end;
-                if (name.StartsWith("m_", StringComparison.Ordinal))
-                    return ThryPropertyType.header;
-                if (name.StartsWith("g_start", StringComparison.Ordinal))
-                    return ThryPropertyType.group_start;
-                if (name.StartsWith("g_end", StringComparison.Ordinal))
-                    return ThryPropertyType.group_end;
-                if (name.StartsWith("s_start", StringComparison.Ordinal))
-                    return ThryPropertyType.section_start;
-                if (name.StartsWith("s_end", StringComparison.Ordinal))
-                    return ThryPropertyType.section_end;
-                if (name.StartsWith("footer_", StringComparison.Ordinal))
-                    return ThryPropertyType.footer;
-                if (name == "Instancing")
-                    return ThryPropertyType.instancing;
-                if (name == "DSGI")
-                    return ThryPropertyType.dsgi;
-                if (name == "LightmapFlags")
-                    return ThryPropertyType.lightmap_flags;
-                if (name == PROPERTY_NAME_LOCALE)
-                    return ThryPropertyType.locale;
-                if (name.StartsWith("space"))
-                    return ThryPropertyType.space;
+                if (name == PROPERTY_NAME_MASTER_LABEL)       return ThryPropertyType.master_label;
+                if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS) return ThryPropertyType.on_swap_to;
+                if (name == PROPERTY_NAME_SHADER_VERSION)     return ThryPropertyType.shader_version;
+                if (name == PROPERTY_NAME_LOCALE)             return ThryPropertyType.locale;
+                
+                if (name == "Instancing")    return ThryPropertyType.instancing;
+                if (name == "DSGI")          return ThryPropertyType.dsgi;
+                if (name == "LightmapFlags") return ThryPropertyType.lightmap_flags;
+
+                
+                if (name[0] == 'm')
+                {
+                    if (name.StartsWith("m_start", StringComparison.Ordinal)) return ThryPropertyType.header_start;
+                    if (name.StartsWith("m_end", StringComparison.Ordinal)) return ThryPropertyType.header_end;
+                    if (name.StartsWith("m_", StringComparison.Ordinal)) return ThryPropertyType.header;
+                }
+                else if (name[0] == 'g')
+                {
+                    if (name.StartsWith("g_start", StringComparison.Ordinal)) return ThryPropertyType.group_start;
+                    if (name.StartsWith("g_end", StringComparison.Ordinal)) return ThryPropertyType.group_end;
+                }
+                else if (name[0] == 's')
+                {
+                    if (name.StartsWith("s_start", StringComparison.Ordinal)) return ThryPropertyType.section_start;
+                    if (name.StartsWith("s_end", StringComparison.Ordinal)) return ThryPropertyType.section_end;
+                }
+                
+
+                if (name.StartsWith("footer_", StringComparison.Ordinal)) return ThryPropertyType.footer;
+                if (name.StartsWith("space", StringComparison.Ordinal))   return ThryPropertyType.space;
             }
-            else if (name == ShaderOptimizerPropertyName)
-            {
-                return ThryPropertyType.optimizer;
-            }
-            else if(name == PROPERTY_NAME_IN_SHADER_PRESETS)
-            {
-                return ThryPropertyType.in_shader_presets;
-            }
-            else if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector) == false)
-            {
-                return ThryPropertyType.property;
-            }
-            return ThryPropertyType.none;
+            if (name == ShaderOptimizerPropertyName)  return ThryPropertyType.optimizer;
+            if (name == PROPERTY_NAME_IN_SHADER_PRESETS) return ThryPropertyType.in_shader_presets;
+
+            if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector)) return ThryPropertyType.hidden_property;
+            return ThryPropertyType.shown_property;
         }
 
         private void LoadLocales()
@@ -363,6 +359,7 @@ namespace Thry
                     groupStack.Push(newPart as ShaderGroup);
                 }
                 
+                bool doAssignPropertyToGroup = true;
                 switch (type)
                 {
                     case ThryPropertyType.on_swap_to:
@@ -374,8 +371,8 @@ namespace Thry
                     case ThryPropertyType.footer:
                         _footers.Add(new FooterButton(Parser.Deserialize<ButtonData>(displayName)));
                         break;
-                    case ThryPropertyType.none:
-                    case ThryPropertyType.property:
+                    case ThryPropertyType.hidden_property:
+                    case ThryPropertyType.shown_property:
                         if (props[i].type == MaterialProperty.PropType.Texture)
                             NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
                         else
@@ -404,27 +401,32 @@ namespace Thry
                     case ThryPropertyType.optimizer:
                         ShaderOptimizerProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         ShaderOptimizerProperty.SetIsExemptFromLockedDisabling(true);
+                        NewProperty = ShaderOptimizerProperty;
+                        doAssignPropertyToGroup = false;
                         break;
                     case ThryPropertyType.in_shader_presets:
                         InShaderPresetsProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
+                        NewProperty = InShaderPresetsProperty;
+                        doAssignPropertyToGroup = false;
                         break;
                 }
                 if (NewProperty != null)
                 {
                     newPart = NewProperty;
-                    if (type != ThryPropertyType.none)
+                    if (type != ThryPropertyType.hidden_property && doAssignPropertyToGroup)
                     {
                         groupStack.Peek().AddPart(NewProperty);
                     }
-                }
-                if (newPart != null)
-                {
+                    
 #if UNITY_2022_1_OR_NEWER // Unity 2019 needs to check if key exists before adding? (Information from pumkin did not check)
                     PropertyDictionary.TryAdd(props[i].name, NewProperty);
 #else
                     if(!PropertyDictionary.ContainsKey(props[i].name))
                         PropertyDictionary.Add(props[i].name, NewProperty);
 #endif
+                }
+                if (newPart != null)
+                {
                     ShaderParts.Add(newPart);
                 }
             }
@@ -451,6 +453,8 @@ namespace Thry
             HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(Materials[0]);
 
             IsPresetEditor = Materials.Length == 1 && Presets.ArePreset(Materials);
+            
+            NoteContainers = MaterialPropertyNotesContainer.GetNoteContainersForMaterials(Materials);
 
             //collect shader properties
             CollectAllProperties();
@@ -548,8 +552,12 @@ namespace Thry
         private void OnReset()
         {
             ShaderOptimizer.DeleteTags(Materials);
-            foreach(Material m in Materials)
-                MaterialLinker.UnlinkAll(m);
+            for(int i = 0; i < Materials.Length; i++)
+            {
+                MaterialLinker.UnlinkAll(Materials[i]);
+                NoteContainers[i]?.ClearAllNotes();
+            }
+
             _vRCFallbackProperty?.SetPropertyValue((string)_vRCFallbackProperty.PropertyDefaultValue);
             _doReloadNextDraw = true;
         }
@@ -979,11 +987,14 @@ namespace Thry
                 Active.Repaint();
         }
 
-        public void Reload()
+        public void Reload(bool doRepaint = false)
         {
             this._isFirstOnGUICall = true;
             this._doReloadNextDraw = true;
-            // this.Repaint();
+            if (doRepaint)
+            {
+                this.Repaint();
+            }
             ThryWideEnumDrawer.Reload();
             ThryRGBAPackerDrawer.Reload();
         }
@@ -1086,8 +1097,38 @@ namespace Thry
             if(count > 1) EditorUtility.ClearProgressBar();
         }
 
+        [MenuItem("Thry/Twitter", priority = -100)]
+        static void MenuThryTwitter()
+        {
+            Application.OpenURL("https://www.twitter.com/thryrallo");
+        }
+
+        [MenuItem("Thry/Texture Packer", priority = 1)]
+        static void MenuTexturePacker()
+        {
+            TexturePacker.ShowWindow();
+        }
+
+        [MenuItem("Thry/Cross Shader Editor", priority = 2)]
+        public static void ShowWindow()
+        {
+            CrossEditor.GetInstance();
+        }
+
+        [MenuItem("Thry/Material Lock Manager", priority = 3)]
+        static void MenuShaderOptUnlockedMaterials()
+        {
+            EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Materials", true);
+        }
+
+        [MenuItem("Thry/ThryEditor/Settings",priority = 4)]
+        static void MenuShaderUISettings()
+        {
+            EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
+        }
+
         /// <summary> Iterate through all materials with FixKeywords. </summary>
-        [MenuItem("Thry/Shader Tools/Fix Keywords for All Materials (Slow)", priority = -20)]
+        [MenuItem("Thry/ThryEditor/Fix Keywords for All Materials (Slow)", priority = 50)]
         static void FixAllKeywords()
         {
             IEnumerable<Material> materialsToFix = AssetDatabase.FindAssets("t:material")
@@ -1100,28 +1141,16 @@ namespace Thry
             FixKeywords(materialsToFix);
         }
 
-        [MenuItem("Thry/Twitter", priority = -100)]
-        static void MenuThryTwitter()
-        {
-            Application.OpenURL("https://www.twitter.com/thryrallo");
-        }
-
-        [MenuItem("Thry/ShaderUI/Settings",priority = -20)]
-        static void MenuShaderUISettings()
-        {
-            EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
-        }
-
-        [MenuItem("Thry/Shader Optimizer/Upgraded Animated Properties", priority = -20)]
+        [MenuItem("Thry/ThryEditor/Upgraded Animated Properties", priority = 50)]
         static void MenuUpgradeAnimatedPropertiesToTagsOnAllMaterials()
         {
             ShaderOptimizer.UpgradeAnimatedPropertiesToTagsOnAllMaterials();
         }
-
-        [MenuItem("Thry/Shader Optimizer/Materials List", priority = 0)]
-        static void MenuShaderOptUnlockedMaterials()
+        
+        [MenuItem("Thry/ThryEditor/Rebuild Presets Cache", priority = 50)]
+        static void RebuildCache()
         {
-            EditorWindow.GetWindow<UnlockedMaterialsList>(false, "Materials", true);
+            Presets.RebuildCache();
         }
 
         [MenuItem("Assets/Thry/Materials/Cleaner/List Unbound Properties", priority = 303)]

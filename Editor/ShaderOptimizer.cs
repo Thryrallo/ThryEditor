@@ -59,6 +59,7 @@ using VRC.SDK3.Avatars.Components;
 
 namespace Thry.ThryEditor
 {
+    
     public enum LightMode
     {
         Always=1,
@@ -230,7 +231,7 @@ namespace Thry.ThryEditor
         public static readonly HashSet<string> DontRemoveIfBranchesKeywords = new HashSet<string>() { "UNITY_SINGLE_PASS_STEREO", "FORWARD_BASE_PASS", "FORWARD_ADD_PASS", "POINT", "SPOT" };
         public static readonly HashSet<string> KeywordsUsedByPragmas = new HashSet<string>() {  };
 
-        public static readonly string[] ValidPropertyDataTypes = new string[]
+        public static readonly HashSet<string> ValidPropertyDataTypes = new HashSet<string>()
         {
             "int",
             "float",
@@ -276,7 +277,7 @@ namespace Thry.ThryEditor
             "shader_is_using_thry_editor"
         };
 
-        public enum RenderPipeline
+                public enum RenderPipeline
         {
             BuiltIn,
             URP,
@@ -319,6 +320,41 @@ namespace Thry.ThryEditor
             public string name;
             public Vector4 value;
             public string lastDeclarationType;
+
+            public void ToCode(StringBuilder sb)
+            {
+                if (Config.Instance.enableDeveloperMode)
+                {
+                    sb.Append(" /*");
+                    sb.Append(name);
+                    sb.Append("*/");
+                }
+                switch (type)
+                    {
+                        case PropertyType.Float:
+                            string constantValue;
+                            // Special Handling for ints 
+                            if (lastDeclarationType == "int")
+                                constantValue = value.x.ToString("F0", CultureInfo.InvariantCulture);
+                            else
+                                constantValue = value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
+
+                            // Add comment with property name, for easier debug
+                            sb.Append(constantValue);
+                            break;
+                        case PropertyType.Vector:
+                            sb.Append("float4(");
+                            sb.Append(value.x.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(",");
+                            sb.Append(value.y.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(",");
+                            sb.Append(value.z.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(",");
+                            sb.Append(value.w.ToString(CultureInfo.InvariantCulture));
+                            sb.Append(")");
+                            break;
+                    }
+            }
         }
 
         public class Macro
@@ -359,6 +395,17 @@ namespace Thry.ThryEditor
             public string animPropertySuffix;
             public bool shared;
             public List<string> stripTextures;
+        }
+
+        private static string GetColorMaskString(int colorMask)
+        {
+            if (colorMask == 0) return "0";
+            string mask = "";
+            if ((colorMask & 8) != 0) mask += "R";
+            if ((colorMask & 4) != 0) mask += "G";
+            if ((colorMask & 2) != 0) mask += "B";
+            if ((colorMask & 1) != 0) mask += "A";
+            return mask;
         }
 
         private static Dictionary<Material, ApplyStruct> s_applyStructsLater = new Dictionary<Material, ApplyStruct>();
@@ -623,9 +670,9 @@ namespace Thry.ThryEditor
             }
             return cleaned;
         }
-#endregion
+        #endregion
 
-#region Shader Property Helpers
+        #region Shader Property Helpers
 
         public static RenderPipeline GetActiveRenderPipeline()
         {
@@ -793,6 +840,12 @@ namespace Thry.ThryEditor
                 PersistentData.Set("ShowLockInDialog", false);
             }
 
+            Object[] prevTargets = Selection.objects;
+            if (ShaderEditor.Active != null)
+            {
+                Selection.objects = new Object[0];
+            }
+
             //Create shader assets
             foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
             {
@@ -817,7 +870,7 @@ namespace Thry.ThryEditor
                         // Check that shader has already been created for this hash and still exists
                         // Or that the shader is being created for this has during this session
                         Material reference = null;
-                        if(s_shaderPropertyCombinations.ContainsKey(hash))
+                        if (s_shaderPropertyCombinations.ContainsKey(hash))
                         {
                             s_shaderPropertyCombinations[hash].RemoveAll(m2 => m2 == null);
                             reference = s_shaderPropertyCombinations[hash].FirstOrDefault(m2 => m2 != m && (materialsToChangeLock.Contains(m2) || Shader.Find(s_applyStructsLater[m2].newShaderName) != null));
@@ -857,13 +910,14 @@ namespace Thry.ThryEditor
                 {
                     Debug.Log(e);
                     string position = e.StackTrace.Split('\n').FirstOrDefault(l => l.Contains("ThryEditor"));
-                    if(position != null)
+                    if (position != null)
                     {
-                        position = position.Split(new string[]{ "ThryEditor" }, StringSplitOptions.None).LastOrDefault();
-                        Debug.LogError("Could not un-/lock material " + m.name + " | Error thrown at " + position+ "\n"+e.StackTrace);
-                    }else
+                        position = position.Split(new string[] { "ThryEditor" }, StringSplitOptions.None).LastOrDefault();
+                        Debug.LogError("Could not un-/lock material " + m.name + " | Error thrown at " + position + "\n" + e.StackTrace);
+                    }
+                    else
                     {
-                        Debug.LogError("Could not un-/lock material " + m.name + "\n"+e.StackTrace);
+                        Debug.LogError("Could not un-/lock material " + m.name + "\n" + e.StackTrace);
                     }
                     EditorUtility.ClearProgressBar();
                     AssetDatabase.StopAssetEditing();
@@ -900,9 +954,9 @@ namespace Thry.ThryEditor
             if(Config.Instance.saveAfterLockUnlock)
                 EditorApplication.update += QueueSaveAfterLockUnlock;
 
-            if (ShaderEditor.Active != null && ShaderEditor.Active.IsDrawing)
+            if (ShaderEditor.Active != null)
             {
-                GUIUtility.ExitGUI();
+                Selection.objects = prevTargets;
             }
                 
             return true;
@@ -1007,6 +1061,8 @@ namespace Thry.ThryEditor
                 guid = AssetDatabase.AssetPathToGUID(materialFilePath);
                 isSubAsset = false;
             }
+
+
 
             string newShaderName = "Hidden/Locked/" + shader.name + "/" + guid + (isSubAsset ? $"_{fileId}" : "");
             string shaderOptimizerButtonDrawerName = $"[{nameof(ThryShaderOptimizerLockButtonDrawer).Replace("Drawer", "")}]";
@@ -1268,7 +1324,8 @@ namespace Thry.ThryEditor
                         {
                             string originalSgaderName = psf.lines[i].Split('\"')[1];
                             psf.lines[i] = psf.lines[i].Replace(originalSgaderName, newShaderName);
-                        }else if (trimmedLine.StartsWith(shaderOptimizerButtonDrawerName))
+                        }
+                        else if (trimmedLine.StartsWith(shaderOptimizerButtonDrawerName))
                         {
                             psf.lines[i] = Regex.Replace(psf.lines[i], @"\d+\w*$", "1");
                         }
@@ -1304,21 +1361,21 @@ namespace Thry.ThryEditor
                         }
                         else if (trimmedLine.StartsWith(PreprocessStructureStart[(int) pipeline], StringComparison.Ordinal))
                         {
-                            for (int j=i+1; j<psf.lines.Length;j++)
+                            for (int j = i + 1; j < psf.lines.Length; j++)
                                 if (psf.lines[j].TrimStart().StartsWith(PreprocessStructureEnd[(int) pipeline], StringComparison.Ordinal))
                                 {
-                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
+                                    ReplaceShaderValues(material, psf.lines, i + 1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
                         else if (trimmedLine.StartsWith(CodeBlockStart[(int) pipeline], StringComparison.Ordinal))
                         {
-                            if(commentKeywords == 0)
+                            if (commentKeywords == 0)
                                 psf.lines[i] += optimizerDefines;
-                            for (int j=i+1; j<psf.lines.Length;j++)
+                            for (int j = i + 1; j < psf.lines.Length; j++)
                                 if (psf.lines[j].TrimStart().StartsWith(CodeBlockEnd[(int) pipeline], StringComparison.Ordinal))
                                 {
-                                    ReplaceShaderValues(material, psf.lines, i+1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
+                                    ReplaceShaderValues(material, psf.lines, i + 1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
@@ -1332,36 +1389,58 @@ namespace Thry.ThryEditor
                                 string lightModeName = lineFullyTrimmed.Split('\"')[3];
                                 // Store current lightmode name in a static, useful for per-pass geometry and tessellation removal
                                 if (lightModeName == "ForwardBase") CurrentLightmode = LightModeType.ForwardBase;
-                                // URP: Pretend forward lit is the old forward pass??
-                                if (lightModeName == "ForwardLit") CurrentLightmode = LightModeType.ForwardBase;
                                 else if (lightModeName == "ForwardAdd") CurrentLightmode = LightModeType.ForwardAdd;
                                 else if (lightModeName == "ShadowCaster") CurrentLightmode = LightModeType.ShadowCaster;
-                                else if (lightModeName == "DepthOnly") CurrentLightmode = LightModeType.DepthOnly;
-                                else if (lightModeName == "DepthNormals") CurrentLightmode = LightModeType.DepthNormals;
                                 else if (lightModeName == "Meta") CurrentLightmode = LightModeType.Meta;
                                 else CurrentLightmode = LightModeType.None;
                                 if (disabledLightModes.Contains(lightModeName))
                                 {
                                     // Loop up from psf.lines[i] until standalone "Pass" line is found, delete it
-                                    int j=i-1;
-                                    for (;j>=0;j--)
+                                    int j = i - 1;
+                                    for (; j >= 0; j--)
                                         if (psf.lines[j].Replace(" ", "").Replace("\t", "") == "Pass")
                                             break;
                                     // then delete each line until a standalone ENDCG line is found
-                                    for (;j<psf.lines.Length;j++)
+                                    for (; j < psf.lines.Length; j++)
                                     {
                                         if (psf.lines[j].Replace(" ", "").Replace("\t", "") == "ENDCG")
                                             break;
                                         psf.lines[j] = "";
                                     }
                                     // then delete each line until a standalone '}' line is found
-                                    for (;j<psf.lines.Length;j++)
+                                    for (; j < psf.lines.Length; j++)
                                     {
                                         string temp = psf.lines[j];
                                         psf.lines[j] = "";
                                         if (temp.Replace(" ", "").Replace("\t", "") == "}")
                                             break;
                                     }
+                                }
+                            }
+                        }
+                        else if (trimmedLine.StartsWith("ColorMask", StringComparison.Ordinal))
+                        {
+                            Match regMatch = Regex.Match(trimmedLine, @"\[\w+\]");
+                            if(regMatch.Success)
+                            {
+                                string trimmedRegMatch = regMatch.Value.Trim('[', ']');
+                                PropertyData colorMaskProp = constantProps.FirstOrDefault(x => x.name == trimmedRegMatch);
+                                if (colorMaskProp != null)
+                                {
+                                    psf.lines[i] = psf.lines[i].Replace(regMatch.Value, GetColorMaskString((int)colorMaskProp.value.x));
+                                }
+                            }
+                        }
+                        else if (trimmedLine.StartsWith("Cull", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Match regMatch = Regex.Match(trimmedLine, @"\[\w+\]");
+                            if(regMatch.Success)
+                            {
+                                string trimmedRegMatch = regMatch.Value.Trim('[', ']');
+                                PropertyData cullModeProp = constantProps.FirstOrDefault(x => x.name == trimmedRegMatch);
+                                if (cullModeProp != null)
+                                {
+                                    psf.lines[i] = psf.lines[i].Replace(regMatch.Value, ((UnityEngine.Rendering.CullMode)cullModeProp.value.x).ToString());
                                 }
                             }
                         }
@@ -1594,14 +1673,15 @@ namespace Thry.ThryEditor
             {
                 string lineParsed = fileLines[i].TrimStart();
 
-                if(lineParsed.StartsWith("//", StringComparison.Ordinal))
+                if (lineParsed.StartsWith("//", StringComparison.Ordinal))
                 {
-                    //Exclusion logic
-                    if(lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
+                    // Exclusion logic
+                    if (lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
                     {
-                        if(!doExclude){ // If already excluding, only track depth
+                        if (!doExclude) // if already excluding, only track depth
+                        {
                             var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
-                            if(condition.Test())
+                            if (condition.Test())
                             {
                                 doExclude = true;
                                 excludeStartDepth = currentExcludeDepth;
@@ -1609,9 +1689,9 @@ namespace Thry.ThryEditor
                         }
                         currentExcludeDepth++;
                     }
-                    else if(lineParsed.StartsWith("//endex", StringComparison.Ordinal))
+                    else if (lineParsed.StartsWith("//endex", StringComparison.Ordinal))
                     {
-                        if(currentExcludeDepth == 0)
+                        if (currentExcludeDepth == 0)
                         {
                             Debug.LogError("[Shader Optimizer] Number of 'endex' statements does not match number of 'ifex' statements."
                                 +$"\nError found in file '{filePath}' line {i+1}");
@@ -1619,10 +1699,7 @@ namespace Thry.ThryEditor
                         else
                         {
                             currentExcludeDepth--;
-                            if(currentExcludeDepth == excludeStartDepth)
-                            {
-                                doExclude = false;
-                            }
+                            if (currentExcludeDepth == excludeStartDepth) doExclude = false;
                         }
                     }
                     // Specifically requires no whitespace between // and KSOEvaluateMacro
@@ -1647,7 +1724,7 @@ namespace Thry.ThryEditor
                 {
                     // check for texture property definitions, remove textures later
                     // needs specific naming
-                    if(lineParsed.EndsWith("{ }", StringComparison.Ordinal) && lineParsed.IndexOf("2D)", StringComparison.Ordinal) >= 0)
+                    if (lineParsed.EndsWith("{ }", StringComparison.Ordinal) && lineParsed.IndexOf("2D)", StringComparison.Ordinal) >= 0)
                     {
                         lineParsed = lineParsed.Substring(0, lineParsed.IndexOf('"'));
                         if (lineParsed.IndexOf("]", StringComparison.Ordinal) >= 0) // Unity 2019 doesn't like string.Contains(string, StringComparison)
@@ -1661,9 +1738,9 @@ namespace Thry.ThryEditor
                     continue;
                 }
 
-                //removes empty lines
+                // Remove empty lines
                 if (string.IsNullOrEmpty(lineParsed)) continue;
-                //removes code that is commented
+                // Remove code that is commented
                 if (isCommentedOut && lineParsed.EndsWith("*/", StringComparison.OrdinalIgnoreCase))
                 {
                     isCommentedOut = false;
@@ -1676,10 +1753,10 @@ namespace Thry.ThryEditor
                 }
                 if (isCommentedOut) continue;
 
-                //Removed code from defines blocks
+                // Remove code from defines blocks
                 if (REMOVE_UNUSED_IF_DEFS)
                 {
-                    //Check if Line contains #ifs
+                    // Check if line contains a preprocessor conditional (e.g., #if, #ifdef, #ifndef)
                     if (lineParsed.StartsWith("#if", StringComparison.Ordinal))
                     {
                         bool hasMultiple = lineParsed.Contains('&') || lineParsed.Contains('|');
@@ -1733,7 +1810,7 @@ namespace Thry.ThryEditor
                     }
                     else if (lineParsed.StartsWith("#else"))
                     {
-                        if(removeEndifStack.Count == 0)
+                        if (removeEndifStack.Count == 0)
                         {
                             Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
                                 +$"\nError found in file '{filePath}' line {i+1}. Current output copied to clipboard.");
@@ -1746,12 +1823,9 @@ namespace Thry.ThryEditor
                     else if (lineParsed.StartsWith("#endif", StringComparison.Ordinal))
                     {
                         ifStacking--;
-                        if (ifStacking == isNotIncludedAtDepth)
-                        {
-                            isIncluded = true;
-                        }
-                        // for debugging
-                        if(removeEndifStack.Count == 0)
+                        if (ifStacking == isNotIncludedAtDepth) isIncluded = true;
+                        // For debugging
+                        if (removeEndifStack.Count == 0)
                         {
                             Debug.LogError("[Shader Optimizer] Number of 'endif' statements does not match number of 'if' statements."
                                 +$"\nError found in file '{filePath}' line {i+1}. Current output copied to clipboard.");
@@ -1768,7 +1842,7 @@ namespace Thry.ThryEditor
                     if (!isIncluded) continue;
                 }
 
-                //Remove pragmas
+                // Remove pragmas
                 if (lineParsed.StartsWith("#pragma shader_feature", StringComparison.Ordinal))
                 {
                     string trimmed = lineParsed.Replace("#pragma shader_feature_local", "").Replace("#pragma shader_feature", "").TrimStart();
@@ -1793,13 +1867,11 @@ namespace Thry.ThryEditor
                     if (DefaultUnityShaderIncludes.Contains(includeFilename) == false)
                     {
                         string includeFullpath = includeFilename;
-                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal) == false)//not absolute
-                        {
+                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal) == false && includeFilename.StartsWith("Packages/", StringComparison.Ordinal) == false) // not absolute
                             includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
-                        }
                         if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, stripTextures))
                             return false;
-                        //Change include to be be ralative to only one directory up, because all files are moved into the same folder
+                        // Change include to be be ralative to only one directory up, because all files are moved into the same folder
                         fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
                     }
                 }
@@ -2103,9 +2175,10 @@ namespace Thry.ThryEditor
                     }
                 }
 
-                foreach(string token in tokens)
+                for(int t=0;t<tokens.Length;t++)
                 {
-                    if(constants.ContainsKey(token))
+                    string token = tokens[t];
+                    if (constants.ContainsKey(token))
                     {
                         PropertyData constant = constants[token];
 
@@ -2114,10 +2187,10 @@ namespace Thry.ThryEditor
                         bool declarationFound = false;
                         while ((constantIndex = lines[i].IndexOf(constant.name, lastIndex, StringComparison.Ordinal)) != -1)
                         {
-                            lastIndex = constantIndex+1;
+                            lastIndex = constantIndex + 1;
                             char charLeft = ' ';
-                            if (constantIndex-1 >= 0)
-                                charLeft = lines[i][constantIndex-1];
+                            if (constantIndex - 1 >= 0)
+                                charLeft = lines[i][constantIndex - 1];
                             char charRight = ' ';
                             if (constantIndex + constant.name.Length < lines[i].Length)
                                 charRight = lines[i][constantIndex + constant.name.Length];
@@ -2127,15 +2200,13 @@ namespace Thry.ThryEditor
                             // Skip inline comments
                             if (charLeft == '*' && charRight == '*' && constantIndex >= 2 && lines[i][constantIndex - 2] == '/')
                                 continue;
-                            
+
                             // Skip basic declarations of unity shader properties i.e. "uniform float4 _Color;"
-                            if (!declarationFound)
+                            if (!declarationFound && t > 0)
                             {
-                                string precedingText = lines[i].Substring(0, constantIndex-1).TrimEnd(); // whitespace removed string immediately to the left should be float or float4
-                                string restOftheFile = lines[i].Substring(constantIndex + constant.name.Length).TrimStart(); // whitespace removed character immediately to the right should be ;
-                                if (Array.Exists(ValidPropertyDataTypes, x => precedingText.EndsWith(x, StringComparison.Ordinal)) && restOftheFile.StartsWith(";", StringComparison.Ordinal))
+                                if (ValidPropertyDataTypes.Contains(tokens[t-1]) && lines[i].Substring(constantIndex + constant.name.Length).TrimStart().StartsWith(";", StringComparison.Ordinal))
                                 {
-                                    constant.lastDeclarationType = precedingText.TrimStart();
+                                    constant.lastDeclarationType = tokens[t-1];
                                     declarationFound = true;
                                     continue;
                                 }
@@ -2145,27 +2216,8 @@ namespace Thry.ThryEditor
                             // This could technically be more efficient by being outside the IndexOf loop
                             StringBuilder sb = new StringBuilder(lines[i].Length * 2);
                             sb.Append(lines[i], 0, constantIndex);
-                            switch (constant.type)
-                            {
-                                case PropertyType.Float:
-                                    string constantValue;
-                                    // Special Handling for ints 
-                                    if(constant.lastDeclarationType == "int")
-                                        constantValue = constant.value.x.ToString("F0", CultureInfo.InvariantCulture);
-                                    else
-                                        constantValue = constant.value.x.ToString("0.0####################", CultureInfo.InvariantCulture);
-
-                                    // Add comment with property name, for easier debug
-                                    sb.Append($"({constantValue} /*{constant.name}*/)");
-                                    break;
-                                case PropertyType.Vector:
-                                    sb.Append("float4("+constant.value.x.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.y.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.z.ToString(CultureInfo.InvariantCulture)+","
-                                                    +constant.value.w.ToString(CultureInfo.InvariantCulture)+")");
-                                    break;
-                            }
-                            sb.Append(lines[i], constantIndex+constant.name.Length, lines[i].Length-constantIndex-constant.name.Length);
+                            constant.ToCode(sb);
+                            sb.Append(lines[i], constantIndex + constant.name.Length, lines[i].Length - constantIndex - constant.name.Length);
                             lines[i] = sb.ToString();
 
                             // Check for Unity branches on previous line here?
@@ -2302,6 +2354,7 @@ namespace Thry.ThryEditor
             int renderQueue = material.renderQueue;
             string unlockedMaterialGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material));
             DetourApplyMaterialPropertyDrawers();
+            if (ShaderEditor.Active != null) ShaderEditor.Active.SetShader(originalShader);
             material.shader = originalShader;
             RestoreApplyMaterialPropertyDrawers();
             material.SetOverrideTag("RenderType", renderType);
