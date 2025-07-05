@@ -277,7 +277,7 @@ namespace Thry.ThryEditor
             "shader_is_using_thry_editor"
         };
 
-                public enum RenderPipeline
+        public enum RenderPipeline
         {
             BuiltIn,
             URP,
