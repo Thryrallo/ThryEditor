@@ -54,7 +54,7 @@ namespace Thry.ThryEditor
         public string gradient_name = "gradient_<hash>.png";
         
         public bool autoSetAnchorOverride = true;
-        public HumanBodyBones humanBoneAnchor = HumanBodyBones.Spine;
+        public HumanBodyBones humanBoneAnchor = HumanBodyBones.Chest;
         public string anchorOverrideObjectName = "AutoAnchorObject";
         public bool autoSetAnchorAskedOnce = false;
         public bool enableDeveloperMode = false;
