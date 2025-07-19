@@ -1501,13 +1501,7 @@ namespace Thry.ThryEditor
                 {
                     if(doStrip)
                     {
-                        var guid =
-#if UNITY_2019_1_OR_NEWER
-                        AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material.GetTexture(propName)));
-#elif UNITY_2022_1_OR_NEWER
-                        AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(material.GetTexture(propName)));
-#endif
-                        savedTextures.Add(("_stripped_tex_" + propName, guid.ToString()));
+                        savedTextures.Add(("_stripped_tex_" + propName, AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(material.GetTexture(propName)))));
                     }
                     serializedTexProperties.DeleteArrayElementAtIndex(i);
                     i -= 1;
