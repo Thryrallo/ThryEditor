@@ -224,7 +224,8 @@ namespace Thry.ThryEditor
             "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl",
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl",
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl",
-            "Packages/com.unity.render-pipelines.core/ShaderLibrary/MetaPass.hlsl"
+            "Packages/com.unity.render-pipelines.core/ShaderLibrary/MetaPass.hlsl",
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MotionVectorsCommon.hlsl"
         };
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
