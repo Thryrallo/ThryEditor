@@ -1020,7 +1020,7 @@ namespace Thry.ThryEditor
                             break;
 #if UNITY_2022_1_OR_NEWER
                         case MaterialProperty.PropType.Int:
-                            stringBuilder.Append(m.GetInt(propName)
+                            stringBuilder.Append(m.GetInteger(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
 #endif

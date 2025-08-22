@@ -140,7 +140,7 @@ namespace Thry.ThryEditor
             {
                 MyShaderUI.Editor.EnableInstancingField();
             }
-            catch (ArgumentNullException) // internal shader reference was null
+            catch (System.ArgumentNullException) // internal shader reference was null
             {
             }
         }
