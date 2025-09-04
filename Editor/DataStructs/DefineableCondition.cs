@@ -92,12 +92,12 @@ namespace Thry.ThryEditor
                             }
                             return 0f;
                         }
-                        switch (prop.type)
+                        switch (prop.propertyType)
                         {
-                            case MaterialProperty.PropType.Float:
-                            case MaterialProperty.PropType.Range:
+                            case UnityEngine.Rendering.ShaderPropertyType.Float:
+                            case UnityEngine.Rendering.ShaderPropertyType.Range:
                                 return prop.floatValue;
-                            case MaterialProperty.PropType.Texture:
+                            case UnityEngine.Rendering.ShaderPropertyType.Texture:
                                 return prop.textureValue != null ? prop.textureValue.name : "null";
                             default:
                                 return prop.GetNumber();

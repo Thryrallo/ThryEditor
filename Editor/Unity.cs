@@ -183,7 +183,7 @@ namespace Thry.ThryEditor
         public static void SetNumber(this MaterialProperty prop, float value)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
                 prop.intValue = (int)value;
             else
 #endif
@@ -193,7 +193,7 @@ namespace Thry.ThryEditor
         public static float GetNumber(this MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
                 return prop.intValue;
             else
 #endif  
@@ -204,7 +204,7 @@ namespace Thry.ThryEditor
         {
 #if UNITY_2022_1_OR_NEWER
             MaterialProperty prop = MaterialEditor.GetMaterialProperty(new UnityEngine.Object[] { mat }, name);
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
                 mat.SetInteger(name, (int)value);
             else
 #endif
@@ -214,7 +214,7 @@ namespace Thry.ThryEditor
         public static float GetNumber(this Material mat, MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
                 return mat.GetInt(prop.name);
             else
 #endif
