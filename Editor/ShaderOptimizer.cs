@@ -225,7 +225,11 @@ namespace Thry.ThryEditor
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl",
             "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl",
             "Packages/com.unity.render-pipelines.core/ShaderLibrary/MetaPass.hlsl",
-            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MotionVectorsCommon.hlsl"
+            "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MotionVectorsCommon.hlsl",
+            "Packages/com.unity.render-pipelines.gamecore/ShaderLibrary/API/GameCore.hlsl",
+            "Packages/com.unity.render-pipelines.xboxone/ShaderLibrary/API/XBoxOne.hlsl",
+            "Packages/com.unity.render-pipelines.ps4/ShaderLibrary/API/PSSL.hlsl",
+            "Packages/com.unity.render-pipelines.ps5/ShaderLibrary/API/PSSL.hlsl"
         };
         
         public static readonly HashSet<char> ValidSeparators = new HashSet<char>() { ' ', '\t', '\r', '\n', ';', ',', '.', '(', ')', '[', ']', '{', '}', '>', '<', '=', '!', '&', '|', '^', '+', '-', '*', '/', '#' };
