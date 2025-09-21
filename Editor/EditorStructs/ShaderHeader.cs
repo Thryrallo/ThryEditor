@@ -91,13 +91,22 @@ namespace Thry.ThryEditor
                         ShaderEditor.Active.Locale.Set(MaterialProperty.name, newTranslation);
                         ShaderEditor.Active.Locale.Save();
                     }
-                }else
+                }
+                else
                 {
                     GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);
-                    if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
+                    if (Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
-                        noteRect.width -= 60;
+
+                        // This should match icon sizing logic used in DrawIcons. Button is square with size (rect.height - 4).
+                        float iconSize = Mathf.Max(0f, rect.height - 4f);
+
+                        // Reserves only the space needed to accommodate Notes.
+                        int visibleIcons = GetVisibleHeaderIconCount(options);
+                        float reservedForIcons = visibleIcons * iconSize + 6f;
+                        noteRect.width = Mathf.Max(0f, noteRect.width - reservedForIcons);
+
                         GUI.Label(noteRect, Note, Styles.label_property_note);
                     }
                 }
@@ -132,12 +141,38 @@ namespace Thry.ThryEditor
                 if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);
-                    noteRect.width -= 60;
+
+                    // This should match icon sizing logic used in DrawIcons. Button is square with size (rect.height - 4).
+                    float iconSize = Mathf.Max(0f, rect.height - 4f);
+
+                    // Reserves only the space needed to accommodate Notes.
+                    int visibleIcons = GetVisibleHeaderIconCount(options);
+                    float reservedForIcons = visibleIcons * iconSize + 6f;
+                    noteRect.width = Mathf.Max(0f, noteRect.width - reservedForIcons);
+
                     GUI.Label(noteRect, Note, Styles.label_property_note);
                 }
                 DrawIcons(rect, options, e);
             }
 
+        }
+
+        // Helper that counts how many right-side header icons will actually be visible. Used to ensure Notes appear correctly.
+        private int GetVisibleHeaderIconCount(PropertyOptions options)
+        {
+            int count = 0;
+
+            // Only when the section has Quick Presets
+            if (Presets.DoesSectionHavePresets(this.MaterialProperty.name)) count++;
+
+            // Only when defined and it's condition is true
+            ButtonData help = options?.button_help;
+            if (help != null && help.condition_show.Test()) count++;
+
+            // Link + Menu is always drawn (see DrawLinkSettings / DrawDowdownSettings)
+            count += 2;
+
+            return count;
         }
 
         /// <summary>
