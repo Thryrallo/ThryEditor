@@ -14,16 +14,16 @@ namespace Thry.ThryEditor
         public bool Execute(MaterialProperty p, Material[] targets)
         {
             if (
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float && p.floatValue.ToString() == value) ||
+                (p.type == MaterialProperty.PropType.Float && p.floatValue.ToString() == value) ||
 #if UNITY_2022_1_OR_NEWER
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int && p.intValue.ToString() == value) ||
+                (p.type == MaterialProperty.PropType.Int && p.intValue.ToString() == value) ||
 #endif
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range && p.floatValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Color && p.colorValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Vector && p.vectorValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue == null) == (value == "0"))) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue != null) == (value == "1"))) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && (p.textureValue != null && p.textureValue.name == value))
+                (p.type == MaterialProperty.PropType.Range && p.floatValue.ToString() == value) ||
+                (p.type == MaterialProperty.PropType.Color && p.colorValue.ToString() == value) ||
+                (p.type == MaterialProperty.PropType.Vector && p.vectorValue.ToString() == value) ||
+                (p.type == MaterialProperty.PropType.Texture && ((p.textureValue == null) == (value == "0"))) ||
+                (p.type == MaterialProperty.PropType.Texture && ((p.textureValue != null) == (value == "1"))) ||
+                (p.type == MaterialProperty.PropType.Texture && (p.textureValue != null && p.textureValue.name == value))
             )
             {
                 ;

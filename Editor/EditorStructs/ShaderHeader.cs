@@ -260,7 +260,7 @@ namespace Thry.ThryEditor
                     ThryLogger.LogDetail("ShaderHeader", $"Pasting* '{property.Content.text}' of {ShaderEditor.Active.Materials[0].name}");
                     int undoGroup = Undo.GetCurrentGroup();
 
-                    var propsToIgnore = new HashSet<UnityEngine.Rendering.ShaderPropertyType> { UnityEngine.Rendering.ShaderPropertyType.Texture };
+                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
 

@@ -152,27 +152,27 @@ namespace Thry.ThryEditor
         {
             using(new EditorGUI.DisabledScope(true))
             {
-                switch(prop.propertyType)
+                switch(prop.type)
                 {
-                    case UnityEngine.Rendering.ShaderPropertyType.Color:
+                    case MaterialProperty.PropType.Color:
                         EditorGUILayout.ColorField(prop.colorValue, propertyWidth);
                         break;
-                    case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                    case MaterialProperty.PropType.Vector:
                         EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue, propertyWidth);
                         break;
 #if UNITY_2021_1_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Int:
+                    case MaterialProperty.PropType.Int:
                         EditorGUILayout.IntField(prop.intValue, propertyWidth);
                         break;
 #endif
-                    case UnityEngine.Rendering.ShaderPropertyType.Range:
+                    case MaterialProperty.PropType.Range:
                         EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
                             propertyWidth);
                         break;
-                    case UnityEngine.Rendering.ShaderPropertyType.Float:
+                    case MaterialProperty.PropType.Float:
                         EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
                         break;
-                    case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                    case MaterialProperty.PropType.Texture:
                         EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true, propertyWidth);
                         break;
                     default:
