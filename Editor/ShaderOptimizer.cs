@@ -39,6 +39,7 @@ using System.Reflection;
 using Thry.ThryEditor.Helpers;
 using Thry.ThryEditor.Drawers;
 using JetBrains.Annotations;
+using System.Drawing.Printing;
 
 #if VRC_SDK_VRCSDK3
 using VRC.SDKBase;
@@ -1255,7 +1256,7 @@ namespace Thry.ThryEditor
                 if ((lightModesMask & (int)LightMode.ShadowCaster) != 0)
                     disabledLightModes.Add("ShadowCaster");
             }
-                
+            
             // Parse shader and cginc files, also gets preprocessor macros
             List<ParsedShaderFile> shaderFiles = new List<ParsedShaderFile>();
             List<Macro> macros = new List<Macro>();
@@ -1263,12 +1264,13 @@ namespace Thry.ThryEditor
                 return false;
 
             // Remove all defines where name if not in shader files
-            List<(string,string)> definesToRemove = new List<(string,string)>();
+            List<(string, string)> definesToRemove = new List<(string,string)>();
             foreach((string name,string) def in defines)
             {
                 if (shaderFiles.All(x => x.lines.Any(l => l.Contains(def.name)) == false))
                     definesToRemove.Add(def);
             }
+
             defines.RemoveAll(x => definesToRemove.Contains(x));
             // Append convention OPTIMIZER_ENABLED keyword
             defines.Add((OptimizerEnabledKeyword,""));
@@ -1316,13 +1318,12 @@ namespace Thry.ThryEditor
                         }
                     }
                 }
-                
 
                 // Shader file specific stuff
                 if (psf.filePath.EndsWith(".shader", StringComparison.Ordinal) ||
                     psf.filePath.EndsWith(".hlsl", StringComparison.Ordinal))
                 {
-                    for (int i=0; i<psf.lines.Length;i++)
+                    for (int i = 0; i < psf.lines.Length; i++)
                     {
                         string trimmedLine = psf.lines[i].TrimStart();
 
@@ -1365,21 +1366,22 @@ namespace Thry.ThryEditor
                             psf.lines[i] = "GrabPass { \"" + gpr.newName + "\" }";
                             grabPassVariables.Add(gpr);
                         }
-                        else if (trimmedLine.StartsWith(PreprocessStructureStart[(int) pipeline], StringComparison.Ordinal))
+                        else if (trimmedLine.StartsWith(PreprocessStructureStart[(int)pipeline], StringComparison.Ordinal))
                         {
                             for (int j = i + 1; j < psf.lines.Length; j++)
-                                if (psf.lines[j].TrimStart().StartsWith(PreprocessStructureEnd[(int) pipeline], StringComparison.Ordinal))
+                                if (psf.lines[j].TrimStart().StartsWith(PreprocessStructureEnd[(int)pipeline], StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i + 1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
                                 }
                         }
-                        else if (trimmedLine.StartsWith(CodeBlockStart[(int) pipeline], StringComparison.Ordinal))
+                        else if (trimmedLine.StartsWith(CodeBlockStart[(int)pipeline], StringComparison.Ordinal))
                         {
+                            Debug.Log(trimmedLine);
                             if (commentKeywords == 0)
                                 psf.lines[i] += optimizerDefines;
                             for (int j = i + 1; j < psf.lines.Length; j++)
-                                if (psf.lines[j].TrimStart().StartsWith(CodeBlockEnd[(int) pipeline], StringComparison.Ordinal))
+                                if (psf.lines[j].TrimStart().StartsWith(CodeBlockEnd[(int)pipeline], StringComparison.Ordinal))
                                 {
                                     ReplaceShaderValues(material, psf.lines, i + 1, j, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
                                     break;
@@ -1427,7 +1429,7 @@ namespace Thry.ThryEditor
                         else if (trimmedLine.StartsWith("ColorMask", StringComparison.Ordinal))
                         {
                             Match regMatch = Regex.Match(trimmedLine, @"\[\w+\]");
-                            if(regMatch.Success)
+                            if (regMatch.Success)
                             {
                                 string trimmedRegMatch = regMatch.Value.Trim('[', ']');
                                 PropertyData colorMaskProp = constantProps.FirstOrDefault(x => x.name == trimmedRegMatch);
@@ -1440,7 +1442,7 @@ namespace Thry.ThryEditor
                         else if (trimmedLine.StartsWith("Cull", StringComparison.OrdinalIgnoreCase))
                         {
                             Match regMatch = Regex.Match(trimmedLine, @"\[\w+\]");
-                            if(regMatch.Success)
+                            if (regMatch.Success)
                             {
                                 string trimmedRegMatch = regMatch.Value.Trim('[', ']');
                                 PropertyData cullModeProp = constantProps.FirstOrDefault(x => x.name == trimmedRegMatch);
