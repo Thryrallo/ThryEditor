@@ -60,10 +60,17 @@ namespace Thry.ThryEditor.Decorators
 
         public override void OnGUI(Rect position, MaterialProperty prop, string label, MaterialEditor editor)
         {
-            position = EditorGUI.IndentedRect(position);
-            position.y += _paddingTop;
-            position.height = _thickness;
-            EditorGUI.DrawRect(position, _color);
+            Rect inner = EditorGUI.IndentedRect(position);
+            inner.y += _paddingTop;
+            inner.height = _thickness;
+
+            // Adjust side padding symmetrically relative to indented rect
+            const float expandLeft = 3f;
+            const float expandRight = 3f;
+            inner.x -= expandLeft;
+            inner.width += (expandLeft + expandRight);
+
+            EditorGUI.DrawRect(inner, _color);
         }
     }
 
