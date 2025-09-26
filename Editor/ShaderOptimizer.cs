@@ -1674,9 +1674,6 @@ namespace Thry.ThryEditor
                 return false;
             }
 
-            Debug.Log(filePath);
-            Debug.Log(fileContents.Length);
-
             // Parse file line by line
             List<String> macrosList = new List<string>();
             string[] fileLines = fileContents.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1700,17 +1697,10 @@ namespace Thry.ThryEditor
             for (int i=0; i<fileLines.Length; i++)
             {
                 string lineParsed = fileLines[i].TrimStart();
-                bool debugMode = false;
-                if (lineParsed.StartsWith("SubShader", StringComparison.Ordinal))
-                {
-                    Debug.Log(lineParsed + " found " + i.ToString());
-                    Debug.Log(currentExcludeDepth.ToString() + " " + excludeStartDepth.ToString() + " " + doExclude.ToString());
-                }
 
                 if (lineParsed.StartsWith("//", StringComparison.Ordinal))
                 {
-                    if (debugMode)
-                        Debug.Log("starts with //" + lineParsed.StartsWith("//", StringComparison.Ordinal).ToString());
+
                     // Exclusion logic
                     if (lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
                     {
@@ -1756,8 +1746,7 @@ namespace Thry.ThryEditor
                     }
                     continue;
                 }
-                if (debugMode)
-                    Debug.Log("doExclude: " + doExclude.ToString());
+
                 if (doExclude)
                 {
                     // check for texture property definitions, remove textures later
@@ -1775,8 +1764,6 @@ namespace Thry.ThryEditor
                     }
                     continue;
                 }
-                if (debugMode)
-                    Debug.Log("after doExclude");
 
                 // Remove empty lines
                 if (string.IsNullOrEmpty(lineParsed)) continue;
@@ -1792,8 +1779,7 @@ namespace Thry.ThryEditor
                     continue;
                 }
                 if (isCommentedOut) continue;
-                if (debugMode)
-                    Debug.Log("after isCommentedOut");
+
                 // Remove code from defines blocks
                 if (REMOVE_UNUSED_IF_DEFS)
                 {
@@ -1916,9 +1902,6 @@ namespace Thry.ThryEditor
                         fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
                     }
                 }
-
-                if (debugMode)
-                    Debug.Log("removes " + fileLines[i]);
 
                 includedLines.Add(fileLines[i]);
             }
