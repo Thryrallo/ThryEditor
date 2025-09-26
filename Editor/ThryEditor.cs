@@ -210,9 +210,9 @@ namespace Thry
         private ThryPropertyType GetPropertyType(MaterialProperty p)
         {
             string name = p.name;
-            MaterialProperty.PropFlags flags = p.flags;
+            UnityEngine.Rendering.ShaderPropertyFlags flags = p.propertyFlags;
 
-            if (flags == MaterialProperty.PropFlags.HideInInspector)
+            if (flags == UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)
             {
                 if (name[0] == '_')
                 {
@@ -253,7 +253,7 @@ namespace Thry
             if (name == ShaderOptimizerPropertyName)  return ThryPropertyType.optimizer;
             if (name == PROPERTY_NAME_IN_SHADER_PRESETS) return ThryPropertyType.in_shader_presets;
 
-            if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector)) return ThryPropertyType.hidden_property;
+            if (flags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)) return ThryPropertyType.hidden_property;
             return ThryPropertyType.shown_property;
         }
 
@@ -373,8 +373,8 @@ namespace Thry
                         break;
                     case ThryPropertyType.hidden_property:
                     case ThryPropertyType.shown_property:
-                        if (props[i].type == MaterialProperty.PropType.Texture)
-                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
+                        if (props[i].propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].propertyFlags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.NoScaleOffset) == false, false, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
