@@ -703,7 +703,7 @@ namespace Thry.ThryEditor
             RenderPipelineAsset graphicPipelineAsset = GraphicsSettings.currentRenderPipeline;
             if (graphicPipelineAsset != null)
             {
-                if (graphicPipelineAsset.GetType().Name == "UniversalRenderPipelineAsset")
+                if (graphicPipelineAsset.GetType().Name.IndexOf("UniversalRenderPipelineAsset", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return RenderPipeline.URP;
                 }
