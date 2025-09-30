@@ -61,7 +61,9 @@ namespace Thry.ThryEditor
             _doCustomDrawLogic = true;
             IsAnimatable = false;
             CustomStringTagID = "VRCFallback";
-            IsExemptFromLockedDisabling = true;
+
+            // This is broken. Do not allow the VRCFallbackTag to be exposed when locked.
+            // IsExemptFromLockedDisabling = true;
         }
 
         protected override void DrawDefault()

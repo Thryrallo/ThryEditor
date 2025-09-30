@@ -38,7 +38,6 @@ using Object = UnityEngine.Object;
 using System.Reflection;
 using Thry.ThryEditor.Helpers;
 using Thry.ThryEditor.Drawers;
-using JetBrains.Annotations;
 
 #if VRC_SDK_VRCSDK3
 using VRC.SDKBase;
@@ -437,7 +436,7 @@ namespace Thry.ThryEditor
         /// <param name="materials">List of materials to lock</param>
         /// <param name="progressBarType">What type of progress bar to show</param>
         /// <returns></returns>
-        [PublicAPI]
+
         public static bool LockMaterials(IEnumerable<Material> materials, ProgressBar progressBarType = ProgressBar.None)
         {
             return SetLockedForAllMaterialsInternal(materials, 1, progressBarType != ProgressBar.None, false, progressBarType == ProgressBar.Cancellable);
@@ -449,7 +448,7 @@ namespace Thry.ThryEditor
         /// <param name="materials">List of materials to unlock</param>
         /// <param name="progressBarType">What type of progress bar to show</param>
         /// <returns></returns>
-        [PublicAPI]
+        /// 
         public static bool UnlockMaterials(IEnumerable<Material> materials, ProgressBar progressBarType = ProgressBar.None)
         {
             return SetLockedForAllMaterialsInternal(materials, 0, progressBarType != ProgressBar.None, false, progressBarType == ProgressBar.Cancellable);
@@ -1451,8 +1450,70 @@ namespace Thry.ThryEditor
                 else // CGINC file
                     ReplaceShaderValues(material, psf.lines, 0, psf.lines.Length, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
 
+                if (psf.filePath.EndsWith(".shader", StringComparison.OrdinalIgnoreCase))
+                {
+                    string vrcFallback = material.GetTag("VRCFallback", false, "");
+                    if (!string.IsNullOrEmpty(vrcFallback))
+                    {
+                        int subShaderLine = -1;
+                        int tagsLine = -1;
+
+                        for (int i = 0; i < psf.lines.Length; i++)
+                        {
+                            string t = psf.lines[i].TrimStart();
+                            if (subShaderLine < 0 && t.StartsWith("SubShader", StringComparison.Ordinal))
+                            {
+                                subShaderLine = i;
+                            }
+                            else if (subShaderLine >= 0 && t.StartsWith("Tags", StringComparison.Ordinal))
+                            {
+                                tagsLine = i;
+                                break;
+                            }
+                            else if (subShaderLine >= 0 && t.StartsWith("SubShader", StringComparison.Ordinal))
+                            {
+                                break;
+                            }
+                        }
+
+                        string InjectFallback(string line, string value)
+                        {
+                            int open = line.IndexOf('{');
+                            int close = line.LastIndexOf('}');
+                            if (open >= 0 && close > open)
+                            {
+                                string before = line.Substring(0, open + 1);
+                                string content = line.Substring(open + 1, close - open - 1);
+                                string after = line.Substring(close);
+
+                                System.Text.RegularExpressions.Regex rx = new System.Text.RegularExpressions.Regex("\\\"VRCFallback\\\"\\s*=\\s*\\\"[^\\\"]*\\\"");
+                                content = rx.Replace(content, "").Trim();
+
+                                if (content.Length > 0 && !content.EndsWith(" ")) content += " ";
+                                content += $"\"VRCFallback\"=\"{value}\"";
+
+                                return before + content + after;
+                            }
+                            return $"Tags {{ \"VRCFallback\"=\"{value}\" }}";
+                        }
+
+                        if (tagsLine >= 0)
+                        {
+                            psf.lines[tagsLine] = InjectFallback(psf.lines[tagsLine], vrcFallback);
+                        }
+                        else if (subShaderLine >= 0)
+                        {
+                            string indent = psf.lines[subShaderLine].Substring(0, psf.lines[subShaderLine].IndexOf("SubShader"));
+                            string toInsert = indent + $"    Tags {{ \"VRCFallback\"=\"{vrcFallback}\" }}";
+                            var list = psf.lines.ToList();
+                            list.Insert(subShaderLine + 1, toInsert);
+                            psf.lines = list.ToArray();
+                        }
+                    }
+                }
+
                 // Recombine file lines into a single string
-                int totalLen = psf.lines.Length*2; // extra space for newline chars
+                    int totalLen = psf.lines.Length*2; // extra space for newline chars
                 foreach (string line in psf.lines)
                     totalLen += line.Length;
                 StringBuilder sb = new StringBuilder(totalLen);
