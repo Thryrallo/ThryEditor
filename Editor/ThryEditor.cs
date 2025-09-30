@@ -1147,8 +1147,7 @@ namespace Thry
                 .Select(g => AssetDatabase.GUIDToAssetPath(g))
                 .Where(p => string.IsNullOrEmpty(p) == false)
                 .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p))
-                .Where(m => m != null && m.shader != null)
-                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false);
+                .Where(m => m != null && !m.shader.IsBroken() && !m.IsLocked());
 
             FixKeywords(materialsToFix);
         }

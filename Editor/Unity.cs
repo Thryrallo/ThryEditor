@@ -220,6 +220,16 @@ namespace Thry.ThryEditor
 #endif
                 return mat.GetFloat(prop.name);
         }
+
+        public static bool IsBroken(this Shader shader)
+        {
+            return ShaderOptimizer.IsShaderBroken(shader);
+        }
+
+        public static bool IsLocked(this Material material)
+        {
+            return ShaderOptimizer.IsMaterialLocked(material);
+        }
     }
 
     public class UnityFixer

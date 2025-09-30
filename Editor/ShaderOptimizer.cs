@@ -598,11 +598,11 @@ namespace Thry.ThryEditor
 
         static IEnumerable<Material> GetSelectedLockableMaterials()
         {
-            return Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).Where(m => m != null && IsShaderUsingThryOptimizer(m.shader));
+            return Selection.assetGUIDs.Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).Where(m => m != null && (m.IsLocked() || !m.shader.IsBroken() && IsShaderUsingThryOptimizer(m.shader)));
         }
-#endregion
+        #endregion
 
-#region Animiated Tagging
+        #region Animiated Tagging
         public static void CopyAnimatedTag(MaterialProperty source, Material[] targets)
         {
             string val = (source.targets[0] as Material).GetTag(source.name + AnimatedTagSuffix, false, "");
@@ -817,16 +817,12 @@ namespace Thry.ThryEditor
             // The GetPropertyDefaultFloatValue is changed from 0 to 1 when the shader is locked in
             IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null
                 && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m))
-                && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))
-                && IsShaderUsingThryOptimizer(m.shader)
-                &&  (   m.shader.name.StartsWith("Hidden/Locked/")
-                    || (m.shader.name.StartsWith("Hidden/") && m.GetTag("OriginalShader",false,"") != "" 
-                        && m.shader.GetPropertyDefaultFloatValue(m.shader.FindPropertyIndex(GetOptimizerPropertyName(m.shader))) == 1)
-                    ) != isLocking)
+                && m.IsLocked() != isLocking
+                /*&& !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))*/)
                 .Distinct();
 
             // Make sure keywords are set correctly for materials to be locked. If unlocking, do this after the shaders are unlocked
-            if(isLocking && Config.Instance.fixKeywordsWhenLocking)
+            if (isLocking && Config.Instance.fixKeywordsWhenLocking)
                 ShaderEditor.FixKeywords(materialsToChangeLock);
 
             float i = 0;
@@ -2310,8 +2306,9 @@ namespace Thry.ThryEditor
         private static UnlockSuccess UnlockConcrete(Material material)
         {
             Shader lockedShader = material.shader;
+            bool brokenLockedShader = lockedShader.IsBroken();
             // Check if shader is Hidden
-            if (!lockedShader.name.StartsWith("Hidden/", StringComparison.Ordinal))
+            if (!brokenLockedShader && !lockedShader.name.StartsWith("Hidden/", StringComparison.Ordinal))
             {
                 Debug.LogWarning("[Shader Optimizer] Shader " + lockedShader.name + " is not locked.");
                 return UnlockSuccess.wasNotLocked;
@@ -2399,7 +2396,7 @@ namespace Thry.ThryEditor
                     m.SetOverrideTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, newTag);
                 }
             }
-            if (!isOtherMaterialUsingLockedShader)
+            if (!isOtherMaterialUsingLockedShader && !brokenLockedShader)
             {
                 string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
                 string lockedFolder = Path.GetDirectoryName(materialFilePath);
@@ -2410,9 +2407,29 @@ namespace Thry.ThryEditor
             return UnlockSuccess.success;
         }
 
-        private static Shader GetOriginalShaderByName(Material material)
+        // For some reason non-thry materials may have the OriginalShader tag, potentially due to faulty
+        // lock/unlock operations applying those tags to those materials.
+        // In my project this only appeared with two shaders, which also returned null to Shader.Find
+        // (via GetOriginalShaderByName) so checking IsShaderUsingThryOptimizer was not possible, a better
+        // alternative may be needed, such as also checking the GUID tag and/or a method that would
+        // correctly return Unity default shaders as non-null so it could be passed to the method. -- Dor
+        private static string[] UnityShaderNames = new string[]
+        {
+            "Standard",
+            "Unlit/Texture"
+        };
+        public static string GetOriginalShaderTag(Material material, bool excludeUnityShaders = false)
         {
             string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, string.Empty);
+            if (string.IsNullOrEmpty(originalShaderName) ||
+                excludeUnityShaders && UnityShaderNames.Any(n => n.Equals(originalShaderName, StringComparison.Ordinal))) return string.Empty;
+
+            return originalShaderName;
+        }
+
+        private static Shader GetOriginalShaderByName(Material material)
+        {
+            string originalShaderName = GetOriginalShaderTag(material);
             if (string.IsNullOrEmpty(originalShaderName))
             {
                 Debug.LogWarning($"[Shader Optimizer] Original shader name not saved to material ({material.name}).");
@@ -2461,9 +2478,9 @@ namespace Thry.ThryEditor
             if (originalShader != null) return originalShader;
 
             // Nothing to go by.
-            if (material.shader == null)
+            if (material.shader.IsBroken())
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader not saved to material ({material.name}) and the current shader is missing.");
+                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found and the current shader is missing.");
 
                 return null;
             }
@@ -2471,18 +2488,18 @@ namespace Thry.ThryEditor
             // Check for original shader by guessing name
             if (GuessShader(material.shader, out originalShader))
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader not saved to material ({material.name}).\n" +
+                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found.\n" +
                     $"Guessed shader name from current shader ({material.shader.name}) to be \"{originalShader.name}\".");
             }
             else
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader not saved to material ({material.name}).\n" +
+                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found.\n" +
                     $"Guessing shader name from current shader ({material.shader.name}) failed.");
             }
 
             return originalShader;
         }
-#endregion
+        #endregion
 
         public static void DeleteTags(Material[] materials)
         {
@@ -2678,16 +2695,9 @@ namespace Thry.ThryEditor
 
         public static string GetOptimizerPropertyName(Shader shader)
         {
-            if (isShaderUsingThryOptimizer.ContainsKey(shader))
-            {
-                if (isShaderUsingThryOptimizer[shader] == false) return null;
-                return shaderThryOptimizerPropertyName[shader];
-            }
-            else
-            {
-                if (IsShaderUsingThryOptimizer(shader) == false) return null;
-                return shaderThryOptimizerPropertyName[shader];
-            }
+            if (IsShaderUsingThryOptimizer(shader) == false) return null;
+
+            return shaderThryOptimizerPropertyName[shader];
         }
 
         private static Dictionary<Shader, string> shaderThryOptimizerPropertyName = new Dictionary<Shader, string>();
@@ -2721,9 +2731,24 @@ namespace Thry.ThryEditor
             return false;
         }
 
+        public static bool IsShaderBroken(Shader s)
+        {
+            return s == null || s.name == "Hidden/InternalErrorShader";
+        }
+
         public static bool IsMaterialLocked(Material material)
         {
-            return material.shader.name.StartsWith("Hidden/") && material.GetTag(TAG_ORIGINAL_SHADER, false, "") != "";
+            if (material == null) return false;
+
+            // Broken shaders must be assumed to be a thry-optimizer shader if the name/guid tags are present
+            // since the shader itself cannot be tested.
+            if (material.shader.IsBroken()) return !string.IsNullOrEmpty(GetOriginalShaderTag(material, true));
+
+            // Shaders that are Hidden with original shader tag, "Hidden/Locked/", and have the optimizer float at 1
+            string propertyName = GetOptimizerPropertyName(material.shader);
+            return propertyName != null && (material.shader.name.StartsWith("Hidden/") && !string.IsNullOrEmpty(GetOriginalShaderTag(material, true))
+                || material.shader.name.StartsWith("Hidden/Locked/"))
+                && material.shader.GetPropertyDefaultFloatValue(material.shader.FindPropertyIndex(propertyName)) == 1;
         }
 
         private static Dictionary<Shader, int> shaderUsedTextureReferencesCount = new Dictionary<Shader, int>();
