@@ -1450,11 +1450,15 @@ namespace Thry.ThryEditor
                 else // CGINC file
                     ReplaceShaderValues(material, psf.lines, 0, psf.lines.Length, props, constantPropsDictionary, macrosArray, grabPassVariables.ToArray());
 
+                //
+                // VRCFALLBACK TAG BROKE SO THIS IS THE DIRTIEST PATCH TO ENSURE IT WORKS AGAIN
+                //
                 if (psf.filePath.EndsWith(".shader", StringComparison.OrdinalIgnoreCase))
                 {
                     string vrcFallback = material.GetTag("VRCFallback", false, "");
                     if (!string.IsNullOrEmpty(vrcFallback))
                     {
+                        // Find first SubShader and it's Tag Line
                         int subShaderLine = -1;
                         int tagsLine = -1;
 
@@ -1470,14 +1474,18 @@ namespace Thry.ThryEditor
                                 tagsLine = i;
                                 break;
                             }
+                            // Stop at the next SubShader if we somehow didn't see Tags yet
                             else if (subShaderLine >= 0 && t.StartsWith("SubShader", StringComparison.Ordinal))
                             {
                                 break;
                             }
                         }
 
+                        // This helper inserts or replaces the VRCFallback entry from the Material on a Tags line.
                         string InjectFallback(string line, string value)
                         {
+                            // Normalize spaces; operate only inside the braces
+                            // e.g. Tags { "Queue"="Geometry" "VRCFallback"="Toon"}
                             int open = line.IndexOf('{');
                             int close = line.LastIndexOf('}');
                             if (open >= 0 && close > open)
@@ -1486,14 +1494,17 @@ namespace Thry.ThryEditor
                                 string content = line.Substring(open + 1, close - open - 1);
                                 string after = line.Substring(close);
 
+                                // Remove any existing VRCFallback="..."
                                 System.Text.RegularExpressions.Regex rx = new System.Text.RegularExpressions.Regex("\\\"VRCFallback\\\"\\s*=\\s*\\\"[^\\\"]*\\\"");
                                 content = rx.Replace(content, "").Trim();
 
+                                // Append our desired tag (with a leading space if needed)
                                 if (content.Length > 0 && !content.EndsWith(" ")) content += " ";
                                 content += $"\"VRCFallback\"=\"{value}\"";
 
                                 return before + content + after;
                             }
+                            // If the format is unusual, replace the whole line.
                             return $"Tags {{ \"VRCFallback\"=\"{value}\" }}";
                         }
 
@@ -1503,12 +1514,16 @@ namespace Thry.ThryEditor
                         }
                         else if (subShaderLine >= 0)
                         {
+                            // Insert a new Tags line right after the SubShader { ... } line
+                            // Try to keep indentation consistent
                             string indent = psf.lines[subShaderLine].Substring(0, psf.lines[subShaderLine].IndexOf("SubShader"));
                             string toInsert = indent + $"    Tags {{ \"VRCFallback\"=\"{vrcFallback}\" }}";
+                            // Insert after the SubShader line
                             var list = psf.lines.ToList();
                             list.Insert(subShaderLine + 1, toInsert);
                             psf.lines = list.ToArray();
                         }
+                        // If no SubShader found, do nothing.
                     }
                 }
 
