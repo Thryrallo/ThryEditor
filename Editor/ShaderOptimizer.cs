@@ -39,7 +39,6 @@ using System.Reflection;
 using Thry.ThryEditor.Helpers;
 using Thry.ThryEditor.Drawers;
 using JetBrains.Annotations;
-using System.Drawing.Printing;
 
 #if VRC_SDK_VRCSDK3
 using VRC.SDKBase;
