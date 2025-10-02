@@ -2427,28 +2427,28 @@ namespace Thry.ThryEditor
             return originalShaderName;
         }
 
-        private static Shader GetOriginalShaderByName(Material material)
+        private static Shader GetOriginalShaderByName(Material material, bool log = true)
         {
             string originalShaderName = GetOriginalShaderTag(material);
             if (string.IsNullOrEmpty(originalShaderName))
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader name not saved to material ({material.name}).");
+                if (log) Debug.LogWarning($"[Shader Optimizer] Original shader name not saved to material ({material.name}).");
 
                 return null;
             }
 
             Shader originalShader = Shader.Find(originalShaderName);
-            Debug.LogWarning($"[Shader Optimizer] Original shader name \"{originalShaderName}\" could not be found for material \"{material.name}\".");
+            if (log) Debug.LogWarning($"[Shader Optimizer] Original shader name \"{originalShaderName}\" could not be found for material \"{material.name}\".");
 
             return originalShader;
         }
 
-        private static Shader GetOriginalShaderByGUID(Material material)
+        private static Shader GetOriginalShaderByGUID(Material material, bool log = true)
         {
             string originalShaderGUID = material.GetTag(TAG_ORIGINAL_SHADER_GUID, false, string.Empty);
             if (string.IsNullOrEmpty(originalShaderGUID))
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader GUID not saved to material ({material.name}).");
+                if (log) Debug.LogWarning($"[Shader Optimizer] Original shader GUID not saved to material ({material.name}).");
 
                 return null;
             }
@@ -2459,13 +2459,19 @@ namespace Thry.ThryEditor
             if (!string.IsNullOrWhiteSpace(originalShaderPath))
                 originalShader = AssetDatabase.LoadAssetAtPath<Shader>(originalShaderPath);
 
-            if (originalShader == null)
+            if (originalShader == null && log)
                 Debug.LogWarning($"[Shader Optimizer] Original shader GUID {originalShaderGUID} could not be found for material \"{material.name}\".");
 
             return originalShader;
         }
 
+        // Maintain old method signature for compiled code to still execute correctly
         public static Shader GetOriginalShader(Material material)
+        {
+            return GetOriginalShader(material, true);
+        }
+
+        public static Shader GetOriginalShader(Material material, bool log)
         {
             if (material == null) return null;
 
@@ -2480,22 +2486,16 @@ namespace Thry.ThryEditor
             // Nothing to go by.
             if (material.shader.IsBroken())
             {
-                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found and the current shader is missing.");
+                if (log) Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found and the current shader is missing.");
 
                 return null;
             }
 
             // Check for original shader by guessing name
-            if (GuessShader(material.shader, out originalShader))
-            {
-                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found.\n" +
-                    $"Guessed shader name from current shader ({material.shader.name}) to be \"{originalShader.name}\".");
-            }
-            else
-            {
-                Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found.\n" +
-                    $"Guessing shader name from current shader ({material.shader.name}) failed.");
-            }
+            bool guessed = GuessShader(material.shader, out originalShader);
+            if (log) Debug.LogWarning($"[Shader Optimizer] Original shader for material ({material.name}) was not found.\n" +
+                        (guessed ? $"Guessed shader name from current shader ({material.shader.name}) to be \"{originalShader.name}\"."
+                        : $"Guessing shader name from current shader ({material.shader.name}) failed."));
 
             return originalShader;
         }
