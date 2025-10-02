@@ -2315,7 +2315,7 @@ namespace Thry.ThryEditor
             }
 
             Shader originalShader = GetOriginalShader(material);
-            if (originalShader == null)
+            if (originalShader.IsBroken())
             {
                 Debug.LogError("[Shader Optimizer] Original shader not saved to material, could not unlock shader");
                 if(EditorUtility.DisplayDialog("Unlock Material", $"The original shader for {material.name} could not be resolved.\nPlease select a shader manually.", "Ok")) {}
@@ -2383,7 +2383,7 @@ namespace Thry.ThryEditor
 
             // Delete the variants folder and all files in it, as to not orhpan files and inflate Unity project
             // But only if no other material is using the locked shader
-            string[] lockedMaterials = material.GetTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, false, "").Split(',');
+            string[] lockedMaterials = material.GetTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, false, string.Empty).Split(',');
             string newTag = string.Join(",", lockedMaterials.Where(guid => guid != unlockedMaterialGUID).ToArray());
             bool isOtherMaterialUsingLockedShader = false;
             foreach(string guid in lockedMaterials)
@@ -2396,6 +2396,9 @@ namespace Thry.ThryEditor
                     m.SetOverrideTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, newTag);
                 }
             }
+            // Ensure the tag is cleared on the current material
+            material.SetOverrideTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, string.Empty);
+
             if (!isOtherMaterialUsingLockedShader && !brokenLockedShader)
             {
                 string materialFilePath = AssetDatabase.GetAssetPath(lockedShader);
@@ -2407,29 +2410,9 @@ namespace Thry.ThryEditor
             return UnlockSuccess.success;
         }
 
-        // For some reason non-thry materials may have the OriginalShader tag, potentially due to faulty
-        // lock/unlock operations applying those tags to those materials.
-        // In my project this only appeared with two shaders, which also returned null to Shader.Find
-        // (via GetOriginalShaderByName) so checking IsShaderUsingThryOptimizer was not possible, a better
-        // alternative may be needed, such as also checking the GUID tag and/or a method that would
-        // correctly return Unity default shaders as non-null so it could be passed to the method. -- Dor
-        private static string[] UnityShaderNames = new string[]
-        {
-            "Standard",
-            "Unlit/Texture"
-        };
-        public static string GetOriginalShaderTag(Material material, bool excludeUnityShaders = false)
-        {
-            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, string.Empty);
-            if (string.IsNullOrEmpty(originalShaderName) ||
-                excludeUnityShaders && UnityShaderNames.Any(n => n.Equals(originalShaderName, StringComparison.Ordinal))) return string.Empty;
-
-            return originalShaderName;
-        }
-
         private static Shader GetOriginalShaderByName(Material material, bool log = true)
         {
-            string originalShaderName = GetOriginalShaderTag(material);
+            string originalShaderName = material.GetTag(TAG_ORIGINAL_SHADER, false, string.Empty);
             if (string.IsNullOrEmpty(originalShaderName))
             {
                 if (log) Debug.LogWarning($"[Shader Optimizer] Original shader name not saved to material ({material.name}).");
@@ -2749,9 +2732,19 @@ namespace Thry.ThryEditor
         {
             if (material == null) return false;
 
-            // Broken shaders must be assumed to be a thry-optimizer shader if the name/guid tags are present
-            // on the material since the shader itself cannot be tested
-            if (material.shader.IsBroken()) return !string.IsNullOrEmpty(GetOriginalShaderTag(material, true));
+            // The material is using a broken shader, test tags to tell if it was locked
+            if (material.shader.IsBroken())
+            {
+                Shader originalShader = GetOriginalShader(material, false);
+                // The original shader was not found (or somehow returned the internal error shader), check if
+                // the material has the locked GUIDs tag
+                if (originalShader.IsBroken())
+                    return !string.IsNullOrEmpty(material.GetTag(TAG_ALL_MATERIALS_GUIDS_USING_THIS_LOCKED_SHADER, false, string.Empty));
+
+                // The original shader was found, test if it is a thry-optimizer shader since the original
+                // shader tags sometimes contain erroneous data pointing to Unity shaders
+                return IsShaderUsingThryOptimizer(originalShader);
+            }
 
             // Internal call to skip checking "IsBroken"
             if (!IsShaderLockedInternal(material.shader)) return false;
