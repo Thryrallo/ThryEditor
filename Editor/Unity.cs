@@ -222,6 +222,31 @@ namespace Thry.ThryEditor
         }
 
         /// <summary>
+        /// Retrieves the parent material of the specified material.
+        /// </summary>
+        /// <remarks>Returns <see cref="Material"/>.<c>parent</c>, which is available starting from Unity 2022.1.
+        /// On earlier versions of Unity, this method will always return <see langword="null"/>.</remarks>
+        public static Material GetParent(this Material mat)
+        {
+#if UNITY_2022_1_OR_NEWER
+            return mat.parent;
+#else
+            return null;
+#endif
+        }
+
+        public static Material GetRoot(this Material mat)
+        {
+            Material lastParent = mat, parent;
+            while ((parent = mat.GetParent()) != null && parent != lastParent)
+            {
+                lastParent = parent;
+            }
+
+            return lastParent;
+        }
+
+        /// <summary>
         /// Determines whether the specified shader is broken.
         /// </summary>
         /// <param name="shader">The shader to evaluate. This can be <see langword="null"/>.</param>

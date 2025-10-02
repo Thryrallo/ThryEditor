@@ -815,7 +815,9 @@ namespace Thry.ThryEditor
 
             //Get cleaned materia list
             // The GetPropertyDefaultFloatValue is changed from 0 to 1 when the shader is locked in
-            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null
+            IEnumerable<Material> materialsToChangeLock = materials
+                .Select(m => m.GetRoot()) // Material variants can't have their shader changed
+                .Where(m => m != null
                 && !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m))
                 && m.IsLocked() != isLocking
                 /*&& !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))*/)
