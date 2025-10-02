@@ -226,6 +226,11 @@ namespace Thry.ThryEditor
             return ShaderOptimizer.IsShaderBroken(shader);
         }
 
+        public static bool IsLocked(this Shader shader)
+        {
+            return ShaderOptimizer.IsShaderLocked(shader);
+        }
+
         public static bool IsLocked(this Material material)
         {
             return ShaderOptimizer.IsMaterialLocked(material);

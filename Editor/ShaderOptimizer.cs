@@ -2307,8 +2307,8 @@ namespace Thry.ThryEditor
         {
             Shader lockedShader = material.shader;
             bool brokenLockedShader = lockedShader.IsBroken();
-            // Check if shader is Hidden
-            if (!brokenLockedShader && !lockedShader.name.StartsWith("Hidden/", StringComparison.Ordinal))
+            // Check if shader is locked
+            if (!brokenLockedShader && !lockedShader.IsLocked())
             {
                 Debug.LogWarning("[Shader Optimizer] Shader " + lockedShader.name + " is not locked.");
                 return UnlockSuccess.wasNotLocked;
@@ -2653,7 +2653,7 @@ namespace Thry.ThryEditor
                 // - Has the property "shader_is_using_thry_editor", which should be present on all shaders using ThryEditor (even if it's not using the optimizer)
                 // - Has the property "_ShaderOptimizerEnabled", indicating the shader is using the optimizer
                 // - Doesn't have a name starting with "Hidden/Locked/", indicating the shader is unlocked
-                bool shouldStrip = shader.FindPropertyIndex("shader_is_using_thry_editor") >= 0 && shader.FindPropertyIndex("_ShaderOptimizerEnabled") >= 0 && !shader.name.StartsWith("Hidden/Locked/");
+                bool shouldStrip = shader.FindPropertyIndex("shader_is_using_thry_editor") >= 0 && shader.FindPropertyIndex("_ShaderOptimizerEnabled") >= 0 && !shader.IsLocked();
 
                 if (shouldStrip)
                 {
@@ -2731,24 +2731,70 @@ namespace Thry.ThryEditor
             return false;
         }
 
-        public static bool IsShaderBroken(Shader s)
+        /// <summary>
+        /// Determines whether the specified shader is broken.
+        /// </summary>
+        /// <param name="shader">The shader to evaluate. This can be <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the shader is <see langword="null"/> or its name is "Hidden/InternalErrorShader"; 
+        /// otherwise, <see langword="false"/>.</returns>
+        public static bool IsShaderBroken(Shader shader)
         {
-            return s == null || s.name == "Hidden/InternalErrorShader";
+            return shader == null || shader.name == "Hidden/InternalErrorShader";
         }
 
+        /// <summary>
+        /// Check if a material's shader is locked, or if it's missing but the material indicates it was locked
+        /// </summary>
         public static bool IsMaterialLocked(Material material)
         {
             if (material == null) return false;
 
             // Broken shaders must be assumed to be a thry-optimizer shader if the name/guid tags are present
-            // since the shader itself cannot be tested.
+            // on the material since the shader itself cannot be tested
             if (material.shader.IsBroken()) return !string.IsNullOrEmpty(GetOriginalShaderTag(material, true));
 
-            // Shaders that are Hidden with original shader tag, "Hidden/Locked/", and have the optimizer float at 1
-            string propertyName = GetOptimizerPropertyName(material.shader);
-            return propertyName != null && (material.shader.name.StartsWith("Hidden/") && !string.IsNullOrEmpty(GetOriginalShaderTag(material, true))
-                || material.shader.name.StartsWith("Hidden/Locked/"))
-                && material.shader.GetPropertyDefaultFloatValue(material.shader.FindPropertyIndex(propertyName)) == 1;
+            // Internal call to skip checking "IsBroken"
+            if (!IsShaderLockedInternal(material.shader)) return false;
+
+            // Material with original shader tag and shader is Hidden or is "Hidden/Locked/"
+            // This is unnecessary when the shader property is available and is instead prone to error,
+            // for example when an "unlocked" material is switched to an existing locked shader -- Dor
+            /*return !string.IsNullOrEmpty(GetOriginalShaderTag(material, true)) && material.shader.name.StartsWith("Hidden/")
+                || material.shader.name.StartsWith("Hidden/Locked/");*/
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified shader is locked based on its optimizer property.
+        /// </summary>
+        /// <param name="shader">The shader to check.</param>
+        /// <returns><see langword="true"/> if the shader is locked; otherwise, <see langword="false"/>.</returns>
+        private static bool IsShaderLockedInternal(Shader shader)
+        {
+            // Shader optimizer property is set to 1 on locked variants
+            string propertyName = GetOptimizerPropertyName(shader);
+            if (propertyName == null || // Does not use Thry optimizer
+                shader.GetPropertyDefaultFloatValue(shader.FindPropertyIndex(propertyName)) != 1) return false;
+
+            // Testing this seems unnecessary when the optimizer property name is present
+            //return shader.name.StartsWith("Hidden/Locked/");
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified shader is locked based on its optimizer property.
+        /// </summary>
+        /// <param name="shader">The shader to check.</param>
+        /// <returns><see langword="true"/> if the shader is locked; otherwise, <see langword="false"/>.</returns>
+        public static bool IsShaderLocked(Shader shader)
+        {
+            // If null or broken, there's nothing we can test
+            if (shader.IsBroken()) return false;
+
+            // Check optimizer property
+            return IsShaderLockedInternal(shader);
         }
 
         private static Dictionary<Shader, int> shaderUsedTextureReferencesCount = new Dictionary<Shader, int>();
