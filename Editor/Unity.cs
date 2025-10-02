@@ -221,16 +221,30 @@ namespace Thry.ThryEditor
                 return mat.GetFloat(prop.name);
         }
 
+        /// <summary>
+        /// Determines whether the specified shader is broken.
+        /// </summary>
+        /// <param name="shader">The shader to evaluate. This can be <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the shader is <see langword="null"/> or its name is "Hidden/InternalErrorShader"; 
+        /// otherwise, <see langword="false"/>.</returns>
         public static bool IsBroken(this Shader shader)
         {
             return ShaderOptimizer.IsShaderBroken(shader);
         }
 
+        /// <summary>
+        /// Determines whether the specified shader is locked based on its optimizer property.
+        /// </summary>
+        /// <param name="shader">The shader to check.</param>
+        /// <returns><see langword="true"/> if the shader is locked; otherwise, <see langword="false"/>.</returns>
         public static bool IsLocked(this Shader shader)
         {
             return ShaderOptimizer.IsShaderLocked(shader);
         }
 
+        /// <summary>
+        /// Check if a material's shader is locked, or if it's missing but the material indicates it was locked
+        /// </summary>
         public static bool IsLocked(this Material material)
         {
             return ShaderOptimizer.IsMaterialLocked(material);
