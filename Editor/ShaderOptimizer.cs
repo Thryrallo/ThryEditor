@@ -813,14 +813,14 @@ namespace Thry.ThryEditor
 
             bool isLocking = lockState == 1;
 
-            //Get cleaned materia list
+            // Get cleaned material list
             // The GetPropertyDefaultFloatValue is changed from 0 to 1 when the shader is locked in
-            IEnumerable<Material> materialsToChangeLock = materials.Where(m => m != null)
+            Material[] materialsToChangeLock = materials.Where(m => m != null)
                 .Select(m => m.GetRoot()) // Material variants can't have their shader changed
                 .Where(m => !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m))
                 && m.IsLocked() != isLocking
                 /*&& !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m.shader))*/)
-                .Distinct();
+                .Distinct().ToArray();
 
             // Make sure keywords are set correctly for materials to be locked. If unlocking, do this after the shaders are unlocked
             if (isLocking && Config.Instance.fixKeywordsWhenLocking)
@@ -830,9 +830,9 @@ namespace Thry.ThryEditor
             float length = materialsToChangeLock.Count();
 
             //show popup dialog if defined
-            if (showDialog && length > 0)
+            if (showDialog && materialsToChangeLock.Length > 0)
             {
-                if(EditorUtility.DisplayDialog("Locking Materials", EditorLocale.editor.Get("auto_lock_dialog").ReplaceVariables(length), "More information","OK"))
+                if(EditorUtility.DisplayDialog("Locking Materials", EditorLocale.editor.Get("auto_lock_dialog").ReplaceVariables(materialsToChangeLock.Length), "More information","OK"))
                 {
                     Application.OpenURL("https://www.youtube.com/watch?v=asWeDJb5LAo");
                 }
@@ -846,7 +846,7 @@ namespace Thry.ThryEditor
             }
 
             //Create shader assets
-            foreach (Material m in materialsToChangeLock.ToList()) //have to call ToList() here otherwise the Unlock Shader button in the ShaderGUI doesn't work
+            foreach (Material m in materialsToChangeLock)
             {
                 //do progress bar
                 if (showProgressbar)
