@@ -817,7 +817,8 @@ namespace Thry.ThryEditor
             Material[] materialsToChangeLock = materials.Where(m => m != null)
                 .Select(m => m.GetRoot()) // Material variants can't have their shader changed
                 .Where(m => !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(m))
-                    && m.IsLocked() != isLocking)
+                    && m.IsLocked() != isLocking // only select materials that are being changed
+                    && (!isLocking || !m.shader.IsBroken() && IsShaderUsingThryOptimizer(m.shader))) // select materials with compatible shaders for locking
                 .Distinct().ToArray();
 
             // Make sure keywords are set correctly for materials to be locked. If unlocking, do this after the shaders are unlocked
