@@ -91,13 +91,15 @@ namespace Thry.ThryEditor
                         ShaderEditor.Active.Locale.Set(MaterialProperty.name, newTranslation);
                         ShaderEditor.Active.Locale.Save();
                     }
-                }else
+                }
+                else
                 {
                     GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);
-                    if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
+                    if (Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
-                        noteRect.width -= 60;
+                        float reserved = NotesHelper.GetPackedRightReservation(rect, options, this.MaterialProperty.name, Styles.label_property_note);
+                        noteRect.width = Mathf.Max(0f, noteRect.width - reserved);
                         GUI.Label(noteRect, Note, Styles.label_property_note);
                     }
                 }
@@ -132,7 +134,8 @@ namespace Thry.ThryEditor
                 if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);
-                    noteRect.width -= 60;
+                    float reserved = NotesHelper.GetPackedRightReservation(rect, options, this.MaterialProperty.name, Styles.label_property_note);
+                    noteRect.width = Mathf.Max(0f, noteRect.width - reserved);
                     GUI.Label(noteRect, Note, Styles.label_property_note);
                 }
                 DrawIcons(rect, options, e);
@@ -153,14 +156,35 @@ namespace Thry.ThryEditor
             buttonRect.width = buttonRect.height;
 
             float right = rect.x + rect.width;
-            buttonRect.x = right - 74;
-            DrawPresetButton(buttonRect, options, e);
-            buttonRect.x = right - 56;
-            DrawHelpButton(buttonRect, options, e);
-            buttonRect.x = right - 38;
-            DrawLinkSettings(buttonRect, e);
-            buttonRect.x = right - 20;
+            float step = buttonRect.width + 2f;
+
+            // Pack from right to left without gaps
+            buttonRect.x = right - step;
             DrawDowdownSettings(buttonRect, e);
+
+            buttonRect.x -= step;
+            DrawLinkSettings(buttonRect, e);
+
+            bool hasHelp = options.button_help != null && options.button_help.condition_show.Test();
+            if (hasHelp)
+            {
+                buttonRect.x -= step;
+                DrawHelpButton(buttonRect, options, e);
+            }
+
+            bool hasPresets = Presets.DoesSectionHavePresets(this.MaterialProperty.name);
+            if (hasPresets)
+            {
+                buttonRect.x -= step;
+                DrawPresetButton(buttonRect, options, e);
+            }
+
+            bool hasAuthor = options.button_author != null && options.button_author.condition_show.Test();
+            if (hasAuthor)
+            {
+                buttonRect.x -= step;
+                DrawAuthorButton(buttonRect, options, e);
+            }
         }
 
         private void DrawHelpButton(Rect rect, PropertyOptions options, Event e)
@@ -169,6 +193,59 @@ namespace Thry.ThryEditor
             if (button != null && button.condition_show.Test())
             {
                 if (GUILib.Button(rect, Icons.help))
+                {
+                    ShaderEditor.Input.Use();
+                    if (button.action != null) button.action.Perform(ShaderEditor.Active?.Materials);
+                }
+            }
+        }
+
+        private void DrawAuthorButton(Rect rect, PropertyOptions options, Event e)
+        {
+            ButtonData button = options.button_author;
+            if (button != null && button.condition_show.Test())
+            {
+                // Compute combined clickable area (label + icon)
+                GUIContent nameContent = null;
+                Vector2 nameSize = Vector2.zero;
+                // Author label style: 1pt larger than miniLabel
+                GUIStyle authorLabelStyle;
+                {
+                    int baseSize = EditorStyles.miniLabel.fontSize > 0 ? EditorStyles.miniLabel.fontSize : GUI.skin.label.fontSize;
+                    authorLabelStyle = new GUIStyle(EditorStyles.miniLabel) { fontSize = baseSize + 1 };
+                }
+                bool hasText = !string.IsNullOrEmpty(button.text);
+                if (hasText)
+                {
+                    nameContent = new GUIContent(button.text, button.hover);
+                    nameSize = authorLabelStyle.CalcSize(nameContent);
+                }
+
+                float padding = hasText ? 2f : 0f;
+                Rect nameRect = new Rect(rect);
+                nameRect.x -= nameSize.x + padding;
+                nameRect.width = nameSize.x;
+                nameRect.y += Mathf.Max(0, (rect.height - EditorGUIUtility.singleLineHeight) * 0.5f);
+                nameRect.height = EditorGUIUtility.singleLineHeight;
+
+                Rect combinedRect = new Rect(nameRect);
+                if (!hasText)
+                    combinedRect = rect;
+                else
+                {
+                    combinedRect.x = nameRect.x;
+                    combinedRect.width = (rect.xMax - nameRect.x);
+                    combinedRect.y = Mathf.Min(nameRect.y, rect.y);
+                    combinedRect.height = Mathf.Max(nameRect.height, rect.height);
+                }
+
+                // Draw visuals
+                if (hasText) GUI.Label(nameRect, nameContent, authorLabelStyle);
+                GUI.Button(rect, GUIContent.none, Icons.github);
+
+                // Single clickable hit area
+                EditorGUIUtility.AddCursorRect(combinedRect, MouseCursor.Link);
+                if (GUI.Button(combinedRect, GUIContent.none, GUIStyle.none))
                 {
                     ShaderEditor.Input.Use();
                     if (button.action != null) button.action.Perform(ShaderEditor.Active?.Materials);
@@ -260,7 +337,7 @@ namespace Thry.ThryEditor
                     ThryLogger.LogDetail("ShaderHeader", $"Pasting* '{property.Content.text}' of {ShaderEditor.Active.Materials[0].name}");
                     int undoGroup = Undo.GetCurrentGroup();
 
-                    var propsToIgnore = new HashSet<UnityEngine.Rendering.ShaderPropertyType> { UnityEngine.Rendering.ShaderPropertyType.Texture };
+                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
 

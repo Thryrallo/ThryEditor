@@ -27,7 +27,7 @@ namespace Thry.ThryEditor
         {
             alignment = TextAnchor.MiddleRight, 
             padding = new RectOffset(0, 0, 0, 4), 
-            normal = new GUIStyleState { textColor = new Color(1f, 1f, 1f, 0.6f) },
+            normal = new GUIStyleState { textColor = EditorGUIUtility.isProSkin ? new Color(1f, 1f, 1f, 0.6f) : new Color(0f, 0f, 0f, 1f) },
         };
 
         public static readonly GUIStyle vectorPropertyStyle = new GUIStyle() { padding = new RectOffset(0, 0, 2, 2) };
@@ -78,6 +78,7 @@ namespace Thry.ThryEditor
         public static readonly GUIStyle tools = CreateIconStyle(EditorGUIUtility.IconContent("d_SceneViewTools@2x"));
         public static readonly GUIStyle linked = CreateIconStyle(LoadTextureByGUID(RESOURCE_GUID.ICON_LINK));
         public static readonly GUIStyle thryIcon = CreateIconStyle(LoadTextureByGUID(RESOURCE_GUID.ICON_THRY));
+        public static readonly GUIStyle github = CreateIconStyle(LoadTextureByGUID(RESOURCE_GUID.ICON_GITHUB));
 
         static GUIStyle CreateIconStyle(GUIContent content)
         {

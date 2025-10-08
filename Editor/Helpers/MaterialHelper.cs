@@ -63,29 +63,29 @@ namespace Thry.ThryEditor.Helpers
         public static void SetValue(MaterialProperty p, string value)
         {
             object prev = null;
-            if (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
+            if (p.type == MaterialProperty.PropType.Texture)
             {
                 prev = p.textureValue;
                 p.textureValue = AssetDatabase.LoadAssetAtPath<Texture>(value);
             }
-            else if (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float || p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range)
+            else if (p.type == MaterialProperty.PropType.Float || p.type == MaterialProperty.PropType.Range)
             {
                 prev = p.floatValue;
                 p.floatValue = Parser.ParseFloat(value, p.floatValue);
             }
 #if UNITY_2022_1_OR_NEWER
-            else if (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
+            else if (p.type == MaterialProperty.PropType.Int)
             {
                 prev = p.intValue;
                 p.intValue = (int)Parser.ParseFloat(value, p.intValue);
             }
 #endif
-            else if (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Vector)
+            else if (p.type == MaterialProperty.PropType.Vector)
             {
                 prev = p.vectorValue;
                 p.vectorValue = Converter.StringToVector(value);
             }
-            else if (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Color)
+            else if (p.type == MaterialProperty.PropType.Color)
             {
                 prev = p.colorValue;
                 p.colorValue = Converter.StringToColor(value);
@@ -98,28 +98,28 @@ namespace Thry.ThryEditor.Helpers
         {
             if (!source.HasProperty(target.name)) return;
             object prev = null;
-            switch (target.propertyType)
+            switch (target.type)
             {
-                case UnityEngine.Rendering.ShaderPropertyType.Float:
-                case UnityEngine.Rendering.ShaderPropertyType.Range:
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
                     prev = target.floatValue;
                     target.floatValue = source.GetNumber(target);
                     break;
 #if UNITY_2022_1_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Int:
+                case MaterialProperty.PropType.Int:
                     prev = target.intValue;
                     target.intValue = source.GetInt(target.name);
                     break;
 #endif
-                case UnityEngine.Rendering.ShaderPropertyType.Color:
+                case MaterialProperty.PropType.Color:
                     prev = target.colorValue;
                     target.colorValue = source.GetColor(target.name);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                case MaterialProperty.PropType.Vector:
                     prev = target.vectorValue;
                     target.vectorValue = source.GetVector(target.name);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                case MaterialProperty.PropType.Texture:
                     prev = target.textureValue;
                     target.textureValue = source.GetTexture(target.name);
                     Vector2 offset = source.GetTextureOffset(target.name);
@@ -134,28 +134,28 @@ namespace Thry.ThryEditor.Helpers
         public static void CopyValue(MaterialProperty source, MaterialProperty target)
         {
             object prev = null;
-            switch (target.propertyType)
+            switch (target.type)
             {
-                case UnityEngine.Rendering.ShaderPropertyType.Float:
-                case UnityEngine.Rendering.ShaderPropertyType.Range:
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
                     prev = target.floatValue;
                     target.floatValue = source.floatValue;
                     break;
 #if UNITY_2022_1_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Int:
+                case MaterialProperty.PropType.Int:
                     prev = target.intValue;
                     target.intValue = source.intValue;
                     break;
 #endif
-                case UnityEngine.Rendering.ShaderPropertyType.Color:
+                case MaterialProperty.PropType.Color:
                     prev = target.colorValue;
                     target.colorValue = source.colorValue;
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                case MaterialProperty.PropType.Vector:
                     prev = target.vectorValue;
                     target.vectorValue = source.vectorValue;
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                case MaterialProperty.PropType.Texture:
                     prev = target.textureValue;
                     target.textureValue = source.textureValue;
                     target.textureScaleAndOffset = source.textureScaleAndOffset;
@@ -179,20 +179,20 @@ namespace Thry.ThryEditor.Helpers
 
         public static object GetValue(MaterialProperty property)
         {
-            switch (property.propertyType)
+            switch (property.type)
             {
-                case UnityEngine.Rendering.ShaderPropertyType.Float:
-                case UnityEngine.Rendering.ShaderPropertyType.Range:
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
                     return property.floatValue;
 #if UNITY_2022_1_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Int:
+                case MaterialProperty.PropType.Int:
                     return property.intValue;
 #endif
-                case UnityEngine.Rendering.ShaderPropertyType.Color:
+                case MaterialProperty.PropType.Color:
                     return property.colorValue;
-                case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                case MaterialProperty.PropType.Vector:
                     return property.vectorValue;
-                case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                case MaterialProperty.PropType.Texture:
                     return property.textureValue;
             }
             return null;

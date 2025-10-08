@@ -92,12 +92,12 @@ namespace Thry.ThryEditor
                             }
                             return 0f;
                         }
-                        switch (prop.propertyType)
+                        switch (prop.type)
                         {
-                            case UnityEngine.Rendering.ShaderPropertyType.Float:
-                            case UnityEngine.Rendering.ShaderPropertyType.Range:
+                            case MaterialProperty.PropType.Float:
+                            case MaterialProperty.PropType.Range:
                                 return prop.floatValue;
-                            case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                            case MaterialProperty.PropType.Texture:
                                 return prop.textureValue != null ? prop.textureValue.name : "null";
                             default:
                                 return prop.GetNumber();
@@ -370,6 +370,11 @@ namespace Thry.ThryEditor
                     condition = new BooleanCondition(false);
                     return true;
                 }
+                if (s.Equals("none", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(s))
+                {
+                    condition = new BooleanCondition(null, BooleanCondition.BooleanType.NONE);
+                    return true;
+                }
                 condition = null;
                 return false;
             }
@@ -553,6 +558,11 @@ namespace Thry.ThryEditor
                 return booleanCondition;
             }
             return new BooleanCondition(s, BooleanCondition.BooleanType.NONE);
+        }
+
+        protected string SerializeForThryParser()
+        {
+            return this.ToString();
         }
     }
 }

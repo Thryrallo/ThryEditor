@@ -244,23 +244,23 @@ namespace Thry.ThryEditor
                     {
                         if (MaterialProperty == null)
                             return null;
-                        switch (MaterialProperty.propertyType)
+                        switch (MaterialProperty.type)
                         {
-                            case UnityEngine.Rendering.ShaderPropertyType.Float:
-                            case UnityEngine.Rendering.ShaderPropertyType.Range:
+                            case PropType.Float:
+                            case PropType.Range:
                                 _propertyDefaultValue = FastGetPropertyDefaultValue(MyShader, ShaderPropertyIndex).x;
                                 break;
-                            case UnityEngine.Rendering.ShaderPropertyType.Color:
-                            case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                            case PropType.Color:
+                            case PropType.Vector:
                                 _propertyDefaultValue = FastGetPropertyDefaultValue(MyShader, ShaderPropertyIndex);
                                 break;
-                            case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                            case PropType.Texture:
                                 Texture tex = ShaderEditor.Active.GetShaderImporter(MyShader).GetDefaultTexture(MaterialProperty.name);
                                 if (tex != null) _propertyDefaultValue = tex.name;
                                 else _propertyDefaultValue = FastGetPropertyTextureDefaultName(MyShader, ShaderPropertyIndex);
                                 break;
 #if UNITY_2022_1_OR_NEWER
-                            case UnityEngine.Rendering.ShaderPropertyType.Int:
+                            case PropType.Int:
                                 _propertyDefaultValue = FastGetPropertyDefaultIntValue(MyShader, ShaderPropertyIndex);
                                 break;
 #endif
@@ -289,25 +289,25 @@ namespace Thry.ThryEditor
 
                 if(_isPropertyValueDefault == null)
                 {
-                    switch(MaterialProperty.propertyType)
+                    switch(MaterialProperty.type)
                     {
-                        case UnityEngine.Rendering.ShaderPropertyType.Float:
-                        case UnityEngine.Rendering.ShaderPropertyType.Range:
+                        case PropType.Float:
+                        case PropType.Range:
                             _isPropertyValueDefault = (float)PropertyDefaultValue == (float)PropertyValue;
                             break;
-                        case UnityEngine.Rendering.ShaderPropertyType.Color:
+                        case PropType.Color:
                             _isPropertyValueDefault = (Vector4)PropertyDefaultValue == (Vector4)((Color)PropertyValue);
                             break;
-                        case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                        case PropType.Vector:
                             _isPropertyValueDefault = (Vector4)PropertyDefaultValue == (Vector4)PropertyValue;
                             break;
-                        case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                        case PropType.Texture:
                             _isPropertyValueDefault = PropertyValue == null
                                  || ((Texture)PropertyValue)?.name == (string)PropertyDefaultValue;
                             //if(!_isPropertyValueDefault.Value) Debug.Log($"{MaterialProperty.name} {PropertyDefaultValue} {PropertyValue}");
                             break;
     #if UNITY_2022_1_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Int:
+                        case PropType.Int:
                             _isPropertyValueDefault = (int)PropertyDefaultValue == (int)PropertyValue;
                             break;
     #endif
@@ -460,9 +460,9 @@ namespace Thry.ThryEditor
 
         private void CopyAlternativeUpgradeValues()
         {
-            UnityEngine.Rendering.ShaderPropertyType type = this.MaterialProperty.propertyType;
-            if (type == UnityEngine.Rendering.ShaderPropertyType.Color) type = UnityEngine.Rendering.ShaderPropertyType.Vector;
-            if (type == UnityEngine.Rendering.ShaderPropertyType.Range) type = UnityEngine.Rendering.ShaderPropertyType.Float;
+            MaterialProperty.PropType type = this.MaterialProperty.type;
+            if (type == MaterialProperty.PropType.Color) type = MaterialProperty.PropType.Vector;
+            if (type == MaterialProperty.PropType.Range) type = MaterialProperty.PropType.Float;
 
             int index = ShaderEditor.Active.Shader.FindPropertyIndex(this.MaterialProperty.name);
 
@@ -479,15 +479,15 @@ namespace Thry.ThryEditor
                 foreach (string alt in Options.alts)
                 {
                     SerializedProperty arrayProp = null;
-                    if (type == UnityEngine.Rendering.ShaderPropertyType.Float)
+                    if (type == MaterialProperty.PropType.Float)
                         arrayProp = serializedObject.FindProperty("m_SavedProperties.m_Floats.Array");
 #if UNITY_2022_1_OR_NEWER
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Int)
+                    else if (type == MaterialProperty.PropType.Int)
                         arrayProp = serializedObject.FindProperty("m_SavedProperties.m_Ints.Array");
 #endif
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Vector)
+                    else if (type == MaterialProperty.PropType.Vector)
                         arrayProp = serializedObject.FindProperty($"m_SavedProperties.m_Colors.Array");
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                    else if (type == MaterialProperty.PropType.Texture)
                         arrayProp = serializedObject.FindProperty($"m_SavedProperties.m_TexEnvs.Array");
 
                     if (arrayProp == null)
@@ -508,15 +508,15 @@ namespace Thry.ThryEditor
                     if (valueProp == null)
                         continue;
 
-                    if (type == UnityEngine.Rendering.ShaderPropertyType.Float)
+                    if (type == MaterialProperty.PropType.Float)
                         this.MaterialProperty.floatValue = valueProp.floatValue;
 #if UNITY_2022_1_OR_NEWER
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Int)
+                    else if (type == MaterialProperty.PropType.Int)
                         this.MaterialProperty.intValue = valueProp.intValue;
 #endif
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Vector)
+                    else if (type == MaterialProperty.PropType.Vector)
                         this.MaterialProperty.colorValue = valueProp.colorValue;
-                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                    else if (type == MaterialProperty.PropType.Texture)
                     {
                         var texProperty = valueProp.FindPropertyRelative("m_Texture").objectReferenceValue as Texture;
                         var scaleProperty = valueProp.FindPropertyRelative("m_Scale").vector2Value;
@@ -553,7 +553,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values for this property from the source property </summary>
         /// <param name="src"> The source property to copy from </param>
@@ -561,7 +561,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property to the target materials </summary>
         /// <param name="targets"> The target materials to copy to </param>
@@ -569,7 +569,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property to the target property </summary>
         /// <param name="target"> The target property to copy to </param>
@@ -577,7 +577,7 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public abstract void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
+        public abstract void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null);
         [PublicAPI]
         /// <summary> Copy the values of property from the source material </summary>
         /// <param name="target"> The target material to copy to </param>
@@ -585,12 +585,12 @@ namespace Thry.ThryEditor
         /// <param name="deepCopy"> Copy the values of the children of this property </param>
         /// <param name="skipPropertyTypes"> Skip copying properties of the specified types </param>
         /// <param name="skipPropertyNames"> Skip copying properties with the specified names </param>
-        public void CopyTo(Material target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public void CopyTo(Material target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             CopyTo(new Material[] { target }, applyDrawers, deepCopy, copyReferenceProperties, skipPropertyTypes, skipPropertyNames);
         }
 
-        protected void CopyReferencePropertiesTo(Material[] targets, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        protected void CopyReferencePropertiesTo(Material[] targets, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
@@ -605,7 +605,7 @@ namespace Thry.ThryEditor
             }
         }
 
-        protected void CopyReferencePropertiesFrom(Material source, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        protected void CopyReferencePropertiesFrom(Material source, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null)
                 foreach (string r_property in Options.reference_properties)
@@ -620,7 +620,7 @@ namespace Thry.ThryEditor
             }
         }
 
-        protected void CopyReferencePropertiesFrom(ShaderPart src, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        protected void CopyReferencePropertiesFrom(ShaderPart src, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null && src.Options.reference_properties != null)
                 for(int i = 0; i < Options.reference_properties.Length && i < src.Options.reference_properties.Length; i++)
@@ -637,7 +637,7 @@ namespace Thry.ThryEditor
             }
         }
 
-        protected void CopyReferencePropertiesTo(ShaderPart target, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes, HashSet<string> skipPropertyNames)
+        protected void CopyReferencePropertiesTo(ShaderPart target, HashSet<PropType> skipPropertyTypes, HashSet<string> skipPropertyNames)
         {
             if (Options.reference_properties != null && target.Options.reference_properties != null)
                 for (int i = 0; i < Options.reference_properties.Length && i < target.Options.reference_properties.Length; i++)
@@ -970,22 +970,22 @@ namespace Thry.ThryEditor
         {
             MaterialProperty prop = MaterialProperty;
             Shader shader = ShaderEditor.Active.Shader;
-            switch (prop.propertyType)
+            switch (prop.type)
             {
-                case UnityEngine.Rendering.ShaderPropertyType.Float:
-                case UnityEngine.Rendering.ShaderPropertyType.Range:
+                case MaterialProperty.PropType.Float:
+                case MaterialProperty.PropType.Range:
                     prop.floatValue = shader.GetPropertyDefaultFloatValue(ShaderPropertyIndex);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Vector:
+                case MaterialProperty.PropType.Vector:
                     prop.vectorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Color:
+                case MaterialProperty.PropType.Color:
                     prop.colorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Int:
+                case MaterialProperty.PropType.Int:
                     prop.intValue = shader.GetPropertyDefaultIntValue(ShaderPropertyIndex);
                     break;
-                case UnityEngine.Rendering.ShaderPropertyType.Texture:
+                case MaterialProperty.PropType.Texture:
                     Texture texture = null;
                     var importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(shader)) as ShaderImporter;
                     if (importer != null)
@@ -994,6 +994,7 @@ namespace Thry.ThryEditor
                     prop.textureScaleAndOffset = new Vector4(1, 1, 0, 0);
                     break;
             }
+            RaisePropertyValueChanged();
         }
 #endif
 
@@ -1020,7 +1021,7 @@ namespace Thry.ThryEditor
         {
             string propName = MaterialProperty.name;
             if (IsRenaming && !ShaderEditor.Active.IsLockedMaterial) propName = propName + "_" + ShaderEditor.Active.RenamedPropertySuffix;
-            if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture) propName = propName + "_ST";
+            if (MaterialProperty.type == MaterialProperty.PropType.Texture) propName = propName + "_ST";
             return propName;
         }
 
@@ -1052,19 +1053,19 @@ namespace Thry.ThryEditor
             AnimationClip clip = new AnimationClip();
 
             string propertyname = "material." + GetAnimatedPropertyName();
-            if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float || MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range)
+            if (MaterialProperty.type == MaterialProperty.PropType.Float || MaterialProperty.type == MaterialProperty.PropType.Range)
             {
                 clip.SetCurve(path, rendererType, propertyname, new AnimationCurve(new Keyframe(0, MaterialProperty.floatValue)));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, "", rendererType));
             }
 #if UNITY_2022_1_OR_NEWER
-            else if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
+            else if (MaterialProperty.type == MaterialProperty.PropType.Int)
             {
                 clip.SetCurve(path, rendererType, propertyname, new AnimationCurve(new Keyframe(0, MaterialProperty.intValue)));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, "", rendererType));
             }
 #endif
-            else if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Color)
+            else if (MaterialProperty.type == MaterialProperty.PropType.Color)
             {
                 clip.SetCurve(path, rendererType, propertyname + ".r", new AnimationCurve(new Keyframe(0, MaterialProperty.colorValue.r)));
                 clip.SetCurve(path, rendererType, propertyname + ".g", new AnimationCurve(new Keyframe(0, MaterialProperty.colorValue.g)));
@@ -1075,7 +1076,7 @@ namespace Thry.ThryEditor
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".b", rendererType));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".a", rendererType));
             }
-            else if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Vector)
+            else if (MaterialProperty.type == MaterialProperty.PropType.Vector)
             {
                 clip.SetCurve(path, rendererType, propertyname + ".x", new AnimationCurve(new Keyframe(0, MaterialProperty.vectorValue.x)));
                 clip.SetCurve(path, rendererType, propertyname + ".y", new AnimationCurve(new Keyframe(0, MaterialProperty.vectorValue.y)));
@@ -1086,7 +1087,7 @@ namespace Thry.ThryEditor
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".z", rendererType));
                 keyframeList.Add(ClipToKeyFrame(animationCurveType, clip, path, ".w", rendererType));
             }
-            else if (MaterialProperty.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
+            else if (MaterialProperty.type == MaterialProperty.PropType.Texture)
             {
                 clip.SetCurve(path, rendererType, propertyname + ".x", new AnimationCurve(new Keyframe(0, MaterialProperty.textureScaleAndOffset.x)));
                 clip.SetCurve(path, rendererType, propertyname + ".y", new AnimationCurve(new Keyframe(0, MaterialProperty.textureScaleAndOffset.y)));
@@ -1131,7 +1132,7 @@ namespace Thry.ThryEditor
             PropertyValue = FetchPropertyValue();
             SetIsPropertyValueDefaultDirty();
             if(PropertyValueChanged != null)
-                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty?.propertyType, previousValue, PropertyValue));
+                PropertyValueChanged(new PropertyValueEventArgs(MaterialProperty?.type, previousValue, PropertyValue));
         }
 
         public bool CheckForValueChange()
@@ -1161,10 +1162,10 @@ namespace Thry.ThryEditor
     [PublicAPI]
         public class PropertyValueEventArgs : EventArgs
     {
-        public UnityEngine.Rendering.ShaderPropertyType? propertyType { get; private set; }
+        public PropType? propertyType { get; private set; }
         public object previousValue { get; private set; }
         public object currentValue { get; private set; }
-        public PropertyValueEventArgs(UnityEngine.Rendering.ShaderPropertyType? propertyType, object previousValue, object newValue)
+        public PropertyValueEventArgs(PropType? propertyType, object previousValue, object newValue)
         {
             this.propertyType = propertyType;
             this.previousValue = previousValue;

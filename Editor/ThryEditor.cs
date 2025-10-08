@@ -210,9 +210,9 @@ namespace Thry
         private ThryPropertyType GetPropertyType(MaterialProperty p)
         {
             string name = p.name;
-            UnityEngine.Rendering.ShaderPropertyFlags flags = p.propertyFlags;
+            MaterialProperty.PropFlags flags = p.flags;
 
-            if (flags == UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)
+            if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
                 if (name[0] == '_')
                 {
@@ -253,7 +253,7 @@ namespace Thry
             if (name == ShaderOptimizerPropertyName)  return ThryPropertyType.optimizer;
             if (name == PROPERTY_NAME_IN_SHADER_PRESETS) return ThryPropertyType.in_shader_presets;
 
-            if (flags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)) return ThryPropertyType.hidden_property;
+            if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector)) return ThryPropertyType.hidden_property;
             return ThryPropertyType.shown_property;
         }
 
@@ -373,8 +373,8 @@ namespace Thry
                         break;
                     case ThryPropertyType.hidden_property:
                     case ThryPropertyType.shown_property:
-                        if (props[i].propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
-                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].propertyFlags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.NoScaleOffset) == false, false, i);
+                        if (props[i].type == MaterialProperty.PropType.Texture)
+                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;
@@ -1077,10 +1077,17 @@ namespace Thry
                             string keyword = keywords[0];
                             keywordsInMaterial.Remove(keyword);
 
-                            if(m.GetFloat(prop) == 1)
-                                m.EnableKeyword(keyword);
+                            // If the prop is float (toggle), GetFloat works; if it's texture, use has texture
+                            int propIndex = m.shader.FindPropertyIndex(prop);
+                            if (propIndex >= 0 && m.shader.GetPropertyType(propIndex) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            {
+                                bool hasTexture = m.GetTexture(prop) != null;
+                                if (hasTexture) m.EnableKeyword(keyword); else m.DisableKeyword(keyword);
+                            }
                             else
-                                m.DisableKeyword(keyword);
+                            {
+                                if(m.GetFloat(prop) == 1) m.EnableKeyword(keyword); else m.DisableKeyword(keyword);
+                            }
                             break;
                         default: // KeywordEnum
                             for (int i = 0; i < keywords.Count; i++)
