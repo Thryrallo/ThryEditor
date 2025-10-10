@@ -20,7 +20,11 @@ namespace Thry.ThryEditor.Drawers
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
+#if UNITY_6000_2_OR_NEWER
             if (prop.propertyType != UnityEngine.Rendering.ShaderPropertyType.Vector)
+#else
+            if (prop.type != MaterialProperty.PropType.Vector)
+#endif
             {
                 EditorGUI.HelpBox(position, "[Curve4] requires a Vector property (stores 4 samples)", MessageType.Warning);
                 return;
