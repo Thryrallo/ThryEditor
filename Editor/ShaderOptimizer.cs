@@ -747,8 +747,12 @@ namespace Thry.ThryEditor
         {
             if(prop == null) return false;
             // if not a texture, but has non-modifiable texture data flag, is used as indicator to prevent locking
-            return prop.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal) 
+            return prop.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal)
+#if UNITY_6000_2_OR_NEWER
+                || (prop.propertyType != ShaderPropertyType.Texture && prop.propertyFlags.HasFlag(ShaderPropertyFlags.NonModifiableTextureData))
+#else
                 || (prop.type != MaterialProperty.PropType.Texture && prop.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData))
+#endif
                 || GetAttributes(prop).Contains("DoNotLock");
         }
 
@@ -756,7 +760,11 @@ namespace Thry.ThryEditor
         {
             if(part.MaterialProperty == null) return false;
             return part.HasAttribute("DoNotLock")
+#if UNITY_6000_2_OR_NEWER
+            || (part.MaterialProperty.propertyType != ShaderPropertyType.Texture && part.MaterialProperty.propertyFlags.HasFlag(ShaderPropertyFlags.NonModifiableTextureData))
+#else
             || (part.MaterialProperty.type != MaterialProperty.PropType.Texture && part.MaterialProperty.flags.HasFlag(MaterialProperty.PropFlags.NonModifiableTextureData))
+#endif
             || part.MaterialProperty.displayName.EndsWith(ExemptFromLockingSuffix, StringComparison.Ordinal);
         }
 
@@ -771,24 +779,49 @@ namespace Thry.ThryEditor
 
         private static bool CopyProperty(Material material, MaterialProperty source, string targetName)
         {
+#if UNITY_6000_2_OR_NEWER
+            switch (source.propertyType)
+#else
             switch (source.type)
+#endif
             {
+#if UNITY_6000_2_OR_NEWER
+                case ShaderPropertyType.Color:
+#else
                 case MaterialProperty.PropType.Color:
+#endif
                     material.SetColor(targetName, source.colorValue);
                     break;
+#if UNITY_6000_2_OR_NEWER
+                case ShaderPropertyType.Vector:
+#else
                 case MaterialProperty.PropType.Vector:
+#endif
                     material.SetVector(targetName, source.vectorValue);
                     break;
+#if UNITY_6000_2_OR_NEWER
+                case ShaderPropertyType.Float:
+                case ShaderPropertyType.Range:
+#else
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
+#endif
                     material.SetFloat(targetName, source.floatValue);
                     break;
-#if UNITY_2022_1_OR_NEWER
+#if UNITY_6000_2_OR_NEWER
+                case ShaderPropertyType.Int:
+                    material.SetInt(targetName, source.intValue);
+                    break;
+#elif UNITY_2022_1_OR_NEWER
                 case MaterialProperty.PropType.Int:
                     material.SetInt(targetName, source.intValue);
                     break;
 #endif
+#if UNITY_6000_2_OR_NEWER
+                case ShaderPropertyType.Texture:
+#else
                 case MaterialProperty.PropType.Texture:
+#endif
                     material.SetTexture(targetName, source.textureValue);
                     material.SetTextureScale(targetName, new Vector2(source.textureScaleAndOffset.x, source.textureScaleAndOffset.y));
                     material.SetTextureOffset(targetName, new Vector2(source.textureScaleAndOffset.z, source.textureScaleAndOffset.w));
@@ -1025,26 +1058,52 @@ namespace Thry.ThryEditor
                 else
                 {
 
+#if UNITY_6000_2_OR_NEWER
+                    switch (prop.propertyType)
+#else
                     switch (prop.type)
+#endif
                     {
+#if UNITY_6000_2_OR_NEWER
+                        case ShaderPropertyType.Color:
+#else
                         case MaterialProperty.PropType.Color:
+#endif
                             stringBuilder.Append(m.GetColor(propName).ToString());
                             break;
+#if UNITY_6000_2_OR_NEWER
+                        case ShaderPropertyType.Vector:
+#else
                         case MaterialProperty.PropType.Vector:
+#endif
                             stringBuilder.Append(m.GetVector(propName).ToString());
                             break;
+#if UNITY_6000_2_OR_NEWER
+                        case ShaderPropertyType.Range:
+                        case ShaderPropertyType.Float:
+#else
                         case MaterialProperty.PropType.Range:
                         case MaterialProperty.PropType.Float:
+#endif
                             stringBuilder.Append(m.GetFloat(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
-#if UNITY_2022_1_OR_NEWER
+#if UNITY_6000_2_OR_NEWER
+                        case ShaderPropertyType.Int:
+                            stringBuilder.Append(m.GetInt(propName)
+                                .ToString(CultureInfo.InvariantCulture));
+                            break;
+#elif UNITY_2022_1_OR_NEWER
                         case MaterialProperty.PropType.Int:
                             stringBuilder.Append(m.GetInteger(propName)
                                 .ToString(CultureInfo.InvariantCulture));
                             break;
 #endif
+#if UNITY_6000_2_OR_NEWER
+                        case ShaderPropertyType.Texture:
+#else
                         case MaterialProperty.PropType.Texture:
+#endif
                             Texture t = m.GetTexture(propName);
                             Vector4 texelSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
                             if (t != null)
@@ -1128,9 +1187,17 @@ namespace Thry.ThryEditor
             {
                 if (prop == null) continue;
                 // Every property gets turned into a preprocessor variable
+#if UNITY_6000_2_OR_NEWER
+                switch (prop.propertyType)
+#else
                 switch (prop.type)
+#endif
                 {
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Texture:
+#else
                     case MaterialProperty.PropType.Texture:
+#endif
                         if (prop.textureValue != null)
                         {
                             defines.Add(($"PROP{prop.name.ToUpperInvariant()}", ""));
@@ -1183,7 +1250,11 @@ namespace Thry.ThryEditor
                                 animatedPropsToDuplicate.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
                             else
                                 animatedPropsToRename.Add(new RenamingProperty(prop, prop.name, prop.name + "_" + animPropertySuffix));
+#if UNITY_6000_2_OR_NEWER
+                            if (prop.propertyType == ShaderPropertyType.Texture)
+#else
                             if (prop.type == MaterialProperty.PropType.Texture)
+#endif
                             {
                                 animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_ST", prop.name + "_" + animPropertySuffix + "_ST"));
                                 animatedPropsToRename.Add(new RenamingProperty(prop, prop.name + "_TexelSize", prop.name + "_" + animPropertySuffix + "_TexelSize"));
@@ -1197,33 +1268,60 @@ namespace Thry.ThryEditor
                 if (IsPropertyExcemptFromLocking(prop)) continue;
 
                 PropertyData propData;
+#if UNITY_6000_2_OR_NEWER
+                switch(prop.propertyType)
+#else
                 switch(prop.type)
+#endif
                 {
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Color:
+#else
                     case MaterialProperty.PropType.Color:
+#endif
                         propData = new PropertyData();
                         propData.type = PropertyType.Vector;
                         propData.name = prop.name;
+#if UNITY_6000_2_OR_NEWER
+                        if ((prop.propertyFlags & ShaderPropertyFlags.HDR) != 0)
+                        {
+                            if ((prop.propertyFlags & ShaderPropertyFlags.Gamma) != 0)
+#else
                         if ((prop.flags & MaterialProperty.PropFlags.HDR) != 0)
                         {
                             if ((prop.flags & MaterialProperty.PropFlags.Gamma) != 0)
+#endif
                                 propData.value = prop.colorValue.linear;
                             else propData.value = prop.colorValue;
                         }
+#if UNITY_6000_2_OR_NEWER
+                        else if ((prop.propertyFlags & ShaderPropertyFlags.Gamma) != 0)
+#else
                         else if ((prop.flags & MaterialProperty.PropFlags.Gamma) != 0)
-                            propData.value = prop.colorValue;
+#endif
+                        propData.value = prop.colorValue;
                         else propData.value = prop.colorValue.linear;
                         if (PlayerSettings.colorSpace == ColorSpace.Gamma) propData.value = prop.colorValue;
                         constantProps.Add(propData);
                         break;
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Vector:
+#else
                     case MaterialProperty.PropType.Vector:
+#endif
                         propData = new PropertyData();
                         propData.type = PropertyType.Vector;
                         propData.name = prop.name;
                         propData.value = prop.vectorValue;
                         constantProps.Add(propData);
                         break;
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Float:
+                    case ShaderPropertyType.Range:
+#else
                     case MaterialProperty.PropType.Float:
                     case MaterialProperty.PropType.Range:
+#endif
                         propData = new PropertyData();
                         propData.type = PropertyType.Float;
                         propData.name = prop.name;
@@ -1231,7 +1329,11 @@ namespace Thry.ThryEditor
                         constantProps.Add(propData);
                         break;
 #if UNITY_2022_1_OR_NEWER
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Int:
+#else
                     case MaterialProperty.PropType.Int:
+#endif
                         propData = new PropertyData();
                         propData.type = PropertyType.Float;
                         propData.name = prop.name;
@@ -1239,7 +1341,11 @@ namespace Thry.ThryEditor
                         constantProps.Add(propData);
                         break;
 #endif
+#if UNITY_6000_2_OR_NEWER
+                    case ShaderPropertyType.Texture:
+#else
                     case MaterialProperty.PropType.Texture:
+#endif
                         PropertyData ST = new PropertyData();
                         ST.type = PropertyType.Vector;
                         ST.name = prop.name + "_ST";

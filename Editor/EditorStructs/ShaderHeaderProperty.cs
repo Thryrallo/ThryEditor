@@ -56,22 +56,38 @@ namespace Thry.ThryEditor
         {
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
             throw new NotImplementedException();
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyFrom(ShaderPart src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
             throw new NotImplementedException();
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
             throw new NotImplementedException();
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyTo(ShaderPart target, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
             throw new NotImplementedException();
         }
