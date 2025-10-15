@@ -1111,7 +1111,7 @@ namespace Thry
         [MenuItem("Thry/Texture Packer", priority = 1)]
         static void MenuTexturePacker()
         {
-            TexturePacker.ShowWindow();
+            ThryEditor.TexturePacker.NodeGUI.Open();
         }
 
         [MenuItem("Thry/Cross Shader Editor", priority = 2)]
