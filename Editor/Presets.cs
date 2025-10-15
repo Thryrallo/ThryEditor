@@ -19,7 +19,7 @@ namespace Thry.ThryEditor
         const string TAG_POSTFIX_SECTION_NAME = "isSectionedPreset"; // Weird name, because of a leagcy bug
         const string FILE_NAME_CACHE = "Thry/preset_cache.txt";
         const string FILE_NAME_KNOWN_MATERIALS = "Thry/presets_known_materials.txt";
-        const string PRESET_VERSION = "1.1.1";
+        const string PRESET_VERSION = "1.1.0";
 
         struct AppliedPreset
         {
