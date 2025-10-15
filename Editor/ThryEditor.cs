@@ -1077,10 +1077,17 @@ namespace Thry
                             string keyword = keywords[0];
                             keywordsInMaterial.Remove(keyword);
 
-                            if(m.GetFloat(prop) == 1)
-                                m.EnableKeyword(keyword);
+                            // If the prop is float (toggle), GetFloat works; if it's texture, use has texture
+                            int propIndex = m.shader.FindPropertyIndex(prop);
+                            if (propIndex >= 0 && m.shader.GetPropertyType(propIndex) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            {
+                                bool hasTexture = m.GetTexture(prop) != null;
+                                if (hasTexture) m.EnableKeyword(keyword); else m.DisableKeyword(keyword);
+                            }
                             else
-                                m.DisableKeyword(keyword);
+                            {
+                                if(m.GetFloat(prop) == 1) m.EnableKeyword(keyword); else m.DisableKeyword(keyword);
+                            }
                             break;
                         default: // KeywordEnum
                             for (int i = 0; i < keywords.Count; i++)
@@ -1140,8 +1147,7 @@ namespace Thry
                 .Select(g => AssetDatabase.GUIDToAssetPath(g))
                 .Where(p => string.IsNullOrEmpty(p) == false)
                 .Select(p => AssetDatabase.LoadAssetAtPath<Material>(p))
-                .Where(m => m != null && m.shader != null)
-                .Where(m => ShaderOptimizer.IsMaterialLocked(m) == false);
+                .Where(m => m != null && !m.shader.IsBroken() && !m.IsLocked());
 
             FixKeywords(materialsToFix);
         }
