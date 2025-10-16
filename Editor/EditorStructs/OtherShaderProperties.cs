@@ -204,8 +204,10 @@ namespace Thry.ThryEditor
         {
             if (mat == null)
                 throw new System.ArgumentNullException("mat");
-
-            mat.globalIlluminationFlags = FixupEmissiveFlag(mat.GetColor("_EmissionColor"), mat.globalIlluminationFlags);
+            Color matColor = Color.black;
+            if (mat.HasProperty("_EmissionColor") == true)
+                matColor = mat.GetColor("_EmissionColor");
+            mat.globalIlluminationFlags = FixupEmissiveFlag(matColor, mat.globalIlluminationFlags);
         }
 
         public static MaterialGlobalIlluminationFlags FixupEmissiveFlag(Color col, MaterialGlobalIlluminationFlags flags)
