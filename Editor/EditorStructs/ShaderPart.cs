@@ -222,11 +222,13 @@ namespace Thry.ThryEditor
         static Func<Shader, int , Vector4> FastGetPropertyDefaultValue =
             (Func<Shader, int, Vector4>)Delegate.CreateDelegate(typeof(Func<Shader, int, Vector4>), s_fastGetPropertyDefaultValueMethod);
 
+#if UNITY_2022_1_OR_NEWER
         // private static extern int GetPropertyDefaultIntValue([NotNull("ArgumentNullException")] Shader shader, int propertyIndex);
         static MethodInfo s_fastGetPropertyDefaultIntValueMethod =
             typeof(Shader).GetMethod("GetPropertyDefaultIntValue", BindingFlags.NonPublic | BindingFlags.Static, null, new Type[] { typeof(Shader), typeof(int) }, null);
         static Func<Shader, int, int> FastGetPropertyDefaultIntValue = 
             (Func<Shader, int, int>)Delegate.CreateDelegate(typeof(Func<Shader, int, int>), s_fastGetPropertyDefaultIntValueMethod);
+#endif
 
         // private static extern string GetPropertyTextureDefaultName([NotNull("ArgumentNullException")] Shader shader, int propertyIndex);
         static MethodInfo s_fastGetPropertyTextureDefaultNameMethod =
