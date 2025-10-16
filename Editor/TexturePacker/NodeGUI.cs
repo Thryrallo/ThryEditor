@@ -369,7 +369,7 @@ namespace Thry.ThryEditor.TexturePacker
                 // make sure textures exist in project
                 foreach (var src in _config.Sources)
                 {
-                    if (src.Texture != null)
+                    if (src.InputType == InputType.Texture && src.Texture != null)
                     {
                         string path = AssetDatabase.GetAssetPath(src.Texture);
                         if (string.IsNullOrEmpty(path))
@@ -687,7 +687,7 @@ namespace Thry.ThryEditor.TexturePacker
             {
                 case InputType.Texture:
                     EditorGUI.BeginChangeCheck();
-                    texture.Texture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.Texture, typeof(Texture2D), false);
+                    texture.ImageTexture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.ImageTexture, typeof(Texture2D), false);
                     didTextureChange = EditorGUI.EndChangeCheck();
                     if (didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
                     if (didTextureChange) Packer.DetermineOutputResolution(_config);
@@ -703,7 +703,6 @@ namespace Thry.ThryEditor.TexturePacker
                         {
                             texture.Gradient = gradient;
                             texture.GradientTexture = tex;
-                            texture.Texture = tex;
                             // Needs to call these itself because it's in a callback not the OnGUI method
                             Pack();
                             Repaint();
@@ -715,7 +714,6 @@ namespace Thry.ThryEditor.TexturePacker
                     if (EditorGUI.EndChangeCheck() && texture.Gradient != null)
                     {
                         texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, _config.FileOutput.Resolution.x, _config.FileOutput.Resolution.y, texture.GradientDirection == GradientDirection.Vertical);
-                        texture.Texture = texture.GradientTexture;
                     }
                     break;
                 case InputType.Color:
@@ -723,7 +721,7 @@ namespace Thry.ThryEditor.TexturePacker
                     texture.Color = EditorGUI.ColorField(textureRect, texture.Color);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        texture.Texture = Converter.ColorToTexture(texture.Color, 16, 16);
+                        texture.ColorTexture = Converter.ColorToTexture(texture.Color, 16, 16);
                     }
                     break;
             }
@@ -812,7 +810,6 @@ namespace Thry.ThryEditor.TexturePacker
                 if (source.InputType == InputType.Gradient && source.GradientTexture != null && source.GradientTexture.width != gradientSize.x && source.GradientTexture.height != gradientSize.y)
                 {
                     source.GradientTexture = Converter.GradientToTexture(source.Gradient, gradientSize.x, gradientSize.y, source.GradientDirection == GradientDirection.Vertical);
-                    source.Texture = source.GradientTexture;
                 }
             }
 

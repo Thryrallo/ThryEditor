@@ -130,11 +130,11 @@ namespace Thry.ThryEditor.TexturePacker
 
 
     [Serializable]
-    public readonly struct OutputTarget
+    public struct OutputTarget
     {
-        public readonly BlendMode BlendMode;
-        public readonly InvertMode Invert;
-        public readonly float Fallback;
+        public BlendMode BlendMode;
+        public InvertMode Invert;
+        public float Fallback;
         
         public OutputTarget(BlendMode blendMode = BlendMode.Max, InvertMode invert = InvertMode.None, float fallback = 0)
         {
@@ -147,30 +147,24 @@ namespace Thry.ThryEditor.TexturePacker
     [Serializable]
     public class TextureSource
     {
-        public Texture2D Texture;
         public long LastHandledTextureEditTime;
         public FilterMode FilterMode;
         public Color Color;
         public Gradient Gradient;
         public GradientDirection GradientDirection;
         public Texture2D GradientTexture;
-        public Texture2D TextureTexture;
-
-        InputType _inputType = InputType.Texture;
-        public InputType InputType
+        public Texture2D ImageTexture;
+        public Texture2D ColorTexture;
+        public InputType InputType = InputType.Texture;
+        
+        public Texture2D Texture
         {
             get
             {
-                return _inputType;
-            }
-            set
-            {
-                if(_inputType != value)
-                {
-                    _inputType = value;
-                    if(_inputType == InputType.Texture) Texture = TextureTexture;
-                    if(_inputType == InputType.Gradient) Texture = GradientTexture;
-                    }
+                if (InputType == InputType.Texture) return ImageTexture;
+                if (InputType == InputType.Gradient) return GradientTexture;
+                if (InputType == InputType.Color) return ColorTexture;
+                return null;
             }
         }
 
@@ -180,8 +174,7 @@ namespace Thry.ThryEditor.TexturePacker
 
         public void SetInputTexture(Texture2D tex)
         {
-            Texture = tex;
-            TextureTexture = tex;
+            ImageTexture = tex;
             FilterMode = tex != null ? tex.filterMode : FilterMode.Bilinear;
             if (tex != null) InputType = InputType.Texture;
         }
@@ -262,12 +255,12 @@ namespace Thry.ThryEditor.TexturePacker
     }
 
     [Serializable]
-    public readonly struct Connection
+    public struct Connection
     {
-        public readonly int FromTextureIndex;
-        public readonly TextureChannelIn FromChannel;
-        public readonly TextureChannelOut ToChannel;
-        public readonly Vector4 Remapping;
+        public int FromTextureIndex;
+        public TextureChannelIn FromChannel;
+        public TextureChannelOut ToChannel;
+        public Vector4 Remapping;
 
         public Connection(int fromTex = -1, TextureChannelIn from = TextureChannelIn.None,
                       TextureChannelOut to = TextureChannelOut.None,

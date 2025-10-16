@@ -111,10 +111,12 @@ namespace Thry.ThryEditor.TexturePacker
                 {
                     s_allTexturesWithConfigs = new List<TextureImporter>();
                     string[] guids = AssetDatabase.FindAssets("t:Texture2D");
-                    foreach (string guid in guids)
+                    for (int i = 0; i < guids.Length; i++)
                     {
+                        string guid = guids[i];
                         string path = AssetDatabase.GUIDToAssetPath(guid);
                         TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                        EditorUtility.DisplayProgressBar("Finding Textures", $"Processing {i + 1}/{guids.Length}", (float)(i + 1) / guids.Length);
                         if (importer != null)
                         {
                             if (importer.userData.StartsWith("ThryTexturePackerConfig:"))
@@ -123,6 +125,7 @@ namespace Thry.ThryEditor.TexturePacker
                             }
                         }
                     }
+                    EditorUtility.ClearProgressBar();
                 }
                 return s_allTexturesWithConfigs;
             }

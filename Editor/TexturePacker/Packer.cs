@@ -153,6 +153,7 @@ namespace Thry.ThryEditor.TexturePacker
             {
                 PackShader.SetTexture(0, $"Inputs[{i}]", config.Sources[i].ComputeShaderTexture);
             }
+            // Vectors because int and float arrays are broken in compute shaders
             PackShader.SetVectorArray("InputTextureIsValid", config.Sources.Select(s => s.ComputeShaderTextureIsValid ? Vector4.one : Vector4.zero).ToArray());
 
             PackShader.Dispatch(0, width / 8 + 1, height / 8 + 1, 1);
