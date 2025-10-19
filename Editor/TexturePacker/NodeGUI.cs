@@ -14,13 +14,13 @@ namespace Thry.ThryEditor.TexturePacker
         static NodeGUI s_instance;
         const int MIN_WIDTH = 850;
         const int MIN_HEIGHT = 810;
-        Vector2 _scrollPosition = Vector2.zero;
 
         const string CHANNEL_PREVIEW_SHADER = "Hidden/Thry/ChannelPreview";
 
         TexturePackerConfig _config;
         TextureImporter _associatedImporter;
         Dictionary<Connection, ConnectionBezierPoints> _connectionPoints = new Dictionary<Connection, ConnectionBezierPoints>();
+        IPackerUIDragable _currentlyDraggingNode = null;
         bool _kernelEditHorizontal = true;
         Connection? _creatingConnection;
         Texture2D _outputTexture;
@@ -90,6 +90,7 @@ namespace Thry.ThryEditor.TexturePacker
             Packer.DetermineImportSettings(_config);
             Packer.DetermineOutputResolution(_config);
             Pack();
+            InitializeUIPositions();
             return this;
         }
 
@@ -111,7 +112,23 @@ namespace Thry.ThryEditor.TexturePacker
             Packer.DetermineImportSettings(_config);
             Packer.DetermineOutputResolution(_config);
             Pack();
+            InitializeUIPositions();
             return this;
+        }
+
+        void InitializeUIPositions()
+        {
+            for(int i = 0; i < _config.Sources.Length; i++)
+            {
+                if(_config.Sources[i].UIPosition == Vector2.zero)
+                {
+                    _config.Sources[i].UIPosition = new Vector2(20, 60 + i * 160);
+                }
+            }
+            if (_config.ImageAdjust.UIPosition == Vector2.zero)
+            {
+                _config.ImageAdjust.UIPosition = new Vector2(500, 150);
+            }
         }
 
         static NodeGUI ShowWindow()
@@ -123,6 +140,8 @@ namespace Thry.ThryEditor.TexturePacker
             s_instance.OnChange = null; // clear save callback
             return s_instance;
         }
+
+        public static Vector2 DefaultScrollPosition = new Vector2(0, 115);
 
         const int TOP_OFFSET = 50;
         const int INPUT_PADDING = 20;
@@ -137,65 +156,48 @@ namespace Thry.ThryEditor.TexturePacker
                 _config = TexturePackerConfig.GetNewConfig();
             }
 
-            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
-
-            DrawConfigGUI();
-            // Draw three texture slots on the left, a space in the middle, and one texutre slot on the right
-            GUILayout.BeginVertical();
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-
             _changeCheckForPacking = false;
 
-            GUILayout.BeginVertical();
-            GUILayout.Space(TOP_OFFSET);
             bool didInputTexturesChange = false;
-            didInputTexturesChange |= DrawInput(_config.Sources[0], 0);
-            GUILayout.Space(INPUT_PADDING);
-            didInputTexturesChange |= DrawInput(_config.Sources[1], 1);
-            GUILayout.Space(INPUT_PADDING);
-            didInputTexturesChange |= DrawInput(_config.Sources[2], 2);
-            GUILayout.Space(INPUT_PADDING);
-            didInputTexturesChange |= DrawInput(_config.Sources[3], 3);
-            GUILayout.EndVertical();
-            float inputHeight = 120 * 4 + INPUT_PADDING * 3 + TOP_OFFSET;
-
-            GUILayout.Space(400);
-            Rect rect_outputAndSettings = EditorGUILayout.BeginVertical();
-            float output_y_offset = TOP_OFFSET + (inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2;
-            GUILayout.Space(output_y_offset);
-            DrawOutput(_outputTexture, _channelPreviewTexture, OUTPUT_HEIGHT);
-
-            DrawOutputImageAdjustmentGUI();
-            DrawKernelGUI();
-
-            EditorGUILayout.EndVertical();
-
-            EditorGUILayout.EndVertical();
-
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            DrawConnections();
-
+            for (int i = 0; i < _config.Sources.Length; i++)
+            {
+                didInputTexturesChange |= DrawInput(_config.Sources[i], i);
+            }
             if (didInputTexturesChange)
             {
                 Packer.DetermineImportSettings(_config);
             }
+
+            Rect outputRect = GetCanvasRect(_config.ImageAdjust, OUTPUT_HEIGHT, OUTPUT_HEIGHT);
+            Rect outputAdjustmentRect = outputRect;
+            outputAdjustmentRect.y += outputRect.height;
+            outputAdjustmentRect.height = 210 + (_config.KernelPreset == KernelPreset.None ? 0 : 250);
+
+            DrawOutput(_outputTexture, _channelPreviewTexture, outputRect);
+            DrawOutputImageAdjustmentGUI(outputAdjustmentRect);
+            DrawConnections();
+            
             if (_changeCheckForPacking)
             {
                 Pack();
                 Repaint();
             }
-
-            GUILayout.Space(20);
-            DrawSaveGUI();
-            GUILayout.EndVertical();
-
             HandleConnectionEditing();
             HandleConnectionCreation();
+            HandleNodeDragging();
+            HandleCanvasDragging();
 
-            GUILayout.EndScrollView();
+            DrawTopBar();
+        }
+
+        Rect GetCanvasRect(float x, float y, int width, int height)
+        {
+            return new Rect(x + _config.ScrollPosition.x, y + _config.ScrollPosition.y, width, height);
+        }
+        
+        Rect GetCanvasRect(IPackerUIDragable node, int width, int height)
+        {
+            return GetCanvasRect(node.UIPosition.x, node.UIPosition.y, width, height);
         }
 
         void HandleConnectionEditing()
@@ -295,6 +297,51 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
+        void HandleNodeDragging()
+        {
+            if (_currentlyDraggingNode == null)
+                return;
+            if (Event.current.type == EventType.MouseDrag)
+            {
+                _currentlyDraggingNode.UIPosition += Event.current.delta;
+                Event.current.Use();
+                Repaint();
+            }
+            if (Event.current.type == EventType.MouseUp)
+            {
+                _currentlyDraggingNode = null;
+                Event.current.Use();
+                Repaint();
+            }
+        }
+
+        void CheckForNodeDraggingStart(IPackerUIDragable node, Rect nodeRect)
+        {
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
+            {
+                if (nodeRect.Contains(Event.current.mousePosition))
+                {
+                    _currentlyDraggingNode = node;
+                    Event.current.Use();
+                    Repaint();
+                }
+            }
+        }
+
+        void HandleCanvasDragging()
+        {
+            // if middle mouse button is pressed, drag the entire canvas
+            if (Event.current.button == 2)
+            {
+                if (Event.current.type == EventType.MouseDrag)
+                {
+                    _config.ScrollPosition += Event.current.delta;
+                    Event.current.Use();
+                    Repaint();
+                }
+            }
+        }
+
         InteractionWithConnection CheckIfConnectionClicked(float maxDistance)
         {
             Vector2 mousePos = Event.current.mousePosition;
@@ -331,9 +378,21 @@ namespace Thry.ThryEditor.TexturePacker
             return clickedConnection;
         }
 
+        void DrawTopBar()
+        {
+            Rect uberBG = new Rect(0, 0, position.width, 160);
+            Color uberBGColor = Colors.backgroundDark * 0.5f;
+            uberBGColor.a = 1f;
+
+            GUI.DrawTexture(uberBG, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, uberBGColor, 0, 0);
+
+            DrawConfigGUI();
+            DrawSaveGUI(new Rect(20, 50, position.width - 40, 100));
+        }
+
         void DrawConfigGUI()
         {
-            Rect bg = new Rect(position.width / 2 - 400, 10, 800, 30);
+            Rect bg = new Rect(20, 10, position.width - 40, 30);
             Rect rObjField = new RectOffset(5, 100, 5, 5).Remove(bg);
 
             GUI.DrawTexture(bg, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
@@ -372,12 +431,10 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
         
-        void DrawOutputImageAdjustmentGUI()
+        void DrawOutputImageAdjustmentGUI(Rect rect)
         {
-            EditorGUILayout.Space(15);
-            Rect backgroundImageSettings = EditorGUILayout.BeginVertical();
-            backgroundImageSettings = new RectOffset(5, 5, 5, 5).Add(backgroundImageSettings);
-            GUI.DrawTexture(backgroundImageSettings, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Colors.backgroundDark, 0, 10);
+            GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Colors.backgroundDark, 0, 10);
+            GUILayout.BeginArea(new RectOffset(5, 5, 5, 5).Remove(rect));
 
             EditorGUI.BeginChangeCheck();
             _config.FileOutput.ColorSpace = (ColorSpace)EditorGUILayout.EnumPopup(_config.FileOutput.ColorSpace);
@@ -403,6 +460,8 @@ namespace Thry.ThryEditor.TexturePacker
                 _changeCheckForPacking = true;
                 _config.ImageAdjust.ChangeCheck = false;
             }
+            DrawKernelGUI();
+            GUILayout.EndArea();
         }
 
         void DrawKernelGUI()
@@ -413,6 +472,10 @@ namespace Thry.ThryEditor.TexturePacker
             _config.KernelPreset = (KernelPreset)EditorGUI.EnumPopup(r_enum, "Kernel Filter", _config.KernelPreset);
             if (EditorGUI.EndChangeCheck())
             {
+                if (_config.KernelSettings == null)
+                {
+                    _config.KernelSettings = new KernelSettings();
+                }
                 _config.KernelSettings.X = _config.KernelSettings.GetKernel(_config.KernelPreset, true);
                 _config.KernelSettings.Y = _config.KernelSettings.GetKernel(_config.KernelPreset, false);
                 _config.KernelSettings.LoadPreset(_config.KernelPreset);
@@ -420,7 +483,7 @@ namespace Thry.ThryEditor.TexturePacker
                 Repaint();
             }
 
-            this.minSize = new Vector2(MIN_WIDTH, _config.KernelPreset == KernelPreset.None ? MIN_HEIGHT : MIN_HEIGHT + 250);
+            // this.minSize = new Vector2(MIN_WIDTH, _config.KernelPreset == KernelPreset.None ? MIN_HEIGHT : MIN_HEIGHT + 250);
 
             if (_config.KernelPreset != KernelPreset.None)
             {
@@ -475,7 +538,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        void DrawSaveGUI()
+        void DrawSaveGUI(Rect rect)
         {
             // Saving information
             // folder selection
@@ -485,10 +548,10 @@ namespace Thry.ThryEditor.TexturePacker
                 Packer.DeterminePathAndFileNameIfEmpty(_config);
             }
 
+            GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
+            
+            GUILayout.BeginArea(new RectOffset(5, 5, 5, 5).Remove(rect));
             Rect r = EditorGUILayout.BeginHorizontal();
-
-            Rect background = new Rect(r.x + r.width / 2 - 400, r.y - 5, 800, 97);
-            GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
 
             GUILayout.FlexibleSpace();
             // show current path
@@ -541,6 +604,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
+            GUILayout.EndArea();
         }
 
         void DrawConnections()
@@ -581,11 +645,9 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        void DrawOutput(Texture2D finalTexture, Texture2D channelPreviewTexture, int height = 200)
+        void DrawOutput(Texture2D finalTexture, Texture2D channelPreviewTexture, Rect rect)
         {
-            int channelWidth = height / 4;
-
-            Rect rect = GUILayoutUtility.GetRect(height, height);
+            int channelWidth = (int)rect.height / 4;
 
             // draw 4 channl boxes on the left side
             Rect rectR = new Rect(rect.x - channelWidth, rect.y, channelWidth, channelWidth);
@@ -647,6 +709,8 @@ namespace Thry.ThryEditor.TexturePacker
             _config.Targets[1] = DrawOutputChannel(buttonG, TextureChannelOut.G, _config.Targets[1]);
             _config.Targets[2] = DrawOutputChannel(buttonB, TextureChannelOut.B, _config.Targets[2]);
             _config.Targets[3] = DrawOutputChannel(buttonA, TextureChannelOut.A, _config.Targets[3]);
+
+            CheckForNodeDraggingStart(_config.ImageAdjust, background);
         }
 
         OutputTarget DrawOutputChannel(Rect position, TextureChannelOut channel, OutputTarget config)
@@ -685,10 +749,11 @@ namespace Thry.ThryEditor.TexturePacker
             return new OutputTarget(blendmode, invert, fallback);
         }
 
-        bool DrawInput(PackerSource texture, int index, int textureHeight = 100)
+        bool DrawInput(PackerSource source, int index, int textureHeight = 100)
         {
             int channelWidth = textureHeight / 5;
-            Rect rect = GUILayoutUtility.GetRect(textureHeight, textureHeight + 40);
+            // Rect rect = GUILayoutUtility.GetRect(textureHeight, textureHeight + 40);
+            Rect rect = GetCanvasRect(source, textureHeight, textureHeight + 40);
             Rect typeRect = new Rect(rect.x, rect.y, textureHeight, 20);
             Rect textureRect = new Rect(rect.x, rect.y + 20, textureHeight, textureHeight);
             Rect filterRect = new Rect(textureRect.x, textureRect.y + textureHeight, textureRect.width, 20);
@@ -698,47 +763,47 @@ namespace Thry.ThryEditor.TexturePacker
 
             // Draw textrue & filtermode. Change filtermode if texture is changed
             EditorGUI.BeginChangeCheck();
-            texture.InputType = (InputType)EditorGUI.EnumPopup(typeRect, texture.InputType);
+            source.InputType = (InputType)EditorGUI.EnumPopup(typeRect, source.InputType);
             bool didTextureChange = false;
-            switch (texture.InputType)
+            switch (source.InputType)
             {
                 case InputType.Texture:
                     EditorGUI.BeginChangeCheck();
-                    texture.ImageTexture = (Texture2D)EditorGUI.ObjectField(textureRect, texture.ImageTexture, typeof(Texture2D), false);
+                    source.ImageTexture = (Texture2D)EditorGUI.ObjectField(textureRect, source.ImageTexture, typeof(Texture2D), false);
                     didTextureChange = EditorGUI.EndChangeCheck();
-                    if (didTextureChange && texture.Texture != null) texture.FilterMode = texture.Texture.filterMode;
+                    if (didTextureChange && source.Texture != null) source.FilterMode = source.Texture.filterMode;
                     if (didTextureChange) Packer.DetermineOutputResolution(_config);
-                    texture.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, texture.FilterMode);
+                    source.FilterMode = (FilterMode)EditorGUI.EnumPopup(filterRect, source.FilterMode);
                     break;
                 case InputType.Gradient:
-                    if (texture.GradientTexture == null) EditorGUI.DrawRect(textureRect, Color.black);
-                    else EditorGUI.DrawPreviewTexture(textureRect, texture.GradientTexture);
+                    if (source.GradientTexture == null) EditorGUI.DrawRect(textureRect, Color.black);
+                    else EditorGUI.DrawPreviewTexture(textureRect, source.GradientTexture);
                     if (Event.current.type == EventType.MouseDown && textureRect.Contains(Event.current.mousePosition))
                     {
-                        if (texture.Gradient == null) texture.Gradient = new Gradient();
-                        GradientEditor2.Open(texture.Gradient, (Gradient gradient, Texture2D tex) =>
+                        if (source.Gradient == null) source.Gradient = new Gradient();
+                        GradientEditor2.Open(source.Gradient, (Gradient gradient, Texture2D tex) =>
                         {
-                            texture.Gradient = gradient;
-                            texture.GradientTexture = tex;
+                            source.Gradient = gradient;
+                            source.GradientTexture = tex;
                             // Needs to call these itself because it's in a callback not the OnGUI method
                             Pack();
                             Repaint();
-                        }, texture.GradientDirection == GradientDirection.Vertical, false, _config.FileOutput.Resolution, new Vector2Int(8192, 8192));
+                        }, source.GradientDirection == GradientDirection.Vertical, false, _config.FileOutput.Resolution, new Vector2Int(8192, 8192));
 
                     }
                     EditorGUI.BeginChangeCheck();
-                    texture.GradientDirection = (GradientDirection)EditorGUI.EnumPopup(filterRect, texture.GradientDirection);
-                    if (EditorGUI.EndChangeCheck() && texture.Gradient != null)
+                    source.GradientDirection = (GradientDirection)EditorGUI.EnumPopup(filterRect, source.GradientDirection);
+                    if (EditorGUI.EndChangeCheck() && source.Gradient != null)
                     {
-                        texture.GradientTexture = Converter.GradientToTexture(texture.Gradient, _config.FileOutput.Resolution.x, _config.FileOutput.Resolution.y, texture.GradientDirection == GradientDirection.Vertical);
+                        source.GradientTexture = Converter.GradientToTexture(source.Gradient, _config.FileOutput.Resolution.x, _config.FileOutput.Resolution.y, source.GradientDirection == GradientDirection.Vertical);
                     }
                     break;
                 case InputType.Color:
                     EditorGUI.BeginChangeCheck();
-                    texture.Color = EditorGUI.ColorField(textureRect, texture.Color);
+                    source.Color = EditorGUI.ColorField(textureRect, source.Color);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        texture.ColorTexture = Converter.ColorToTexture(texture.Color, 16, 16);
+                        source.ColorTexture = Converter.ColorToTexture(source.Color, 16, 16);
                     }
                     break;
             }
@@ -751,19 +816,19 @@ namespace Thry.ThryEditor.TexturePacker
             Rect rectB = new Rect(textureRect.x + textureRect.width, textureRect.y + channelWidth * 2, channelWidth, channelWidth);
             Rect rectA = new Rect(textureRect.x + textureRect.width, textureRect.y + channelWidth * 3, channelWidth, channelWidth);
             Rect rectMax = new Rect(textureRect.x + textureRect.width, textureRect.y + channelWidth * 4, channelWidth, channelWidth);
-            if (texture.Texture != null)
+            if (source.Texture != null)
             {
-                ChannelPreviewMaterial.SetTexture("_MainTex", texture.Texture);
+                ChannelPreviewMaterial.SetTexture("_MainTex", source.Texture);
                 ChannelPreviewMaterial.SetFloat("_Channel", 0);
-                EditorGUI.DrawPreviewTexture(rectR, texture.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectR, source.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 1);
-                EditorGUI.DrawPreviewTexture(rectG, texture.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectG, source.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 2);
-                EditorGUI.DrawPreviewTexture(rectB, texture.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectB, source.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 3);
-                EditorGUI.DrawPreviewTexture(rectA, texture.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectA, source.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 4);
-                EditorGUI.DrawPreviewTexture(rectMax, texture.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectMax, source.Texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
             }
             else
             {
@@ -795,6 +860,7 @@ namespace Thry.ThryEditor.TexturePacker
             DrawInputChannel(circleA, index, TextureChannelIn.A);
             DrawInputChannel(circleMax, index, TextureChannelIn.Max);
 
+            CheckForNodeDraggingStart(source, background);
             return didTextureChange;
         }
 

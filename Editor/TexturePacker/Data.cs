@@ -25,6 +25,11 @@ namespace Thry.ThryEditor.TexturePacker
             _ => ".png"
         };
     }
+    
+    public abstract class IPackerUIDragable
+    {
+        public Vector2 UIPosition;
+    }
 
     [Serializable]
     public class KernelSettings
@@ -135,7 +140,7 @@ namespace Thry.ThryEditor.TexturePacker
     }
 
     [Serializable]
-    public class ImageAdjust
+    public class ImageAdjust : IPackerUIDragable
     {
         public float Brightness = 1;
         public float Hue = 0;
@@ -182,12 +187,13 @@ namespace Thry.ThryEditor.TexturePacker
     }
 
     [Serializable]
-    public class PackerSource
+    public class PackerSource : IPackerUIDragable
     {
         public FilterMode FilterMode;
         public Color Color;
         public Gradient Gradient;
         public GradientDirection GradientDirection;
+
         public Texture2D GradientTexture;
         public Texture2D ImageTexture;
         public Texture2D ColorTexture;
@@ -341,27 +347,6 @@ namespace Thry.ThryEditor.TexturePacker
             Remapping = remap == default ? new Vector4(0, 1, 0, 1) : remap;
         }
     }
-
-    // public interface INodeOut { }
-    // public interface INodeIn{}
-    // public class InputOut : INodeOut
-    // {
-    //     public readonly int FromTextureIndex;
-    //     public readonly TextureChannelIn Channel;
-    //     public Connection Connect(INodeIn other)
-    //     {
-    //         return new Connection(FromTextureIndex, Channel, TextureChannelOut.None);
-    //     }
-    // }
-
-    // public class OutputIn : INodeIn
-    // {
-    //     public readonly TextureChannelOut Channel;
-    //     public Connection Connect(INodeOut other)
-    //     {
-    //         return new Connection();
-    //     }
-    // }
 
     struct ConnectionBezierPoints
     {
