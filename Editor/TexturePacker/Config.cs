@@ -102,32 +102,56 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        private static List<TextureImporter> s_allTexturesWithConfigs;
+        private static List<TextureImporter> s_allTexturesWithConfigs = new List<TextureImporter>();
+        private static string[] s_importerGuids = null;
+        private static bool s_isLoadingImportersDone = false;
+        private const int LOADING_BATCH_SIZE = 50;
+        private static int s_currentLoadingIndex = 0;
         public static List<TextureImporter> AllImportersWithConfigs
         {
             get
             {
-                if (s_allTexturesWithConfigs == null)
+                while (!s_isLoadingImportersDone)
                 {
-                    s_allTexturesWithConfigs = new List<TextureImporter>();
-                    string[] guids = AssetDatabase.FindAssets("t:Texture2D");
-                    for (int i = 0; i < guids.Length; i++)
-                    {
-                        string guid = guids[i];
-                        string path = AssetDatabase.GUIDToAssetPath(guid);
-                        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
-                        EditorUtility.DisplayProgressBar("Finding Textures", $"Processing {i + 1}/{guids.Length}", (float)(i + 1) / guids.Length);
-                        if (importer != null)
-                        {
-                            if (importer.userData.StartsWith("ThryTexturePackerConfig:"))
-                            {
-                                s_allTexturesWithConfigs.Add(importer);
-                            }
-                        }
-                    }
-                    EditorUtility.ClearProgressBar();
+                    LoadImporters();
                 }
                 return s_allTexturesWithConfigs;
+            }
+        }
+
+        public static bool AreImportersLoaded()
+        {
+            return s_isLoadingImportersDone;
+        }
+
+        public static void LoadImporters()
+        {
+            if(!s_isLoadingImportersDone)
+            {
+                if (s_importerGuids == null)
+                {
+                    s_importerGuids = AssetDatabase.FindAssets("t:Texture2D");
+                    s_currentLoadingIndex = 0;
+                }
+
+                for (int i = s_currentLoadingIndex; i < Mathf.Min(s_currentLoadingIndex + LOADING_BATCH_SIZE, s_importerGuids.Length); i++)
+                {
+                    string guid = s_importerGuids[i];
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (importer != null)
+                    {
+                        if (importer.userData.StartsWith("ThryTexturePackerConfig:"))
+                        {
+                            s_allTexturesWithConfigs.Add(importer);
+                        }
+                    }
+                }
+                s_currentLoadingIndex += LOADING_BATCH_SIZE;
+                if(s_currentLoadingIndex >= s_importerGuids.Length)
+                {
+                    s_isLoadingImportersDone = true;
+                }
             }
         }
     }

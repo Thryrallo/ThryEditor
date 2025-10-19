@@ -12,7 +12,7 @@ namespace Thry.ThryEditor.TexturePacker
     public class NodeGUI : EditorWindow
     {
         const int MIN_WIDTH = 850;
-        const int MIN_HEIGHT = 790;
+        const int MIN_HEIGHT = 810;
         Vector2 _scrollPosition = Vector2.zero;
 
         const string CHANNEL_PREVIEW_SHADER = "Hidden/Thry/ChannelPreview";
@@ -360,8 +360,21 @@ namespace Thry.ThryEditor.TexturePacker
             Rect rObjField = new RectOffset(5, 100, 5, 5).Remove(bg);
 
             GUI.DrawTexture(bg, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
-            string[] options = TexturePackerConfig.AllImportersWithConfigs.Select(x => x.assetPath).Prepend("<None>").ToArray();
-            int selectedIndex = EditorGUI.Popup(rObjField, "Load previous project", 0, options) - 1;
+            int selectedIndex = -1;
+            string[] options = new string[0];
+            
+            if (!TexturePackerConfig.AreImportersLoaded())
+            {
+                EditorGUI.Popup(rObjField, "Load previous project", 0, new string[] { "<Loading...>" });
+                TexturePackerConfig.LoadImporters();
+                Repaint();
+            }
+            else
+            {
+                options = TexturePackerConfig.AllImportersWithConfigs.Select(x => x.assetPath).Prepend("<None>").ToArray();
+                selectedIndex = EditorGUI.Popup(rObjField, "Load previous project", 0, options) - 1;
+            }
+
             if (selectedIndex >= 0 && selectedIndex < options.Length)
             {
 
@@ -543,24 +556,38 @@ namespace Thry.ThryEditor.TexturePacker
         void DrawConnections()
         {
             // Draw connections as lines
-            foreach (Connection c in _config.Connections)
+            for(int i = 0; i < _config.Connections.Count; i++)
             {
+                Connection c = _config.Connections[i];
                 _connectionPoints[c] = new ConnectionBezierPoints(c, _positionsChannelIn, _positionsChannelOut);
                 var points = _connectionPoints[c];
                 Handles.DrawBezier(points.Start, points.End, points.StartTangent, points.EndTangent, Packer.GetColor(c.FromChannel), null, 2);
+                
                 // Draw remapping input in center of curve
                 Vector3 center = (points.Start + points.End) / 2;
-                Rect rect = new Rect(center.x - 50, center.y - 20, 150, 40);
-                Color backgroundColor = Packer.GetColor(c.FromChannel);
-                backgroundColor.a = 0.5f;
-                GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, backgroundColor, 0, 10);
+                Rect rect = new Rect(center.x - 50, center.y - 20, 100, 40);
+                Color channelColor = Packer.GetColor(c.FromChannel);
+                // backgroundColor.a = 0.5f;
+                GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
+                GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, channelColor, 1, 10);
 
-                Rect headerRect = rect;
+                Rect contentRect = new RectOffset(7, 7, 3, 3).Remove(rect);
+
+                Rect headerRect = contentRect;
                 headerRect.height = EditorGUIUtility.singleLineHeight;
                 EditorGUI.LabelField(headerRect, $"Remap", Styles.editorHeaderLabel);
-                Rect note = rect;
-                note.y += EditorGUIUtility.singleLineHeight / 2;
-                EditorGUI.LabelField(note, $"{c.Remapping.x} - {c.Remapping.y} to {c.Remapping.z} - {c.Remapping.w}");
+
+                Rect inputRect = headerRect;
+                inputRect.y += EditorGUIUtility.singleLineHeight- 2;
+
+                Vector4 remap = c.Remapping;
+                EditorGUI.MinMaxSlider(inputRect, ref remap.x, ref remap.y, 0, 1);
+                if (remap != c.Remapping)
+                {
+                    c.Remapping = remap;
+                    _config.Connections[i] = c;
+                    _changeCheckForPacking = true;
+                }
             }
         }
 
