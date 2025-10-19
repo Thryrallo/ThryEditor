@@ -268,7 +268,7 @@ namespace Thry.ThryEditor.TexturePacker
 
         #region Save
 
-        public static void Save(Texture2D texture, TexturePackerConfig config, string overwriteName = null, Action<Texture2D> callback = null)
+        public static TextureImporter Save(Texture2D texture, TexturePackerConfig config, string overwriteName = null)
         {
             string path;
             if (!string.IsNullOrWhiteSpace(overwriteName))
@@ -284,7 +284,7 @@ namespace Thry.ThryEditor.TexturePacker
                 // open dialog
                 if (!EditorUtility.DisplayDialog("File already exists", "Do you want to overwrite the file?", "Yes", "No"))
                 {
-                    return;
+                    return null;
                 }
             }
             byte[] bytes = null;
@@ -324,9 +324,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
             config.SaveToImporter(importer);
             importer.SaveAndReimport();
-
-            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (callback != null) callback(tex);
+            return importer;
         }
         #endregion
     }

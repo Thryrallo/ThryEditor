@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
 
@@ -92,44 +94,57 @@ namespace Thry.ThryEditor.TexturePacker
             return false;
         }
 
+        public void Fix()
+        {
+            foreach (var src in Sources)
+            {
+                if (src.InputType == InputType.Texture && src.Texture != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(src.Texture);
+                    if (string.IsNullOrEmpty(path))
+                    {
+                        ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {src.Texture.name} as it could not be found in the project");
+                        src.SetInputTexture(null);
+                    }
+                    else if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) is Texture2D == false)
+                    {
+                        ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {path} as it is not a Texture2D");
+                        src.SetInputTexture(null);
+                    }
+                }
+            }
+        }
+
         public void SaveToImporter(TextureImporter importer)
         {
             if (importer == null || this == null) return;
             importer.userData = this.Serialize();
-            if(!s_allTexturesWithConfigs.Contains(importer))
+            if (!s_textureImporterList.Values.Contains(importer))
             {
-                s_allTexturesWithConfigs.Add(importer);
+                s_textureImporterList.Add(importer.assetPath.Replace("Assets/", ""), importer);
             }
         }
 
-        private static List<TextureImporter> s_allTexturesWithConfigs = new List<TextureImporter>();
+        private static SortedList<string, TextureImporter> s_textureImporterList = new SortedList<string, TextureImporter>();
         private static string[] s_importerGuids = null;
         private static bool s_isLoadingImportersDone = false;
         private const int LOADING_BATCH_SIZE = 50;
         private static int s_currentLoadingIndex = 0;
-        public static List<TextureImporter> AllImportersWithConfigs
-        {
-            get
-            {
-                while (!s_isLoadingImportersDone)
-                {
-                    LoadImporters();
-                }
-                return s_allTexturesWithConfigs;
-            }
-        }
+        public static IList<TextureImporter> AssetImporters => s_textureImporterList.Values;
+        public static IList<string> AssetNames => s_textureImporterList.Keys;
 
         public static bool AreImportersLoaded()
         {
             return s_isLoadingImportersDone;
         }
 
-        public static void LoadImporters()
+        public static void LoadImportersBatch()
         {
             if(!s_isLoadingImportersDone)
             {
                 if (s_importerGuids == null)
                 {
+                    s_textureImporterList.Clear();
                     s_importerGuids = AssetDatabase.FindAssets("t:Texture2D");
                     s_currentLoadingIndex = 0;
                 }
@@ -143,7 +158,7 @@ namespace Thry.ThryEditor.TexturePacker
                     {
                         if (importer.userData.StartsWith("ThryTexturePackerConfig:"))
                         {
-                            s_allTexturesWithConfigs.Add(importer);
+                            s_textureImporterList.Add(path.Replace("Assets/", ""), importer);
                         }
                     }
                 }

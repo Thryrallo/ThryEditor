@@ -75,6 +75,24 @@ namespace Thry.ThryEditor.TexturePacker
             }
             return GetKernelPreset(preset, isXKernel);
         }
+
+        public override bool Equals(object obj)
+        {
+            return obj is KernelSettings settings &&
+                   SplitVerticalHorizontal == settings.SplitVerticalHorizontal &&
+                   EqualityComparer<float[]>.Default.Equals(X, settings.X) &&
+                   EqualityComparer<float[]>.Default.Equals(Y, settings.Y) &&
+                   Loops == settings.Loops &&
+                   Strength == settings.Strength &&
+                   TwoPass == settings.TwoPass &&
+                   GrayScale == settings.GrayScale &&
+                   EqualityComparer<bool[]>.Default.Equals(Channels, settings.Channels);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(SplitVerticalHorizontal, X, Y, Loops, Strength, TwoPass, GrayScale, Channels);
+        }
     }
 
     [Serializable]
@@ -126,6 +144,25 @@ namespace Thry.ThryEditor.TexturePacker
         public Vector2 Scale = Vector2.one;
         public Vector2 Offset = Vector2Int.zero;
         public bool ChangeCheck = false;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ImageAdjust other)
+            {
+                return Brightness == other.Brightness &&
+                       Hue == other.Hue &&
+                       Saturation == other.Saturation &&
+                       Rotation == other.Rotation &&
+                       Scale == other.Scale &&
+                       Offset == other.Offset;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Brightness, Hue, Saturation, Rotation, Scale, Offset);
+        }
     }
 
 

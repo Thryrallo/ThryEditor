@@ -18,10 +18,12 @@ namespace Thry.ThryEditor.TexturePacker
         const string CHANNEL_PREVIEW_SHADER = "Hidden/Thry/ChannelPreview";
 
         TexturePackerConfig _config;
+        TextureImporter _associatedImporter;
         Dictionary<Connection, ConnectionBezierPoints> _connectionPoints = new Dictionary<Connection, ConnectionBezierPoints>();
         bool _kernelEditHorizontal = true;
         Connection? _creatingConnection;
         Texture2D _outputTexture;
+        Texture2D _channelPreviewTexture;
         bool _showTransparency = true;
 
         bool[] _channel_export = new bool[4] { true, true, true, true };
@@ -78,10 +80,12 @@ namespace Thry.ThryEditor.TexturePacker
             return ShowWindow().InitilizeWithData(config);
         }
 
-        NodeGUI InitilizeWithData(TexturePackerConfig config)
+        NodeGUI InitilizeWithData(TexturePackerConfig config, TextureImporter importer = null)
         {
             _config = config;
-            Packer.DeterminePathAndFileNameIfEmpty(_config, true);
+            _associatedImporter = importer;
+            _config.Fix();
+            Packer.DeterminePathAndFileNameIfEmpty(_config);
             Packer.DetermineImportSettings(_config);
             Packer.DetermineOutputResolution(_config);
             Pack();
@@ -158,38 +162,9 @@ namespace Thry.ThryEditor.TexturePacker
             Rect rect_outputAndSettings = EditorGUILayout.BeginVertical();
             float output_y_offset = TOP_OFFSET + (inputHeight - TOP_OFFSET - OUTPUT_HEIGHT) / 2;
             GUILayout.Space(output_y_offset);
-            DrawOutput(_outputTexture, OUTPUT_HEIGHT);
+            DrawOutput(_outputTexture, _channelPreviewTexture, OUTPUT_HEIGHT);
 
-            EditorGUILayout.Space(15);
-            Rect backgroundImageSettings = EditorGUILayout.BeginVertical();
-            backgroundImageSettings = new RectOffset(5, 5, 5, 5).Add(backgroundImageSettings);
-            GUI.DrawTexture(backgroundImageSettings, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Colors.backgroundDark, 0, 10);
-
-            EditorGUI.BeginChangeCheck();
-            _config.FileOutput.ColorSpace = (ColorSpace)EditorGUILayout.EnumPopup(_config.FileOutput.ColorSpace);
-            _config.FileOutput.FilterMode = (FilterMode)EditorGUILayout.EnumPopup(_config.FileOutput.FilterMode);
-            _changeCheckForPacking |= EditorGUI.EndChangeCheck();
-
-            // Make the sliders delayed, else the UX feels terrible
-            EditorGUI.BeginChangeCheck();
-            EventType eventTypeBeforerSliders = Event.current.type;
-            bool wasWide = EditorGUIUtility.wideMode;
-            EditorGUIUtility.wideMode = true;
-            _config.FileOutput.Resolution = EditorGUILayout.Vector2IntField("Resolution", _config.FileOutput.Resolution);
-            _config.ImageAdjust.Scale = EditorGUILayout.Vector2Field("Scale", _config.ImageAdjust.Scale);
-            _config.ImageAdjust.Offset = EditorGUILayout.Vector2Field("Offset", _config.ImageAdjust.Offset);
-            _config.ImageAdjust.Rotation = EditorGUILayout.Slider("Rotation", _config.ImageAdjust.Rotation, -180, 180);
-            _config.ImageAdjust.Hue = EditorGUILayout.Slider("Hue", _config.ImageAdjust.Hue, 0, 1);
-            _config.ImageAdjust.Saturation = EditorGUILayout.Slider("Saturation", _config.ImageAdjust.Saturation, 0, 3);
-            _config.ImageAdjust.Brightness = EditorGUILayout.Slider("Brightness", _config.ImageAdjust.Brightness, 0, 3);
-            _config.ImageAdjust.ChangeCheck |= EditorGUI.EndChangeCheck();
-            EditorGUIUtility.wideMode = wasWide;
-            if (_config.ImageAdjust.ChangeCheck && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
-            {
-                _changeCheckForPacking = true;
-                _config.ImageAdjust.ChangeCheck = false;
-            }
-
+            DrawOutputImageAdjustmentGUI();
             DrawKernelGUI();
 
             EditorGUILayout.EndVertical();
@@ -356,55 +331,33 @@ namespace Thry.ThryEditor.TexturePacker
 
         void DrawConfigGUI()
         {
-            Rect bg = new Rect(position.width / 2 - 200, 10, 400, 30);
+            Rect bg = new Rect(position.width / 2 - 400, 10, 800, 30);
             Rect rObjField = new RectOffset(5, 100, 5, 5).Remove(bg);
 
             GUI.DrawTexture(bg, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
-            int selectedIndex = -1;
-            string[] options = new string[0];
-            
+
             if (!TexturePackerConfig.AreImportersLoaded())
             {
-                EditorGUI.Popup(rObjField, "Load previous project", 0, new string[] { "<Loading...>" });
-                TexturePackerConfig.LoadImporters();
+                TexturePackerConfig.LoadImportersBatch();
                 Repaint();
             }
-            else
-            {
-                options = TexturePackerConfig.AllImportersWithConfigs.Select(x => x.assetPath).Prepend("<None>").ToArray();
-                selectedIndex = EditorGUI.Popup(rObjField, "Load previous project", 0, options) - 1;
-            }
 
-            if (selectedIndex >= 0 && selectedIndex < options.Length)
+            int selectedIndex = TexturePackerConfig.AssetImporters.IndexOf(_associatedImporter);
+            EditorGUI.BeginChangeCheck();
+            selectedIndex = EditorGUI.Popup(rObjField, "Load previous project", selectedIndex, TexturePackerConfig.AssetNames.ToArray());
+
+            if (EditorGUI.EndChangeCheck() && selectedIndex >= 0 && selectedIndex < TexturePackerConfig.AssetImporters.Count)
             {
 
-                _config = TexturePackerConfig.Deserialize(TexturePackerConfig.AllImportersWithConfigs[selectedIndex].userData);
-                // make sure textures exist in project
-                foreach (var src in _config.Sources)
-                {
-                    if (src.InputType == InputType.Texture && src.Texture != null)
-                    {
-                        string path = AssetDatabase.GetAssetPath(src.Texture);
-                        if (string.IsNullOrEmpty(path))
-                        {
-                            ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {src.Texture.name} as it could not be found in the project");
-                            src.SetInputTexture(null);
-                        }
-                        else if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) is Texture2D == false)
-                        {
-                            ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {path} as it is not a Texture2D");
-                            src.SetInputTexture(null);
-                        }
-                    }
-                }
+                TexturePackerConfig newConfig = TexturePackerConfig.Deserialize(TexturePackerConfig.AssetImporters[selectedIndex].userData);
                 try
-                    {
-                        Pack();
-                    }
-                    catch (Exception e)
-                    {
-                        ThryLogger.LogErr("TexturePacker", $"Could not correctly load config from {options[selectedIndex + 1]}: {e.Message}");
-                    }
+                {
+                    InitilizeWithData(newConfig, TexturePackerConfig.AssetImporters[selectedIndex]);
+                }
+                catch (Exception e)
+                {
+                    ThryLogger.LogErr("TexturePacker", $"Could not correctly load config from {TexturePackerConfig.AssetNames[selectedIndex]}: {e.Message}");
+                }
             }
 
             Rect rButton = new Rect(rObjField.x + rObjField.width + 5, rObjField.y, 90, rObjField.height);
@@ -412,6 +365,41 @@ namespace Thry.ThryEditor.TexturePacker
             {
                 _config = TexturePackerConfig.GetNewConfig();
                 _outputTexture = null;
+                _channelPreviewTexture = null;
+                InitilizeWithData(_config);
+            }
+        }
+        
+        void DrawOutputImageAdjustmentGUI()
+        {
+            EditorGUILayout.Space(15);
+            Rect backgroundImageSettings = EditorGUILayout.BeginVertical();
+            backgroundImageSettings = new RectOffset(5, 5, 5, 5).Add(backgroundImageSettings);
+            GUI.DrawTexture(backgroundImageSettings, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Colors.backgroundDark, 0, 10);
+
+            EditorGUI.BeginChangeCheck();
+            _config.FileOutput.ColorSpace = (ColorSpace)EditorGUILayout.EnumPopup(_config.FileOutput.ColorSpace);
+            _config.FileOutput.FilterMode = (FilterMode)EditorGUILayout.EnumPopup(_config.FileOutput.FilterMode);
+            _changeCheckForPacking |= EditorGUI.EndChangeCheck();
+
+            // Make the sliders delayed, else the UX feels terrible
+            EditorGUI.BeginChangeCheck();
+            EventType eventTypeBeforerSliders = Event.current.type;
+            bool wasWide = EditorGUIUtility.wideMode;
+            EditorGUIUtility.wideMode = true;
+            _config.FileOutput.Resolution = EditorGUILayout.Vector2IntField("Resolution", _config.FileOutput.Resolution);
+            _config.ImageAdjust.Scale = EditorGUILayout.Vector2Field("Scale", _config.ImageAdjust.Scale);
+            _config.ImageAdjust.Offset = EditorGUILayout.Vector2Field("Offset", _config.ImageAdjust.Offset);
+            _config.ImageAdjust.Rotation = EditorGUILayout.Slider("Rotation", _config.ImageAdjust.Rotation, -180, 180);
+            _config.ImageAdjust.Hue = EditorGUILayout.Slider("Hue", _config.ImageAdjust.Hue, 0, 1);
+            _config.ImageAdjust.Saturation = EditorGUILayout.Slider("Saturation", _config.ImageAdjust.Saturation, 0, 3);
+            _config.ImageAdjust.Brightness = EditorGUILayout.Slider("Brightness", _config.ImageAdjust.Brightness, 0, 3);
+            _config.ImageAdjust.ChangeCheck |= EditorGUI.EndChangeCheck();
+            EditorGUIUtility.wideMode = wasWide;
+            if (_config.ImageAdjust.ChangeCheck && (eventTypeBeforerSliders == EventType.MouseUp || (eventTypeBeforerSliders == EventType.KeyUp && Event.current.keyCode == KeyCode.Return)))
+            {
+                _changeCheckForPacking = true;
+                _config.ImageAdjust.ChangeCheck = false;
             }
         }
 
@@ -529,7 +517,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
             if (GUILayout.Button("Save", GUILayout.Width(100)))
             {
-                Packer.Save(_outputTexture, _config);
+                _associatedImporter = Packer.Save(_outputTexture, _config);
             }
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -591,7 +579,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        void DrawOutput(Texture2D texture, int height = 200)
+        void DrawOutput(Texture2D finalTexture, Texture2D channelPreviewTexture, int height = 200)
         {
             int channelWidth = height / 4;
 
@@ -616,26 +604,26 @@ namespace Thry.ThryEditor.TexturePacker
             GUI.DrawTexture(background, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 1, Colors.backgroundDark, 0, 10);
 
             if (_showTransparency)
-                EditorGUI.DrawTextureTransparent(rect, texture != null ? texture : Texture2D.blackTexture, ScaleMode.ScaleToFit, 1);
+                EditorGUI.DrawTextureTransparent(rect, finalTexture != null ? finalTexture : Texture2D.blackTexture, ScaleMode.ScaleToFit, 1);
             else
-                EditorGUI.DrawPreviewTexture(rect, texture != null ? texture : Texture2D.blackTexture, null, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rect, finalTexture != null ? finalTexture : Texture2D.blackTexture, null, ScaleMode.ScaleToFit);
 
             // Show transparency toggle
             Rect rectTransparency = new Rect(rect.x + 8, rect.y - 20, rect.width, 20);
             _showTransparency = EditorGUI.Toggle(rectTransparency, "Show Transparency", _showTransparency);
 
             // draw 4 channl boxes on the left side
-            if (texture != null)
+            if (channelPreviewTexture != null)
             {
-                ChannelPreviewMaterial.SetTexture("_MainTex", texture);
+                ChannelPreviewMaterial.SetTexture("_MainTex", channelPreviewTexture);
                 ChannelPreviewMaterial.SetFloat("_Channel", 0);
-                EditorGUI.DrawPreviewTexture(rectR, texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectR, channelPreviewTexture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 1);
-                EditorGUI.DrawPreviewTexture(rectG, texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectG, channelPreviewTexture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 2);
-                EditorGUI.DrawPreviewTexture(rectB, texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectB, channelPreviewTexture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
                 ChannelPreviewMaterial.SetFloat("_Channel", 3);
-                EditorGUI.DrawPreviewTexture(rectA, texture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
+                EditorGUI.DrawPreviewTexture(rectA, channelPreviewTexture, ChannelPreviewMaterial, ScaleMode.ScaleToFit);
             }
             else
             {
@@ -841,7 +829,30 @@ namespace Thry.ThryEditor.TexturePacker
             }
 
             _outputTexture = Packer.Pack(_config);
+            _channelPreviewTexture = PackForChannelPreview();
             if (OnChange != null) OnChange(_outputTexture, _config);
+        }
+
+        Texture2D PackForChannelPreview()
+        {
+            ImageAdjust tempAdjust = new ImageAdjust();
+            KernelSettings tempKernel = new KernelSettings();
+            ImageAdjust adjust = _config.ImageAdjust;
+            KernelSettings kernel = _config.KernelSettings;
+
+            if(tempAdjust == adjust && tempKernel == kernel)
+            {
+                return _outputTexture;
+            }
+
+            _config.ImageAdjust = tempAdjust;
+            _config.KernelSettings = tempKernel;
+
+            Texture2D previewTexture = Packer.Pack(_config);
+
+            _config.ImageAdjust = adjust;
+            _config.KernelSettings = kernel;
+            return previewTexture;
         }
 
         void ExportChannels(bool exportAsBlackAndWhite)
