@@ -182,9 +182,8 @@ namespace Thry.ThryEditor.TexturePacker
     }
 
     [Serializable]
-    public class TextureSource
+    public class PackerSource
     {
-        public long LastHandledTextureEditTime;
         public FilterMode FilterMode;
         public Color Color;
         public Gradient Gradient;
@@ -205,7 +204,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        public TextureSource()
+        public PackerSource()
         {
         }
 
@@ -216,21 +215,54 @@ namespace Thry.ThryEditor.TexturePacker
             if (tex != null) InputType = InputType.Texture;
         }
 
-        public static void SetUncompressedTextureDirty(Texture2D tex)
+        public void FixImageTexture()
         {
-            if (_cachedUncompressedTextures.ContainsKey(tex))
+            if(ImageTexture == null) return;
+            string path = AssetDatabase.GetAssetPath(ImageTexture);
+            if (string.IsNullOrEmpty(path))
             {
-                _cachedUncompressedTexturesNeedsReload[tex] = true;
+                ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {ImageTexture.name} as it could not be found in the project");
+                SetInputTexture(null);
+            }
+            else if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) is Texture2D == false)
+            {
+                ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {path} as it is not a Texture2D");
+                SetInputTexture(null);
             }
         }
 
+        public void UpdateGradientTexture(Vector2Int size)
+        {
+            if (InputType != InputType.Gradient) return;
+            if (GradientTexture != null && GradientTexture.width == size.x && GradientTexture.height == size.y) return;
+            GradientTexture = Converter.GradientToTexture(Gradient, size.x, size.y, GradientDirection == GradientDirection.Vertical);
+        }
+
+        public void UpdateColorTexture()
+        {
+            if (InputType != InputType.Color) return;
+            if (ColorTexture != null && ColorTexture.GetPixel(0,0) == Color) return;
+            ColorTexture = Converter.ColorToTexture(Color, 16, 16);
+        }
+
+        public bool HasBeenModifiedExternally()
+        {
+            if (InputType != InputType.Texture) return false;
+            if (Texture == null) return false;
+            return _cachedTextureLastModifiedTime.TryGetValue(Texture, out DateTime cachedLastModified)
+                && cachedLastModified != TextureHelper.GetLastModifiedTime(Texture);
+        }
+
         static Dictionary<Texture2D, Texture2D> _cachedUncompressedTextures = new Dictionary<Texture2D, Texture2D>();
-        static Dictionary<Texture2D, bool> _cachedUncompressedTexturesNeedsReload = new Dictionary<Texture2D, bool>();
+        static Dictionary<Texture2D, DateTime> _cachedTextureLastModifiedTime = new Dictionary<Texture2D, DateTime>();
         public Texture2D UncompressedTexture
         {
             get
             {
-                if (_cachedUncompressedTextures.ContainsKey(Texture) == false || _cachedUncompressedTexturesNeedsReload[Texture] || _cachedUncompressedTextures[Texture] == null)
+                if (_cachedUncompressedTextures.ContainsKey(Texture) == false
+                    || _cachedUncompressedTextures[Texture] == null
+                    || _cachedTextureLastModifiedTime[Texture] != TextureHelper.GetLastModifiedTime(Texture)
+                    )
                 {
                     string path = AssetDatabase.GetAssetPath(Texture);
                     if (path.EndsWith(".png") || path.EndsWith(".jpg"))
@@ -252,7 +284,7 @@ namespace Thry.ThryEditor.TexturePacker
                     {
                         _cachedUncompressedTextures[Texture] = Texture;
                     }
-                    _cachedUncompressedTexturesNeedsReload[Texture] = false;
+                    _cachedTextureLastModifiedTime[Texture] = TextureHelper.GetLastModifiedTime(Texture);
 
                     if(_cachedUncompressedTextures[Texture] == null)
                     {

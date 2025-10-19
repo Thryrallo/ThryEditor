@@ -11,6 +11,7 @@ namespace Thry.ThryEditor.TexturePacker
 {
     public class NodeGUI : EditorWindow
     {
+        static NodeGUI s_instance;
         const int MIN_WIDTH = 850;
         const int MIN_HEIGHT = 810;
         Vector2 _scrollPosition = Vector2.zero;
@@ -115,12 +116,12 @@ namespace Thry.ThryEditor.TexturePacker
 
         static NodeGUI ShowWindow()
         {
-            NodeGUI packer = (NodeGUI)GetWindow(typeof(NodeGUI));
-            packer.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
-            packer.titleContent = new GUIContent("Thry Texture Packer");
-            packer.OnSave = null; // clear save callback
-            packer.OnChange = null; // clear save callback
-            return packer;
+            s_instance = (NodeGUI)GetWindow(typeof(NodeGUI));
+            s_instance.minSize = new Vector2(MIN_WIDTH, MIN_HEIGHT);
+            s_instance.titleContent = new GUIContent("Thry Texture Packer");
+            s_instance.OnSave = null; // clear save callback
+            s_instance.OnChange = null; // clear save callback
+            return s_instance;
         }
 
         const int TOP_OFFSET = 50;
@@ -130,6 +131,7 @@ namespace Thry.ThryEditor.TexturePacker
         bool _changeCheckForPacking;
         private void OnGUI()
         {
+            s_instance = this;
             if (_config == null)
             {
                 _config = TexturePackerConfig.GetNewConfig();
@@ -683,7 +685,7 @@ namespace Thry.ThryEditor.TexturePacker
             return new OutputTarget(blendmode, invert, fallback);
         }
 
-        bool DrawInput(TextureSource texture, int index, int textureHeight = 100)
+        bool DrawInput(PackerSource texture, int index, int textureHeight = 100)
         {
             int channelWidth = textureHeight / 5;
             Rect rect = GUILayoutUtility.GetRect(textureHeight, textureHeight + 40);
@@ -817,17 +819,6 @@ namespace Thry.ThryEditor.TexturePacker
 
         void Pack()
         {
-            // SaveConfig();
-            // Update all gradient textures (incase max size changed)
-            Vector2Int gradientSize = _config.FileOutput.Resolution;
-            foreach (TextureSource source in _config.Sources)
-            {
-                if (source.InputType == InputType.Gradient && source.GradientTexture != null && source.GradientTexture.width != gradientSize.x && source.GradientTexture.height != gradientSize.y)
-                {
-                    source.GradientTexture = Converter.GradientToTexture(source.Gradient, gradientSize.x, gradientSize.y, source.GradientDirection == GradientDirection.Vertical);
-                }
-            }
-
             _outputTexture = Packer.Pack(_config);
             _channelPreviewTexture = PackForChannelPreview();
             if (OnChange != null) OnChange(_outputTexture, _config);
@@ -861,5 +852,26 @@ namespace Thry.ThryEditor.TexturePacker
             Packer.DeterminePathAndFileNameIfEmpty(_config);
             Packer.ExportChannels(_outputTexture, _config, _channel_export, exportAsBlackAndWhite);
         }
+
+        public class TextureChangeHandler : AssetPostprocessor
+        {
+            static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
+            {
+                if (s_instance == null) return;
+
+                string[] active_textures = s_instance._config.Sources
+                    .Where(source => source.InputType == InputType.Texture && source.Texture != null)
+                    .Select(source => AssetDatabase.GetAssetPath(source.Texture))
+                    .ToArray();
+
+                if (importedAssets.Any(path => active_textures.Contains(path, StringComparer.OrdinalIgnoreCase)))
+                {
+                    ThryLogger.Log("TexturePacker", "Detected external texture change, repacking texture.");
+                    s_instance.Pack();
+                    s_instance.Repaint();
+                }
+            }
+        }
+            
     }
 }

@@ -10,7 +10,7 @@ namespace Thry.ThryEditor.TexturePacker
     [Serializable]
     public class TexturePackerConfig
     {
-        public TextureSource[] Sources;
+        public PackerSource[] Sources;
         public OutputTarget[] Targets;
         public List<Connection> Connections;
         public FileOutput FileOutput;
@@ -36,12 +36,12 @@ namespace Thry.ThryEditor.TexturePacker
         public static TexturePackerConfig GetNewConfig()
         {
             TexturePackerConfig config = new TexturePackerConfig();
-            config.Sources = new TextureSource[]
+            config.Sources = new PackerSource[]
             {
-                new TextureSource(),
-                new TextureSource(),
-                new TextureSource(),
-                new TextureSource(),
+                new PackerSource(),
+                new PackerSource(),
+                new PackerSource(),
+                new PackerSource(),
             };
             config.Targets = new OutputTarget[]
         {
@@ -98,20 +98,9 @@ namespace Thry.ThryEditor.TexturePacker
         {
             foreach (var src in Sources)
             {
-                if (src.InputType == InputType.Texture && src.Texture != null)
-                {
-                    string path = AssetDatabase.GetAssetPath(src.Texture);
-                    if (string.IsNullOrEmpty(path))
-                    {
-                        ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {src.Texture.name} as it could not be found in the project");
-                        src.SetInputTexture(null);
-                    }
-                    else if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) is Texture2D == false)
-                    {
-                        ThryLogger.LogWarn("TexturePacker", $"Removing faulty input texture {path} as it is not a Texture2D");
-                        src.SetInputTexture(null);
-                    }
-                }
+                src.FixImageTexture();
+                src.UpdateGradientTexture(FileOutput.Resolution);
+                src.UpdateColorTexture();
             }
         }
 

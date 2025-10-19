@@ -50,7 +50,7 @@ namespace Thry.ThryEditor.TexturePacker
         {
             int width = 16;
             int height = 16;
-            foreach (TextureSource source in config.Sources)
+            foreach (PackerSource source in config.Sources)
             {
                 source.FindMaxSize(ref width, ref height);
             }
@@ -65,7 +65,7 @@ namespace Thry.ThryEditor.TexturePacker
 
         public static void DeterminePathAndFileNameIfEmpty(TexturePackerConfig config, bool forceOverwrite = false)
         {
-            foreach (TextureSource s in config.Sources)
+            foreach (PackerSource s in config.Sources)
             {
                 if (s.Texture != null)
                 {
@@ -85,14 +85,14 @@ namespace Thry.ThryEditor.TexturePacker
         {
             config.FileOutput.ColorSpace = ColorSpace.Gamma;
             config.FileOutput.FilterMode = FilterMode.Bilinear;
-            foreach (TextureSource s in config.Sources)
+            foreach (PackerSource s in config.Sources)
             {
                 if (DetermineImportSettings(config, s))
                     break;
             }
         }
 
-        static bool DetermineImportSettings(TexturePackerConfig config, TextureSource s)
+        static bool DetermineImportSettings(TexturePackerConfig config, PackerSource s)
         {
             if (s.Texture != null)
             {
@@ -112,6 +112,12 @@ namespace Thry.ThryEditor.TexturePacker
 
         public static Texture2D Pack(TexturePackerConfig config)
         {
+            foreach (PackerSource source in config.Sources)
+            {
+                source.UpdateGradientTexture(config.FileOutput.Resolution);
+                source.UpdateColorTexture();
+            }
+
             if (config.ImageAdjust == null)
             {
                 config.ImageAdjust = new ImageAdjust();
