@@ -198,6 +198,8 @@ namespace Thry.ThryEditor.TexturePacker
         public Texture2D ImageTexture;
         public Texture2D ColorTexture;
         public InputType InputType = InputType.Texture;
+        [NonSerialized] public Vector2[] ChannelPositions = new Vector2[5];
+        [NonSerialized] public Rect[] ChannelRects = new Rect[5];
         
         public Texture2D Texture
         {
@@ -241,6 +243,7 @@ namespace Thry.ThryEditor.TexturePacker
         {
             if (InputType != InputType.Gradient) return;
             if (GradientTexture != null && GradientTexture.width == size.x && GradientTexture.height == size.y) return;
+            if (Gradient == null) Gradient = new Gradient();
             GradientTexture = Converter.GradientToTexture(Gradient, size.x, size.y, GradientDirection == GradientDirection.Vertical);
         }
 
@@ -354,9 +357,9 @@ namespace Thry.ThryEditor.TexturePacker
         public Vector3 End;
         public Vector3 StartTangent;
         public Vector3 EndTangent;
-        public ConnectionBezierPoints(Connection c, Vector2[] positionsIn, Vector2[] positionsOut)
+        public ConnectionBezierPoints(Connection c, PackerSource[] sources, Vector2[] positionsOut)
         {
-            Start = positionsIn[c.FromTextureIndex * 5 + (int)c.FromChannel];
+            Start = sources[c.FromTextureIndex].ChannelPositions[(int)c.FromChannel];
             End = positionsOut[(int)c.ToChannel];
             StartTangent = Start + Vector3.right * 50;
             EndTangent = End + Vector3.left * 50;

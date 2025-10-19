@@ -45,9 +45,7 @@ namespace Thry.ThryEditor.TexturePacker
             }
         }
 
-        Vector2[] _positionsChannelIn = new Vector2[20];
         Vector2[] _positionsChannelOut = new Vector2[4];
-        Rect[] _rectsChannelIn = new Rect[20];
         Rect[] _rectsChannelOut = new Rect[4];
 
         [MenuItem("Assets/Thry/Textures/Open in Texture Packer")]
@@ -186,6 +184,7 @@ namespace Thry.ThryEditor.TexturePacker
             HandleConnectionCreation();
             HandleNodeDragging();
             HandleCanvasDragging();
+            DoCanvasContextMenu();
 
             DrawTopBar();
         }
@@ -247,11 +246,11 @@ namespace Thry.ThryEditor.TexturePacker
                 {
                     // Check if mouse position is over any input / output slot
                     Vector2 mousePosition = Event.current.mousePosition;
-                    for (int t = 0; t < 4; t++)
+                    for (int t = 0; t < _config.Sources.Length; t++)
                     {
                         for (int c = 0; c < 5; c++)
                         {
-                            if (_rectsChannelIn[t * 5 + c].Contains(mousePosition))
+                            if (_config.Sources[t].ChannelRects[c].Contains(mousePosition))
                             {
                                 AddNewConnection(new Connection(t, (TextureChannelIn)c, _creatingConnection.Value.ToChannel));
                                 _creatingConnection = null;
@@ -279,7 +278,7 @@ namespace Thry.ThryEditor.TexturePacker
 
                 if (_creatingConnection.Value.FromChannel != TextureChannelIn.None)
                 {
-                    bezierStart = _positionsChannelIn[_creatingConnection.Value.FromTextureIndex * 5 + (int)_creatingConnection.Value.FromChannel];
+                    bezierStart = _config.Sources[_creatingConnection.Value.FromTextureIndex].ChannelPositions[(int)_creatingConnection.Value.FromChannel];
                     bezierStartTangent = bezierStart + Vector2.right * 50;
                     bezierEndTangent = bezierEnd + Vector2.left * 50;
                     color = Packer.GetColor(_creatingConnection.Value.FromChannel);
@@ -339,6 +338,53 @@ namespace Thry.ThryEditor.TexturePacker
                     Event.current.Use();
                     Repaint();
                 }
+            }
+        }
+
+        void DoCanvasContextMenu()
+        {
+            if (Event.current.type == EventType.ContextClick)
+            {
+                Vector2 mousePos = Event.current.mousePosition - _config.ScrollPosition;
+                GenericMenu menu = new GenericMenu();
+                menu.AddItem(new GUIContent("Add Source"), false, () =>
+                {
+                    _config.Sources =
+                        _config.Sources.Append(new PackerSource()
+                        {
+                            UIPosition = mousePos
+                        }).ToArray();
+                    Repaint();
+                });
+                menu.ShowAsContext();
+                Event.current.Use();
+            }
+        }
+
+        void DoSourceContextMenu(PackerSource source, Rect rect)
+        {
+            if (Event.current.type == EventType.ContextClick && rect.Contains(Event.current.mousePosition))
+            {
+                GenericMenu menu = new GenericMenu();
+                menu.AddItem(new GUIContent("Remove Source"), false, () =>
+                {
+                    int deletingIndex = Array.IndexOf(_config.Sources, source);
+                    _config.Sources = _config.Sources.Where(s => s != source).ToArray();
+                    // go through all connections and remove those that reference the deleted source
+                    _config.Connections = _config.Connections.Where(c => c.FromTextureIndex != deletingIndex).ToList();
+                    // go through all connections and decrement those that reference sources after the deleted source
+                    for (int i = 0; i < _config.Connections.Count; i++)
+                    {
+                        if (_config.Connections[i].FromTextureIndex > deletingIndex)
+                        {
+                            Connection c = _config.Connections[i];
+                            c.FromTextureIndex--;
+                            _config.Connections[i] = c;
+                        }
+                    }
+                });
+                menu.ShowAsContext();
+                Event.current.Use();
             }
         }
 
@@ -613,7 +659,7 @@ namespace Thry.ThryEditor.TexturePacker
             for(int i = 0; i < _config.Connections.Count; i++)
             {
                 Connection c = _config.Connections[i];
-                _connectionPoints[c] = new ConnectionBezierPoints(c, _positionsChannelIn, _positionsChannelOut);
+                _connectionPoints[c] = new ConnectionBezierPoints(c, _config.Sources, _positionsChannelOut);
                 var points = _connectionPoints[c];
                 Handles.DrawBezier(points.Start, points.End, points.StartTangent, points.EndTangent, Packer.GetColor(c.FromChannel), null, 2);
                 
@@ -844,16 +890,16 @@ namespace Thry.ThryEditor.TexturePacker
             Rect circleB = new Rect(rectB.x + rectB.width + 5, rectB.y + rectB.height / 2 - 10 + 1, 40, 18);
             Rect circleA = new Rect(rectA.x + rectA.width + 5, rectA.y + rectA.height / 2 - 10 + 1, 40, 18);
             Rect circleMax = new Rect(rectMax.x + rectMax.width + 5, rectMax.y + rectMax.height / 2 - 10, 40, 18);
-            _positionsChannelIn[index * 5 + 0] = new Vector2(circleR.x + circleR.width, circleR.y + circleR.height / 2);
-            _positionsChannelIn[index * 5 + 1] = new Vector2(circleG.x + circleG.width, circleG.y + circleG.height / 2);
-            _positionsChannelIn[index * 5 + 2] = new Vector2(circleB.x + circleB.width, circleB.y + circleB.height / 2);
-            _positionsChannelIn[index * 5 + 3] = new Vector2(circleA.x + circleA.width, circleA.y + circleA.height / 2);
-            _positionsChannelIn[index * 5 + 4] = new Vector2(circleMax.x + circleMax.width, circleMax.y + circleMax.height / 2);
-            _rectsChannelIn[index * 5 + 0] = circleR;
-            _rectsChannelIn[index * 5 + 1] = circleG;
-            _rectsChannelIn[index * 5 + 2] = circleB;
-            _rectsChannelIn[index * 5 + 3] = circleA;
-            _rectsChannelIn[index * 5 + 4] = circleMax;
+            source.ChannelPositions[0] = new Vector2(circleR.x + circleR.width, circleR.y + circleR.height / 2);
+            source.ChannelPositions[1] = new Vector2(circleG.x + circleG.width, circleG.y + circleG.height / 2);
+            source.ChannelPositions[2] = new Vector2(circleB.x + circleB.width, circleB.y + circleB.height / 2);
+            source.ChannelPositions[3] = new Vector2(circleA.x + circleA.width, circleA.y + circleA.height / 2);
+            source.ChannelPositions[4] = new Vector2(circleMax.x + circleMax.width, circleMax.y + circleMax.height / 2);
+            source.ChannelRects[0] = circleR;
+            source.ChannelRects[1] = circleG;
+            source.ChannelRects[2] = circleB;
+            source.ChannelRects[3] = circleA;
+            source.ChannelRects[4] = circleMax;
             DrawInputChannel(circleR, index, TextureChannelIn.R);
             DrawInputChannel(circleG, index, TextureChannelIn.G);
             DrawInputChannel(circleB, index, TextureChannelIn.B);
@@ -861,6 +907,7 @@ namespace Thry.ThryEditor.TexturePacker
             DrawInputChannel(circleMax, index, TextureChannelIn.Max);
 
             CheckForNodeDraggingStart(source, background);
+            DoSourceContextMenu(source, background);
             return didTextureChange;
         }
 

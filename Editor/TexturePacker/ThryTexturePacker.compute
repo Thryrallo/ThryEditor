@@ -13,9 +13,9 @@ float Brightness;
 float2 Scale;
 float2 Offset;
 
-Texture2D<float4> Inputs[4];
-SamplerState sampler_Inputs[4];
-float4 InputTextureIsValid[4];
+Texture2D<float4> Inputs[16];
+SamplerState sampler_Inputs[16];
+float4 InputTextureIsValid[16];
 
 struct Connection
 {
@@ -55,15 +55,14 @@ float SampleTexture(Texture2D<float4> tex, SamplerState texSampler, int channel,
 
 float SampleTexture(int textureIndex, int channel, float2 uv)
 {
-	// Switch case to avoid unrolling loops with non-constant indices
-	switch(textureIndex)
+	float result = 0;
+	[unroll]
+	for (int i = 0; i < 16; i++)
 	{
-		case 0: return SampleTexture(Inputs[0], sampler_Inputs[0], channel, uv);
-		case 1: return SampleTexture(Inputs[1], sampler_Inputs[1], channel, uv);
-		case 2: return SampleTexture(Inputs[2], sampler_Inputs[2], channel, uv);
-		case 3: return SampleTexture(Inputs[3], sampler_Inputs[3], channel, uv);
-		default: return 0;
+		if (textureIndex == i)
+			result = SampleTexture(Inputs[i], sampler_Inputs[i], channel, uv);
 	}
+	return result;
 }
 
 float3 rgb2hsv(float3 rgb){
