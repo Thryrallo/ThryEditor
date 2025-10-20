@@ -14,6 +14,7 @@ namespace Thry.ThryEditor.TexturePacker
     public enum InputType { Texture, Color, Gradient }
     public enum GradientDirection { Horizontal, Vertical }
     public enum KernelPreset { None, Custom, EdgeDetection, Sharpen, GaussianBlur3x3, GaussianBlur5x5 }
+    public enum RemapMode { None, RangeToRange }
 
     public static class SaveTypeExtensions
     {
@@ -338,15 +339,17 @@ namespace Thry.ThryEditor.TexturePacker
         public int FromTextureIndex;
         public TextureChannelIn FromChannel;
         public TextureChannelOut ToChannel;
+        public RemapMode RemappingMode;
         public Vector4 Remapping;
 
         public Connection(int fromTex = -1, TextureChannelIn from = TextureChannelIn.None,
-                      TextureChannelOut to = TextureChannelOut.None,
+                      TextureChannelOut to = TextureChannelOut.None, RemapMode remapMode = RemapMode.None,
                       Vector4 remap = default)
         {
             FromTextureIndex = fromTex;
             FromChannel = from;
             ToChannel = to;
+            RemappingMode = remapMode;
             Remapping = remap == default ? new Vector4(0, 1, 0, 1) : remap;
         }
     }

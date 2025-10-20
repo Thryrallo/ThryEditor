@@ -207,6 +207,7 @@ namespace Thry.ThryEditor.TexturePacker
             atlas.wrapMode = TextureWrapMode.Clamp;
             atlas.alphaIsTransparency = config.FileOutput.AlphaIsTransparency;
             atlas.Apply();
+            RenderTexture.active = null;
 
             return atlas;
         }

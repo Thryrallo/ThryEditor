@@ -336,17 +336,17 @@ namespace Thry.ThryEditor.Drawers
             Connection[] connections = new Connection[4];
             if (_firstTextureIsRGB)
             {
-                connections[0] = new Connection(0, TextureChannelIn.R, TextureChannelOut.R, _current._input_r.Remapping);
-                connections[1] = new Connection(0, TextureChannelIn.G, TextureChannelOut.G, _current._input_r.Remapping);
-                connections[2] = new Connection(0, TextureChannelIn.B, TextureChannelOut.B, _current._input_r.Remapping);
-                connections[3] = new Connection(1, _current._input_g.Channel, TextureChannelOut.A, _current._input_g.Remapping);
+                connections[0] = new Connection(0, TextureChannelIn.R, TextureChannelOut.R, _current._input_r.RemappingMode, _current._input_r.Remapping);
+                connections[1] = new Connection(0, TextureChannelIn.G, TextureChannelOut.G, _current._input_r.RemappingMode, _current._input_r.Remapping);
+                connections[2] = new Connection(0, TextureChannelIn.B, TextureChannelOut.B, _current._input_r.RemappingMode, _current._input_r.Remapping);
+                connections[3] = new Connection(1, _current._input_g.Channel, TextureChannelOut.A, _current._input_g.RemappingMode, _current._input_g.Remapping);
             }
             else
             {
-                connections[0] = new Connection(0, _current._input_r.Channel, TextureChannelOut.R, _current._input_r.Remapping);
-                connections[1] = new Connection(1, _current._input_g.Channel, TextureChannelOut.G, _current._input_g.Remapping);
-                connections[2] = new Connection(2, _current._input_b.Channel, TextureChannelOut.B, _current._input_b.Remapping);
-                connections[3] = new Connection(3, _current._input_a.Channel, TextureChannelOut.A, _current._input_a.Remapping);
+                connections[0] = new Connection(0, _current._input_r.Channel, TextureChannelOut.R, _current._input_r.RemappingMode, _current._input_r.Remapping);
+                connections[1] = new Connection(1, _current._input_g.Channel, TextureChannelOut.G, _current._input_g.RemappingMode, _current._input_g.Remapping);
+                connections[2] = new Connection(2, _current._input_b.Channel, TextureChannelOut.B, _current._input_b.RemappingMode, _current._input_b.Remapping);
+                connections[3] = new Connection(3, _current._input_a.Channel, TextureChannelOut.A, _current._input_a.RemappingMode, _current._input_a.Remapping);
             }
             return connections;
         }
@@ -457,13 +457,16 @@ namespace Thry.ThryEditor.Drawers
             return base.GetPropertyHeight(prop, label, editor);
         }
 
+        readonly static Vector4 s_RemappingDefault = new Vector4(0, 1, 0, 1);
+
         class InlinePackerChannelConfig
         {
             public PackerSource Source = new PackerSource();
             public bool Invert;
             public float Fallback;
             public TextureChannelIn Channel = TextureChannelIn.Max;
-            public Vector4 Remapping = new Vector4(0, 1, 0, 1);
+            public Vector4 Remapping = s_RemappingDefault;
+            public RemapMode RemappingMode => Remapping == s_RemappingDefault ? RemapMode.None : RemapMode.RangeToRange;
 
             public OutputTarget ToOutputConfig()
             {

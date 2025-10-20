@@ -183,6 +183,8 @@ namespace Thry.ThryEditor.TexturePacker
             HandleConnectionEditing();
             HandleConnectionCreation();
             HandleNodeDragging();
+            DoConnectionContextMenus();
+
             HandleCanvasDragging();
             DoCanvasContextMenu();
 
@@ -386,6 +388,61 @@ namespace Thry.ThryEditor.TexturePacker
                 menu.ShowAsContext();
                 Event.current.Use();
             }
+        }
+
+        void DoConnectionContextMenus()
+        {
+            foreach (var c in _config.Connections)
+            {
+                DoConnectionContextMenu(c);
+            }
+        }
+
+        void DoConnectionContextMenu(Connection c)
+        {
+            if (Event.current.type == EventType.ContextClick && HandleUtility.DistancePointBezier(Event.current.mousePosition, _connectionPoints[c].Start, _connectionPoints[c].End, _connectionPoints[c].StartTangent, _connectionPoints[c].EndTangent) < 10f)
+            {
+                OpenConnectionContextMenu(c);
+            }
+        }
+
+        void DoConnectionContextMenu(Connection c, Rect rect)
+        {
+            if (Event.current.type == EventType.ContextClick && rect.Contains(Event.current.mousePosition))
+            {
+                OpenConnectionContextMenu(c);
+            }
+        }
+        
+        void OpenConnectionContextMenu(Connection c)
+        {
+            Vector2 mousePos = Event.current.mousePosition;
+            GenericMenu menu = new GenericMenu();
+            if (c.RemappingMode == RemapMode.None)
+            {
+                menu.AddItem(new GUIContent("Enable Remapping"), false, () =>
+                {
+                    int index = _config.Connections.IndexOf(c);
+                    Connection newC = c;
+                    newC.RemappingMode = RemapMode.RangeToRange;
+                    _config.Connections[index] = newC;
+                    Pack();
+                    Repaint();
+                });
+            }else
+            {
+                menu.AddItem(new GUIContent("Disable Remapping"), false, () =>
+                {
+                    int index = _config.Connections.IndexOf(c);
+                    Connection newC = c;
+                    newC.RemappingMode = RemapMode.None;
+                    _config.Connections[index] = newC;
+                    Pack();
+                    Repaint();
+                });
+            }
+            menu.ShowAsContext();
+            Event.current.Use();
         }
 
         InteractionWithConnection CheckIfConnectionClicked(float maxDistance)
@@ -663,9 +720,13 @@ namespace Thry.ThryEditor.TexturePacker
                 var points = _connectionPoints[c];
                 Handles.DrawBezier(points.Start, points.End, points.StartTangent, points.EndTangent, Packer.GetColor(c.FromChannel), null, 2);
                 
+                if(c.RemappingMode == RemapMode.None)
+                {
+                    continue;
+                }
                 // Draw remapping input in center of curve
                 Vector3 center = (points.Start + points.End) / 2;
-                Rect rect = new Rect(center.x - 50, center.y - 20, 100, 40);
+                Rect rect = new Rect(center.x - 50, center.y - 30, 100, 60);
                 Color channelColor = Packer.GetColor(c.FromChannel);
                 // backgroundColor.a = 0.5f;
                 GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 0, 10);
@@ -682,12 +743,16 @@ namespace Thry.ThryEditor.TexturePacker
 
                 Vector4 remap = c.Remapping;
                 EditorGUI.MinMaxSlider(inputRect, ref remap.x, ref remap.y, 0, 1);
+                inputRect.y += EditorGUIUtility.singleLineHeight;
+                EditorGUI.MinMaxSlider(inputRect, ref remap.z, ref remap.w, 0, 1);
                 if (remap != c.Remapping)
                 {
                     c.Remapping = remap;
                     _config.Connections[i] = c;
                     _changeCheckForPacking = true;
                 }
+
+                DoConnectionContextMenu(c, rect);
             }
         }
 

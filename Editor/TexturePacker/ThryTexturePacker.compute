@@ -22,6 +22,7 @@ struct Connection
 	int FromTextureIndex;
 	int FromChannel;
 	int ToChannel;
+	int RemapMode;
 	float4 Remapping;
 };
 
@@ -145,7 +146,10 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		if(conn.FromTextureIndex >= 0 && InputTextureIsValid[conn.FromTextureIndex].x == 1)
 		{
 			float value = SampleTexture(conn.FromTextureIndex, conn.FromChannel, uv);
-			value = Remap(value, conn.Remapping);
+			if(conn.RemapMode == 1) // Range to Range
+			{
+				value = Remap(value, conn.Remapping);
+			}
 			if(pixelSet[conn.ToChannel] == 0)
 			{
 				pixelSet = SetChannelOnVec4(pixelSet, conn.ToChannel, 1);
