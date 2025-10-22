@@ -64,9 +64,16 @@ namespace Thry.ThryEditor.Drawers
 
         static bool IsPropertyTypeSuitable(MaterialProperty prop)
         {
+#if UNITY_6000_2_OR_NEWER
+            return prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float
+                   || prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range
+#else
             return prop.type == MaterialProperty.PropType.Float
                    || prop.type == MaterialProperty.PropType.Range
-#if UNITY_2022_1_OR_NEWER
+#endif
+#if UNITY_6000_2_OR_NEWER
+                   || prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int;
+#elif UNITY_2022_1_OR_NEWER
                    || prop.type == MaterialProperty.PropType.Int;
 #endif
             ;

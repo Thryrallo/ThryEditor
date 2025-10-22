@@ -15,6 +15,16 @@ namespace Thry.ThryEditor
         public bool Execute(MaterialProperty p, Material[] targets)
         {
             if (
+#if UNITY_6000_2_OR_NEWER
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float && p.floatValue.ToString() == value) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int && p.intValue.ToString() == value) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range && p.floatValue.ToString() == value) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Color && p.colorValue.ToString() == value) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Vector && p.vectorValue.ToString() == value) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue == null) == (value == "0"))) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue != null) == (value == "1"))) ||
+                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && (p.textureValue != null && p.textureValue.name == value))
+#else
                 (p.type == MaterialProperty.PropType.Float && p.floatValue.ToString() == value) ||
 #if UNITY_2022_1_OR_NEWER
                 (p.type == MaterialProperty.PropType.Int && p.intValue.ToString() == value) ||
@@ -25,6 +35,7 @@ namespace Thry.ThryEditor
                 (p.type == MaterialProperty.PropType.Texture && ((p.textureValue == null) == (value == "0"))) ||
                 (p.type == MaterialProperty.PropType.Texture && ((p.textureValue != null) == (value == "1"))) ||
                 (p.type == MaterialProperty.PropType.Texture && (p.textureValue != null && p.textureValue.name == value))
+#endif
             )
             {
                 ;

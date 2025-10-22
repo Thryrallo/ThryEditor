@@ -210,25 +210,33 @@ namespace Thry
         private ThryPropertyType GetPropertyType(MaterialProperty p)
         {
             string name = p.name;
+#if UNITY_6000_2_OR_NEWER
+            UnityEngine.Rendering.ShaderPropertyFlags flags = p.propertyFlags;
+#else
             MaterialProperty.PropFlags flags = p.flags;
+#endif
 
+#if UNITY_6000_2_OR_NEWER
+            if (flags == UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)
+#else
             if (flags == MaterialProperty.PropFlags.HideInInspector)
+#endif
             {
                 if (name[0] == '_')
                 {
                     return ThryPropertyType.hidden_property;
                 }
 
-                if (name == PROPERTY_NAME_MASTER_LABEL)       return ThryPropertyType.master_label;
+                if (name == PROPERTY_NAME_MASTER_LABEL) return ThryPropertyType.master_label;
                 if (name == PROPERTY_NAME_ON_SWAP_TO_ACTIONS) return ThryPropertyType.on_swap_to;
-                if (name == PROPERTY_NAME_SHADER_VERSION)     return ThryPropertyType.shader_version;
-                if (name == PROPERTY_NAME_LOCALE)             return ThryPropertyType.locale;
-                
-                if (name == "Instancing")    return ThryPropertyType.instancing;
-                if (name == "DSGI")          return ThryPropertyType.dsgi;
+                if (name == PROPERTY_NAME_SHADER_VERSION) return ThryPropertyType.shader_version;
+                if (name == PROPERTY_NAME_LOCALE) return ThryPropertyType.locale;
+
+                if (name == "Instancing") return ThryPropertyType.instancing;
+                if (name == "DSGI") return ThryPropertyType.dsgi;
                 if (name == "LightmapFlags") return ThryPropertyType.lightmap_flags;
 
-                
+
                 if (name[0] == 'm')
                 {
                     if (name.StartsWith("m_start", StringComparison.Ordinal)) return ThryPropertyType.header_start;
@@ -245,15 +253,19 @@ namespace Thry
                     if (name.StartsWith("s_start", StringComparison.Ordinal)) return ThryPropertyType.section_start;
                     if (name.StartsWith("s_end", StringComparison.Ordinal)) return ThryPropertyType.section_end;
                 }
-                
+
 
                 if (name.StartsWith("footer_", StringComparison.Ordinal)) return ThryPropertyType.footer;
-                if (name.StartsWith("space", StringComparison.Ordinal))   return ThryPropertyType.space;
+                if (name.StartsWith("space", StringComparison.Ordinal)) return ThryPropertyType.space;
             }
             if (name == ShaderOptimizerPropertyName)  return ThryPropertyType.optimizer;
             if (name == PROPERTY_NAME_IN_SHADER_PRESETS) return ThryPropertyType.in_shader_presets;
 
+#if UNITY_6000_2_OR_NEWER
+            if (flags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)) return ThryPropertyType.hidden_property;
+#else
             if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector)) return ThryPropertyType.hidden_property;
+#endif
             return ThryPropertyType.shown_property;
         }
 
@@ -373,8 +385,13 @@ namespace Thry
                         break;
                     case ThryPropertyType.hidden_property:
                     case ThryPropertyType.shown_property:
+#if UNITY_6000_2_OR_NEWER
+                        if (props[i].propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].propertyFlags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.NoScaleOffset) == false, false, i);
+#else
                         if (props[i].type == MaterialProperty.PropType.Texture)
                             NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
+#endif
                         else
                             NewProperty = new ShaderProperty(this, props[i], displayName, offset, optionsRaw, false, i);
                         break;

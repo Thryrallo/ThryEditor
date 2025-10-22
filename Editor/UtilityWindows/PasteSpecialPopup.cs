@@ -152,27 +152,55 @@ namespace Thry.ThryEditor
         {
             using(new EditorGUI.DisabledScope(true))
             {
+#if UNITY_6000_2_OR_NEWER
+                switch(prop.propertyType)
+#else
                 switch(prop.type)
+#endif
                 {
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Color:
+#else
                     case MaterialProperty.PropType.Color:
+#endif
                         EditorGUILayout.ColorField(prop.colorValue, propertyWidth);
                         break;
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Vector:
+#else
                     case MaterialProperty.PropType.Vector:
+#endif
                         EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue, propertyWidth);
                         break;
 #if UNITY_2021_1_OR_NEWER
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Int:
+#else
                     case MaterialProperty.PropType.Int:
+#endif
                         EditorGUILayout.IntField(prop.intValue, propertyWidth);
                         break;
 #endif
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Range:
+#else
                     case MaterialProperty.PropType.Range:
+#endif
                         EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
                             propertyWidth);
                         break;
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Float:
+#else
                     case MaterialProperty.PropType.Float:
+#endif
                         EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
                         break;
+#if UNITY_6000_2_OR_NEWER
+                    case UnityEngine.Rendering.ShaderPropertyType.Texture:
+#else
                     case MaterialProperty.PropType.Texture:
+#endif
                         EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true, propertyWidth);
                         break;
                     default:

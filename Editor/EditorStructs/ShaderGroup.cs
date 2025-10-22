@@ -115,26 +115,34 @@ namespace Thry.ThryEditor
             _children.Add(part);
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyFrom(Material src, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
-            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
-            if(copyReferenceProperties)
+            if (skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if (copyReferenceProperties)
                 CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
-            if(deepCopy)
+            if (deepCopy)
                 foreach (ShaderPart p in Children)
                     p.CopyFrom(src, false, true, copyReferenceProperties, skipPropertyTypes, skipPropertyNames);
 
             if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
-            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
-            if(skipPropertyNames?.Contains(srcPart.MaterialProperty.name) == true) return;
+            if (skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if (skipPropertyNames?.Contains(srcPart.MaterialProperty.name) == true) return;
             if (srcPart is ShaderGroup == false) return;
             ShaderGroup src = srcPart as ShaderGroup;
-            if(copyReferenceProperties)
+            if (copyReferenceProperties)
                 CopyReferencePropertiesFrom(src, skipPropertyTypes, skipPropertyNames);
 
             for (int i = 0; deepCopy && i < src.Children.Count && i < Children.Count; i++)
@@ -143,29 +151,37 @@ namespace Thry.ThryEditor
             if (applyDrawers) MyShaderUI.ApplyDrawers();
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyTo(Material[] targets, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
-            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
-            if(copyReferenceProperties)
+            if (skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if (copyReferenceProperties)
                 CopyReferencePropertiesTo(targets, skipPropertyTypes, skipPropertyNames);
 
-            if(deepCopy)
+            if (deepCopy)
                 foreach (ShaderPart p in Children)
                     p.CopyTo(targets, false, true, copyReferenceProperties, skipPropertyTypes, skipPropertyNames);
 
             if (applyDrawers) MaterialEditor.ApplyMaterialPropertyDrawers(targets);
         }
 
+#if UNITY_6000_2_OR_NEWER
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<UnityEngine.Rendering.ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#else
         public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+#endif
         {
-            if(skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
-            if(skipPropertyNames?.Contains(targetPart.MaterialProperty.name) == true) return;
+            if (skipPropertyNames?.Contains(MaterialProperty.name) == true) return;
+            if (skipPropertyNames?.Contains(targetPart.MaterialProperty.name) == true) return;
             if (targetPart is ShaderGroup == false) return;
             ShaderGroup target = targetPart as ShaderGroup;
-            if(copyReferenceProperties)
+            if (copyReferenceProperties)
                 CopyReferencePropertiesTo(target, skipPropertyTypes, skipPropertyNames);
-            
-            for(int i = 0; deepCopy && i < Children.Count && i < target.Children.Count; i++)
+
+            for (int i = 0; deepCopy && i < Children.Count && i < target.Children.Count; i++)
                 Children[i].CopyTo(target.Children[i], false, true, copyReferenceProperties, skipPropertyTypes, skipPropertyNames);
 
             if (applyDrawers) MaterialEditor.ApplyMaterialPropertyDrawers(target.MaterialProperty.targets);
