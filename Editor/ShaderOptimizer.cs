@@ -2417,8 +2417,9 @@ namespace Thry.ThryEditor
 			            AssetDatabase.MoveAssetToTrash(lockedShaderPath);
 		            }
 	            }
-	            catch
+	            catch(Exception ex)
 	            {
+		            Debug.LogException(ex);
 		            return UnlockSuccess.couldNotDeleteLockedShader;
 	            }
             }
