@@ -101,8 +101,12 @@ namespace Thry.ThryEditor
                     _prop.textureValue = saved;
                     // change importer settings
                     TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GetAssetPath(saved));
-                     importer.textureCompression = TextureImporterCompression.CompressedHQ;
-                     importer.sRGBTexture = _colorSpace != ColorSpace.Linear;
+                    importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                    importer.sRGBTexture = _colorSpace != ColorSpace.Linear;
+#if VRC_SDK_VRCSDK3
+                    importer.streamingMipmaps = true; // Courtesy check for texture as required by VRChat SDK.
+                    importer.mipmapFilter = TextureImporterMipFilter.KaiserFilter; // Recommended for VRChat's DPID (Detail Preserving Image Downscaling) algorithm on build.
+#endif
                     if(Config.Instance.gradientEditorCompressionOverwrite != TextureImporterFormat.Automatic)
                     {
                         importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
@@ -116,6 +120,12 @@ namespace Thry.ThryEditor
                     importer.SaveAndReimport();
                 }
             }
+            else
+            {
+                // CRITICAL: DO NOT leave the Material pointing to an in-memory preview texture, or else data will be lost to oblivion!
+                if (_prop != null) _prop.textureValue = _privious_preview_texture;
+            }
+
             _data.UsePreviewTexture = false;
             ShaderEditor.RepaintActive();
         }
@@ -159,7 +169,7 @@ namespace Thry.ThryEditor
 
             _preset_libary_onGUI = gradient_preset_libary_editor_type.GetMethod("OnGUI");
 
-            SetGradient(_data.Gradient);
+            SetGradient(_data.Gradient, generatePreviewTexture: false);
             _gradient_has_been_edited = false;
 
             _inited = true;
@@ -168,12 +178,11 @@ namespace Thry.ThryEditor
         public void PresetClickedCallback(int clickCount, object presetObject)
         {
             Gradient gradient = presetObject as Gradient;
-            if (gradient == null)
-                Debug.LogError("Incorrect object passed " + presetObject);
-            SetGradient(gradient);
+            if (gradient == null) Debug.LogError("Incorrect object passed " + presetObject);
+            SetGradient(gradient, generatePreviewTexture: true);
         }
 
-        void SetGradient(Gradient gradient)
+        void SetGradient(Gradient gradient, bool generatePreviewTexture = true)
         {
             _data.Gradient = gradient;
 #if UNITY_2020_1_OR_NEWER
@@ -181,7 +190,16 @@ namespace Thry.ThryEditor
 #else
             _gradient_editor_init.Invoke(_gradient_editor, new object[] { gradient, 0, true });
 #endif
-            UpdateGradientPreviewTexture();
+            if (generatePreviewTexture)
+            {
+                UpdateGradientPreviewTexture();
+            }
+            else
+            {
+                // Show the original texture until the user actually edits something.
+                _data.PreviewTexture = _privious_preview_texture;
+                ShaderEditor.RepaintActive();
+            }
         }
 
         void OnGUI()
@@ -220,7 +238,7 @@ namespace Thry.ThryEditor
         private new void DiscardChanges()
         {
             _prop.textureValue = _privious_preview_texture;
-            SetGradient(TextureHelper.GetGradient(_privious_preview_texture));
+            SetGradient(TextureHelper.GetGradient(_privious_preview_texture), generatePreviewTexture: false);
             _gradient_has_been_edited = false;
             ShaderEditor.RepaintActive();
         }
@@ -242,7 +260,11 @@ namespace Thry.ThryEditor
         {
             _data.PreviewTexture = Converter.GradientToTexture(_data.Gradient, textureSettings.width, textureSettings.height);
             textureSettings.ApplyModes(_data.PreviewTexture);
-            _prop.textureValue = _data.PreviewTexture;
+
+            // IMPORTANT: DO NOT assign _prop.textureValue here!
+            // The drawer already knows how to show a Preview Texture when UsePreviewTexture is set to true.
+            _data.UsePreviewTexture = true;
+
             _gradient_has_been_edited = true;
             ShaderEditor.RepaintActive();
         }
