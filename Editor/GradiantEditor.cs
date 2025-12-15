@@ -85,6 +85,8 @@ namespace Thry.ThryEditor
 
         public void OnDestroy()
         {
+            GradientPreviewManager.ClearPreview(_prop);
+            
             if (_gradient_has_been_edited)
             {
                 if (_data.PreviewTexture.GetType() == typeof(Texture2D))
@@ -237,6 +239,8 @@ namespace Thry.ThryEditor
 
         private new void DiscardChanges()
         {
+            GradientPreviewManager.ClearPreview(_prop);
+            _data.UsePreviewTexture = false;
             _prop.textureValue = _privious_preview_texture;
             SetGradient(TextureHelper.GetGradient(_privious_preview_texture), generatePreviewTexture: false);
             _gradient_has_been_edited = false;
@@ -259,13 +263,17 @@ namespace Thry.ThryEditor
         private void UpdateGradientPreviewTexture()
         {
             _data.PreviewTexture = Converter.GradientToTexture(_data.Gradient, textureSettings.width, textureSettings.height);
+
+            _data.PreviewTexture.hideFlags = HideFlags.HideAndDontSave;
+
             textureSettings.ApplyModes(_data.PreviewTexture);
 
-            // IMPORTANT: DO NOT assign _prop.textureValue here!
-            // The drawer already knows how to show a Preview Texture when UsePreviewTexture is set to true.
             _data.UsePreviewTexture = true;
-
             _gradient_has_been_edited = true;
+
+            // Instead of assigning a Prop Texture, create a temporary texture for a live preview.
+            GradientPreviewManager.ApplyPreview(_prop, _data.PreviewTexture);
+
             ShaderEditor.RepaintActive();
         }
 
