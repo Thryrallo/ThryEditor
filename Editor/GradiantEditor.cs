@@ -85,8 +85,9 @@ namespace Thry.ThryEditor
 
         public void OnDestroy()
         {
+            // Ensure the live-preview of the gradient texture is not leftover when this window closes.
             GradientPreviewManager.ClearPreview(_prop);
-            
+
             if (_gradient_has_been_edited)
             {
                 if (_data.PreviewTexture.GetType() == typeof(Texture2D))
