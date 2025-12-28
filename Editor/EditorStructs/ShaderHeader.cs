@@ -21,7 +21,7 @@ namespace Thry.ThryEditor
         {
             MyShaderUI.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
-            Rect position = GUILayoutUtility.GetRect(content, Styles.dropdownHeader);
+            Rect position = GUILayoutUtility.GetRect(content, Styles.flatHeader);
             DrawHeader(position, content);
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
             if (IsExpanded)
@@ -57,10 +57,9 @@ namespace Thry.ThryEditor
             PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
             Event e = Event.current;
 
-            int xOffset_total = XOffset * 15 + 15;
-
-            position.width -= xOffset_total - position.x;
-            position.x = xOffset_total;
+            float rightEdge = position.x + position.width;
+            position.x = GUILib.IndentToPixels(XOffset) + GUILib.EDGE_PADDING;
+            position.width = rightEdge - position.x - (GUILib.EDGE_PADDING - GUILib.UNITY_HEADER_RIGHT_MARGIN);
 
             DrawingData.LastGuiObjectHeaderRect = position;
             DrawBoxAndContent(position, e, label, options);
@@ -77,7 +76,7 @@ namespace Thry.ThryEditor
             {
                 if(ShaderEditor.Active.Locale.EditInUI)
                 {
-                    GUI.Box(rect, new GUIContent("", MaterialProperty.name), Styles.dropdownHeader);
+                    GUI.Box(rect, new GUIContent("", MaterialProperty.name), Styles.flatHeader);
                     Rect translationRect = new Rect(rect);
                     translationRect.x += 40;
                     translationRect.y += 1;
@@ -94,7 +93,7 @@ namespace Thry.ThryEditor
                 }
                 else
                 {
-                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);
+                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.flatHeader);
                     if (Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
@@ -130,7 +129,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                GUI.Box(rect, content, Styles.dropdownHeader);
+                GUI.Box(rect, content, Styles.flatHeader);
                 if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);

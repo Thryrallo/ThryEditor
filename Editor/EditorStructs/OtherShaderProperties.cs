@@ -14,9 +14,49 @@ namespace Thry.ThryEditor
             CustomStringTagID = "RenderQueue";
         }
 
+        static readonly string[] s_renderQueueNames = { "From Shader", "Geometry", "AlphaTest", "Transparent" };
+        static readonly int[] s_renderQueueValues = { -1, 2000, 2450, 3000 };
+
         protected override void DrawDefault()
         {
-            MyShaderUI.Editor.RenderQueueField();
+            Rect r = RectifiedLayout.GetPaddedRect(18);
+            int queue = MyShaderUI.Materials[0].renderQueue;
+            
+            using (new GUILib.IndentOverrideScope(0))
+            {
+                // Split rect: label on left, dropdown in middle, int field on right
+                float labelWidth = EditorGUIUtility.labelWidth;
+                float fieldWidth = 75;
+                float dropdownWidth = r.width - labelWidth - fieldWidth - 4;
+                
+                Rect labelRect = new Rect(r.x, r.y, labelWidth, r.height);
+                Rect dropdownRect = new Rect(r.x + labelWidth + 2, r.y, dropdownWidth - 2, r.height);
+                Rect intRect = new Rect(dropdownRect.xMax + 4, r.y, fieldWidth, r.height);
+                
+                EditorGUI.LabelField(labelRect, "Render Queue");
+                
+                // Dropdown for preset queues
+                int selectedIndex = System.Array.FindIndex(s_renderQueueValues, v => v == queue);
+                if (selectedIndex < 0) selectedIndex = 0; // Custom value, show "From Shader"
+                
+                EditorGUI.BeginChangeCheck();
+                int newIndex = EditorGUI.Popup(dropdownRect, selectedIndex, s_renderQueueNames);
+                if (EditorGUI.EndChangeCheck() && newIndex != selectedIndex)
+                {
+                    queue = s_renderQueueValues[newIndex];
+                    foreach (Material m in MyShaderUI.Materials)
+                        m.renderQueue = queue;
+                }
+                
+                // Int field for exact value
+                EditorGUI.BeginChangeCheck();
+                queue = EditorGUI.IntField(intRect, queue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    foreach (Material m in MyShaderUI.Materials)
+                        m.renderQueue = queue;
+                }
+            }
         }
 
         public override object FetchPropertyValue()
@@ -66,9 +106,14 @@ namespace Thry.ThryEditor
 
         protected override void DrawDefault()
         {
+            Rect r = RectifiedLayout.GetPaddedRect(18);
             string current = MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
             EditorGUI.BeginChangeCheck();
-            int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
+            // Reset indent to 0 since our rect already has padding
+            int oldIndent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+            int selected = EditorGUI.Popup(r, "VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
+            EditorGUI.indentLevel = oldIndent;
             if (EditorGUI.EndChangeCheck())
             {
                 foreach (Material m in MyShaderUI.Materials)

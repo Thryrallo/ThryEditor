@@ -49,14 +49,15 @@ namespace Thry.ThryEditor.Drawers
                 Init();
 
                 int indent = EditorGUI.indentLevel;
-                GUILib.BeginCustomIndentLevel(0);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(indent * 15);
-                GUILayout.BeginVertical();
-                _onGui.Invoke(_externalTool, new object[0]);
-                GUILayout.EndVertical();
-                GUILayout.EndHorizontal();
-                GUILib.EndCustomIndentLevel();
+                using (new GUILib.IndentOverrideScope(0))
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(GUILib.IndentToPixels(indent));
+                    GUILayout.BeginVertical();
+                    _onGui.Invoke(_externalTool, new object[0]);
+                    GUILayout.EndVertical();
+                    GUILayout.EndHorizontal();
+                }
             }
         }
 

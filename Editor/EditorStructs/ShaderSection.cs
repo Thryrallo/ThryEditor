@@ -29,7 +29,7 @@ namespace Thry.ThryEditor
 
             // Draw border
             Rect border = EditorGUILayout.BeginVertical();
-            border = new RectOffset(this.XOffset * -15 - 12, 3, -2, -2).Add(border);
+            border = new RectOffset(-this.XOffset * GUILib.INDENT_WIDTH - 12, 3, -2, -2).Add(border);
             if (IsExpanded)
             {
                 // Draw as border line

@@ -1,4 +1,4 @@
-﻿﻿// Material/Shader Inspector for Unity 2017/2018
+﻿// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
 using System.Collections.Generic;
@@ -713,7 +713,8 @@ namespace Thry
             if(_shaderHeader != null && drawAboveToolbar) _shaderHeader.Draw(EditorGUILayout.GetControlRect());
 
             Rect topBarRect = RectifiedLayout.GetRect(25);
-            Rect iconRect = new Rect(topBarRect.x, topBarRect.y, 25, 25);
+            // Icons have ~4px internal padding, compensate to get visual EDGE_PADDING
+            Rect iconRect = new Rect(GUILib.EDGE_PADDING - 4, topBarRect.y, 25, 25);
             if(GUILib.ButtonWithCursor(iconRect, Icons.settings, "Settings"))
             {
                 EditorWindow.GetWindow<Settings>(false, "Thry Settings", true);
@@ -729,15 +730,17 @@ namespace Thry
             if (GUILib.ButtonWithCursor(iconRect, Icons.thryIcon, "Thryrallo"))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
 
+            float rightEdge = topBarRect.x + topBarRect.width - GUILib.EDGE_PADDING + GUILib.UNITY_HEADER_RIGHT_MARGIN;
+
             Rect headerRect = new Rect(topBarRect);
             headerRect.x = iconRect.x + 25;
-            headerRect.width = topBarRect.width - headerRect.x;
+            headerRect.width = rightEdge - headerRect.x;
 
             if (LocaleProperty != null)
             {
                 Rect localeRect = new Rect(topBarRect);
                 localeRect.width = 100;
-                localeRect.x = topBarRect.width - 100;
+                localeRect.x = rightEdge - 100;
                 LocaleProperty.Draw(localeRect);
                 headerRect.width -= localeRect.width;
             }
@@ -755,11 +758,11 @@ namespace Thry
 
         private void GUIPresetsBar()
         {
-            Rect barRect = RectifiedLayout.GetRect(25);
+            Rect barRect = RectifiedLayout.GetPaddedRect(25);
 
             Rect inShaderRect = new Rect(barRect);
             inShaderRect.width /= 3;
-            inShaderRect.x = barRect.width - inShaderRect.width;
+            inShaderRect.x = barRect.x + barRect.width - inShaderRect.width;
 
             Rect presetsRect = new Rect(barRect);
             presetsRect.width = inShaderRect.width;
@@ -768,7 +771,7 @@ namespace Thry
             Rect presetsIcon = new Rect(presetsRect);
             presetsIcon.width = 18;
             presetsIcon.height = 18;
-            presetsIcon.x = presetsRect.width - 20;
+            presetsIcon.x = presetsRect.x + presetsRect.width - 20;
 
             if (GUI.Button(presetsRect, "Presets") | GUILib.Button(presetsIcon, Icons.presets))
                 Presets.OpenPresetsMenu(barRect, this, false);
@@ -780,7 +783,12 @@ namespace Thry
 
         private void GUISearchBar()
         {
-            _enteredSearchTerm = EditorGUILayout.TextField(_enteredSearchTerm, EditorStyles.toolbarSearchField);
+            // Search field has different built-in margins than buttons, so adjust separately
+            Rect searchRect = RectifiedLayout.GetRect(18);
+            float rightEdge = searchRect.x + searchRect.width;
+            searchRect.x += GUILib.EDGE_PADDING - 2;  // toolbarSearchField left margin is ~2
+            searchRect.width = rightEdge - searchRect.x - (GUILib.EDGE_PADDING - 5);  // toolbarSearchField right margin is ~5
+            _enteredSearchTerm = GUI.TextField(searchRect, _enteredSearchTerm, EditorStyles.toolbarSearchField);
             if(_enteredSearchTerm != _appliedSearchTerm)
             {
                 _appliedSearchTerm = _enteredSearchTerm;
@@ -790,17 +798,35 @@ namespace Thry
 
         private void GUIFooters()
         {
+            GUILayout.Space(0); // Padding above footer
+            Rect footerRect = RectifiedLayout.GetRect(40);
+            float rightX = footerRect.x + footerRect.width - GUILib.EDGE_PADDING + GUILib.UNITY_HEADER_RIGHT_MARGIN;
+            
+            // Social buttons on the right, shifted down 10px
             try
             {
-                FooterButton.DrawList(_footers);
+                const float INTER_PADDING = 6;
+                float buttonX = rightX;
+                for (int i = _footers.Count - 1; i >= 0; i--)
+                {
+                    var footer = _footers[i];
+                    float buttonWidth = footer.GetWidth();
+                    buttonX -= buttonWidth;
+                    Rect buttonRect = new Rect(buttonX, footerRect.y + 10, buttonWidth, 40);
+                    footer.DrawAt(buttonRect);
+                    buttonX -= INTER_PADDING;
+                }
             }
             catch (Exception ex)
             {
                 Debug.LogWarning(ex);
             }
-            if (GUILayout.Button("@UI Made by Thryrallo", Styles.madeByLabel))
+            
+            // "Made by Thryrallo" on the left
+            Rect madeByRect = new Rect(GUILib.EDGE_PADDING, footerRect.y + (40 - 16) / 2 + 10, 150, 16);
+            if (GUI.Button(madeByRect, "@UI Made by Thryrallo", Styles.madeByLabel))
                 Application.OpenURL("https://www.twitter.com/thryrallo");
-            EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
+            EditorGUIUtility.AddCursorRect(madeByRect, MouseCursor.Link);
         }
 
         private void DoVariantWarning()

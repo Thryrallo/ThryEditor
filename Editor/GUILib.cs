@@ -11,6 +11,32 @@ namespace Thry.ThryEditor
     {
         public const float SMALL_TEXTURE_VRAM_DISPLAY_WIDTH = 80;
 
+        /// <summary>
+        /// Width in pixels per indent level (Unity's standard is 15px)
+        /// </summary>
+        public const int INDENT_WIDTH = 10;
+
+        /// <summary>
+        /// Desired visual padding from left and right edges (pixels)
+        /// </summary>
+        public const int EDGE_PADDING = 5;
+
+        // Unity IMGUI has inconsistent built-in margins across control types.
+        // These values compensate for Unity's internal padding to achieve consistent EDGE_PADDING.
+        public const int UNITY_LEFT_MARGIN = 3;          // Built-in left margin on controls
+        public const int UNITY_RIGHT_MARGIN = 4;         // Built-in right margin on controls
+        public const int UNITY_HEADER_RIGHT_MARGIN = 4;  // Built-in right margin on headers
+
+        /// <summary>
+        /// Returns the width in pixels for the given indent levels
+        /// </summary>
+        public static float IndentToPixels(int indentLevel) => indentLevel * INDENT_WIDTH;
+
+        /// <summary>
+        /// Returns the current indent width in pixels
+        /// </summary>
+        public static float CurrentIndentWidth() => EditorGUI.indentLevel * INDENT_WIDTH;
+
         public static void ConfigTextureProperty(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor, bool hasFoldoutProperties, bool skip_drag_and_drop_handling = false)
         {
             switch (Config.Instance.default_texture_type)
@@ -41,7 +67,7 @@ namespace Thry.ThryEditor
             {
                 Rect border = EditorGUILayout.BeginVertical();
                 GUILayoutUtility.GetRect(0, 5);
-                border = new RectOffset(EditorGUI.indentLevel * -15 - 26, 3, -3, -3).Add(border);
+                border = new RectOffset(EditorGUI.indentLevel * -INDENT_WIDTH - 26, 3, -3, -3).Add(border);
                 GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, 3, 10);
             }
             // Border Code end
@@ -84,7 +110,7 @@ namespace Thry.ThryEditor
             {
                 //draw dropdown triangle
                 Rect trianglePos = thumbnailPos;
-                trianglePos.x += DrawingData.CurrentTextureProperty.XOffset * 15 - 2;
+                trianglePos.x += DrawingData.CurrentTextureProperty.XOffset * INDENT_WIDTH - 2;
                 //This is an invisible button with zero functionality. But it needs to be here so that the triangle click reacts fast
                 if (GUI.Button(trianglePos, "", GUIStyle.none)) { }
                 if (Event.current.type == EventType.Repaint)
@@ -152,8 +178,8 @@ namespace Thry.ThryEditor
             position.y += 5;
 
             Rect border = new Rect(position);
-            border.x += (EditorGUI.indentLevel) * 15;
-            border.width -= (EditorGUI.indentLevel) * 15;
+            border.x += CurrentIndentWidth();
+            border.width -= CurrentIndentWidth();
             border.height = 80; // for texture & offset
 
             Rect[] additionRects = new Rect[(DrawingData.CurrentTextureProperty.DoesReferencePropertyExist ? 1 : 0) +
@@ -254,7 +280,7 @@ namespace Thry.ThryEditor
 
                 PropertyOptions options = DrawingData.CurrentTextureProperty.Options;
                 float labelWith = EditorGUIUtility.labelWidth;
-                EditorGUIUtility.labelWidth = EditorGUI.indentLevel * 15 + 35;
+                EditorGUIUtility.labelWidth = CurrentIndentWidth() + 35;
                 if (options.reference_property != null)
                 {
                     ShaderProperty property = ShaderEditor.Active.PropertyDictionary[options.reference_property];
@@ -381,12 +407,14 @@ namespace Thry.ThryEditor
         }
 
         static Stack<int> s_previousIndentLevels = new Stack<int>();
+        [Obsolete("Use 'using (new GUILib.IndentOverrideScope(indent))' instead")]
         public static void BeginCustomIndentLevel(int indent)
         {
             s_previousIndentLevels.Push(EditorGUI.indentLevel);
             EditorGUI.indentLevel = indent;
         }
 
+        [Obsolete("Use 'using (new GUILib.IndentOverrideScope(indent))' instead")]
         public static void EndCustomIndentLevel()
         {
             EditorGUI.indentLevel = s_previousIndentLevels.Pop();
@@ -403,9 +431,9 @@ namespace Thry.ThryEditor
             if (settingsRect.width > 160)
             {
                 Rect numberRect = settingsRect;
-                numberRect.width = 65 + (EditorGUI.indentLevel - 1) * 15;
+                numberRect.width = 65 + IndentToPixels(EditorGUI.indentLevel - 1);
 
-                numberRect.x = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
+                numberRect.x = EditorGUIUtility.labelWidth - IndentToPixels(EditorGUI.indentLevel - 1);
 
                 EditorGUI.BeginChangeCheck();
                 EditorGUI.showMixedValue = prop.hasMixedValue;
@@ -419,7 +447,7 @@ namespace Thry.ThryEditor
                 vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
-                sliderRect.xMin = EditorGUIUtility.labelWidth - (EditorGUI.indentLevel - 1) * 15;
+                sliderRect.xMin = EditorGUIUtility.labelWidth - IndentToPixels(EditorGUI.indentLevel - 1);
                 sliderRect.xMin += (65 + -8);
                 sliderRect.xMax -= (65 + -8);
             }
@@ -542,10 +570,6 @@ namespace Thry.ThryEditor
             return changed;
         }
 
-        public static float CurrentIndentWidth()
-        {
-            return EditorGUI.indentLevel * 15;
-        }
         // Mimics the normal map import warning - written by Orels1
         static bool TextureImportWarningBox(string message) {
             GUILayout.BeginVertical(new GUIStyle(EditorStyles.helpBox));
@@ -596,6 +620,9 @@ namespace Thry.ThryEditor
             }
         }
 
+        /// <summary>
+        /// Sets indent level to an absolute value, restores on dispose
+        /// </summary>
         public class IndentOverrideScope : IDisposable
         {
             int _prev;
@@ -603,6 +630,24 @@ namespace Thry.ThryEditor
             {
                 _prev = EditorGUI.indentLevel;
                 EditorGUI.indentLevel = indent;
+            }
+
+            public void Dispose()
+            {
+                EditorGUI.indentLevel = _prev;
+            }
+        }
+
+        /// <summary>
+        /// Adds to the current indent level, restores on dispose
+        /// </summary>
+        public class IndentScope : IDisposable
+        {
+            int _prev;
+            public IndentScope(int delta = 1)
+            {
+                _prev = EditorGUI.indentLevel;
+                EditorGUI.indentLevel += delta;
             }
 
             public void Dispose()
@@ -715,10 +760,8 @@ namespace Thry.ThryEditor
     public class RectifiedLayout
     {
         /// <summary>
-        /// Returns recitfied for 2022 rect
+        /// Returns rectified for 2022 rect
         /// </summary>
-        /// <param name="height"></param>
-        /// <returns></returns>
         public static Rect GetRect(int height)
         {
             Rect r = EditorGUILayout.GetControlRect(false, height);
@@ -729,22 +772,36 @@ namespace Thry.ThryEditor
             return r;
         }
 
+        /// <summary>
+        /// Returns rectified rect with edge padding applied
+        /// </summary>
+        public static Rect GetPaddedRect(int height)
+        {
+            Rect r = GetRect(height);
+            float rightEdge = r.x + r.width;
+            // Left: Add padding minus Unity's built-in left margin
+            r.x += GUILib.EDGE_PADDING - GUILib.UNITY_LEFT_MARGIN;
+            // Right: Subtract padding minus Unity's built-in right margin
+            r.width = rightEdge - r.x - (GUILib.EDGE_PADDING - GUILib.UNITY_RIGHT_MARGIN);
+            return r;
+        }
+
         public static bool Button(string text)
         {
-            Rect r = GetRect(25);
+            Rect r = GetPaddedRect(25);
             return GUI.Button(r, text);
         }
 
         public static bool ButtonWithCursor(string text)
         {
-            Rect r = GetRect(25);
+            Rect r = GetPaddedRect(25);
             EditorGUIUtility.AddCursorRect(r, MouseCursor.Link);
             return GUI.Button(r, text);
         }
 
         public static void Seperator()
         {
-            EditorGUI.DrawRect(RectifiedLayout.GetRect(1), Colors.foreground);
+            EditorGUI.DrawRect(RectifiedLayout.GetPaddedRect(1), Colors.foreground);
         }
     }
     public class BetterTooltips
@@ -888,15 +945,27 @@ namespace Thry.ThryEditor
             EditorGUIUtility.AddCursorRect(cursorRect, MouseCursor.Link);
         }
 
+        public void DrawAt(Rect rect)
+        {
+            if (GUI.Button(rect, content, isTextureContent ? GUIStyle.none : GUI.skin.button))
+                data.action.Perform(ShaderEditor.Active?.Materials);
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
+        }
+
+        public float GetWidth()
+        {
+            return isTextureContent ? _textureWidth : 42;
+        }
+
         public static void DrawList(List<FooterButton> list)
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            GUILayout.Space(2);
             foreach (FooterButton b in list)
             {
                 b.Draw();
             }
+            GUILayout.Space(21); // Compensate for Unity's asymmetric inspector margins
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
         }

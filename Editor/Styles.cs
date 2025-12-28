@@ -19,6 +19,26 @@ namespace Thry.ThryEditor
             contentOffset = new Vector2(20f, -2f)
         };
 
+        private static GUIStyle _flatHeader;
+        public static GUIStyle flatHeader
+        {
+            get
+            {
+                if (_flatHeader == null)
+                {
+                    _flatHeader = new GUIStyle(GUI.skin.button)
+                    {
+                        font = EditorStyles.label.font,
+                        fontSize = GUI.skin.font.fontSize,
+                        alignment = TextAnchor.MiddleLeft,
+                        padding = new RectOffset(20, 4, 2, 2),
+                        fixedHeight = 22
+                    };
+                }
+                return _flatHeader;
+            }
+        }
+
         public static readonly GUIStyle animatedIndicatorStyle = new GUIStyle() { normal = new GUIStyleState() { textColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 1f, 0.3f) : new Color(0f, 0.5f, 0f) }, alignment = TextAnchor.MiddleRight };
         public static readonly GUIStyle presetIndicatorStyle = new GUIStyle() { normal = new GUIStyleState() { textColor = EditorGUIUtility.isProSkin ? new Color(0f, 1f, 1f) : new Color(0f, 0.5f, 0.71f) }, alignment = TextAnchor.MiddleRight };
         public static readonly GUIStyle madeByLabel = new GUIStyle(EditorStyles.label) { fontSize = 10 };
