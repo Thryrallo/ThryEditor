@@ -212,6 +212,10 @@ namespace Thry
             string name = p.name;
             MaterialProperty.PropFlags flags = p.flags;
 
+            // Check for ThryHideInInspector attribute (visible to Unity API, hidden by ThryEditor)
+            if (HasThryHideInInspectorAttribute(p))
+                return ThryPropertyType.hidden_property;
+
             if (flags == MaterialProperty.PropFlags.HideInInspector)
             {
                 if (name[0] == '_')
@@ -255,6 +259,20 @@ namespace Thry
 
             if (flags.HasFlag(MaterialProperty.PropFlags.HideInInspector)) return ThryPropertyType.hidden_property;
             return ThryPropertyType.shown_property;
+        }
+
+        private bool HasThryHideInInspectorAttribute(MaterialProperty p)
+        {
+            if (Shader == null) return false;
+            int index = Shader.FindPropertyIndex(p.name);
+            if (index < 0) return false;
+            string[] attributes = Shader.GetPropertyAttributes(index);
+            for (int i = 0; i < attributes.Length; i++)
+            {
+                if (attributes[i].StartsWith("ThryHideInInspector", StringComparison.Ordinal))
+                    return true;
+            }
+            return false;
         }
 
         private void LoadLocales()
@@ -630,7 +648,7 @@ namespace Thry
             
             IsDrawing = true;
 #if UNITY_2022_1_OR_NEWER
-            EditorGUI.indentLevel -= 2;
+            if (!IsCrossEditor) EditorGUI.indentLevel -= 2;
 #endif
 
             DoVariantWarning();
@@ -643,15 +661,17 @@ namespace Thry
             GUILayout.Space(5);
             GUISearchBar();
             GUILockinButton();
+            GUILayout.Space(-1);
             GUIPresetsBar();
 
             Presets.PresetEditorGUI(this);
             ShaderTranslator.SuggestedTranslationButtonGUI(this);
 
 #if UNITY_2022_1_OR_NEWER
-            EditorGUI.indentLevel += 2;
+            if (!IsCrossEditor) EditorGUI.indentLevel += 2;
 #endif
 
+            GUILayout.Space(-8);
             //PROPERTIES
             using ( new DetourMaterialPropertyVariantIcon())
             {
@@ -662,6 +682,7 @@ namespace Thry
             }
 
             //Render Queue selection
+            GUILayout.Space(2);
             if(VRCInterface.IsVRCSDKInstalled()) _vRCFallbackProperty.Draw();
             if (Config.Instance.showRenderQueue) _renderQueueProperty.Draw();
 

@@ -177,17 +177,17 @@ namespace Thry.ThryEditor
 
         protected override void DrawDefault()
         {
-            // internal reference is stored within MaterialEditor.m_Shader and can be null during lock/unlock
-            // MyShaderUI.Editor.serializedObject.FindProperty("m_Shader").objectReferenceValue
-            // never failed a null check in my tests, so try/catch it is - Dor
-            
-            try
+            Rect r = GUILib.GetPropertyRect(XOffset, EditorGUIUtility.singleLineHeight);
+            bool mixed = MyShaderUI.Materials.Any(m => m.enableInstancing != MyShaderUI.Materials[0].enableInstancing);
+            EditorGUI.showMixedValue = mixed;
+            EditorGUI.BeginChangeCheck();
+            bool enabled = EditorGUI.Toggle(r, new GUIContent("Enable GPU Instancing"), MyShaderUI.Materials[0].enableInstancing);
+            if (EditorGUI.EndChangeCheck())
             {
-                MyShaderUI.Editor.EnableInstancingField();
+                foreach (Material m in MyShaderUI.Materials)
+                    m.enableInstancing = enabled;
             }
-            catch (System.ArgumentNullException) // internal shader reference was null
-            {
-            }
+            EditorGUI.showMixedValue = false;
         }
     }
     public class GIProperty : ShaderProperty
@@ -251,9 +251,10 @@ namespace Thry.ThryEditor
 
             EditorGUI.BeginChangeCheck();
 
-            // Show popup
+            // Show popup with proper positioning
+            Rect r = GUILib.GetPropertyRect(indent, EditorGUIUtility.singleLineHeight);
             EditorGUI.showMixedValue = isMixed;
-            giFlags = (MaterialGlobalIlluminationFlags)EditorGUILayout.IntPopup(lightmapEmissiveLabel, (int)giFlags, lightmapEmissiveStrings, lightmapEmissiveValues);
+            giFlags = (MaterialGlobalIlluminationFlags)EditorGUI.IntPopup(r, lightmapEmissiveLabel, (int)giFlags, lightmapEmissiveStrings, lightmapEmissiveValues);
             EditorGUI.showMixedValue = false;
 
             // Apply flags. But only the part that this tool modifies (RealtimeEmissive, BakedEmissive, None)

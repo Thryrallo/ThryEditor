@@ -6,9 +6,11 @@ namespace Thry.ThryEditor
     public class ShaderSection : ShaderGroup
     {
 
-        const int BORDER_WIDTH = 3;
+        const int BORDER_WIDTH = 2;
         const int HEADER_HEIGHT = 20;
         const int CHECKBOX_OFFSET = 20;
+        const int CONTENT_PADDING = 4; // Additional left offset for children inside sections
+        const int CONTENT_RIGHT_PADDING = 2; // Additional right reduction for children inside sections
 
         public ShaderSection(ShaderEditor shaderEditor, MaterialProperty prop, MaterialEditor materialEditor, string displayName, int xOffset, string optionsRaw, int propertyIndex) : base(shaderEditor, prop, materialEditor, displayName, xOffset, optionsRaw, propertyIndex)
         {
@@ -29,11 +31,14 @@ namespace Thry.ThryEditor
 
             // Draw border
             Rect border = EditorGUILayout.BeginVertical();
-            border = new RectOffset(-this.XOffset * GUILib.INDENT_WIDTH - 12, 3, -2, -2).Add(border);
+            float rightEdge = border.x + border.width;
+            border.x = GUILib.GetPropertyX(this.XOffset) - BORDER_WIDTH;
+            border.width = rightEdge - border.x - 1;
+            border = new RectOffset(0, 0, -2, -2).Add(border);
             if (IsExpanded)
             {
                 // Draw as border line
-                Vector4 borderWidths = new Vector4(3, (has_header ? HEADER_HEIGHT : 3), 3, 3);
+                Vector4 borderWidths = new Vector4(BORDER_WIDTH, (has_header ? HEADER_HEIGHT : BORDER_WIDTH), BORDER_WIDTH, BORDER_WIDTH);
                 GUI.DrawTexture(border, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0, Colors.backgroundDark, borderWidths, 5);
             }
             else
@@ -76,12 +81,16 @@ namespace Thry.ThryEditor
             // Draw Children
             if (IsExpanded)
             {
+                GUILib.SectionContentPadding = CONTENT_PADDING;
+                GUILib.SectionContentRightPadding = CONTENT_RIGHT_PADDING;
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
                 foreach (ShaderPart part in Children)
                 {
                     part.Draw();
                 }
                 EditorGUI.EndDisabledGroup();
+                GUILib.SectionContentPadding = 0;
+                GUILib.SectionContentRightPadding = 0;
                 GUILayoutUtility.GetRect(0, 5);
             }
             EditorGUILayout.EndVertical();

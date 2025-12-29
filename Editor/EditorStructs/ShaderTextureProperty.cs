@@ -51,7 +51,7 @@ namespace Thry.ThryEditor
 
         protected override void DrawDefault()
         {
-            Rect pos = GUILayoutUtility.GetRect(Content, Styles.vectorPropertyStyle);
+            Rect pos = GUILib.GetPropertyRect(XOffset, EditorGUIUtility.singleLineHeight);
             GUILib.ConfigTextureProperty(pos, MaterialProperty, Content, MyMaterialEditor, hasFoldoutProperties);
             DrawingData.LastGuiObjectRect = pos;
         }

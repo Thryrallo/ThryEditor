@@ -31,7 +31,7 @@ namespace Thry.ThryEditor.Drawers
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
             Init();
-            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - 15, position.y, position.width - EditorGUIUtility.labelWidth + 15 - GUILib.GetSmallTextureVRAMWidth(prop), position.height);
+            Rect border_position = new Rect(position.x + EditorGUIUtility.labelWidth - GUILib.VALUE_FIELD_LABEL_OFFSET, position.y, position.width - EditorGUIUtility.labelWidth + GUILib.VALUE_FIELD_LABEL_OFFSET - GUILib.GetSmallTextureVRAMWidth(prop), position.height);
 
             EditorGUI.BeginChangeCheck();
             curve = EditorGUI.CurveField(border_position, curve);
