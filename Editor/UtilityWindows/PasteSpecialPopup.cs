@@ -67,7 +67,7 @@ namespace Thry.ThryEditor
                     var foldoutRect = new Rect(rect.x, rect.y, rect.width, rect.height);
                     var toggleRect = new Rect(rect.x + 16f, rect.y, 14f, rect.height);
                     var labelRect = new Rect(rect.x + 32f, rect.y, rect.width - 32f, rect.height);
-                    EditorGUI.LabelField(rect, GUIContent.none, Styles.dropdownHeader);
+                    EditorGUI.LabelField(rect, GUIContent.none, Styles.flatHeader);
                     
                     IsEnabled = EditorGUI.Toggle(toggleRect, GUIContent.none, IsEnabled);
                     IsExpanded = EditorGUI.Foldout(foldoutRect, IsExpanded, string.Empty, true);
@@ -79,10 +79,11 @@ namespace Thry.ThryEditor
                     EditorGUILayout.EndHorizontal();
                     if(IsExpanded)
                     {
-                        EditorGUI.indentLevel++;
-                        foreach(var child in children)
-                            child.DrawUI();
-                        EditorGUI.indentLevel--;
+                        using (new GUILib.IndentScope(1))
+                        {
+                            foreach(var child in children)
+                                child.DrawUI();
+                        }
                     }
                 }
             }

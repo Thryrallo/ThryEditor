@@ -839,10 +839,10 @@ namespace Thry.ThryEditor
                 }
                 if(structure.Count > 0)
                 {
-                    Rect r = GUILayoutUtility.GetRect(new GUIContent(), Styles.dropdownHeader);
-                    r.x = EditorGUI.indentLevel * 15;
+                    Rect r = GUILayoutUtility.GetRect(new GUIContent(), Styles.flatHeader);
+                    r.x = GUILib.IndentToPixels(EditorGUI.indentLevel);
                     r.width -= r.x;
-                    GUI.Box(r, name, Styles.dropdownHeader);
+                    GUI.Box(r, name, Styles.flatHeader);
                     if (Event.current.type == EventType.Repaint)
                     {
                         var toggleRect = new Rect(r.x + 4f, r.y + 2f, 13f, 13f);
@@ -855,12 +855,13 @@ namespace Thry.ThryEditor
                     }
                     if (isOpen)
                     {
-                        EditorGUI.indentLevel += 1;
-                        foreach (PresetStruct struc in structure)
+                        using (new GUILib.IndentScope(1))
                         {
-                            struc.StructGUI(popupGUI);
+                            foreach (PresetStruct struc in structure)
+                            {
+                                struc.StructGUI(popupGUI);
+                            }
                         }
-                        EditorGUI.indentLevel -= 1;
                     }
                 }
                 

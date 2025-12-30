@@ -358,15 +358,18 @@ namespace Thry.ThryEditor
             if (MyShaderUI.IsLockedMaterial)
                 EditorGUI.BeginDisabledGroup(!(IsAnimatable && (IsAnimated || IsRenaming)) && !IsExemptFromLockedDisabling);
 
-            int oldIndentLevel = EditorGUI.indentLevel;
-            if (!useEditorIndent)
-                EditorGUI.indentLevel = XOffset + 1;
+            using (useEditorIndent ? null : new GUILib.PropertyIndentScope(XOffset))
+            {
 
             if (_customDecoratorRects != null && _doCustomDrawLogic)
             {
                 for (int i = 0; i < _customDecoratorRects.Length; i++)
                 {
-                    _customDecoratorRects[i] = EditorGUILayout.GetControlRect(false, GUILayout.Height(_customDecorators[i].GetPropertyHeight(MaterialProperty, content.text, MyMaterialEditor)));
+                    float decoratorHeight = _customDecorators[i].GetPropertyHeight(MaterialProperty, content.text, MyMaterialEditor);
+                    if (decoratorHeight > 0)
+                        _customDecoratorRects[i] = EditorGUILayout.GetControlRect(false, GUILayout.Height(decoratorHeight));
+                    else
+                        _customDecoratorRects[i] = new Rect();
                 }
             }
 
@@ -377,8 +380,10 @@ namespace Thry.ThryEditor
             }
             else if (_doDrawTwoFields)
             {
-                Rect r = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
-                float labelWidth = (r.width - EditorGUIUtility.labelWidth) / 2; ;
+                Rect r = useEditorIndent 
+                    ? EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight)
+                    : GUILib.GetPropertyRect(XOffset, EditorGUIUtility.singleLineHeight);
+                float labelWidth = (r.width - EditorGUIUtility.labelWidth) / 2;
                 r.width -= labelWidth;
                 MyMaterialEditor.ShaderProperty(r, this.MaterialProperty, content);
 
@@ -391,13 +396,17 @@ namespace Thry.ThryEditor
             }
             else if (_doForceIntoOneLine)
             {
-                MyMaterialEditor.ShaderProperty(GUILayoutUtility.GetRect(content, Styles.vectorPropertyStyle), this.MaterialProperty, content);
+                Rect r = useEditorIndent
+                    ? EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight)
+                    : GUILib.GetPropertyRect(XOffset, EditorGUIUtility.singleLineHeight);
+                MyMaterialEditor.ShaderProperty(r, this.MaterialProperty, content);
             }
             else if (_doCustomHeightOffset)
             {
-                MyMaterialEditor.ShaderProperty(
-                    GUILayoutUtility.GetRect(EditorGUIUtility.currentViewWidth, MyMaterialEditor.GetPropertyHeight(this.MaterialProperty, content.text) + _customHeightOffset)
-                    , this.MaterialProperty, content);
+                float propHeight = MyMaterialEditor.GetPropertyHeight(this.MaterialProperty, content.text) + _customHeightOffset;
+                Rect r = EditorGUILayout.GetControlRect(false, propHeight);
+                if (!useEditorIndent) r = GUILib.AdjustPropertyRect(r, XOffset);
+                MyMaterialEditor.ShaderProperty(r, this.MaterialProperty, content);
             }
             else if (rect != null)
             {
@@ -417,7 +426,13 @@ namespace Thry.ThryEditor
             }
             else
             {
-                MyMaterialEditor.ShaderProperty(this.MaterialProperty, content);
+                float propHeight = MyMaterialEditor.GetPropertyHeight(this.MaterialProperty, content.text);
+                Rect r;
+                if (useEditorIndent)
+                    r = EditorGUILayout.GetControlRect(false, propHeight == -2 ? 0 : propHeight);
+                else
+                    r = GUILib.GetPropertyRect(XOffset, propHeight);
+                MyMaterialEditor.ShaderProperty(r, this.MaterialProperty, content);
             }
 
             if (_customDecorators != null && _doCustomDrawLogic)
@@ -436,7 +451,8 @@ namespace Thry.ThryEditor
                 AutomaticAnimatedMarking();
             }
 
-            EditorGUI.indentLevel = oldIndentLevel;
+            } // end PropertyIndentScope
+
             if (rect == null) DrawingData.LastGuiObjectRect = GUILayoutUtility.GetLastRect();
             else DrawingData.LastGuiObjectRect = rect.Value;
             if (MyShaderUI.IsLockedMaterial)

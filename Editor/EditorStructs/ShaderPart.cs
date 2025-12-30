@@ -170,6 +170,12 @@ namespace Thry.ThryEditor
         public int ShaderPropertyId { protected set; get; } = -1;
         public int ShaderPropertyIndex { protected set; get; } = -1;
         private string[] ShaderPropertyAttributes = null;
+        
+        /// <summary>
+        /// Additional property names that should be checked when determining if this property is at default value.
+        /// Used by multi-property drawers like ThryMultiFloatButtons.
+        /// </summary>
+        public string[] AdditionalDefaultCheckProperties { get; set; }
         public Shader MyShader { protected set; get; } = null;
         public MaterialEditor MyMaterialEditor { protected set; get; } = null;
 
@@ -365,6 +371,30 @@ namespace Thry.ThryEditor
                             break;
                     }
                     _isPropertyValueDefault = _isPropertyValueDefault.Value && !MaterialProperty.hasMixedValue;
+                    
+                    // Check additional properties (for multi-property drawers like ThryMultiFloatButtons)
+                    if (_isPropertyValueDefault.Value && AdditionalDefaultCheckProperties != null)
+                    {
+                        foreach (var propName in AdditionalDefaultCheckProperties)
+                        {
+                            if (string.IsNullOrEmpty(propName)) continue;
+                            if (MyShaderUI?.PropertyDictionary != null && 
+                                MyShaderUI.PropertyDictionary.TryGetValue(propName, out var otherProp))
+                            {
+                                // Temporarily clear AdditionalDefaultCheckProperties to avoid infinite recursion
+                                var savedAdditional = otherProp.AdditionalDefaultCheckProperties;
+                                otherProp.AdditionalDefaultCheckProperties = null;
+                                
+                                if (!otherProp.IsPropertyValueDefault)
+                                {
+                                    _isPropertyValueDefault = false;
+                                    otherProp.AdditionalDefaultCheckProperties = savedAdditional;
+                                    break;
+                                }
+                                otherProp.AdditionalDefaultCheckProperties = savedAdditional;
+                            }
+                        }
+                    }
                 }
                 return _isPropertyValueDefault.Value;
             }
@@ -1088,7 +1118,30 @@ namespace Thry.ThryEditor
 
         void ResetMaterialProperties()
         {
-            MaterialProperty prop = MaterialProperty;
+            ResetSingleProperty(this);
+            
+            // Also reset additional properties (for multi-property drawers like ThryMultiFloatButtons)
+            if (AdditionalDefaultCheckProperties != null)
+            {
+                foreach (var propName in AdditionalDefaultCheckProperties)
+                {
+                    if (string.IsNullOrEmpty(propName)) continue;
+                    if (MyShaderUI?.PropertyDictionary != null && 
+                        MyShaderUI.PropertyDictionary.TryGetValue(propName, out var otherProp))
+                    {
+                        ResetSingleProperty(otherProp);
+                        // Invalidate the other property's cached default value check
+                        otherProp.CheckForValueChange();
+                    }
+                }
+            }
+            
+            RaisePropertyValueChanged();
+        }
+        
+        static void ResetSingleProperty(ShaderPart shaderPart)
+        {
+            MaterialProperty prop = shaderPart.MaterialProperty;
             Shader shader = ShaderEditor.Active.Shader;
 #if UNITY_6000_2_OR_NEWER
             switch (prop.propertyType)
@@ -1139,7 +1192,6 @@ namespace Thry.ThryEditor
                     prop.textureScaleAndOffset = new Vector4(1, 1, 0, 0);
                     break;
             }
-            RaisePropertyValueChanged();
         }
 #endif
 
