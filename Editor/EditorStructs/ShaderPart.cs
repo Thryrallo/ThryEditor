@@ -1156,28 +1156,28 @@ namespace Thry.ThryEditor
                 case MaterialProperty.PropType.Float:
                 case MaterialProperty.PropType.Range:
 #endif
-                    prop.floatValue = shader.GetPropertyDefaultFloatValue(ShaderPropertyIndex);
+                    prop.floatValue = shader.GetPropertyDefaultFloatValue(shaderPart.ShaderPropertyIndex);
                     break;
 #if UNITY_6000_2_OR_NEWER
                 case UnityEngine.Rendering.ShaderPropertyType.Vector:
 #else
                 case MaterialProperty.PropType.Vector:
 #endif
-                    prop.vectorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
+                    prop.vectorValue = shader.GetPropertyDefaultVectorValue(shaderPart.ShaderPropertyIndex);
                     break;
 #if UNITY_6000_2_OR_NEWER
                 case UnityEngine.Rendering.ShaderPropertyType.Color:
 #else
                 case MaterialProperty.PropType.Color:
 #endif
-                    prop.colorValue = shader.GetPropertyDefaultVectorValue(ShaderPropertyIndex);
+                    prop.colorValue = shader.GetPropertyDefaultVectorValue(shaderPart.ShaderPropertyIndex);
                     break;
 #if UNITY_6000_2_OR_NEWER
                 case UnityEngine.Rendering.ShaderPropertyType.Int:
 #else
                 case MaterialProperty.PropType.Int:
 #endif
-                    prop.intValue = shader.GetPropertyDefaultIntValue(ShaderPropertyIndex);
+                    prop.intValue = shader.GetPropertyDefaultIntValue(shaderPart.ShaderPropertyIndex);
                     break;
 #if UNITY_6000_2_OR_NEWER
                 case UnityEngine.Rendering.ShaderPropertyType.Texture:

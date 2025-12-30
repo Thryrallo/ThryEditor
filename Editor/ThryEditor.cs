@@ -220,6 +220,9 @@ namespace Thry
             if (HasThryHideInInspectorAttribute(p))
                 return ThryPropertyType.hidden_property;
 
+#if UNITY_6000_2_OR_NEWER
+            if (flags == UnityEngine.Rendering.ShaderPropertyFlags.HideInInspector)
+#else
             if (flags == MaterialProperty.PropFlags.HideInInspector)
 #endif
             {
