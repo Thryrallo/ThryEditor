@@ -312,11 +312,18 @@ namespace Thry.ThryEditor
             }
         }
 
-        public static void CheckAPICompatibility()
+        public static ApiCompatibilityLevel CheckAPICompatibility()
         {
-            ApiCompatibilityLevel level = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
+            ApiCompatibilityLevel level =
+#if UNITY_6000_0_OR_NEWER
+                PlayerSettings.GetApiCompatibilityLevel(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Standalone));
+#else
+                PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
+#endif
             if (level == ApiCompatibilityLevel.NET_2_0_Subset)
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
+
+            return level;
         }
 
         public static void CheckDrawingDll()
@@ -382,8 +389,10 @@ namespace Thry.ThryEditor
             Config.OnCompile();
             TrashHandler.EmptyThryTrash();
 
-            UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
-            UnityFixer.CheckDrawingDll(); //check that drawing.dll is imported
+            ApiCompatibilityLevel APILevel = UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
+
+            if (APILevel != ApiCompatibilityLevel.NET_Standard_2_0 && APILevel != ApiCompatibilityLevel.NET_Standard)
+                UnityFixer.CheckDrawingDll(); //check that drawing.dll is imported, not for NET_Standard
         }
     }
 
