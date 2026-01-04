@@ -187,13 +187,8 @@ namespace Thry.ThryEditor
             Debug.Log(propertyMaterials["_EnableGrabpass"].Length);
             MaterialProperty test = _materialProperties.Where(p => p.name == "_EnableGrabpass").First();
             Debug.Log(test.displayName);
-#if UNITY_6000_2_OR_NEWER
-            Debug.Log(test.propertyType);
-            Debug.Log(test.propertyFlags);
-#else
-            Debug.Log(test.type);
-            Debug.Log(test.flags);
-#endif
+            Debug.Log(test.GetPropertyType());
+            Debug.Log(test.GetPropertyFlags());
             Shader s = (test.targets[0] as Material).shader;
             Debug.Log(string.Join(",", s.GetPropertyAttributes(s.FindPropertyIndex(test.name))));
         }

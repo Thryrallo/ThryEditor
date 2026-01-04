@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -15,27 +16,16 @@ namespace Thry.ThryEditor
         public bool Execute(MaterialProperty p, Material[] targets)
         {
             if (
-#if UNITY_6000_2_OR_NEWER
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Float && p.floatValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int && p.intValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Range && p.floatValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Color && p.colorValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Vector && p.vectorValue.ToString() == value) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue == null) == (value == "0"))) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && ((p.textureValue != null) == (value == "1"))) ||
-                (p.propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture && (p.textureValue != null && p.textureValue.name == value))
-#else
-                (p.type == MaterialProperty.PropType.Float && p.floatValue.ToString() == value) ||
+                (p.GetPropertyType() == ShaderPropertyType.Float && p.floatValue.ToString() == value) ||
 #if UNITY_2022_1_OR_NEWER
-                (p.type == MaterialProperty.PropType.Int && p.intValue.ToString() == value) ||
+                (p.GetPropertyType() == ShaderPropertyType.Int && p.intValue.ToString() == value) ||
 #endif
-                (p.type == MaterialProperty.PropType.Range && p.floatValue.ToString() == value) ||
-                (p.type == MaterialProperty.PropType.Color && p.colorValue.ToString() == value) ||
-                (p.type == MaterialProperty.PropType.Vector && p.vectorValue.ToString() == value) ||
-                (p.type == MaterialProperty.PropType.Texture && ((p.textureValue == null) == (value == "0"))) ||
-                (p.type == MaterialProperty.PropType.Texture && ((p.textureValue != null) == (value == "1"))) ||
-                (p.type == MaterialProperty.PropType.Texture && (p.textureValue != null && p.textureValue.name == value))
-#endif
+                (p.GetPropertyType() == ShaderPropertyType.Range && p.floatValue.ToString() == value) ||
+                (p.GetPropertyType() == ShaderPropertyType.Color && p.colorValue.ToString() == value) ||
+                (p.GetPropertyType() == ShaderPropertyType.Vector && p.vectorValue.ToString() == value) ||
+                (p.GetPropertyType() == ShaderPropertyType.Texture && ((p.textureValue == null) == (value == "0"))) ||
+                (p.GetPropertyType() == ShaderPropertyType.Texture && ((p.textureValue != null) == (value == "1"))) ||
+                (p.GetPropertyType() == ShaderPropertyType.Texture && (p.textureValue != null && p.textureValue.name == value))
             )
             {
                 ;

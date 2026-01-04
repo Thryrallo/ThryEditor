@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor.Helpers
 {
@@ -102,7 +103,7 @@ namespace Thry.ThryEditor.Helpers
 
             for (int i = 0; i < s.GetPropertyCount(); i++)
             {
-                if (s.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Float)
+                if (s.GetPropertyType(i) == ShaderPropertyType.Float)
                 {
                     string prop = s.GetPropertyName(i);
                     List<string> keywords = null;
@@ -113,7 +114,7 @@ namespace Thry.ThryEditor.Helpers
                     else
                         list.Add((prop, keywords));
                 }
-                else if (s.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                else if (s.GetPropertyType(i) == ShaderPropertyType.Texture)
                 {
                     string prop = s.GetPropertyName(i);
                     string textureKeyword = GetPropTextureKeywordFromAttributes(s, prop);

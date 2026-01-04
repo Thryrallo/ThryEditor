@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -183,12 +184,8 @@ namespace Thry.ThryEditor
         public static void SetNumber(this MaterialProperty prop, float value)
         {
 #if UNITY_2022_1_OR_NEWER
-#if UNITY_6000_2_OR_NEWER
-            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
-#else
-            if(prop.type == MaterialProperty.PropType.Int)
-#endif
-            prop.intValue = (int)value;
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
+                prop.intValue = (int)value;
             else
 #endif
                 prop.floatValue = value;
@@ -197,12 +194,8 @@ namespace Thry.ThryEditor
         public static float GetNumber(this MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-#if UNITY_6000_2_OR_NEWER
-            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
-#else
-            if(prop.type == MaterialProperty.PropType.Int)
-#endif
-            return prop.intValue;
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
+                return prop.intValue;
             else
 #endif  
                 return prop.floatValue;
@@ -212,11 +205,7 @@ namespace Thry.ThryEditor
         {
 #if UNITY_2022_1_OR_NEWER
             MaterialProperty prop = MaterialEditor.GetMaterialProperty(new UnityEngine.Object[] { mat }, name);
-#if UNITY_6000_2_OR_NEWER
-            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
-#else
-            if(prop.type == MaterialProperty.PropType.Int)
-#endif
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
                 mat.SetInteger(name, (int)value);
             else
 #endif
@@ -226,15 +215,29 @@ namespace Thry.ThryEditor
         public static float GetNumber(this Material mat, MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-#if UNITY_6000_2_OR_NEWER
-            if(prop.propertyType == UnityEngine.Rendering.ShaderPropertyType.Int)
-#else
-            if(prop.type == MaterialProperty.PropType.Int)
-#endif
-            return mat.GetInt(prop.name);
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
+                return mat.GetInt(prop.name);
             else
 #endif
                 return mat.GetFloat(prop.name);
+        }
+
+        public static ShaderPropertyType GetPropertyType(this MaterialProperty prop)
+        {
+#if UNITY_6000_2_OR_NEWER
+            return prop.propertyType;
+#else
+            return (ShaderPropertyType)prop.type;
+#endif
+        }
+
+        public static ShaderPropertyFlags GetPropertyFlags(this MaterialProperty prop)
+        {
+#if UNITY_6000_2_OR_NEWER
+            return prop.propertyFlags;
+#else
+            return (ShaderPropertyFlags)prop.flags;
+#endif
         }
 
         /// <summary>
@@ -288,6 +291,33 @@ namespace Thry.ThryEditor
             return ShaderOptimizer.IsMaterialLocked(material);
         }
     }
+
+#if !UNITY_2019_3_OR_NEWER
+    public enum ShaderPropertyType
+    {
+        Color,
+        Vector,
+        Float,
+        Range,
+        Texture,
+        Int
+    }
+
+    [Flags]
+    public enum ShaderPropertyFlags
+    {
+        None = 0,
+        HideInInspector = 1,
+        PerRendererData = 2,
+        NoScaleOffset = 4,
+        Normal = 8,
+        HDR = 0x10,
+        Gamma = 0x20,
+        NonModifiableTextureData = 0x40,
+        MainTexture = 0x80,
+        MainColor = 0x100
+    }
+#endif
 
     public class UnityFixer
     {

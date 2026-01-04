@@ -2,6 +2,7 @@ using System;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -92,25 +93,12 @@ namespace Thry.ThryEditor
                             }
                             return 0f;
                         }
-#if UNITY_6000_2_OR_NEWER
-                        switch (prop.propertyType)
-#else
-                        switch (prop.type)
-#endif
+                        switch (prop.GetPropertyType())
                         {
-#if UNITY_6000_2_OR_NEWER
-                            case UnityEngine.Rendering.ShaderPropertyType.Float:
-                            case UnityEngine.Rendering.ShaderPropertyType.Range:
-#else
-                            case MaterialProperty.PropType.Float:
-                            case MaterialProperty.PropType.Range:
-#endif
+                            case ShaderPropertyType.Float:
+                            case ShaderPropertyType.Range:
                                 return prop.floatValue;
-#if UNITY_6000_2_OR_NEWER
-                            case UnityEngine.Rendering.ShaderPropertyType.Texture:
-#else
-                            case MaterialProperty.PropType.Texture:
-#endif
+                            case ShaderPropertyType.Texture:
                                 return prop.textureValue != null ? prop.textureValue.name : "null";
                             default:
                                 return prop.GetNumber();

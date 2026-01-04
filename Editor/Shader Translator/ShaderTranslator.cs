@@ -7,6 +7,7 @@ using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
 namespace Thry.ThryEditor.ShaderTranslations
@@ -42,19 +43,10 @@ namespace Thry.ThryEditor.ShaderTranslations
                 if(editor.PropertyDictionary.TryGetValue(trans.Target, out ShaderProperty targetProp))
                 {
                     SerializedProperty p;
-#if UNITY_6000_2_OR_NEWER
-                    switch(targetProp.MaterialProperty.propertyType)
-#else
-                    switch(targetProp.MaterialProperty.type)
-#endif
+                    switch(targetProp.MaterialProperty.GetPropertyType())
                     {
-#if UNITY_6000_2_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Float:
-                        case UnityEngine.Rendering.ShaderPropertyType.Range:
-#else
-                        case MaterialProperty.PropType.Float:
-                        case MaterialProperty.PropType.Range:
-#endif
+                        case ShaderPropertyType.Float:
+                        case ShaderPropertyType.Range:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Floats", trans.Origin);
                             if(p != null)
                             {
@@ -79,11 +71,7 @@ namespace Thry.ThryEditor.ShaderTranslations
                             }
                             break;
 #if UNITY_2022_1_OR_NEWER
-#if UNITY_6000_2_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Int:
-#else
-                        case MaterialProperty.PropType.Int:
-#endif
+                        case ShaderPropertyType.Int:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Ints", trans.Origin);
                             if(p != null)
                             {
@@ -125,27 +113,15 @@ namespace Thry.ThryEditor.ShaderTranslations
                             }
                             break;
 #endif
-#if UNITY_6000_2_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Vector:
-#else
-                        case MaterialProperty.PropType.Vector:
-#endif
+                        case ShaderPropertyType.Vector:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
                             if(p != null) editor.PropertyDictionary[trans.Target].VectorValue = p.FindPropertyRelative("second").vector4Value;
                             break;
-#if UNITY_6000_2_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Color:
-#else
-                        case MaterialProperty.PropType.Color:
-#endif
+                        case ShaderPropertyType.Color:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_Colors", trans.Origin);
                             if(p != null) editor.PropertyDictionary[trans.Target].ColorValue = p.FindPropertyRelative("second").colorValue;
                             break;
-#if UNITY_6000_2_OR_NEWER
-                        case UnityEngine.Rendering.ShaderPropertyType.Texture:
-#else
-                        case MaterialProperty.PropType.Texture:
-#endif
+                        case ShaderPropertyType.Texture:
                             p = GetProperty(serializedMaterial, "m_SavedProperties.m_TexEnvs", trans.Origin);
                             if(p != null)
                             {
@@ -242,30 +218,16 @@ namespace Thry.ThryEditor.ShaderTranslations
         {
             if (!editor.PropertyDictionary.TryGetValue(propertyName, out var prop))
                 return;
-#if UNITY_6000_2_OR_NEWER
-            switch(prop.MaterialProperty.propertyType)
-#else
-            switch(prop.MaterialProperty.type)
-#endif
+            switch(prop.MaterialProperty.GetPropertyType())
             {
-#if UNITY_6000_2_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Float:
-#else
-                case MaterialProperty.PropType.Float:
-#endif
-#if UNITY_6000_2_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Int:
-#elif UNITY_2021_1_OR_NEWER
-                case MaterialProperty.PropType.Int:
+                case ShaderPropertyType.Float:
+#if UNITY_2021_1_OR_NEWER
+                case ShaderPropertyType.Int:
 #endif
                     prop.MaterialProperty.SetNumber(value);
                     break;
                     // If our property is 0f, clear texture
-#if UNITY_6000_2_OR_NEWER
-                case UnityEngine.Rendering.ShaderPropertyType.Texture:
-#else
-                case MaterialProperty.PropType.Texture:
-#endif
+                case ShaderPropertyType.Texture:
                     if(Convert.ToInt32(value) == 0)
                         prop.MaterialProperty.textureValue = null;
                     break;

@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor.Decorators
 {
@@ -32,11 +33,7 @@ namespace Thry.ThryEditor.Decorators
 		private void UpdateKeyword(MaterialProperty prop, MaterialEditor editor)
 		{
 			if (prop == null) return;
-#if UNITY_6000_2_OR_NEWER
-			if (prop.propertyType != UnityEngine.Rendering.ShaderPropertyType.Texture) return;
-#else
-			if (prop.type != MaterialProperty.PropType.Texture) return;
-#endif
+			if (prop.GetPropertyType() != ShaderPropertyType.Texture) return;
 			if (editor?.targets == null) return;
 
 			string keyword = GetKeywordName(prop);

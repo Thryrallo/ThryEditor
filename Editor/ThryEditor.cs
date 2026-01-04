@@ -13,6 +13,7 @@ using JetBrains.Annotations;
 using Thry.ThryEditor.Helpers;
 using Thry.ThryEditor.Drawers;
 using static Thry.ThryEditor.UnityHelper;
+using UnityEngine.Rendering;
 
 namespace Thry
 {
@@ -404,10 +405,10 @@ namespace Thry
                     case ThryPropertyType.hidden_property:
                     case ThryPropertyType.shown_property:
 #if UNITY_6000_2_OR_NEWER
-                        if (props[i].propertyType == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                        if (props[i].propertyType == ShaderPropertyType.Texture)
                             NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].propertyFlags.HasFlag(UnityEngine.Rendering.ShaderPropertyFlags.NoScaleOffset) == false, false, i);
 #else
-                        if (props[i].type == MaterialProperty.PropType.Texture)
+                        if (props[i].GetPropertyType() == ShaderPropertyType.Texture)
                             NewProperty = new ShaderTextureProperty(this, props[i], displayName, offset, optionsRaw, props[i].flags.HasFlag(MaterialProperty.PropFlags.NoScaleOffset) == false, false, i);
 #endif
                         else
@@ -1143,7 +1144,7 @@ namespace Thry
 
                             // If the prop is float (toggle), GetFloat works; if it's texture, use has texture
                             int propIndex = m.shader.FindPropertyIndex(prop);
-                            if (propIndex >= 0 && m.shader.GetPropertyType(propIndex) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            if (propIndex >= 0 && m.shader.GetPropertyType(propIndex) == ShaderPropertyType.Texture)
                             {
                                 bool hasTexture = m.GetTexture(prop) != null;
                                 if (hasTexture) m.EnableKeyword(keyword); else m.DisableKeyword(keyword);

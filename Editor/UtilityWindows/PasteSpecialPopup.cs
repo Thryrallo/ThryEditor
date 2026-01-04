@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -153,55 +154,27 @@ namespace Thry.ThryEditor
         {
             using(new EditorGUI.DisabledScope(true))
             {
-#if UNITY_6000_2_OR_NEWER
-                switch(prop.propertyType)
-#else
-                switch(prop.type)
-#endif
+                switch(prop.GetPropertyType())
                 {
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Color:
-#else
-                    case MaterialProperty.PropType.Color:
-#endif
+                    case ShaderPropertyType.Color:
                         EditorGUILayout.ColorField(prop.colorValue, propertyWidth);
                         break;
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Vector:
-#else
-                    case MaterialProperty.PropType.Vector:
-#endif
+                    case ShaderPropertyType.Vector:
                         EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue, propertyWidth);
                         break;
 #if UNITY_2021_1_OR_NEWER
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Int:
-#else
-                    case MaterialProperty.PropType.Int:
-#endif
+                    case ShaderPropertyType.Int:
                         EditorGUILayout.IntField(prop.intValue, propertyWidth);
                         break;
 #endif
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Range:
-#else
-                    case MaterialProperty.PropType.Range:
-#endif
+                    case ShaderPropertyType.Range:
                         EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
                             propertyWidth);
                         break;
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Float:
-#else
-                    case MaterialProperty.PropType.Float:
-#endif
+                    case ShaderPropertyType.Float:
                         EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
                         break;
-#if UNITY_6000_2_OR_NEWER
-                    case UnityEngine.Rendering.ShaderPropertyType.Texture:
-#else
-                    case MaterialProperty.PropType.Texture:
-#endif
+                    case ShaderPropertyType.Texture:
                         EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true, propertyWidth);
                         break;
                     default:
