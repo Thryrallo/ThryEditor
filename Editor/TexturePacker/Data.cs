@@ -18,13 +18,16 @@ namespace Thry.ThryEditor.TexturePacker
 
     public static class SaveTypeExtensions
     {
-        public static string GetTypeEnding(this SaveType type) => type switch
+        public static string GetTypeEnding(this SaveType type)
         {
-            SaveType.PNG => ".png",
-            SaveType.JPG => ".jpg",
-            SaveType.EXR => ".exr",
-            _ => ".png"
-        };
+            switch (type)
+            {
+                case SaveType.PNG: return ".png";
+                case SaveType.JPG: return ".jpg";
+                case SaveType.EXR: return ".exr";
+                default: return ".png";
+            }
+        }
     }
     
     public abstract class IPackerUIDragable
@@ -97,7 +100,20 @@ namespace Thry.ThryEditor.TexturePacker
 
         public override int GetHashCode()
         {
+#if NET_STANDARD_2_1
             return HashCode.Combine(SplitVerticalHorizontal, X, Y, Loops, Strength, TwoPass, GrayScale, Channels);
+#else
+            int hash = 17;
+            hash = hash * 23 + SplitVerticalHorizontal.GetHashCode();
+            hash = hash * 23 + EqualityComparer<float[]>.Default.GetHashCode(X);
+            hash = hash * 23 + EqualityComparer<float[]>.Default.GetHashCode(Y);
+            hash = hash * 23 + Loops.GetHashCode();
+            hash = hash * 23 + Strength.GetHashCode();
+            hash = hash * 23 + TwoPass.GetHashCode();
+            hash = hash * 23 + GrayScale.GetHashCode();
+            hash = hash * 23 + EqualityComparer<bool[]>.Default.GetHashCode(Channels);
+            return hash;
+#endif
         }
     }
 
@@ -167,7 +183,18 @@ namespace Thry.ThryEditor.TexturePacker
 
         public override int GetHashCode()
         {
+#if UNITY_2021_2_OR_NEWER
             return HashCode.Combine(Brightness, Hue, Saturation, Rotation, Scale, Offset);
+#else
+            int hash = 17;
+            hash = hash * 23 + Brightness.GetHashCode();
+            hash = hash * 23 + Hue.GetHashCode();
+            hash = hash * 23 + Saturation.GetHashCode();
+            hash = hash * 23 + Rotation.GetHashCode();
+            hash = hash * 23 + Scale.GetHashCode();
+            hash = hash * 23 + Offset.GetHashCode();
+            return hash;
+#endif
         }
     }
 

@@ -421,7 +421,11 @@ namespace Thry.ThryEditor
 
             ApiCompatibilityLevel APILevel = UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
 
+#if UNITY_2021_2_OR_NEWER
             if (APILevel != ApiCompatibilityLevel.NET_Standard_2_0 && APILevel != ApiCompatibilityLevel.NET_Standard)
+#else
+            if (APILevel != ApiCompatibilityLevel.NET_Standard_2_0)
+#endif
                 UnityFixer.CheckDrawingDll(); //check that drawing.dll is imported, not for NET_Standard
         }
     }
