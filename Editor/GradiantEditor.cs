@@ -26,7 +26,7 @@ namespace Thry.ThryEditor
             GradientEditor window = (GradientEditor)EditorWindow.GetWindow(typeof(GradientEditor));
             window.titleContent = new GUIContent("Gradient '" +prop.name +"' of '"+ prop.targets[0].name + "'");
             window._colorSpace = colorSpace;
-            window._privious_preview_texture = prop.textureValue;
+            window._previous_property_texture = prop.textureValue;
             window._prop = prop;
             window._data = data;
             window._show_texture_options = show_texture_options;
@@ -51,7 +51,7 @@ namespace Thry.ThryEditor
         private bool _show_texture_options = true;
 
         private bool _gradient_has_been_edited = false;
-        private Texture _privious_preview_texture;
+        private Texture _previous_property_texture;
 
         private static TextureData LoadTextureSettings(MaterialProperty prop, TextureData predefinedTextureSettings, bool force_texture_options)
         {
@@ -89,50 +89,65 @@ namespace Thry.ThryEditor
             {
                 if (_data.PreviewTexture.GetType() == typeof(Texture2D))
                 {
-                    string file_name = GradientFileName(_data.Gradient, _prop.targets[0].name);
-                    Texture2D toSave = (Texture2D)_data.PreviewTexture;
-                    if(_colorSpace == ColorSpace.Gamma)
-                    {
-                        toSave = TextureHelper.ConvertToGamma(toSave);
-                    }
-                    Texture saved = TextureHelper.SaveTextureAsPNG(toSave, PATH.TEXTURES_DIR+"/Gradients/" + file_name, textureSettings);
-                    file_name = Regex.Replace(file_name, @"\.((png)|(jpg))$", "");
-                    FileHelper.SaveValueToFile(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(saved)), Parser.Serialize(_data.Gradient), PATH.GRADIENT_INFO_FILE);
-                    _prop.textureValue = saved;
-                    // change importer settings
-                    TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GetAssetPath(saved));
-                     importer.textureCompression = TextureImporterCompression.CompressedHQ;
-                     importer.sRGBTexture = _colorSpace != ColorSpace.Linear;
-                    if(Config.Instance.gradientEditorCompressionOverwrite != TextureImporterFormat.Automatic)
-                    {
-                        importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
-                        {
-                            name = "PC",
-                            overridden = true,
-                            maxTextureSize = 2048,
-                            format = Config.Instance.gradientEditorCompressionOverwrite
-                        });
-                    }
-                    importer.SaveAndReimport();
+                    string file_name = GetGradientSavefileName(_data.Gradient, _prop.targets[0].name);
+                    Texture2D finalGradientTexture = GetFinalGradientTexture();
+                    Texture savedAsset = TextureHelper.SaveTextureAsPNG(finalGradientTexture, PATH.TEXTURES_DIR+"/Gradients/" + file_name, textureSettings);
+                    FileHelper.SaveValueToFile(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(savedAsset)), Parser.Serialize(_data.Gradient), PATH.GRADIENT_INFO_FILE);
+                    ApplyImporterSettings(savedAsset);
+                    _prop.textureValue = savedAsset;
                 }
+            }else
+            {
+                if (_prop != null) _prop.textureValue = _previous_property_texture;
             }
             _data.UsePreviewTexture = false;
             ShaderEditor.RepaintActive();
         }
 
-        private string GradientFileName(Gradient gradient, string material_name)
+        private Texture2D GetFinalGradientTexture()
         {
-            string hash = "" + gradient.GetHashCode();
-            return GradientFileName(hash, material_name);
+            if(_colorSpace == ColorSpace.Gamma)
+            {
+                return TextureHelper.ConvertToGamma(_data.PreviewTexture as Texture2D);
+            }
+            return _data.PreviewTexture as Texture2D;
         }
 
-        private string GradientFileName(string hash, string material_name)
+        private string GetGradientSavefileName(Gradient gradient, string material_name)
+        {
+            string hash = "" + gradient.GetHashCode();
+            return GetGradientSavefileName(hash, material_name);
+        }
+
+        private string GetGradientSavefileName(string hash, string material_name)
         {
             Config config = Config.Instance;
             string ret = config.gradient_name;
             ret = Regex.Replace(ret, "<hash>", hash);
             ret = Regex.Replace(ret, "<material>", material_name);
             return ret;
+        }
+
+        private void ApplyImporterSettings(Texture texture)
+        {
+            TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.sRGBTexture = _colorSpace != ColorSpace.Linear;
+            #if VRC_SDK_VRCSDK3
+                importer.streamingMipmaps = true;
+                importer.mipmapFilter = TextureImporterMipFilter.KaiserFilter;
+            #endif
+            if(Config.Instance.gradientEditorCompressionOverwrite != TextureImporterFormat.Automatic)
+            {
+                importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings()
+                {
+                    name = "PC",
+                    overridden = true,
+                    maxTextureSize = 2048,
+                    format = Config.Instance.gradientEditorCompressionOverwrite
+                });
+            }
+            importer.SaveAndReimport();
         }
 
         private void InitSomeStuff()
@@ -219,8 +234,8 @@ namespace Thry.ThryEditor
 
         private new void DiscardChanges()
         {
-            _prop.textureValue = _privious_preview_texture;
-            SetGradient(TextureHelper.GetGradient(_privious_preview_texture));
+            _prop.textureValue = _previous_property_texture;
+            SetGradient(TextureHelper.GetGradient(_previous_property_texture));
             _gradient_has_been_edited = false;
             ShaderEditor.RepaintActive();
         }
