@@ -294,34 +294,39 @@ namespace Thry.ThryEditor.Helpers
 
         public static Texture2DArray PathsToTexture2DArray(string[] paths)
         {
+            return PathsToTexture2DArray(paths, out _);
+        }
+
+        public static Texture2DArray PathsToTexture2DArray(string[] paths, out float fps)
+        {
+            fps = 0;
             if (paths.Length == 0)
                 return null;
             if (paths[0].EndsWith(".gif"))
             {
-                return Converter.GifToTextureArray(paths[0]);
+                return Converter.GifToTextureArray(paths[0], out fps);
             }
             else
             {
-#if SYSTEM_DRAWING
-                Texture2D[] wew = paths.Where(p => AssetDatabase.GetMainAssetTypeAtPath(p).IsAssignableFrom(typeof(Texture2D))).Select(p => AssetDatabase.LoadAssetAtPath<Texture2D>(p)).ToArray();
-                Array.Sort(wew, (UnityEngine.Object one, UnityEngine.Object two) => one.name.CompareTo(two.name));
-                Selection.objects = wew;
-                Texture2DArray texture2DArray = new Texture2DArray(wew[0].width, wew[0].height, wew.Length, wew[0].format, true);
+                Texture2D[] textures = paths.Where(p => AssetDatabase.GetMainAssetTypeAtPath(p).IsAssignableFrom(typeof(Texture2D))).Select(p => AssetDatabase.LoadAssetAtPath<Texture2D>(p)).ToArray();
+                Array.Sort(textures, (UnityEngine.Object one, UnityEngine.Object two) => one.name.CompareTo(two.name));
+                Selection.objects = textures;
+                Texture2DArray texture2DArray = new Texture2DArray(textures[0].width, textures[0].height, textures.Length, textures[0].format, true);
 
-                string assetPath = AssetDatabase.GetAssetPath(wew[0]);
+                string assetPath = AssetDatabase.GetAssetPath(textures[0]);
                 assetPath = assetPath.Remove(assetPath.LastIndexOf('/')) + "/Texture2DArray.asset";
 
-                for (int i = 0; i < wew.Length; i++)
+                for (int i = 0; i < textures.Length; i++)
                 {
-                    for (int m = 0; m < wew[i].mipmapCount; m++)
+                    for (int m = 0; m < textures[i].mipmapCount; m++)
                     {
-                        Graphics.CopyTexture(wew[i], 0, m, texture2DArray, i, m);
+                        Graphics.CopyTexture(textures[i], 0, m, texture2DArray, i, m);
                     }
                 }
 
-                texture2DArray.anisoLevel = wew[0].anisoLevel;
-                texture2DArray.wrapModeU = wew[0].wrapModeU;
-                texture2DArray.wrapModeV = wew[0].wrapModeV;
+                texture2DArray.anisoLevel = textures[0].anisoLevel;
+                texture2DArray.wrapModeU = textures[0].wrapModeU;
+                texture2DArray.wrapModeV = textures[0].wrapModeV;
                 texture2DArray.Apply(false, true);
 
                 AssetDatabase.CreateAsset(texture2DArray, assetPath);
@@ -329,9 +334,6 @@ namespace Thry.ThryEditor.Helpers
 
                 Selection.activeObject = texture2DArray;
                 return texture2DArray;
-#else
-                return null;
-#endif
             }
         }
 
@@ -353,11 +355,17 @@ namespace Thry.ThryEditor.Helpers
 
         public static Texture2DArray GifToTextureArray(string path)
         {
-            List<Texture2D> array = GetGifFrames(path);
+            return GifToTextureArray(path, out _);
+        }
+
+        public static Texture2DArray GifToTextureArray(string path, out float fps)
+        {
+            fps = 0;
+            List<Texture2D> array = GetGifFrames(path, out fps);
             if (array == null) return null;
             if (array.Count == 0)
             {
-                Debug.LogError("Gif is empty or System.Drawing is not working. Try right clicking and reimporting the \"Thry Editor\" Folder!");
+                Debug.LogError("Failed to decode GIF or GIF is empty.");
                 return null;
             }
             Texture2DArray arrayTexture = Textre2DArrayToAsset(array.ToArray());
@@ -368,96 +376,77 @@ namespace Thry.ThryEditor.Helpers
 
         public static List<Texture2D> GetGifFrames(string path)
         {
-            List<Texture2D> gifFrames = new List<Texture2D>();
-#if SYSTEM_DRAWING
-            var gifImage = System.Drawing.Image.FromFile(path);
-            var dimension = System.Drawing.Imaging.FrameDimension.Time;
+            return GetGifFrames(path, out _);
+        }
 
-            int width = Mathf.ClosestPowerOfTwo(gifImage.Width - 1);
-            int height = Mathf.ClosestPowerOfTwo(gifImage.Height - 1);
+        public static List<Texture2D> GetGifFrames(string path, out float fps)
+        {
+            fps = 0;
+            var gifFrames = new List<Texture2D>();
+            var decoder = new GifDecoder();
+            var frames = decoder.Decode(path);
 
+            if (frames == null || frames.Count == 0)
+                return gifFrames;
+
+            // Calculate average FPS from frame delays (delay is in centiseconds)
+            int totalDelay = 0;
+            foreach (var frame in frames)
+                totalDelay += frame.Delay > 0 ? frame.Delay : 10; // Default 10cs (100ms) if not specified
+            float avgDelaySeconds = (totalDelay / (float)frames.Count) / 100f;
+            fps = avgDelaySeconds > 0 ? 1f / avgDelaySeconds : 10f;
+
+            int targetWidth = Mathf.ClosestPowerOfTwo(decoder.Width - 1);
+            int targetHeight = Mathf.ClosestPowerOfTwo(decoder.Height - 1);
             bool hasAlpha = false;
 
-            int frameCount = gifImage.GetFrameCount(dimension);
-
-            float totalProgress = frameCount * width;
-            for (int i = 0; i < frameCount; i++)
+            for (int i = 0; i < frames.Count; i++)
             {
-                gifImage.SelectActiveFrame(dimension, i);
-                var ogframe = new System.Drawing.Bitmap(gifImage.Width, gifImage.Height);
-                var canvas = System.Drawing.Graphics.FromImage(ogframe);
-                canvas.DrawImage(gifImage, canvas.RenderingOrigin);
-                var frame = ResizeBitmap(ogframe, width, height);
-
-                Texture2D frameTexture = new Texture2D(frame.Width, frame.Height);
-
-                float doneProgress = i * width;
-                for (int x = 0; x < frame.Width; x++)
+                if (EditorUtility.DisplayCancelableProgressBar("From GIF", $"Processing frame {i + 1}/{frames.Count}", (float)i / frames.Count))
                 {
-                    if (x % 20 == 0)
-                        if (EditorUtility.DisplayCancelableProgressBar("From GIF", "Frame " + i + ": " + (int)((float)x / width * 100) + "%", (doneProgress + x + 1) / totalProgress))
-                        {
-                            EditorUtility.ClearProgressBar();
-                            return null;
-                        }
+                    EditorUtility.ClearProgressBar();
+                    return null;
+                }
 
-                    for (int y = 0; y < frame.Height; y++)
+                var frame = frames[i];
+                var srcTexture = new Texture2D(frame.Width, frame.Height, TextureFormat.RGBA32, false);
+
+                // Flip Y and copy pixels
+                for (int y = 0; y < frame.Height; y++)
+                {
+                    for (int x = 0; x < frame.Width; x++)
                     {
-                        System.Drawing.Color sourceColor = frame.GetPixel(x, y);
-                        frameTexture.SetPixel(x, frame.Height - 1 - y, new UnityEngine.Color32(sourceColor.R, sourceColor.G, sourceColor.B, sourceColor.A));
-                        if (sourceColor.A < 255.0f)
-                        {
+                        var pixel = frame.Pixels[(frame.Height - 1 - y) * frame.Width + x];
+                        srcTexture.SetPixel(x, y, pixel);
+                        if (pixel.a < 255)
                             hasAlpha = true;
-                        }
                     }
                 }
+                srcTexture.Apply();
 
-                frameTexture.Apply();
-                gifFrames.Add(frameTexture);
+                // Resize to power of two
+                Texture2D resized = TextureHelper.Resize(srcTexture, targetWidth, targetHeight);
+                UnityEngine.Object.DestroyImmediate(srcTexture);
+
+                gifFrames.Add(resized);
             }
+
             EditorUtility.ClearProgressBar();
-            //Debug.Log("has alpha? " + hasAlpha);
-            for (int i = 0; i < frameCount; i++)
+
+            // Compress textures
+            for (int i = 0; i < gifFrames.Count; i++)
             {
-                EditorUtility.CompressTexture(gifFrames[i], hasAlpha ? TextureFormat.DXT5 : TextureFormat.DXT1, UnityEditor.TextureCompressionQuality.Normal);
+                EditorUtility.CompressTexture(gifFrames[i], hasAlpha ? TextureFormat.DXT5 : TextureFormat.DXT1, TextureCompressionQuality.Normal);
                 gifFrames[i].Apply(true, false);
             }
-#endif
+
             return gifFrames;
         }
-
-#if SYSTEM_DRAWING
-        public static System.Drawing.Bitmap ResizeBitmap(System.Drawing.Image image, int width, int height)
-        {
-            var destRect = new System.Drawing.Rectangle(0, 0, width, height);
-            var destImage = new System.Drawing.Bitmap(width, height);
-
-            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
-
-            using (var graphics = System.Drawing.Graphics.FromImage(destImage))
-            {
-                graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-
-                using (var wrapMode = new System.Drawing.Imaging.ImageAttributes())
-                {
-                    wrapMode.SetWrapMode(System.Drawing.Drawing2D.WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, System.Drawing.GraphicsUnit.Pixel, wrapMode);
-                }
-            }
-
-            return destImage;
-        }
-#endif
 
         private static Texture2DArray Textre2DArrayToAsset(Texture2D[] array)
         {
             Texture2DArray texture2DArray = new Texture2DArray(array[0].width, array[0].height, array.Length, array[0].format, true);
 
-#if SYSTEM_DRAWING
             for (int i = 0; i < array.Length; i++)
             {
                 for (int m = 0; m < array[i].mipmapCount; m++)
@@ -465,7 +454,6 @@ namespace Thry.ThryEditor.Helpers
                     UnityEngine.Graphics.CopyTexture(array[i], 0, m, texture2DArray, i, m);
                 }
             }
-#endif
 
             texture2DArray.anisoLevel = array[0].anisoLevel;
             texture2DArray.wrapModeU = array[0].wrapModeU;

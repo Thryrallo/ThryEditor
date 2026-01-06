@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using Thry.ThryEditor.Helpers;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor.Drawers
 {
@@ -20,7 +21,7 @@ namespace Thry.ThryEditor.Drawers
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
         {
-            if (prop.type != MaterialProperty.PropType.Vector)
+            if (prop.GetPropertyType() != ShaderPropertyType.Vector)
             {
                 EditorGUI.HelpBox(position, "[Curve4] requires a Vector property (stores 4 samples)", MessageType.Warning);
                 return;
@@ -43,16 +44,16 @@ namespace Thry.ThryEditor.Drawers
             Rect labelRect = new Rect(
                 position.x,
                 position.y,
-                EditorGUIUtility.labelWidth - 15,
+                EditorGUIUtility.labelWidth - GUILib.VALUE_FIELD_LABEL_OFFSET,
                 position.height
             );
             EditorGUI.LabelField(labelRect, label);
 
             // Match Thry layout: draw within value area to avoid overlapping labels/columns
             Rect valueRect = new Rect(
-                position.x + EditorGUIUtility.labelWidth - 15,
+                position.x + EditorGUIUtility.labelWidth - GUILib.VALUE_FIELD_LABEL_OFFSET,
                 position.y,
-                position.width - EditorGUIUtility.labelWidth + 15 - GUILib.GetSmallTextureVRAMWidth(prop),
+                position.width - EditorGUIUtility.labelWidth + GUILib.VALUE_FIELD_LABEL_OFFSET - GUILib.GetSmallTextureVRAMWidth(prop),
                 position.height
             );
 

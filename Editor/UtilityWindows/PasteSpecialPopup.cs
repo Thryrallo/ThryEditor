@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -67,7 +68,7 @@ namespace Thry.ThryEditor
                     var foldoutRect = new Rect(rect.x, rect.y, rect.width, rect.height);
                     var toggleRect = new Rect(rect.x + 16f, rect.y, 14f, rect.height);
                     var labelRect = new Rect(rect.x + 32f, rect.y, rect.width - 32f, rect.height);
-                    EditorGUI.LabelField(rect, GUIContent.none, Styles.dropdownHeader);
+                    EditorGUI.LabelField(rect, GUIContent.none, Styles.flatHeader);
                     
                     IsEnabled = EditorGUI.Toggle(toggleRect, GUIContent.none, IsEnabled);
                     IsExpanded = EditorGUI.Foldout(foldoutRect, IsExpanded, string.Empty, true);
@@ -79,10 +80,11 @@ namespace Thry.ThryEditor
                     EditorGUILayout.EndHorizontal();
                     if(IsExpanded)
                     {
-                        EditorGUI.indentLevel++;
-                        foreach(var child in children)
-                            child.DrawUI();
-                        EditorGUI.indentLevel--;
+                        using (new GUILib.IndentScope(1))
+                        {
+                            foreach(var child in children)
+                                child.DrawUI();
+                        }
                     }
                 }
             }
@@ -152,27 +154,27 @@ namespace Thry.ThryEditor
         {
             using(new EditorGUI.DisabledScope(true))
             {
-                switch(prop.type)
+                switch(prop.GetPropertyType())
                 {
-                    case MaterialProperty.PropType.Color:
+                    case ShaderPropertyType.Color:
                         EditorGUILayout.ColorField(prop.colorValue, propertyWidth);
                         break;
-                    case MaterialProperty.PropType.Vector:
+                    case ShaderPropertyType.Vector:
                         EditorGUILayout.Vector4Field(GUIContent.none, prop.vectorValue, propertyWidth);
                         break;
 #if UNITY_2021_1_OR_NEWER
-                    case MaterialProperty.PropType.Int:
+                    case ShaderPropertyType.Int:
                         EditorGUILayout.IntField(prop.intValue, propertyWidth);
                         break;
 #endif
-                    case MaterialProperty.PropType.Range:
+                    case ShaderPropertyType.Range:
                         EditorGUILayout.Slider(GUIContent.none, prop.floatValue, prop.rangeLimits.x, prop.rangeLimits.y,
                             propertyWidth);
                         break;
-                    case MaterialProperty.PropType.Float:
+                    case ShaderPropertyType.Float:
                         EditorGUILayout.FloatField(prop.floatValue, propertyWidth);
                         break;
-                    case MaterialProperty.PropType.Texture:
+                    case ShaderPropertyType.Texture:
                         EditorGUILayout.ObjectField(prop.textureValue, typeof(Texture), true, propertyWidth);
                         break;
                     default:

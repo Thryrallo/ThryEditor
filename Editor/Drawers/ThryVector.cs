@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor.Drawers
 {
@@ -7,7 +8,7 @@ namespace Thry.ThryEditor.Drawers
 	{
 		public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
 		{
-			if (prop.type != MaterialProperty.PropType.Vector)
+			if (prop.GetPropertyType() != ShaderPropertyType.Vector)
 			{
 				EditorGUI.HelpBox(position, "[ThryVector] requires a Vector property", MessageType.Warning);
 				return;

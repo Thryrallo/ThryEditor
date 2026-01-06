@@ -3,7 +3,6 @@ namespace Thry.ThryEditor
     public class PATH
     {
         public const string TEXTURES_DIR = "Assets/textures";
-        public const string RSP_NEEDED_PATH = "Assets/";
 
         public const string DELETING_DIR = "Thry/trash";
 
@@ -20,11 +19,6 @@ namespace Thry.ThryEditor
         public const string SETTINGS_MESSAGE_URL = "https://raw.githubusercontent.com/Thryrallo/ThryEditorStreamedResources/main/Messages/settingsWindow.json";
         public const string COUNT_PROJECT = "http://thryeditor.thryrallo.de/count_project.php";
         public const string COUNT_USER = "http://thryeditor.thryrallo.de/count_user.php";
-    }
-
-    public class DEFINE_SYMBOLS
-    {
-        public const string IMAGING_EXISTS = "IMAGING_DLL_EXISTS";
     }
 
     public class RESOURCE_GUID

@@ -3,6 +3,7 @@ using System.Linq;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -21,7 +22,8 @@ namespace Thry.ThryEditor
         {
             MyShaderUI.CurrentProperty = this;
             EditorGUI.BeginChangeCheck();
-            Rect position = GUILayoutUtility.GetRect(content, Styles.dropdownHeader);
+            Rect position = GUILayoutUtility.GetRect(content, Styles.flatHeader);
+            GUILayout.Space(-2); // Reduce spacing between headers
             DrawHeader(position, content);
             Rect headerRect = DrawingData.LastGuiObjectHeaderRect;
             if (IsExpanded)
@@ -37,14 +39,14 @@ namespace Thry.ThryEditor
                     }
                 }
 
-                EditorGUILayout.Space();
+                GUILayout.Space(2);
                 EditorGUI.BeginDisabledGroup(DoDisableChildren);
                 foreach (ShaderPart part in Children)
                 {
                     part.Draw();
                 }
                 EditorGUI.EndDisabledGroup();
-                EditorGUILayout.Space();
+                GUILayout.Space(2);
             }
             if (EditorGUI.EndChangeCheck())
                 UpdateLinkedMaterials();
@@ -57,15 +59,14 @@ namespace Thry.ThryEditor
             PropertyOptions options = ShaderEditor.Active.CurrentProperty.Options;
             Event e = Event.current;
 
-            int xOffset_total = XOffset * 15 + 15;
-
-            position.width -= xOffset_total - position.x;
-            position.x = xOffset_total;
+            float rightEdge = position.x + position.width;
+            position.x = GUILib.IndentToPixels(XOffset) + GUILib.EDGE_PADDING;
+            position.width = rightEdge - position.x - (GUILib.EDGE_PADDING - GUILib.UNITY_HEADER_RIGHT_MARGIN);
 
             DrawingData.LastGuiObjectHeaderRect = position;
             DrawBoxAndContent(position, e, label, options);
 
-            Rect arrowRect = new Rect(position) { height = 18 };
+            Rect arrowRect = new Rect(position) { y = position.y + 1, height = 18 };
             FoldoutArrow(arrowRect, e);
 
             HandleToggleInput(position);
@@ -77,7 +78,7 @@ namespace Thry.ThryEditor
             {
                 if(ShaderEditor.Active.Locale.EditInUI)
                 {
-                    GUI.Box(rect, new GUIContent("", MaterialProperty.name), Styles.dropdownHeader);
+                    GUI.Box(rect, new GUIContent("", MaterialProperty.name), Styles.flatHeader);
                     Rect translationRect = new Rect(rect);
                     translationRect.x += 40;
                     translationRect.y += 1;
@@ -94,7 +95,7 @@ namespace Thry.ThryEditor
                 }
                 else
                 {
-                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.dropdownHeader);
+                    GUI.Box(rect, new GUIContent("     " + content.text, content.tooltip), Styles.flatHeader);
                     if (Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                     {
                         Rect noteRect = new Rect(rect);
@@ -107,12 +108,12 @@ namespace Thry.ThryEditor
                 DrawIcons(rect, options, e);
 
                 Rect togglePropertyRect = new Rect(rect);
-                togglePropertyRect.x += 5;
-                togglePropertyRect.y += 1;
-                togglePropertyRect.height -= 4;
-                togglePropertyRect.width = GUI.skin.font.fontSize * 3;
+                togglePropertyRect.x += 20;
+                togglePropertyRect.y += 3;
+                togglePropertyRect.height -= 6;
+                togglePropertyRect.width = 15;
                 float fieldWidth = EditorGUIUtility.fieldWidth;
-                EditorGUIUtility.fieldWidth = 20;
+                EditorGUIUtility.fieldWidth = 15;
                 ShaderProperty refProperty = ShaderEditor.Active.PropertyDictionary[options.reference_property];
 
                 EditorGUI.BeginChangeCheck();
@@ -130,7 +131,7 @@ namespace Thry.ThryEditor
             }
             else
             {
-                GUI.Box(rect, content, Styles.dropdownHeader);
+                GUI.Box(rect, content, Styles.flatHeader);
                 if(Config.Instance.showNotes && !string.IsNullOrWhiteSpace(Note))
                 {
                     Rect noteRect = new Rect(rect);
@@ -151,7 +152,7 @@ namespace Thry.ThryEditor
         private void DrawIcons(Rect rect, PropertyOptions options, Event e)
         {
             Rect buttonRect = new Rect(rect);
-            buttonRect.y += 1;
+            buttonRect.y += 2;
             buttonRect.height -= 4;
             buttonRect.width = buttonRect.height;
 
@@ -337,7 +338,7 @@ namespace Thry.ThryEditor
                     ThryLogger.LogDetail("ShaderHeader", $"Pasting* '{property.Content.text}' of {ShaderEditor.Active.Materials[0].name}");
                     int undoGroup = Undo.GetCurrentGroup();
 
-                    var propsToIgnore = new HashSet<MaterialProperty.PropType> { MaterialProperty.PropType.Texture };
+                    var propsToIgnore = new HashSet<ShaderPropertyType> { ShaderPropertyType.Texture };
                     property.CopyFrom(Mediator.copy_part, skipPropertyTypes: propsToIgnore);
                     property.UpdateLinkedMaterials();
 

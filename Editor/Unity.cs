@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -62,7 +63,6 @@ namespace Thry.ThryEditor
 
         public static void RemoveDefineSymbols()
         {
-            UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, false);
         }
 
         public static void RepaintEditorWindow<T>() where T : EditorWindow
@@ -183,7 +183,7 @@ namespace Thry.ThryEditor
         public static void SetNumber(this MaterialProperty prop, float value)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
                 prop.intValue = (int)value;
             else
 #endif
@@ -193,7 +193,7 @@ namespace Thry.ThryEditor
         public static float GetNumber(this MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
                 return prop.intValue;
             else
 #endif  
@@ -204,7 +204,7 @@ namespace Thry.ThryEditor
         {
 #if UNITY_2022_1_OR_NEWER
             MaterialProperty prop = MaterialEditor.GetMaterialProperty(new UnityEngine.Object[] { mat }, name);
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
                 mat.SetInteger(name, (int)value);
             else
 #endif
@@ -214,11 +214,29 @@ namespace Thry.ThryEditor
         public static float GetNumber(this Material mat, MaterialProperty prop)
         {
 #if UNITY_2022_1_OR_NEWER
-            if(prop.type == MaterialProperty.PropType.Int)
+            if(prop.GetPropertyType() == ShaderPropertyType.Int)
                 return mat.GetInt(prop.name);
             else
 #endif
                 return mat.GetFloat(prop.name);
+        }
+
+        public static ShaderPropertyType GetPropertyType(this MaterialProperty prop)
+        {
+#if UNITY_6000_2_OR_NEWER
+            return prop.propertyType;
+#else
+            return (ShaderPropertyType)prop.type;
+#endif
+        }
+
+        public static ShaderPropertyFlags GetPropertyFlags(this MaterialProperty prop)
+        {
+#if UNITY_6000_2_OR_NEWER
+            return prop.propertyFlags;
+#else
+            return (ShaderPropertyFlags)prop.flags;
+#endif
         }
 
         /// <summary>
@@ -273,85 +291,47 @@ namespace Thry.ThryEditor
         }
     }
 
-    public class UnityFixer
+#if !UNITY_2019_3_OR_NEWER
+    public enum ShaderPropertyType
     {
-        public const string RSP_DRAWING_DLL_CODE = "\n-r:System.Drawing.dll";
-        public const string RSP_DRAWING_DLL_DEFINE_CODE = "\n-define:SYSTEM_DRAWING";
-        public const string RSP_DRAWING_DLL_REGEX = @"-r:\s*System\.Drawing\.dll";
-        public const string RSP_DRAWING_DLL_DEFINE_REGEX = @"-define:\s*SYSTEM_DRAWING";
+        Color,
+        Vector,
+        Float,
+        Range,
+        Texture,
+        Int
+    }
 
-
-#if UNITY_2019_1_OR_NEWER
-        public const string RSP_FILENAME = "csc";
-#else
-        public const string RSP_FILENAME = "mcs";
+    [Flags]
+    public enum ShaderPropertyFlags
+    {
+        None = 0,
+        HideInInspector = 1,
+        PerRendererData = 2,
+        NoScaleOffset = 4,
+        Normal = 8,
+        HDR = 0x10,
+        Gamma = 0x20,
+        NonModifiableTextureData = 0x40,
+        MainTexture = 0x80,
+        MainColor = 0x100
+    }
 #endif
 
-        public static void OnAssetDeleteCheckDrawingDLL(string[] deleted_assets)
+    public class UnityFixer
+    {
+        public static ApiCompatibilityLevel CheckAPICompatibility()
         {
-            foreach (string path in deleted_assets)
-            {
-                if (path == PATH.RSP_NEEDED_PATH + RSP_FILENAME + ".rsp" || path.EndsWith("/System.Drawing.dll"))
-                    UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, false, true);
-            }
-        }
-
-        public static void CheckAPICompatibility()
-        {
-            ApiCompatibilityLevel level = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
+            ApiCompatibilityLevel level =
+#if UNITY_6000_0_OR_NEWER
+                PlayerSettings.GetApiCompatibilityLevel(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Standalone));
+#else
+                PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Standalone);
+#endif
             if (level == ApiCompatibilityLevel.NET_2_0_Subset)
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
-        }
 
-        public static void CheckDrawingDll()
-        {
-            string path = PATH.RSP_NEEDED_PATH + RSP_FILENAME + ".rsp";
-            bool refresh = true;
-            bool containsDLL = DoesRSPContainDrawingDLL(path);
-            bool containsDefine = DoesRSPContainDrawingDLLDefine(path);
-            if (!containsDefine && !containsDLL)
-            {
-                AddDrawingDLLToRSP(path);
-                AddDrawingDLLDefineToRSP(path);
-            }
-            else if (!containsDLL)
-                AddDrawingDLLToRSP(path);
-            else if (!containsDefine)
-                AddDrawingDLLDefineToRSP(path);
-            else
-                refresh = false;
-            if (refresh)
-                AssetDatabase.ImportAsset(path);
-        }
-
-
-
-        private static bool DoesRSPContainDrawingDLL(string rsp_path)
-        {
-            if (!File.Exists(rsp_path)) return false;
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_REGEX).Success);
-        }
-
-        private static bool DoesRSPContainDrawingDLLDefine(string rsp_path)
-        {
-            if (!File.Exists(rsp_path)) return false;
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_DEFINE_REGEX).Success);
-        }
-
-        private static void AddDrawingDLLToRSP(string rsp_path)
-        {
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            rsp_data += RSP_DRAWING_DLL_CODE;
-            FileHelper.WriteStringToFile(rsp_data, rsp_path);
-        }
-
-        private static void AddDrawingDLLDefineToRSP(string rsp_path)
-        {
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            rsp_data += RSP_DRAWING_DLL_DEFINE_CODE;
-            FileHelper.WriteStringToFile(rsp_data, rsp_path);
+            return level;
         }
     }
 
@@ -367,7 +347,6 @@ namespace Thry.ThryEditor
             TrashHandler.EmptyThryTrash();
 
             UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
-            UnityFixer.CheckDrawingDll(); //check that drawing.dll is imported
         }
     }
 
@@ -381,7 +360,6 @@ namespace Thry.ThryEditor
 
         private static void AssetsDeleted(string[] assets)
         {
-            UnityFixer.OnAssetDeleteCheckDrawingDLL(assets);
             if (CheckForEditorRemove(assets))
             {
                 Debug.Log("[Thry] ShaderEditor is being deleted.");

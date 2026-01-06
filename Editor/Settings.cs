@@ -400,9 +400,9 @@ namespace Thry.ThryEditor
 
         private static bool Foldout(GUIContent content, bool expanded)
         {
-            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.dropdownHeader);
+            var rect = GUILayoutUtility.GetRect(16f + 20f, 22f, Styles.flatHeader);
             rect = EditorGUI.IndentedRect(rect);
-            GUI.Box(rect, content, Styles.dropdownHeader);
+            GUI.Box(rect, content, Styles.flatHeader);
             var toggleRect = new Rect(rect.x + 4f, rect.y + 2f, 13f, 13f);
             Event e = Event.current;
             if (e.type == EventType.Repaint)
