@@ -63,7 +63,6 @@ namespace Thry.ThryEditor
 
         public static void RemoveDefineSymbols()
         {
-            UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, false);
         }
 
         public static void RepaintEditorWindow<T>() where T : EditorWindow
@@ -321,27 +320,6 @@ namespace Thry.ThryEditor
 
     public class UnityFixer
     {
-        public const string RSP_DRAWING_DLL_CODE = "\n-r:System.Drawing.dll";
-        public const string RSP_DRAWING_DLL_DEFINE_CODE = "\n-define:SYSTEM_DRAWING";
-        public const string RSP_DRAWING_DLL_REGEX = @"-r:\s*System\.Drawing\.dll";
-        public const string RSP_DRAWING_DLL_DEFINE_REGEX = @"-define:\s*SYSTEM_DRAWING";
-
-
-#if UNITY_2019_1_OR_NEWER
-        public const string RSP_FILENAME = "csc";
-#else
-        public const string RSP_FILENAME = "mcs";
-#endif
-
-        public static void OnAssetDeleteCheckDrawingDLL(string[] deleted_assets)
-        {
-            foreach (string path in deleted_assets)
-            {
-                if (path == PATH.RSP_NEEDED_PATH + RSP_FILENAME + ".rsp" || path.EndsWith("/System.Drawing.dll"))
-                    UnityHelper.SetDefineSymbol(DEFINE_SYMBOLS.IMAGING_EXISTS, false, true);
-            }
-        }
-
         public static ApiCompatibilityLevel CheckAPICompatibility()
         {
             ApiCompatibilityLevel level =
@@ -354,57 +332,6 @@ namespace Thry.ThryEditor
                 PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Standalone, ApiCompatibilityLevel.NET_2_0);
 
             return level;
-        }
-
-        public static void CheckDrawingDll()
-        {
-            string path = PATH.RSP_NEEDED_PATH + RSP_FILENAME + ".rsp";
-            bool refresh = true;
-            bool containsDLL = DoesRSPContainDrawingDLL(path);
-            bool containsDefine = DoesRSPContainDrawingDLLDefine(path);
-            if (!containsDefine && !containsDLL)
-            {
-                AddDrawingDLLToRSP(path);
-                AddDrawingDLLDefineToRSP(path);
-            }
-            else if (!containsDLL)
-                AddDrawingDLLToRSP(path);
-            else if (!containsDefine)
-                AddDrawingDLLDefineToRSP(path);
-            else
-                refresh = false;
-            if (refresh)
-                AssetDatabase.ImportAsset(path);
-        }
-
-
-
-        private static bool DoesRSPContainDrawingDLL(string rsp_path)
-        {
-            if (!File.Exists(rsp_path)) return false;
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_REGEX).Success);
-        }
-
-        private static bool DoesRSPContainDrawingDLLDefine(string rsp_path)
-        {
-            if (!File.Exists(rsp_path)) return false;
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            return (Regex.Match(rsp_data, RSP_DRAWING_DLL_DEFINE_REGEX).Success);
-        }
-
-        private static void AddDrawingDLLToRSP(string rsp_path)
-        {
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            rsp_data += RSP_DRAWING_DLL_CODE;
-            FileHelper.WriteStringToFile(rsp_data, rsp_path);
-        }
-
-        private static void AddDrawingDLLDefineToRSP(string rsp_path)
-        {
-            string rsp_data = FileHelper.ReadFileIntoString(rsp_path);
-            rsp_data += RSP_DRAWING_DLL_DEFINE_CODE;
-            FileHelper.WriteStringToFile(rsp_data, rsp_path);
         }
     }
 
@@ -419,14 +346,7 @@ namespace Thry.ThryEditor
             Config.OnCompile();
             TrashHandler.EmptyThryTrash();
 
-            ApiCompatibilityLevel APILevel = UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
-
-#if UNITY_2021_2_OR_NEWER
-            if (APILevel != ApiCompatibilityLevel.NET_Standard_2_0 && APILevel != ApiCompatibilityLevel.NET_Standard)
-#else
-            if (APILevel != ApiCompatibilityLevel.NET_Standard_2_0)
-#endif
-                UnityFixer.CheckDrawingDll(); //check that drawing.dll is imported, not for NET_Standard
+            UnityFixer.CheckAPICompatibility(); //check that Net_2.0 is ApiLevel
         }
     }
 
@@ -440,7 +360,6 @@ namespace Thry.ThryEditor
 
         private static void AssetsDeleted(string[] assets)
         {
-            UnityFixer.OnAssetDeleteCheckDrawingDLL(assets);
             if (CheckForEditorRemove(assets))
             {
                 Debug.Log("[Thry] ShaderEditor is being deleted.");
