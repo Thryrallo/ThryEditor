@@ -3,7 +3,7 @@
     <ui:VisualElement class="space-horizontally padding-horizontal padding-vertical" style="flex-grow: 1;">
         <ui:VisualElement class="padding-vertical" style="flex-grow: 1; flex-direction: row;">
             <ui:Label tabindex="-1" text="Source Shader Name" parse-escape-sequences="false" display-tooltip-when-elided="false" enable-rich-text="false" style="-unity-text-align: middle-left;" />
-            <ui:EnumField type="Thry.ThryEditor.ShaderTranslations.ShaderNameMatchedModifications+ConditionOperator, ThryEditor" tooltip="Operation to match by" binding-path="conditionOperator" class="inline-label padding-horizontal" style="width: 90px;" />
+            <ui:EnumField type="Thry.ThryEditor.ShaderTranslations.ShaderNameMatchedModifications+ConditionOperator, ThryAssemblyDefinition" tooltip="Operation to match by" binding-path="conditionOperator" class="inline-label padding-horizontal" style="width: 90px;" />
             <ui:Toggle label="Not" binding-path="negateCondition" class="inline-label padding-horizontal" style="-unity-text-align: middle-left;" />
             <ui:TextField picking-mode="Ignore" name="sourceProperty" binding-path="shaderNameMatch" tooltip="Name of the source shader" class="padding-horizontal" style="flex-grow: 1; width: 30%;" />
         </ui:VisualElement>

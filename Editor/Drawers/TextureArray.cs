@@ -7,12 +7,19 @@ namespace Thry.ThryEditor.Drawers
     public class TextureArrayDrawer : MaterialPropertyDrawer
     {
         private string framesProperty;
+        private string fpsProperty;
 
         public TextureArrayDrawer() { }
 
         public TextureArrayDrawer(string framesProperty)
         {
             this.framesProperty = framesProperty;
+        }
+
+        public TextureArrayDrawer(string framesProperty, string fpsProperty)
+        {
+            this.framesProperty = framesProperty;
+            this.fpsProperty = fpsProperty;
         }
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -37,25 +44,34 @@ namespace Thry.ThryEditor.Drawers
         {
             string[] paths = DragAndDrop.paths;
             Texture2DArray tex;
+            float fps = 0;
             if (AssetDatabase.GetMainAssetTypeAtPath(paths[0]) != typeof(Texture2DArray))
-                tex = Converter.PathsToTexture2DArray(paths);
+                tex = Converter.PathsToTexture2DArray(paths, out fps);
             else
                 tex = AssetDatabase.LoadAssetAtPath<Texture2DArray>(paths[0]);
             prop.textureValue = tex;
-            UpdateFramesProperty(prop, shaderProperty, tex);
+            UpdateFramesProperty(shaderProperty, tex);
+            if (fps > 0)
+                UpdateFpsProperty(shaderProperty, fps);
             EditorGUIUtility.ExitGUI();
         }
 
-        private void UpdateFramesProperty(MaterialProperty prop, ShaderProperty shaderProperty, Texture2DArray tex)
+        private void UpdateFramesProperty(ShaderProperty shaderProperty, Texture2DArray tex)
         {
             if (framesProperty == null)
                 framesProperty = shaderProperty.Options.reference_property;
 
-            if (framesProperty != null)
-            {
-                if (ShaderEditor.Active.PropertyDictionary.ContainsKey(framesProperty))
-                    ShaderEditor.Active.PropertyDictionary[framesProperty].MaterialProperty.SetNumber(tex.depth);
-            }
+            if (framesProperty != null && ShaderEditor.Active.PropertyDictionary.ContainsKey(framesProperty))
+                ShaderEditor.Active.PropertyDictionary[framesProperty].MaterialProperty.SetNumber(tex.depth);
+        }
+
+        private void UpdateFpsProperty(ShaderProperty shaderProperty, float fps)
+        {
+            if (fpsProperty == null)
+                fpsProperty = shaderProperty.Options.fps_property;
+
+            if (fpsProperty != null && ShaderEditor.Active.PropertyDictionary.ContainsKey(fpsProperty))
+                ShaderEditor.Active.PropertyDictionary[fpsProperty].MaterialProperty.SetNumber(fps);
         }
 
         public override float GetPropertyHeight(MaterialProperty prop, string label, MaterialEditor editor)

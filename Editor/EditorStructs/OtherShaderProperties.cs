@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -14,9 +15,49 @@ namespace Thry.ThryEditor
             CustomStringTagID = "RenderQueue";
         }
 
+        static readonly string[] s_renderQueueNames = { "From Shader", "Geometry", "AlphaTest", "Transparent" };
+        static readonly int[] s_renderQueueValues = { -1, 2000, 2450, 3000 };
+
         protected override void DrawDefault()
         {
-            MyShaderUI.Editor.RenderQueueField();
+            Rect r = RectifiedLayout.GetPaddedRect(18);
+            int queue = MyShaderUI.Materials[0].renderQueue;
+            
+            using (new GUILib.IndentOverrideScope(0))
+            {
+                // Split rect: label on left, dropdown in middle, int field on right
+                float labelWidth = EditorGUIUtility.labelWidth;
+                float fieldWidth = 75;
+                float dropdownWidth = r.width - labelWidth - fieldWidth - 4;
+                
+                Rect labelRect = new Rect(r.x, r.y, labelWidth, r.height);
+                Rect dropdownRect = new Rect(r.x + labelWidth + 2, r.y, dropdownWidth - 2, r.height);
+                Rect intRect = new Rect(dropdownRect.xMax + 4, r.y, fieldWidth, r.height);
+                
+                EditorGUI.LabelField(labelRect, "Render Queue");
+                
+                // Dropdown for preset queues
+                int selectedIndex = System.Array.FindIndex(s_renderQueueValues, v => v == queue);
+                if (selectedIndex < 0) selectedIndex = 0; // Custom value, show "From Shader"
+                
+                EditorGUI.BeginChangeCheck();
+                int newIndex = EditorGUI.Popup(dropdownRect, selectedIndex, s_renderQueueNames);
+                if (EditorGUI.EndChangeCheck() && newIndex != selectedIndex)
+                {
+                    queue = s_renderQueueValues[newIndex];
+                    foreach (Material m in MyShaderUI.Materials)
+                        m.renderQueue = queue;
+                }
+                
+                // Int field for exact value
+                EditorGUI.BeginChangeCheck();
+                queue = EditorGUI.IntField(intRect, queue);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    foreach (Material m in MyShaderUI.Materials)
+                        m.renderQueue = queue;
+                }
+            }
         }
 
         public override object FetchPropertyValue()
@@ -27,19 +68,20 @@ namespace Thry.ThryEditor
         public override object PropertyDefaultValue => ShaderEditor.Active.Shader.renderQueue;
         public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.renderQueue == ShaderEditor.Active.Shader.renderQueue);
 
-        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             foreach (Material m in MyShaderUI.Materials) m.renderQueue = sourceM.renderQueue;
         }
-        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             foreach (Material m in targetsM) m.renderQueue = MyShaderUI.Materials[0].renderQueue;
         }
-        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material);
         }
-        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             this.CopyTo(targetPart.MaterialProperty.targets.Cast<Material>().ToArray());
         }
@@ -66,9 +108,14 @@ namespace Thry.ThryEditor
 
         protected override void DrawDefault()
         {
+            Rect r = RectifiedLayout.GetPaddedRect(18);
             string current = MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
             EditorGUI.BeginChangeCheck();
-            int selected = EditorGUILayout.Popup("VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
+            // Reset indent to 0 since our rect already has padding
+            int oldIndent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+            int selected = EditorGUI.Popup(r, "VRChat Fallback Shader", s_vRCFallbackOptionsValues.Select((f, i) => (f, i)).FirstOrDefault(f => f.f == current).i, s_vRCFallbackOptionsPopup);
+            EditorGUI.indentLevel = oldIndent;
             if (EditorGUI.EndChangeCheck())
             {
                 foreach (Material m in MyShaderUI.Materials)
@@ -96,21 +143,21 @@ namespace Thry.ThryEditor
         public override object PropertyDefaultValue => "None";
         public override bool IsPropertyValueDefault => MyShaderUI.Materials.All(m => m.GetTag("VRCFallback", false, "None") == "None");
 
-        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyFrom(Material sourceM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = sourceM.GetTag("VRCFallback", false, "None");
             foreach (Material m in MyShaderUI.Materials) m.SetOverrideTag("VRCFallback", value);
         }
-        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyTo(Material[] targetsM, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             string value = MyShaderUI.Materials[0].GetTag("VRCFallback", false, "None");
             foreach (Material m in targetsM) m.SetOverrideTag("VRCFallback", value);
         }
-        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyFrom(ShaderPart srcPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             this.CopyFrom(srcPart.MaterialProperty.targets[0] as Material, applyDrawers);
         }
-        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<MaterialProperty.PropType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
+        public override void CopyTo(ShaderPart targetPart, bool applyDrawers = true, bool deepCopy = true, bool copyReferenceProperties = true, HashSet<ShaderPropertyType> skipPropertyTypes = null, HashSet<string> skipPropertyNames = null)
         {
             this.CopyTo(targetPart.MaterialProperty.targets.Cast<Material>().ToArray(), applyDrawers);
         }
@@ -132,17 +179,17 @@ namespace Thry.ThryEditor
 
         protected override void DrawDefault()
         {
-            // internal reference is stored within MaterialEditor.m_Shader and can be null during lock/unlock
-            // MyShaderUI.Editor.serializedObject.FindProperty("m_Shader").objectReferenceValue
-            // never failed a null check in my tests, so try/catch it is - Dor
-            
-            try
+            Rect r = GUILib.GetPropertyRect(XOffset, EditorGUIUtility.singleLineHeight);
+            bool mixed = MyShaderUI.Materials.Any(m => m.enableInstancing != MyShaderUI.Materials[0].enableInstancing);
+            EditorGUI.showMixedValue = mixed;
+            EditorGUI.BeginChangeCheck();
+            bool enabled = EditorGUI.Toggle(r, new GUIContent("Enable GPU Instancing"), MyShaderUI.Materials[0].enableInstancing);
+            if (EditorGUI.EndChangeCheck())
             {
-                MyShaderUI.Editor.EnableInstancingField();
+                foreach (Material m in MyShaderUI.Materials)
+                    m.enableInstancing = enabled;
             }
-            catch (System.ArgumentNullException) // internal shader reference was null
-            {
-            }
+            EditorGUI.showMixedValue = false;
         }
     }
     public class GIProperty : ShaderProperty
@@ -171,8 +218,10 @@ namespace Thry.ThryEditor
         {
             if (mat == null)
                 throw new System.ArgumentNullException("mat");
-
-            mat.globalIlluminationFlags = FixupEmissiveFlag(mat.GetColor("_EmissionColor"), mat.globalIlluminationFlags);
+            Color matColor = Color.black;
+            if (mat.HasProperty("_EmissionColor") == true)
+                matColor = mat.GetColor("_EmissionColor");
+            mat.globalIlluminationFlags = FixupEmissiveFlag(matColor, mat.globalIlluminationFlags);
         }
 
         public static MaterialGlobalIlluminationFlags FixupEmissiveFlag(Color col, MaterialGlobalIlluminationFlags flags)
@@ -206,9 +255,10 @@ namespace Thry.ThryEditor
 
             EditorGUI.BeginChangeCheck();
 
-            // Show popup
+            // Show popup with proper positioning
+            Rect r = GUILib.GetPropertyRect(indent, EditorGUIUtility.singleLineHeight);
             EditorGUI.showMixedValue = isMixed;
-            giFlags = (MaterialGlobalIlluminationFlags)EditorGUILayout.IntPopup(lightmapEmissiveLabel, (int)giFlags, lightmapEmissiveStrings, lightmapEmissiveValues);
+            giFlags = (MaterialGlobalIlluminationFlags)EditorGUI.IntPopup(r, lightmapEmissiveLabel, (int)giFlags, lightmapEmissiveStrings, lightmapEmissiveValues);
             EditorGUI.showMixedValue = false;
 
             // Apply flags. But only the part that this tool modifies (RealtimeEmissive, BakedEmissive, None)

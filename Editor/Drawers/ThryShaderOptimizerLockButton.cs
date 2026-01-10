@@ -36,7 +36,7 @@ namespace Thry.ThryEditor.Drawers
             ShaderEditor.Active.IsLockedMaterial = shaderOptimizer.GetNumber() == 1;
             if (shaderOptimizer.hasMixedValue)
             {
-                if(GUILayout.Button(EditorLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length)))
+                if(RectifiedLayout.Button(EditorLocale.editor.Get("lockin_button_multi").ReplaceVariables(materialEditor.targets.Length)))
                 {
                     SaveChangeStack();
                     ShaderOptimizer.ToggleLockFromPropertyButton(shaderOptimizer);
@@ -73,7 +73,8 @@ namespace Thry.ThryEditor.Drawers
                 EditorGUI.BeginDisabledGroup(!Config.Instance.allowCustomLockingRenaming || ShaderEditor.Active.IsLockedMaterial);
                 EditorGUI.BeginChangeCheck();
                 EditorGUI.showMixedValue = ShaderEditor.Active.HasMixedCustomPropertySuffix;
-                ShaderEditor.Active.RenamedPropertySuffix = EditorGUILayout.TextField("Locked property suffix: ", ShaderEditor.Active.RenamedPropertySuffix);
+                Rect suffixRect = RectifiedLayout.GetPaddedRect(18);
+                ShaderEditor.Active.RenamedPropertySuffix = EditorGUI.TextField(suffixRect, "Locked property suffix: ", ShaderEditor.Active.RenamedPropertySuffix);
                 if (EditorGUI.EndChangeCheck())
                 {
                     // Make sure suffix that is saved is valid

@@ -45,9 +45,8 @@ namespace Thry.ThryEditor
         MaterialProperty[] _materialProperties = null;
         Vector2 _scrollPosition = Vector2.zero;
         bool _showMaterials = true;
-        Lazy<GUIStyle> LeftMargin = new Lazy<GUIStyle>(() => new GUIStyle() { margin = new RectOffset(30, 0, 0, 0) });
 
-        private void UpdateTargets(IEnumerable<Material> materials, bool add = false)
+        public void UpdateTargets(IEnumerable<Material> materials, bool add = false)
         {
             _materialList = (add ?
                 _materialList.Concat(materials) : // add
@@ -68,7 +67,7 @@ namespace Thry.ThryEditor
 
         private void OnGUI()
         {
-            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition, GUIStyle.none, GUI.skin.verticalScrollbar, GUILayout.ExpandWidth(true));
             _showMaterials = EditorGUILayout.Foldout(_showMaterials, "Materials");
 
             EditorGUI.BeginChangeCheck();
@@ -99,18 +98,16 @@ namespace Thry.ThryEditor
         {
             if (!_showMaterials) return;
 
-            using (new EditorGUILayout.VerticalScope(LeftMargin.Value))
+            for (int i = 0; i < _materialList.Count; i++) DrawMaterial(i);
+
+            using (new EditorGUILayout.HorizontalScope())
             {
-                for (int i = 0; i < _materialList.Count; i++) DrawMaterial(i);
+                GUILayout.Space(15);
+                if (GUILayout.Button("Add", GUILayout.Width(100))) _materialList.Add(null);
 
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("Add", GUILayout.Width(100))) _materialList.Add(null);
+                GUILayout.FlexibleSpace();
 
-                    GUILayout.FlexibleSpace();
-
-                    if (GUILayout.Button("Remove All", GUILayout.Width(100))) _materialList.Clear();
-                }
+                if (GUILayout.Button("Remove All", GUILayout.Width(100))) _materialList.Clear();
             }
         }
 
@@ -118,6 +115,7 @@ namespace Thry.ThryEditor
         {
             using (new EditorGUILayout.HorizontalScope())
             {
+                GUILayout.Space(15);
                 Material material = (Material)EditorGUILayout.ObjectField(_materialList[i], typeof(Material), false);
 
                 if (material != _materialList[i])
@@ -127,7 +125,7 @@ namespace Thry.ThryEditor
                     _materialList[i] = material;
                 }
 
-                if (GUILayout.Button("Remove", GUILayout.Width(100))) _materialList.RemoveAt(i);
+                if (GUILayout.Button("Remove", GUILayout.Width(60))) _materialList.RemoveAt(i);
             }
         }
 
@@ -141,14 +139,10 @@ namespace Thry.ThryEditor
             // Seperator
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
-            // Cursed but makes it render similar to the inspector
-            using (new EditorGUILayout.VerticalScope(LeftMargin.Value))
-            {
-                bool wideMode = EditorGUIUtility.wideMode;
-                EditorGUIUtility.wideMode = true;
-                _shaderEditor.OnGUI(_materialEditor, _materialProperties);
-                EditorGUIUtility.wideMode = wideMode;
-            }
+            bool wideMode = EditorGUIUtility.wideMode;
+            EditorGUIUtility.wideMode = true;
+            _shaderEditor.OnGUI(_materialEditor, _materialProperties);
+            EditorGUIUtility.wideMode = wideMode;
         }
 
         private void CreateShaderEditor()
@@ -193,8 +187,8 @@ namespace Thry.ThryEditor
             Debug.Log(propertyMaterials["_EnableGrabpass"].Length);
             MaterialProperty test = _materialProperties.Where(p => p.name == "_EnableGrabpass").First();
             Debug.Log(test.displayName);
-            Debug.Log(test.type);
-            Debug.Log(test.flags);
+            Debug.Log(test.GetPropertyType());
+            Debug.Log(test.GetPropertyFlags());
             Shader s = (test.targets[0] as Material).shader;
             Debug.Log(string.Join(",", s.GetPropertyAttributes(s.FindPropertyIndex(test.name))));
         }
