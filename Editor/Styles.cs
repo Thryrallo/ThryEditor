@@ -136,7 +136,7 @@ namespace Thry.ThryEditor
 					_label_property_note = new GUIStyle(EditorStyles.label)
 					{
 						alignment = TextAnchor.MiddleRight,
-						padding = new RectOffset(0, 0, 0, 4),
+						padding = new RectOffset(0, 0, 0, 0),
 						normal = new GUIStyleState { textColor = EditorGUIUtility.isProSkin ? new Color(1f, 1f, 1f, 0.6f) : new Color(0f, 0f, 0f, 1f) }
 					};
 				}
