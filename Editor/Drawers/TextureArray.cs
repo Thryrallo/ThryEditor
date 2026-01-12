@@ -53,6 +53,7 @@ namespace Thry.ThryEditor.Drawers
             UpdateFramesProperty(shaderProperty, tex);
             if (fps > 0)
                 UpdateFpsProperty(shaderProperty, fps);
+            ShaderEditor.RepaintActive();
             EditorGUIUtility.ExitGUI();
         }
 
