@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -118,7 +118,10 @@ namespace Thry.ThryEditor
             {
                 if (ar.Length > SelectedLanguage && SelectedLanguage > -1)
                 {
-                    return ar[SelectedLanguage] ?? defaultValue;
+                    // Treat empty translations as missing and fallback to the shader's English label.
+                    string value = ar[SelectedLanguage];
+                    if (string.IsNullOrEmpty(value)) return defaultValue;
+                    return value;
                 }
             }
             return defaultValue;
@@ -141,6 +144,9 @@ namespace Thry.ThryEditor
             {
                 _localizedStrings.Add(id, new string[Languages.Length]);
             }
+            // Normalize empty strings to null so they naturally fallback to English
+            if (string.IsNullOrEmpty(value)) value = null;
+
             ThryLogger.LogDetail($"{Languages[SelectedLanguage]}[{id}] => {value}");
             _localizedStrings[id][SelectedLanguage] = value;
         }
@@ -277,27 +283,77 @@ namespace Thry.ThryEditor
                 return s.Trim('"').Replace("“", "\"");
             }
 
+            static bool IsSourceHeader(string header)
+            {
+                if (string.IsNullOrWhiteSpace(header)) return false;
+                header = header.Trim();
+                return header.Equals("English", StringComparison.OrdinalIgnoreCase) || header.Equals("Source", StringComparison.OrdinalIgnoreCase) || header.Equals("Label", StringComparison.OrdinalIgnoreCase) || header.Equals("UI Label", StringComparison.OrdinalIgnoreCase) || header.Equals("Default", StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Minimal CSV Line Parser that respects quotes.
+            static List<string> SplitCsvLine(string line)
+            {
+                List<string> result = new List<string>();
+                if (line == null) return result;
+
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                bool inQuotes = false;
+                for (int i = 0; i < line.Length; i++)
+                {
+                    char c = line[i];
+                    if (c == '\"')
+                    {
+                        // Escaped quote ("" -> ")
+                        if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
+                        {
+                            sb.Append('\"');
+                            i++;
+                        }
+                        else inQuotes = !inQuotes;
+                    }
+                    else if (c == ',' && !inQuotes)
+                    {
+                        result.Add(sb.ToString());
+                        sb.Length = 0;
+                    }
+                    else sb.Append(c);
+                }
+                result.Add(sb.ToString());
+                return result;
+            }
+
             void ExportAsCSV(Localization locale)
             {
+                // Ensure shader property labels are up to date for the "English" (source) column. Needed so that community contribution is easy!
+                UpdateData(locale);
+
                 string path = EditorUtility.SaveFilePanel("Export as CSV", "", locale.name, "csv");
                 if (string.IsNullOrEmpty(path) == false)
                 {
                     System.Text.StringBuilder sb = new System.Text.StringBuilder();
-                    foreach (string language in locale.Languages)
-                    {
-                        sb.Append("," + ToCSVString(language));
-                    }
+
+                    // Header: Property, English (source), then each locale language
+                    sb.Append(ToCSVString("Property"));
+                    sb.Append("," + ToCSVString("English"));
+                    foreach (string language in locale.Languages) sb.Append("," + ToCSVString(language));
                     sb.AppendLine();
-                    for(int i = 0;i < locale._keys.Length; i++)
+
+                    for (int i = 0; i < locale._keys.Length; i++)
                     {
-                        sb.Append(ToCSVString(locale._keys[i]));
-                        for(int j = 0; j < locale.Languages.Length; j++)
-                        {
-                            sb.Append("," + ToCSVString(locale._values[i * locale.Languages.Length + j]));
-                        }
+                        string key = locale._keys[i];
+                        sb.Append(ToCSVString(key));
+
+                        // Column 2: UI Label as written in the shader (MaterialProperty.displayName)
+                        string label = "";
+                        if (_defaultPropertyContent.TryGetValue(key, out string defaultLabel)) label = defaultLabel;
+                        sb.Append("," + ToCSVString(label));
+
+                        // Remaining Columns: Translations
+                        for (int j = 0; j < locale.Languages.Length; j++) sb.Append("," + ToCSVString(locale._values[i * locale.Languages.Length + j]));
                         sb.AppendLine();
                     }
-                    File.WriteAllText(path, sb.ToString());
+                    // UTF-8 with BOM (Excel-friendly)
+                    File.WriteAllText(path, sb.ToString(), new System.Text.UTF8Encoding(true));
                 }
             }
 
@@ -306,32 +362,40 @@ namespace Thry.ThryEditor
                 string path = EditorUtility.OpenFilePanel("Load from CSV", "", "csv");
                 if (string.IsNullOrEmpty(path) == false)
                 {
-                    string[] lines = File.ReadAllLines(path);
+                    // Read as UTF-8 (handles BOM as well)
+                    string[] lines = File.ReadAllLines(path, System.Text.Encoding.UTF8);
                     if (lines.Length > 0)
                     {
                         locale.Clear();
-                        string[] languages = lines[0].Split(',');
-                        for (int i = 1; i < languages.Length; i++)
-                        {
-                            locale.AddLanguage(FromCSVString(languages[i]));
-                        }
 
-                        locale._values = new string[(lines.Length - 1) * (languages.Length - 1)];
+                        List<string> header = SplitCsvLine(lines[0]).Select(FromCSVString).ToList();
+                        if (header.Count < 2) return;
+
+                        // Support both old and new format.
+                        // New format: Property, English (source), then translations...
+                        int languagesStartIndex = (header.Count > 1 && IsSourceHeader(header[1])) ? 2 : 1;
+                        for (int i = languagesStartIndex; i < header.Count; i++) locale.AddLanguage(header[i]);
+
+                        int languageCount = header.Count - languagesStartIndex;
+                        locale._values = new string[(lines.Length - 1) * languageCount];
                         locale._keys = new string[lines.Length - 1];
 
                         for (int i = 1; i < lines.Length; i++)
                         {
-                            string[] values = lines[i].Split(',');
-                            if (values.Length > 0)
+                            List<string> cells = SplitCsvLine(lines[i]).Select(FromCSVString).ToList();
+                            if (cells.Count == 0) continue;
+
+                            string key = cells[0];
+                            locale._keys[i - 1] = key;
+
+                            for (int j = 0; j < languageCount; j++)
                             {
-                                string key = FromCSVString(values[0]);
-                                locale._keys[i - 1] = key;
-                                for (int j = 1; j < values.Length; j++)
-                                {
-                                    locale._values[(i - 1) * (languages.Length - 1) + j - 1] = FromCSVString(values[j]);
-                                }
+                                int cellIndex = languagesStartIndex + j;
+                                string value = (cellIndex < cells.Count) ? cells[cellIndex] : "";
+                                locale._values[(i - 1) * languageCount + j] = value;
                             }
                         }
+
                         locale.Load();
                         locale.Save();
                     }
@@ -410,6 +474,9 @@ namespace Thry.ThryEditor
 
             public override void OnInspectorGUI()
             {
+                // Needed for SerializedProperty edits to persist.
+                serializedObject.Update();
+                
                 Localization locale = (Localization)target;
                 if(!locale._isLoaded)
                 {
@@ -434,7 +501,12 @@ namespace Thry.ThryEditor
                 EditorGUILayout.LabelField("Import / Export", EditorStyles.boldLabel);
                 GUICSV(locale);
 
-                if(locale.Languages.Length == 0) return;
+                if (locale.Languages.Length == 0)
+                {
+                    // Persist SerializedProperty changes before leaving.
+                    serializedObject.ApplyModifiedProperties();
+                    return;
+                }
 
                 EditorGUILayout.Space(20);
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -472,11 +544,26 @@ namespace Thry.ThryEditor
 
             void GUIShaders(Localization locale)
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("ValidateWithShaders"));
+                SerializedProperty shadersProp = serializedObject.FindProperty("ValidateWithShaders");
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(shadersProp, includeChildren: true);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Apply immediately so locale.ValidateWithShaders reflects the new list in this GUI pass.
+                    serializedObject.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(locale);
+                    AssetDatabase.SaveAssets();
+
+                    // Refresh cached property labels / missing entries based on the new shaders.
+                    locale.Load();
+                    UpdateData(locale);
+                }
+
                 if(GUILayout.Button("Load Properties from Shaders"))
                 {
-                    // for each shader create a material & material editor so that the data is loaded into the localization object
-                    foreach(Shader s in locale.ValidateWithShaders)
+                    // For each shader create a material & material editor so that the data is loaded into the localization object
+                    foreach (Shader s in locale.ValidateWithShaders)
                     {
                         ShaderEditor se = new ShaderEditor();
                         se.FakePartialInitilizationForLocaleGathering(s);
