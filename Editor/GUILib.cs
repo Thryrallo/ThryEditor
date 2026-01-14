@@ -544,8 +544,8 @@ namespace Thry.ThryEditor
                 vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
-                sliderRect.xMin = settingsRect.x + EditorGUIUtility.labelWidth + 65 - 8;
-                sliderRect.xMax -= (65 + -8);
+                sliderRect.xMin = settingsRect.x + EditorGUIUtility.labelWidth + 65 + 4;
+                sliderRect.xMax = settingsRect.xMax - 65 - 4;
             }
 
             vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
