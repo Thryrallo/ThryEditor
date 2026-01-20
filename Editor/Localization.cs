@@ -257,6 +257,12 @@ namespace Thry.ThryEditor
             return Selection.activeObject is Localization;
         }
 
+        static bool ShouldIgnoreKey(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            return key.StartsWith("s_end_", StringComparison.Ordinal) || key.StartsWith("m_end_", StringComparison.Ordinal);
+        }
+
         [CustomEditor(typeof(Localization))]
         public class LocaleEditor : Editor
         {
@@ -341,6 +347,7 @@ namespace Thry.ThryEditor
                     for (int i = 0; i < locale._keys.Length; i++)
                     {
                         string key = locale._keys[i];
+                        if (ShouldIgnoreKey(key)) continue;
                         sb.Append(ToCSVString(key));
 
                         // Column 2: UI Label as written in the shader (MaterialProperty.displayName)
