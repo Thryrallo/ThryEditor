@@ -6,6 +6,7 @@ using System.Reflection;
 using Thry.ThryEditor.Helpers;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Thry.ThryEditor
 {
@@ -15,8 +16,9 @@ namespace Thry.ThryEditor
         [SerializeField] string DefaultLanguage = "English";
         [SerializeField] string[] Languages = new string[0];
         [SerializeField] int SelectedLanguage = -1;
-        [SerializeField] string[] _keys = new string[0]; 
+        [SerializeField] string[] _keys = new string[0];
         [SerializeField] string[] _values = new string[0];
+        [SerializeField] string SpreadsheetCsvUrl;
 
         Dictionary<string, string[]> _localizedStrings = new Dictionary<string, string[]>();
         string[] _allLanguages;
@@ -30,10 +32,10 @@ namespace Thry.ThryEditor
             get => _editInUI;
             set
             {
-                if(_editInUI != value)
+                if (_editInUI != value)
                 {
                     _editInUI = value;
-                    if(!value)
+                    if (!value)
                     {
                         Save();
                     }
@@ -46,7 +48,7 @@ namespace Thry.ThryEditor
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             Localization l = AssetDatabase.LoadAssetAtPath<Localization>(path);
-            if(l == null)
+            if (l == null)
             {
                 l = ScriptableObject.CreateInstance<Localization>();
                 l._couldNotLoad = true;
@@ -59,17 +61,43 @@ namespace Thry.ThryEditor
         void Load()
         {
             // Load languages
+            int langCount = (Languages != null) ? Languages.Length : 0;
             _allLanguages = new string[Languages.Length + 1];
             _allLanguages[0] = DefaultLanguage;
-            Array.Copy(Languages, 0, _allLanguages, 1, Languages.Length);
-            
+            if (langCount > 0) Array.Copy(Languages, 0, _allLanguages, 1, Languages.Length);
+
             _localizedStrings = new Dictionary<string, string[]>();
-            for (int i = 0; i < _keys.Length; i++)
+            bool sawNullKey = false;
+
+            int keyCount = (_keys != null) ? _keys.Length : 0;
+            for (int i = 0; i < keyCount; i++)
             {
-                string[] ar = new string[Languages.Length];
-                Array.Copy(_values, i * Languages.Length , ar, 0, Languages.Length);
+                string key = _keys[i];
+                if (key == null)
+                {
+                    sawNullKey = true;
+                    continue; // Skip invalid entry instead of throwing Null Exceptions
+                }
+                if (key.Length == 0) continue;
+
+                string[] ar = new string[langCount];
+                int srcIndex = i * langCount;
+
+                if (_values != null && langCount > 0 && srcIndex < _values.Length)
+                {
+                    int copyLen = Math.Min(langCount, _values.Length - srcIndex);
+                    Array.Copy(_values, srcIndex, ar, 0, copyLen);
+                }
+
                 _localizedStrings[_keys[i]] = ar;
             }
+
+            if (sawNullKey)
+            {
+                string assetPath = AssetDatabase.GetAssetPath(this);
+                ThryLogger.Log($"Localization Asset '{assetPath}' contains null entries in _keys. They were ignored to avoid Null Exception Errors. Re-save/Re-import the Locale Asset to clean it up.");
+            }
+
             _isLoaded = true;
         }
 
@@ -85,14 +113,14 @@ namespace Thry.ThryEditor
 
         public void DrawDropdown(Rect r)
         {
-            if(_couldNotLoad)
+            if (_couldNotLoad)
             {
                 EditorGUI.HelpBox(r, "Could not load localization file", MessageType.Warning);
                 return;
             }
             EditorGUI.BeginChangeCheck();
             SelectedLanguage = EditorGUI.Popup(r, SelectedLanguage + 1, _allLanguages) - 1;
-            if(EditorGUI.EndChangeCheck())
+            if (EditorGUI.EndChangeCheck())
             {
                 ShaderEditor.Active.Reload();
                 EditorUtility.SetDirty(this);
@@ -113,8 +141,8 @@ namespace Thry.ThryEditor
 
         public string Get(string id, string defaultValue)
         {
-            if(id == null) return defaultValue;
-            if(_localizedStrings.TryGetValue(id, out string[] ar))
+            if (id == null) return defaultValue;
+            if (_localizedStrings.TryGetValue(id, out string[] ar))
             {
                 if (ar.Length > SelectedLanguage && SelectedLanguage > -1)
                 {
@@ -140,6 +168,13 @@ namespace Thry.ThryEditor
 
         public void Set(string id, string value)
         {
+            if (string.IsNullOrEmpty(id))
+            {
+                // Avoid writing corrupted data as null keys cause ArgumentNullException during Load().
+                ThryLogger.LogWarn("Tried to set a Localization entry with a null/empty id. Ignoring...");
+                return;
+            }
+            
             if (!_localizedStrings.ContainsKey(id))
             {
                 _localizedStrings.Add(id, new string[Languages.Length]);
@@ -160,7 +195,7 @@ namespace Thry.ThryEditor
                 System.Array.Resize(ref Languages, Languages.Length + 1);
                 Languages[Languages.Length - 1] = language;
                 string[] keys = _localizedStrings.Keys.ToArray();
-                foreach(string key in keys)
+                foreach (string key in keys)
                 {
                     string[] ar = _localizedStrings[key];
                     System.Array.Resize(ref ar, ar.Length + 1);
@@ -176,7 +211,7 @@ namespace Thry.ThryEditor
             int index = System.Array.IndexOf(Languages, language);
             if (index != -1)
             {
-                if(Languages.Length > 1)
+                if (Languages.Length > 1)
                 {
                     for (int i = index; i < Languages.Length - 1; i++)
                     {
@@ -194,7 +229,8 @@ namespace Thry.ThryEditor
                         System.Array.Resize(ref ar, ar.Length - 1);
                         _localizedStrings[key] = ar;
                     }
-                }else
+                }
+                else
                 {
                     Languages = new string[0];
                     _localizedStrings = new Dictionary<string, string[]>();
@@ -257,12 +293,6 @@ namespace Thry.ThryEditor
             return Selection.activeObject is Localization;
         }
 
-        static bool ShouldIgnoreKey(string key)
-        {
-            if (string.IsNullOrEmpty(key)) return false;
-            return key.StartsWith("s_end_", StringComparison.Ordinal) || key.StartsWith("m_end_", StringComparison.Ordinal);
-        }
-
         [CustomEditor(typeof(Localization))]
         public class LocaleEditor : Editor
         {
@@ -277,9 +307,12 @@ namespace Thry.ThryEditor
             string _translateByValueOut = "";
             string _autoTranslateLanguageShortCode = "EN";
 
+            UnityWebRequest _spreadsheetRequest;
+            Localization _spreadsheetTarget;
+
             string ToCSVString(string s)
             {
-                if(s == null)
+                if (s == null)
                     return "";
                 return "\"" + s.Replace("\"", "“") + "\"";
             }
@@ -328,6 +361,171 @@ namespace Thry.ThryEditor
                 return result;
             }
 
+            static void WriteLocaleTimestamp(Localization locale)
+            {
+                if (locale == null) return;
+
+                string assetPath = AssetDatabase.GetAssetPath(locale);
+                if (string.IsNullOrEmpty(assetPath)) return;
+
+                string folderRel = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
+                if (string.IsNullOrEmpty(folderRel)) folderRel = "Assets";
+
+                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+                string folderAbs = Path.Combine(projectRoot, folderRel);
+                string timestampAbs = Path.Combine(folderAbs, "LocaleTimestamp.txt");
+
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                File.WriteAllText(timestampAbs, timestamp, new System.Text.UTF8Encoding(true));
+
+                string timestampRel = (folderRel + "/LocaleTimestamp.txt").Replace('\\', '/');
+                AssetDatabase.ImportAsset(timestampRel);
+            }
+
+            static string ReadLocaleTimestamp(Localization locale)
+            {
+                if (locale == null) return null;
+
+                string assetPath = AssetDatabase.GetAssetPath(locale);
+                if (string.IsNullOrEmpty(assetPath)) return null;
+
+                string folderRel = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
+                if (string.IsNullOrEmpty(folderRel)) folderRel = "Assets";
+
+                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+                string folderAbs = Path.Combine(projectRoot, folderRel);
+                string timestampAbs = Path.Combine(folderAbs, "LocaleTimestamp.txt");
+
+                if (!File.Exists(timestampAbs)) return null;
+
+                try
+                {
+                    string txt = File.ReadAllText(timestampAbs, System.Text.Encoding.UTF8);
+                    if (string.IsNullOrWhiteSpace(txt)) return null;
+                    return txt.Trim();
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            void LoadFromCSVText(Localization locale, string csvText)
+            {
+                if (string.IsNullOrEmpty(csvText) || locale == null) return;
+
+                string[] lines = csvText
+                    .Replace("\r\n", "\n")
+                    .Replace("\r", "\n")
+                    .Split(new[] { '\n' }, StringSplitOptions.None)
+                    .Where(l => !string.IsNullOrWhiteSpace(l))
+                    .ToArray();
+
+                if (lines.Length == 0) return;
+
+                locale.Clear();
+
+                List<string> header = SplitCsvLine(lines[0]).Select(FromCSVString).ToList();
+                if (header.Count < 2) return;
+
+                int languagesStartIndex = (header.Count > 1 && IsSourceHeader(header[1])) ? 2 : 1;
+                for (int i = languagesStartIndex; i < header.Count; i++)
+                {
+                    locale.AddLanguage(header[i]);
+                }
+
+                int languageCount = header.Count - languagesStartIndex;
+                locale._values = new string[(lines.Length - 1) * languageCount];
+                locale._keys = new string[lines.Length - 1];
+
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    List<string> cells = SplitCsvLine(lines[i]).Select(FromCSVString).ToList();
+                    if (cells.Count == 0) continue;
+
+                    string key = cells[0];
+                    locale._keys[i - 1] = key;
+
+                    for (int j = 0; j < languageCount; j++)
+                    {
+                        int cellIndex = languagesStartIndex + j;
+                        string value = (cellIndex < cells.Count) ? cells[cellIndex] : "";
+                        locale._values[(i - 1) * languageCount + j] = value;
+                    }
+                }
+
+                locale.Load();
+                locale.Save();
+                WriteLocaleTimestamp(locale);
+            }
+
+            void ImportOnlineSpreadsheet(Localization locale)
+            {
+                if (locale == null) return;
+
+                if (string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl))
+                {
+                    EditorUtility.DisplayDialog(
+                        "Spreadsheet URL Missing",
+                        "Make sure this asset is pointing to the correct external CSV URL first before proceeding. If this data has been lost, you can find the URL on the Documentation at:\n'poiyomi.com/general/ui-language'",
+                        "OK"
+                    );
+                    return;
+                }
+
+                if (_spreadsheetRequest != null)
+                {
+                    EditorUtility.DisplayDialog(
+                        "Sync Already Running",
+                        "A spreadsheet sync is already in progress.",
+                        "OK"
+                    );
+                    return;
+                }
+
+                _spreadsheetTarget = locale;
+                _spreadsheetRequest = UnityWebRequest.Get(locale.SpreadsheetCsvUrl);
+                _spreadsheetRequest.timeout = 30;
+
+                var op = _spreadsheetRequest.SendWebRequest();
+                op.completed += _ =>
+                {
+                    try
+                    {
+                        if (_spreadsheetRequest.result != UnityWebRequest.Result.Success)
+                        {
+                            ThryLogger.LogErr($"Spreadsheet CSV Download failed {_spreadsheetRequest.error}at URL: {locale.SpreadsheetCsvUrl}");
+                            EditorUtility.DisplayDialog(
+                                "Spreadsheet Sync Failed",
+                                $"Could not download external CSV from: {_spreadsheetRequest.error}",
+                                "OK"
+                            );
+                            return;
+                        }
+
+                        string csv = _spreadsheetRequest.downloadHandler.text;
+                        LoadFromCSVText(_spreadsheetTarget, csv);
+                        EditorUtility.DisplayDialog(
+                            "Spreadsheet Sync Success",
+                            "Successfully fetched and updated Localization from external URL.",
+                            "OK"
+                        );
+                    }
+                    finally
+                    {
+                        _spreadsheetRequest.Dispose();
+                        _spreadsheetRequest = null;
+                        _spreadsheetTarget = null;
+                    }
+                };
+            }
+
+            static bool ShouldIgnoreKey(string key)
+            {
+                if (string.IsNullOrEmpty(key)) return false;
+                return key.StartsWith("s_end_", StringComparison.Ordinal) || key.StartsWith("m_end_", StringComparison.Ordinal);
+            }
+
             void ExportAsCSV(Localization locale)
             {
                 // Ensure shader property labels are up to date for the "English" (source) column. Needed so that community contribution is easy!
@@ -370,53 +568,20 @@ namespace Thry.ThryEditor
                 if (string.IsNullOrEmpty(path) == false)
                 {
                     // Read as UTF-8 (handles BOM as well)
-                    string[] lines = File.ReadAllLines(path, System.Text.Encoding.UTF8);
-                    if (lines.Length > 0)
-                    {
-                        locale.Clear();
-
-                        List<string> header = SplitCsvLine(lines[0]).Select(FromCSVString).ToList();
-                        if (header.Count < 2) return;
-
-                        // Support both old and new format.
-                        // New format: Property, English (source), then translations...
-                        int languagesStartIndex = (header.Count > 1 && IsSourceHeader(header[1])) ? 2 : 1;
-                        for (int i = languagesStartIndex; i < header.Count; i++) locale.AddLanguage(header[i]);
-
-                        int languageCount = header.Count - languagesStartIndex;
-                        locale._values = new string[(lines.Length - 1) * languageCount];
-                        locale._keys = new string[lines.Length - 1];
-
-                        for (int i = 1; i < lines.Length; i++)
-                        {
-                            List<string> cells = SplitCsvLine(lines[i]).Select(FromCSVString).ToList();
-                            if (cells.Count == 0) continue;
-
-                            string key = cells[0];
-                            locale._keys[i - 1] = key;
-
-                            for (int j = 0; j < languageCount; j++)
-                            {
-                                int cellIndex = languagesStartIndex + j;
-                                string value = (cellIndex < cells.Count) ? cells[cellIndex] : "";
-                                locale._values[(i - 1) * languageCount + j] = value;
-                            }
-                        }
-
-                        locale.Load();
-                        locale.Save();
-                    }
+                    string csvText = File.ReadAllText(path, System.Text.Encoding.UTF8);
+                    LoadFromCSVText(locale, csvText);
                 }
             }
 
             void UpdateMissing(Localization locale)
             {
                 _missingKeys.Clear();
-                foreach(string key in locale._localizedStrings.Keys)
+                foreach (string key in locale._localizedStrings.Keys)
                 {
+                    if (ShouldIgnoreKey(key)) continue;
                     if (string.IsNullOrEmpty(locale._localizedStrings[key][_selectedLanguageIndex]))
                     {
-                        if(_defaultPropertyContent.ContainsKey(key) && !string.IsNullOrWhiteSpace(_defaultPropertyContent[key]))
+                        if (_defaultPropertyContent.ContainsKey(key) && !string.IsNullOrWhiteSpace(_defaultPropertyContent[key]))
                         {
                             _missingKeys.Add((key, _defaultPropertyContent[key], _defaultPropertyContent[key]));
                         }
@@ -430,10 +595,10 @@ namespace Thry.ThryEditor
 
                 // Gather all keys from all shaders
                 List<MaterialProperty> allProps = new List<MaterialProperty>();
-                foreach(Shader s in locale.ValidateWithShaders)
+                foreach (Shader s in locale.ValidateWithShaders)
                 {
                     allProps.AddRange(
-                        MaterialEditor.GetMaterialProperties(new Material[]{new Material(s)})
+                        MaterialEditor.GetMaterialProperties(new Material[] { new Material(s) })
                     );
                 }
                 // Make unique by propname
@@ -441,21 +606,22 @@ namespace Thry.ThryEditor
                 _defaultPropertyContent.Clear();
 
                 // add all keys from shader
-                foreach(var prop in allProps)
+                foreach (var prop in allProps)
                 {
                     string key = prop.name;
+                    if (ShouldIgnoreKey(key)) continue;
                     string value = prop.displayName;
                     int seperatorIndex = value.IndexOf("--", StringComparison.Ordinal);
-                    if(seperatorIndex != -1)
+                    if (seperatorIndex != -1)
                     {
                         value = value.Substring(0, seperatorIndex).Trim();
                     }
 
-                    if(key.StartsWith("footer_")) continue;
-                    if(key == ShaderEditor.PROPERTY_NAME_MASTER_LABEL) continue;
-                    if(key == ShaderEditor.PROPERTY_NAME_LOCALE) continue;
-                    if(key == ShaderEditor.PROPERTY_NAME_ON_SWAP_TO_ACTIONS) continue;
-                    if(key == ShaderEditor.PROPERTY_NAME_SHADER_VERSION) continue;
+                    if (key.StartsWith("footer_")) continue;
+                    if (key == ShaderEditor.PROPERTY_NAME_MASTER_LABEL) continue;
+                    if (key == ShaderEditor.PROPERTY_NAME_LOCALE) continue;
+                    if (key == ShaderEditor.PROPERTY_NAME_ON_SWAP_TO_ACTIONS) continue;
+                    if (key == ShaderEditor.PROPERTY_NAME_SHADER_VERSION) continue;
                     if (!string.IsNullOrWhiteSpace(value) && !locale._localizedStrings.ContainsKey(key))
                     {
                         locale._localizedStrings.Add(key, new string[locale.Languages.Length]);
@@ -466,14 +632,15 @@ namespace Thry.ThryEditor
                 UpdateMissing(locale);
             }
 
-            private void OnEnable() 
+            private void OnEnable()
             {
                 Localization locale = (Localization)target;
                 locale.Load();
                 UpdateData(locale);
             }
 
-            private void Awake() {
+            private void Awake()
+            {
                 Localization locale = (Localization)target;
                 locale.Load();
                 UpdateData(locale);
@@ -483,14 +650,14 @@ namespace Thry.ThryEditor
             {
                 // Needed for SerializedProperty edits to persist.
                 serializedObject.Update();
-                
+
                 Localization locale = (Localization)target;
-                if(!locale._isLoaded)
+                if (!locale._isLoaded)
                 {
                     UpdateData(locale);
                 }
 
-                if(GUILayout.Button("Save", GUILayout.Height(50)))
+                if (GUILayout.Button("Save", GUILayout.Height(50)))
                 {
                     locale.Save();
                 }
@@ -547,6 +714,9 @@ namespace Thry.ThryEditor
                 EditorGUILayout.HelpBox("This will search all properties allows editing or removing them.", MessageType.Info);
                 GUIEdit(locale);
 
+                // Persist SerializedProperty changes.
+                serializedObject.ApplyModifiedProperties();
+
             }
 
             void GUIShaders(Localization locale)
@@ -567,7 +737,7 @@ namespace Thry.ThryEditor
                     UpdateData(locale);
                 }
 
-                if(GUILayout.Button("Load Properties from Shaders"))
+                if (GUILayout.Button("Load Properties from Shaders"))
                 {
                     // For each shader create a material & material editor so that the data is loaded into the localization object
                     foreach (Shader s in locale.ValidateWithShaders)
@@ -605,12 +775,12 @@ namespace Thry.ThryEditor
             {
                 EditorGUI.BeginChangeCheck();
                 _selectedLanguageIndex = EditorGUILayout.Popup("Language to edit", _selectedLanguageIndex, locale.Languages);
-                if(EditorGUI.EndChangeCheck())
+                if (EditorGUI.EndChangeCheck())
                 {
                     _missingKeys.Clear();
                 }
 
-                if(GUILayout.Button("Update Missing Entries"))
+                if (GUILayout.Button("Update Missing Entries"))
                 {
                     UpdateData(locale);
                 }
@@ -618,30 +788,63 @@ namespace Thry.ThryEditor
 
             void GUICSV(Localization locale)
             {
-                if(GUILayout.Button("Load from CSV"))
+                EditorGUILayout.LabelField("Spreadsheet Sync", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox(
+                    "Use this area to load Localization data from an external CSV file on the internet (ideally from Google Docs Spreadsheet), then click Import.\n\n" +
+                    "Example Format:\nhttps://docs.google.com/spreadsheets/d/<ID>/gviz/tq?tqx=out:csv&sheet=<TAB_NAME>",
+                    MessageType.Info
+                );
+
+                EditorGUI.BeginChangeCheck();
+                string newUrl = EditorGUILayout.TextField("CSV URL", locale.SpreadsheetCsvUrl);
+                if (EditorGUI.EndChangeCheck())
                 {
-                    LoadFromCSV(locale);
+                    Undo.RecordObject(locale, "Change Spreadsheet CSV URL");
+                    locale.SpreadsheetCsvUrl = newUrl;
+                    EditorUtility.SetDirty(locale);
+                    AssetDatabase.SaveAssets();
                 }
-                if(locale.Languages.Length == 0) return;
-                if(GUILayout.Button("Export as CSV"))
+
+                EditorGUILayout.BeginHorizontal();
+
+                if (GUILayout.Button("Import from Spreadsheet")) ImportOnlineSpreadsheet(locale);
+
+                if (!string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl) && GUILayout.Button("Open URL", GUILayout.Width(90))) Application.OpenURL(locale.SpreadsheetCsvUrl);
+
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space();
+                
+                if (GUILayout.Button("Load from CSV")) LoadFromCSV(locale);
+
+                if (locale.Languages.Length == 0)
                 {
-                    ExportAsCSV(locale);
+                    // Persist SerializedProperty changes before leaving.
+                    serializedObject.ApplyModifiedProperties();
+                    return;
                 }
+
+                if (GUILayout.Button("Export as CSV")) ExportAsCSV(locale);
+
+                EditorGUILayout.Space();
+
+                string lastUpdated = ReadLocaleTimestamp(locale);
+                using (new EditorGUI.DisabledScope(true)) EditorGUILayout.TextField("Last Updated", string.IsNullOrEmpty(lastUpdated) ? "-" : lastUpdated);
             }
 
             void GUIMissingEntries(Localization locale)
             {
-                (string,string,string) kvToRemove = default;
-                for(int i = 0; i < _missingKeys.Count && i < 10; i++)
+                (string, string, string) kvToRemove = default;
+                for (int i = 0; i < _missingKeys.Count && i < 10; i++)
                 {
                     var kv = _missingKeys[i];
                     EditorGUILayout.BeginHorizontal();
                     kv.newValue = EditorGUILayout.DelayedTextField(kv.key, kv.newValue);
-                    if(GUILayout.Button("Skip", GUILayout.Width(50)))
+                    if (GUILayout.Button("Skip", GUILayout.Width(50)))
                     {
                         kvToRemove = kv;
                     }
-                    if(GUILayout.Button("Apply", GUILayout.Width(50)))
+                    if (GUILayout.Button("Apply", GUILayout.Width(50)))
                     {
                         if (!locale._localizedStrings.ContainsKey(kv.key))
                         {
@@ -653,11 +856,11 @@ namespace Thry.ThryEditor
                     _missingKeys[i] = kv;
                     EditorGUILayout.EndHorizontal();
                 }
-                if(_missingKeys.Count > 10)
+                if (_missingKeys.Count > 10)
                 {
                     EditorGUILayout.LabelField("...");
                 }
-                if(kvToRemove != default)
+                if (kvToRemove != default)
                 {
                     _missingKeys.Remove(kvToRemove);
                 }
@@ -666,16 +869,16 @@ namespace Thry.ThryEditor
             void GUIGoogleTranslate(Localization locale)
             {
                 _autoTranslateLanguageShortCode = EditorGUILayout.TextField("Language Short Code", _autoTranslateLanguageShortCode);
-                EditorGUILayout.HelpBox("Short code must be valid short code. See https://cloud.google.com/translate/docs/languages for a list of valid short codes.", MessageType.Info);   
-                if(Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+                EditorGUILayout.HelpBox("Short code must be valid short code. See https://cloud.google.com/translate/docs/languages for a list of valid short codes.", MessageType.Info);
+                if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
                 {
                     Application.OpenURL("https://cloud.google.com/translate/docs/languages");
                 }
-                if(GUILayout.Button("Auto Translate"))
+                if (GUILayout.Button("Auto Translate"))
                 {
                     int _missingKeysCount = _missingKeys.Count;
                     int i = 0;
-                    foreach((string key, string defaultValue, string newValue) in _missingKeys)
+                    foreach ((string key, string defaultValue, string newValue) in _missingKeys)
                     {
                         EditorUtility.DisplayProgressBar("Auto Translate", $"Translating {i}/{_missingKeysCount}", (float)i / _missingKeysCount);
                         try
@@ -686,7 +889,7 @@ namespace Thry.ThryEditor
                             }
                             locale._localizedStrings[key][_selectedLanguageIndex] = WebHelper.Translate(defaultValue, _autoTranslateLanguageShortCode);
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             Debug.LogError(e);
                         }
@@ -701,11 +904,11 @@ namespace Thry.ThryEditor
             {
                 _translateByValueIn = EditorGUILayout.TextField("Search for", _translateByValueIn);
                 _translateByValueOut = EditorGUILayout.TextField("Translate with", _translateByValueOut);
-                if(GUILayout.Button("Execute"))
+                if (GUILayout.Button("Execute"))
                 {
-                    foreach(var kv in _defaultPropertyContent)
+                    foreach (var kv in _defaultPropertyContent)
                     {
-                        if(kv.Value == _translateByValueIn)
+                        if (kv.Value == _translateByValueIn)
                         {
                             locale._localizedStrings[kv.Key][_selectedLanguageIndex] = _translateByValueOut;
                         }
@@ -719,15 +922,15 @@ namespace Thry.ThryEditor
                 EditorGUI.BeginChangeCheck();
                 _searchById = EditorGUILayout.TextField("Search by id", _searchById);
                 _searchByTranslation = EditorGUILayout.TextField("Search by translation", _searchByTranslation);
-                if(EditorGUI.EndChangeCheck())
+                if (EditorGUI.EndChangeCheck())
                 {
                     List<string> res = new List<string>();
                     bool searchById = _searchById.Length > 0;
                     bool searchByTranslation = _searchByTranslation.Length > 0;
                     foreach (string key in locale._localizedStrings.Keys)
                     {
-                        if(locale._localizedStrings[key][_selectedLanguageIndex] == null) continue;
-                        if(
+                        if (locale._localizedStrings[key][_selectedLanguageIndex] == null) continue;
+                        if (
                             (searchByTranslation && locale._localizedStrings[key][_selectedLanguageIndex].IndexOf(_searchByTranslation, StringComparison.OrdinalIgnoreCase) != -1)
                          || (searchById && key.IndexOf(_searchById, StringComparison.OrdinalIgnoreCase) != -1)
                          )
@@ -738,12 +941,12 @@ namespace Thry.ThryEditor
                     _searchResults = res.ToArray();
                 }
                 EditorGUILayout.Space(5);
-                if(_searchById.Length > 0 || _searchByTranslation.Length > 0)
+                if (_searchById.Length > 0 || _searchByTranslation.Length > 0)
                 {
                     int count = 0;
                     foreach (string key in _searchResults)
                     {
-                        if(count > 50)
+                        if (count > 50)
                         {
                             EditorGUILayout.LabelField("...");
                             break;
