@@ -556,7 +556,7 @@ namespace Thry.ThryEditor
             static bool ShouldIgnoreKey(string key)
             {
                 if (string.IsNullOrEmpty(key)) return false;
-                return key.StartsWith("s_end_", StringComparison.Ordinal) || key.StartsWith("m_end_", StringComparison.Ordinal);
+                return key.StartsWith("s_end_", StringComparison.Ordinal) || key.StartsWith("m_end_", StringComparison.Ordinal) || key.StartsWith("ss_end_", StringComparison.Ordinal);
             }
 
             void ExportAsCSV(Localization locale)
