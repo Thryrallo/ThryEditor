@@ -743,6 +743,8 @@ namespace Thry.ThryEditor
                 EditorGUILayout.Space(20);
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
                 EditorGUILayout.LabelField("Import / Export", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("Use this area to load Localization data from an external CSV file locally, then click Import. Optionally, you can load data from the internet via a valid URL.", MessageType.Info);
+                EditorGUILayout.HelpBox("DO NOT USE COMMAS in translated text! Commas will break formatting by leaking text into other languages!", MessageType.Warning);
                 GUICSV(locale);
 
                 if (locale.Languages.Length == 0)
@@ -775,7 +777,7 @@ namespace Thry.ThryEditor
                 EditorGUILayout.Space(20);
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
                 EditorGUILayout.LabelField("Translate entries by value", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("This will search all properties and translate all that have the exact display name with the selected value. Suggested usecase: Panning, UV", MessageType.Info);
+                EditorGUILayout.HelpBox("This will search all properties and translate all that have the exact display name with the selected value. Suggested usage case: Panning, UV", MessageType.Info);
                 GUIValueTranslate(locale);
 
                 EditorGUILayout.Space(20);
@@ -858,25 +860,6 @@ namespace Thry.ThryEditor
 
             void GUICSV(Localization locale)
             {
-                EditorGUILayout.LabelField("Spreadsheet Sync", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox(
-                    "Use this area to load Localization data from an external CSV file on the internet (ideally from Google Docs Spreadsheet), then click Import.\n\n" +
-                    "Example Format:\nhttps://docs.google.com/spreadsheets/d/<ID>/gviz/tq?tqx=out:csv&sheet=<TAB_NAME>",
-                    MessageType.Info
-                );
-
-                locale.SpreadsheetCsvUrl = EditorGUILayout.TextField("URL", locale.SpreadsheetCsvUrl);
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    GUI.enabled = !string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl);
-                    if (GUILayout.Button("Import Spreadsheet from URL")) ImportOnlineSpreadsheet(locale);
-                    if (GUILayout.Button("Open URL", GUILayout.Width(90))) Application.OpenURL(locale.SpreadsheetCsvUrl);
-                }
-
-                GUI.enabled = true;
-
-                EditorGUILayout.Space();
-                
                 if (GUILayout.Button("Load from CSV")) LoadFromCSV(locale);
 
                 if (locale.Languages.Length == 0)
@@ -889,6 +872,20 @@ namespace Thry.ThryEditor
                 if (GUILayout.Button("Export as CSV")) ExportAsCSV(locale);
 
                 if (GUILayout.Button("Export Missing Properties as CSV")) ExportMissingAsCSV(locale);
+
+                EditorGUILayout.Space();
+
+                EditorGUILayout.LabelField("Spreadsheet Sync", EditorStyles.boldLabel);
+
+                locale.SpreadsheetCsvUrl = EditorGUILayout.TextField("URL", locale.SpreadsheetCsvUrl);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    GUI.enabled = !string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl);
+                    if (GUILayout.Button("Import Spreadsheet from URL")) ImportOnlineSpreadsheet(locale);
+                    if (GUILayout.Button("Open URL", GUILayout.Width(90))) Application.OpenURL(locale.SpreadsheetCsvUrl);
+                }
+
+                GUI.enabled = true;
 
                 EditorGUILayout.Space();
 
