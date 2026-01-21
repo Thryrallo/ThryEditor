@@ -309,6 +309,7 @@ namespace Thry.ThryEditor
 
             UnityWebRequest _spreadsheetRequest;
             Localization _spreadsheetTarget;
+            string _prevSpreadsheetUrl;
 
             string ToCSVString(string s)
             {
@@ -359,6 +360,28 @@ namespace Thry.ThryEditor
                 }
                 result.Add(sb.ToString());
                 return result;
+            }
+
+            static void WriteLocaleBackupFile(Localization locale, string csvText)
+            {
+                if (locale == null) return;
+                if (csvText == null) csvText = "";
+
+                string assetPath = AssetDatabase.GetAssetPath(locale);
+                if (string.IsNullOrEmpty(assetPath)) return;
+
+                string folderRel = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
+                if (string.IsNullOrEmpty(folderRel)) folderRel = "Assets";
+
+                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+                string folderAbs = Path.Combine(projectRoot, folderRel);
+
+                string backupAbs = Path.Combine(folderAbs, "Locale.csv");
+
+                File.WriteAllText(backupAbs, csvText, new System.Text.UTF8Encoding(true));
+
+                string backupRel = (folderRel + "/Locale.csv").Replace('\\', '/');
+                AssetDatabase.ImportAsset(backupRel);
             }
 
             static void WriteLocaleTimestamp(Localization locale)
@@ -473,6 +496,8 @@ namespace Thry.ThryEditor
                     return;
                 }
 
+                _prevSpreadsheetUrl = locale.SpreadsheetCsvUrl;
+
                 if (_spreadsheetRequest != null)
                 {
                     EditorUtility.DisplayDialog(
@@ -494,7 +519,11 @@ namespace Thry.ThryEditor
                     {
                         if (_spreadsheetRequest.result != UnityWebRequest.Result.Success)
                         {
-                            ThryLogger.LogErr($"Spreadsheet CSV Download failed {_spreadsheetRequest.error}at URL: {locale.SpreadsheetCsvUrl}");
+                            Undo.RecordObject(locale, "Revert Spreadsheet CSV URL");
+                            locale.SpreadsheetCsvUrl = _prevSpreadsheetUrl;
+                            EditorUtility.SetDirty(locale);
+                            AssetDatabase.SaveAssets();
+                            ThryLogger.LogErr($"Spreadsheet CSV Download failed {_spreadsheetRequest.error} at URL: {locale.SpreadsheetCsvUrl}");
                             EditorUtility.DisplayDialog(
                                 "Spreadsheet Sync Failed",
                                 $"Could not download external CSV from: {_spreadsheetRequest.error}",
@@ -504,7 +533,11 @@ namespace Thry.ThryEditor
                         }
 
                         string csv = _spreadsheetRequest.downloadHandler.text;
-                        LoadFromCSVText(_spreadsheetTarget, csv);
+                        WriteLocaleBackupFile(locale, csv);
+                        LoadFromCSVText(locale, csv);
+                        Undo.RecordObject(locale, "Commit Spreadsheet CSV URL");
+                        EditorUtility.SetDirty(locale);
+                        AssetDatabase.SaveAssets();
                         EditorUtility.DisplayDialog(
                             "Spreadsheet Sync Success",
                             "Successfully fetched and updated Localization from external URL.",
@@ -795,23 +828,15 @@ namespace Thry.ThryEditor
                     MessageType.Info
                 );
 
-                EditorGUI.BeginChangeCheck();
-                string newUrl = EditorGUILayout.TextField("CSV URL", locale.SpreadsheetCsvUrl);
-                if (EditorGUI.EndChangeCheck())
+                locale.SpreadsheetCsvUrl = EditorGUILayout.TextField("CSV URL", locale.SpreadsheetCsvUrl);
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    Undo.RecordObject(locale, "Change Spreadsheet CSV URL");
-                    locale.SpreadsheetCsvUrl = newUrl;
-                    EditorUtility.SetDirty(locale);
-                    AssetDatabase.SaveAssets();
+                    GUI.enabled = !string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl);
+                    if (GUILayout.Button("Import Spreadsheet from URL")) ImportOnlineSpreadsheet(locale);
+                    if (GUILayout.Button("Open URL", GUILayout.Width(90))) Application.OpenURL(locale.SpreadsheetCsvUrl);
                 }
 
-                EditorGUILayout.BeginHorizontal();
-
-                if (GUILayout.Button("Import from Spreadsheet")) ImportOnlineSpreadsheet(locale);
-
-                if (!string.IsNullOrWhiteSpace(locale.SpreadsheetCsvUrl) && GUILayout.Button("Open URL", GUILayout.Width(90))) Application.OpenURL(locale.SpreadsheetCsvUrl);
-
-                EditorGUILayout.EndHorizontal();
+                GUI.enabled = true;
 
                 EditorGUILayout.Space();
                 
