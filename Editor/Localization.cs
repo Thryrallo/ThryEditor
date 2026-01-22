@@ -667,6 +667,8 @@ namespace Thry.ThryEditor
                 List<MaterialProperty> allProps = new List<MaterialProperty>();
                 foreach (Shader s in locale.ValidateWithShaders)
                 {
+                    if (s == null) continue;
+                    
                     allProps.AddRange(
                         MaterialEditor.GetMaterialProperties(new Material[] { new Material(s) })
                     );
@@ -814,6 +816,10 @@ namespace Thry.ThryEditor
                     // For each shader create a material & material editor so that the data is loaded into the localization object
                     foreach (Shader s in locale.ValidateWithShaders)
                     {
+                        if (s == null)
+                        {
+                            ThryLogger.LogWarn("[Localization] ValidateWithShaders contains a NULL shader (None). Skipping.");
+                        }
                         ShaderEditor se = new ShaderEditor();
                         se.FakePartialInitilizationForLocaleGathering(s);
                     }

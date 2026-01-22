@@ -2723,6 +2723,8 @@ namespace Thry.ThryEditor
         private static Dictionary<Shader, bool> isShaderUsingThryOptimizer = new Dictionary<Shader, bool>();
         public static bool IsShaderUsingThryOptimizer(Shader shader)
         {
+            if (shader == null) return false;
+            
             if (isShaderUsingThryOptimizer.ContainsKey(shader))
             {
                 return isShaderUsingThryOptimizer[shader];
