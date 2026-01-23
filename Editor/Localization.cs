@@ -595,43 +595,6 @@ namespace Thry.ThryEditor
                 }
             }
 
-            // DEBUG FUNCTION: Export a CSV File only with Properties that don't currently exist in Localization.
-            void ExportMissingAsCSV(Localization locale)
-            {
-                locale.Load();
-                UpdateData(locale);
-
-                HashSet<string> existing = new HashSet<string>();
-                if (locale._keys != null) foreach (var k in locale._keys) if (!string.IsNullOrEmpty(k)) existing.Add(k);
-
-                string path = EditorUtility.SaveFilePanel("Debug: Export Missing Properties as CSV", "", locale.name + "_Missing", "csv");
-                if (string.IsNullOrEmpty(path)) return;
-
-                System.Text.StringBuilder sb = new System.Text.StringBuilder();
-
-                sb.Append(ToCSVString("Property"));
-                sb.Append("," + ToCSVString("English"));
-                foreach (string language in locale.Languages) sb.Append("," + ToCSVString(language));
-                sb.AppendLine();
-
-                foreach (var kvp in _defaultPropertyContent)
-                {
-                    string key = kvp.Key;
-                    if (ShouldIgnoreKey(key)) continue;
-                    if (existing.Contains(key)) continue;
-
-                    string english = kvp.Value ?? "";
-                    sb.Append(ToCSVString(key));
-                    sb.Append("," + ToCSVString(english));
-
-                    for (int j = 0; j < locale.Languages.Length; j++) sb.Append(",");
-
-                    sb.AppendLine();
-                }
-
-                File.WriteAllText(path, sb.ToString(), new System.Text.UTF8Encoding(true));
-            }
-
             void LoadFromCSV(Localization locale)
             {
                 string path = EditorUtility.OpenFilePanel("Load from CSV", "", "csv");
@@ -876,8 +839,6 @@ namespace Thry.ThryEditor
                 }
 
                 if (GUILayout.Button("Export as CSV")) ExportAsCSV(locale);
-
-                if (GUILayout.Button("Export Missing Properties as CSV")) ExportMissingAsCSV(locale);
 
                 EditorGUILayout.Space();
 
