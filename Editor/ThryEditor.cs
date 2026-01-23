@@ -1,4 +1,4 @@
-﻿// Material/Shader Inspector for Unity 2017/2018
+// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
 using System.Collections.Generic;
@@ -205,7 +205,7 @@ namespace Thry
 
         private enum ThryPropertyType
         {
-            hidden_property, shown_property, master_label, footer, header, header_end, header_start, group_start, group_end, section_start, section_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version, optimizer, in_shader_presets
+            hidden_property, shown_property, master_label, footer, header, header_end, header_start, group_start, group_end, section_start, section_end, subsection_start, subsection_end, instancing, dsgi, lightmap_flags, locale, on_swap_to, space, shader_version, optimizer, in_shader_presets
         }
 
         private ThryPropertyType GetPropertyType(MaterialProperty p)
@@ -255,6 +255,8 @@ namespace Thry
                 }
                 else if (name[0] == 's')
                 {
+                    if (name.StartsWith("ss_start", StringComparison.Ordinal)) return ThryPropertyType.subsection_start;
+                    if (name.StartsWith("ss_end", StringComparison.Ordinal)) return ThryPropertyType.subsection_end;
                     if (name.StartsWith("s_start", StringComparison.Ordinal)) return ThryPropertyType.section_start;
                     if (name.StartsWith("s_end", StringComparison.Ordinal)) return ThryPropertyType.section_end;
                 }
@@ -373,13 +375,16 @@ namespace Thry
                     case ThryPropertyType.section_start:
                         newPart = new ShaderSection(this, props[i], Editor, displayName, offset, optionsRaw, i);
                         break;
+                    case ThryPropertyType.subsection_start:
+                        newPart = new ShaderSubSection(this, props[i], Editor, displayName, offset, optionsRaw, i);
+                        break;
                     case ThryPropertyType.header:
                     case ThryPropertyType.header_start:
                         newPart = new ShaderHeader(this, props[i], Editor, displayName, offset, optionsRaw, i);
                         break;
                 }
                 // pop if needed
-                if(type == ThryPropertyType.header || type == ThryPropertyType.header_end || type == ThryPropertyType.group_end || type == ThryPropertyType.section_end)
+                if(type == ThryPropertyType.header || type == ThryPropertyType.header_end || type == ThryPropertyType.group_end || type == ThryPropertyType.section_end || type == ThryPropertyType.subsection_end)
                 {
                     groupStack.Pop();
                 }

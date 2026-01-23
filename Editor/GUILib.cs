@@ -520,40 +520,49 @@ namespace Thry.ThryEditor
         {
             bool changed = false;
             Vector4 vec = prop.vectorValue;
-            Rect sliderRect = settingsRect;
 
-            EditorGUI.LabelField(settingsRect, content);
+            Rect controlRect = EditorGUI.PrefixLabel(settingsRect, content);
 
-            if (settingsRect.width > 160)
+            const float fieldWidth = 50;
+            const float fieldPadding = 4;
+
+            if (controlRect.width > 120)
             {
-                Rect numberRect = settingsRect;
-                numberRect.width = 65;
-
-                // Position first number field after the label
-                numberRect.x = settingsRect.x + EditorGUIUtility.labelWidth;
+                Rect numberRect = controlRect;
+                numberRect.width = fieldWidth;
 
                 EditorGUI.BeginChangeCheck();
                 EditorGUI.showMixedValue = prop.hasMixedValue;
-                vec.x = EditorGUI.FloatField(numberRect, vec.x, EditorStyles.textField);
+                vec.x = EditorGUI.FloatField(numberRect, vec.x);
                 changed |= EditorGUI.EndChangeCheck();
 
-                numberRect.x = settingsRect.xMax - numberRect.width;
+                numberRect.x = controlRect.xMax - fieldWidth;
 
                 EditorGUI.BeginChangeCheck();
                 EditorGUI.showMixedValue = prop.hasMixedValue;
                 vec.y = EditorGUI.FloatField(numberRect, vec.y);
                 changed |= EditorGUI.EndChangeCheck();
 
-                sliderRect.xMin = settingsRect.x + EditorGUIUtility.labelWidth + 65 - 8;
-                sliderRect.xMax -= (65 + -8);
+                Rect sliderRect = controlRect;
+                sliderRect.xMin += fieldWidth + fieldPadding;
+                sliderRect.xMax -= fieldWidth + fieldPadding;
+
+                vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
+                vec.y = Mathf.Clamp(vec.y, vec.x, vec.w);
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
+                changed |= EditorGUI.EndChangeCheck();
             }
+            else
+            {
+                vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
+                vec.y = Mathf.Clamp(vec.y, vec.x, vec.w);
 
-            vec.x = Mathf.Clamp(vec.x, vec.z, vec.y);
-            vec.y = Mathf.Clamp(vec.y, vec.x, vec.w);
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.MinMaxSlider(sliderRect, ref vec.x, ref vec.y, vec.z, vec.w);
-            changed |= EditorGUI.EndChangeCheck();
+                EditorGUI.BeginChangeCheck();
+                EditorGUI.MinMaxSlider(controlRect, ref vec.x, ref vec.y, vec.z, vec.w);
+                changed |= EditorGUI.EndChangeCheck();
+            }
 
             if (changed)
             {
