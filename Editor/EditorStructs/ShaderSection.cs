@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Thry.ThryEditor
 {
@@ -70,6 +73,12 @@ namespace Thry.ThryEditor
                 GUI.Label(header_rect, this.Content, EditorStyles.label);
             }
 
+            // Draw menu icon
+            if (has_header)
+            {
+                DrawMenuIcon(border, Event.current);
+            }
+
             // Toggling + Draw Arrow
             FoldoutArrow(top_border, Event.current);
             if (Event.current.type == EventType.MouseDown && clickCheckRect.Contains(Event.current.mousePosition))
@@ -94,6 +103,41 @@ namespace Thry.ThryEditor
                 GUILayoutUtility.GetRect(0, 5);
             }
             EditorGUILayout.EndVertical();
+        }
+
+        protected void DrawMenuIcon(Rect border, Event e)
+        {
+            Rect buttonRect = new Rect(border);
+            buttonRect.x = border.x + border.width - 18;
+            buttonRect.y = border.y + 2;
+            buttonRect.width = 16;
+            buttonRect.height = 16;
+
+            if (GUILib.Button(buttonRect, Icons.menu))
+            {
+                ShaderEditor.Input.Use();
+                ShowContextMenu(buttonRect);
+            }
+        }
+
+        protected void ShowContextMenu(Rect position)
+        {
+            ShaderSection section = this;
+            Material[] materials = ShaderEditor.Active.Materials;
+            
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Reset"), false, delegate()
+            {
+                int undoGroup = Undo.GetCurrentGroup();
+                section.CopyFrom(new Material(materials[0].shader), true);
+                IEnumerable<Material> linked_materials = MaterialLinker.GetLinked(section.MaterialProperty);
+                if (linked_materials != null)
+                    foreach (Material m in linked_materials)
+                        section.CopyTo(m, true);
+                Undo.SetCurrentGroupName($"Reset {section.Content.text}");
+                Undo.CollapseUndoOperations(undoGroup);
+            });
+            menu.DropDown(position);
         }
     }
 
