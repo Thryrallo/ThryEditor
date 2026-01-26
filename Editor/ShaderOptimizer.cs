@@ -820,7 +820,30 @@ namespace Thry.ThryEditor
 
         private static bool SetLockForAllChildrenInternal(GameObject[] objects, int lockState, bool showProgressbar = false, bool showDialog = false, bool allowCancel = true)
         {
-            IEnumerable<Material> materials = objects.Select(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(rA => rA.SelectMany(r => r.sharedMaterials));
+            List<Material> materials = objects.SelectMany(o => o.GetComponentsInChildren<Renderer>(true)).SelectMany(r => r.sharedMaterials).Where(m => m != null).ToList();
+
+            // This function should also collect material swaps referenced by animation clips (if applicable), matching the same behavior used in LockMaterialsOnUpload.OnPreprocessAvatar.
+#if VRC_SDK_VRCSDK3 && !UDON
+            foreach (GameObject root in objects)
+            {
+                if (root == null) continue;
+
+                // Only scan for material swap animations if the selected object is the Avatar Root (preferred method).
+                VRCAvatarDescriptor descriptor = root.GetComponent<VRCAvatarDescriptor>();
+                if (descriptor == null) continue;
+
+                IEnumerable<AnimationClip> clips = descriptor.baseAnimationLayers.Select(l => l.animatorController).Where(a => a != null).SelectMany(a => a.animationClips).Distinct();
+
+                foreach (AnimationClip clip in clips)
+                {
+                    if (clip == null) continue;
+
+                    IEnumerable<Material> clipMaterials = AnimationUtility.GetObjectReferenceCurveBindings(clip).Where(b => b.isPPtrCurve && b.type.IsSubclassOf(typeof(Renderer)) && b.propertyName.StartsWith("m_Materials")).SelectMany(b => AnimationUtility.GetObjectReferenceCurve(clip, b)).Select(r => r.value as Material).Where(m => m != null);
+
+                    materials.AddRange(clipMaterials);
+                }
+            }
+#endif
             return SetLockedForAllMaterialsInternal(materials, lockState, showProgressbar, showDialog);
         }
 
@@ -2595,7 +2618,7 @@ namespace Thry.ThryEditor
         }
 #endregion
 
-
+#region VRC Callbacks
 
         //----VRChat Callback to force Locking on upload
 
@@ -2655,7 +2678,55 @@ namespace Thry.ThryEditor
             }
         }
 #endif
+#endregion
+
 #region Stripping
+        
+        // Traceback shaders that failed to lock. Used in Console Output in an event Unlocked Shaders were removed. Helps with debugging.
+        private static readonly Dictionary<string, HashSet<string>> s_strippedSceneMaterialTrace = new Dictionary<string, HashSet<string>>();
+        private static string GetHierarchyPath(Transform t)
+        {
+            if (t == null) return "<null>";
+            string path = t.name;
+            while (t.parent != null)
+            {
+                t = t.parent;
+                path = t.name + "/" + path;
+            }
+            return path;
+        }
+        private static void CaptureSceneMaterials(Shader shader)
+        {
+            if (shader == null) return;
+
+            if (!s_strippedSceneMaterialTrace.TryGetValue(shader.name, out var set))
+            {
+                set = new HashSet<string>();
+                s_strippedSceneMaterialTrace.Add(shader.name, set);
+            }
+
+            var renderers = Resources.FindObjectsOfTypeAll<Renderer>();
+            foreach (var r in renderers)
+            {
+                if (r == null) continue;
+                if (!r.gameObject.scene.IsValid() || !r.gameObject.scene.isLoaded) continue;
+
+                var mats = r.sharedMaterials;
+                if (mats == null) continue;
+
+                foreach (var m in mats)
+                {
+                    if (m == null) continue;
+                    if (m.shader != shader) continue;
+
+                    string matPath = AssetDatabase.GetAssetPath(m);
+                    string matInfo = string.IsNullOrEmpty(matPath) ? $"{m.name} (Instance)" : $"{m.name} ({matPath})";
+
+                    set.Add($"{GetHierarchyPath(r.transform)} -> {matInfo}");
+                }
+            }
+        }
+
         const string DidStripUnlockedShadersSessionStateKey = "ShaderOptimizerDidStripUnlockedShaders";
         public class StripUnlockedShadersFromBuild : UnityEditor.Build.IPreprocessShaders
         {
@@ -2676,14 +2747,15 @@ namespace Thry.ThryEditor
 
                 if (shouldStrip)
                 {
+                    CaptureSceneMaterials(shader); // Catch unlocked materials.
                     // Try to warn the user if there's an unlocked shader
                     if (!SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
                     {
                         EditorUtility.DisplayDialog("Shader Optimizer: Unlocked Shader",
-                            "An Unlocked shader was found, and will not be included in the build (this will cause pink materials).\n" +
-                            "This shouldn't happen. Make sure all lockable materials are Locked, and try again.\n" +
-                            "If it happens again, please report the issue via GitHub or Discord!"
-                            , "OK");
+                            "An Unlocked shader was found and was removed from the build. This will cause pink materials.\n" +
+                            "Please check the Console for more details.\n" +
+                            "If this happens again, please report the issue via GitHub or Discord!",
+                            "OK");
                         SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, true);
                     }
 
@@ -2703,9 +2775,20 @@ namespace Thry.ThryEditor
 
             private static void ResetWarning()
             {
-                if(SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
+                if (SessionState.GetBool(DidStripUnlockedShadersSessionStateKey, false))
                 {
-                    Debug.LogError($"[Shader Optimizer] Unlocked shaders were removed from build. Materials will be pink. Use Thry -> Lock All on hierarchy items to ensure materials are locked.");
+                    foreach (var kvp in s_strippedSceneMaterialTrace)
+                    {
+                        string shaderName = kvp.Key;
+                        var entries = kvp.Value;
+
+                        if (entries == null || entries.Count == 0) continue;
+
+                        Debug.LogError($"[Shader Optimizer] Unlocked shader, {shaderName}, found in\n" + string.Join("\n", entries.OrderBy(e => e)));
+                    }
+
+                    Debug.LogError($"[Shader Optimizer] Unlocked shaders were found and removed from the build. Materials will be pink. Please open the Console for instructions and traceback details.\n" + "Try using Thry -> Materials -> Lock All on hierarchy items to ensure all materials are locked. Some materials may get overlooked if you are doing material swap animations!\n" + "If this happens again, please take a full screenshot of the Console with the traceback messages printed above and report the issue via GitHub or Discord!");
+
                     SessionState.SetBool(DidStripUnlockedShadersSessionStateKey, false);
                 }
             }
