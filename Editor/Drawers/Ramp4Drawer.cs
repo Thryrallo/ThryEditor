@@ -8,6 +8,8 @@ namespace Thry.ThryEditor.Drawers
 	// Usage in shader properties:
 	// [Ramp4] _MyRamp ("My Ramp (v0,v1,t0,t1)", Vector) = (0,1,0.4,0.5)
 	// [Ramp4(normalized)] _MyRamp ("My Ramp (v0,v1,t0,t1)", Vector) = (-2,3,0.4,0.5) // Shows normalized graph for values outside 0-1
+	// [Ramp4(unclampedW)] _MyRamp ("My Ramp", Vector) = (0,1,0,5) // Allows w to exceed 1 (e.g. for distances in meters)
+	// [Ramp4(unclampedZ, unclampedW)] _MyRamp ("My Ramp", Vector) = (0,1,0,5) // Allows both z and w to be unclamped
 	// Packs: x=startValue, y=endValue, z=startTime, w=endTime
 	public class Ramp4Drawer : MaterialPropertyDrawer
 	{
@@ -15,11 +17,28 @@ namespace Thry.ThryEditor.Drawers
 		private Vector4 _lastRamp;
 		private int _activeHandle = -1; // 0 = t0, 1 = t1, 2 = v0, 3 = v1
 		private bool _normalized; // Show normalized visualization for values outside 0-1
+		private bool _unclampedZ; // Allow z to exceed 0-1
+		private bool _unclampedW; // Allow w to exceed 0-1
 
 		public Ramp4Drawer() { }
 		public Ramp4Drawer(string mode)
 		{
-			_normalized = mode.ToLower() == "normalized";
+			ParseModes(mode);
+		}
+		public Ramp4Drawer(string mode1, string mode2)
+		{
+			ParseModes(mode1 + " " + mode2);
+		}
+		public Ramp4Drawer(string mode1, string mode2, string mode3)
+		{
+			ParseModes(mode1 + " " + mode2 + " " + mode3);
+		}
+		private void ParseModes(string modes)
+		{
+			string lower = modes.ToLower();
+			_normalized = lower.Contains("normalized");
+			_unclampedZ = lower.Contains("unclampedz");
+			_unclampedW = lower.Contains("unclampedw");
 		}
 
         public override void OnGUI(Rect position, MaterialProperty prop, GUIContent label, MaterialEditor editor)
@@ -33,8 +52,8 @@ namespace Thry.ThryEditor.Drawers
 			Vector4 v = prop.vectorValue; // x=v0, y=v1, z=t0, w=t1
 			float v0 = v.x;
 			float v1 = v.y;
-			float t0 = Mathf.Clamp01(v.z);
-			float t1 = Mathf.Clamp01(v.w);
+			float t0 = _unclampedZ ? Mathf.Max(0, v.z) : Mathf.Clamp01(v.z);
+			float t1 = _unclampedW ? Mathf.Max(0, v.w) : Mathf.Clamp01(v.w);
 
 			// Use PrefixLabel to get exact value column rect (right side)
 			Rect valueRect = EditorGUI.PrefixLabel(position, label);
@@ -73,8 +92,8 @@ namespace Thry.ThryEditor.Drawers
 				v0 = EditorGUI.FloatField(f0, v0);
 				v1 = EditorGUI.FloatField(f1, v1);
 			}
-			t0 = Mathf.Clamp01(EditorGUI.FloatField(f2, t0));
-			t1 = Mathf.Clamp01(EditorGUI.FloatField(f3, t1));
+			t0 = _unclampedZ ? Mathf.Max(0, EditorGUI.FloatField(f2, t0)) : Mathf.Clamp01(EditorGUI.FloatField(f2, t0));
+			t1 = _unclampedW ? Mathf.Max(0, EditorGUI.FloatField(f3, t1)) : Mathf.Clamp01(EditorGUI.FloatField(f3, t1));
 
 			// Ensure order
 			if (t1 < t0)
@@ -125,6 +144,13 @@ namespace Thry.ThryEditor.Drawers
 				}
 			}
 
+			// Calculate time range for unclamped z/w display
+			float minTime = 0f, maxTime = 1f;
+			if (_unclampedZ || _unclampedW)
+			{
+				maxTime = Mathf.Max(ramp.z, ramp.w, 1f);
+			}
+
 			// Draw reference lines for normalized mode
 			if (_normalized && (minVal < 0f || maxVal > 1f))
 			{
@@ -147,12 +173,13 @@ namespace Thry.ThryEditor.Drawers
 			var pts = new Vector3[samples];
 			for (int i = 0; i < samples; i++)
 			{
-				float t = (float)i / (samples - 1);        // 0..1 across X (inner)
+				float tNorm = (float)i / (samples - 1);    // 0..1 across X (inner)
+				float t = Mathf.Lerp(minTime, maxTime, tNorm); // actual time value
 				float u = Mathf.InverseLerp(ramp.z, ramp.w, t); // 0..1 within [t0,t1]
 				float s = Mathf.SmoothStep(0f, 1f, u);
 				float val = Mathf.Lerp(ramp.x, ramp.y, s);
 
-				float x = Mathf.Lerp(inner.x, inner.xMax, t);
+				float x = Mathf.Lerp(inner.x, inner.xMax, tNorm);
 				float normalizedVal = _normalized ? Mathf.InverseLerp(minVal, maxVal, val) : Mathf.Clamp01(val);
 				float y = Mathf.Lerp(inner.yMax, inner.y, normalizedVal); // higher value -> higher on screen
 				pts[i] = new Vector3(x, y, 0);
@@ -162,8 +189,10 @@ namespace Thry.ThryEditor.Drawers
 			Handles.DrawAAPolyLine(2.5f, pts);
 
 			// Draw draggable time handles at t0 and t1 so users can see and grab them (inside inner rect)
-			float x0 = Mathf.Lerp(inner.x, inner.xMax, ramp.z);
-			float x1 = Mathf.Lerp(inner.x, inner.xMax, ramp.w);
+			float t0Norm = Mathf.InverseLerp(minTime, maxTime, ramp.z);
+			float t1Norm = Mathf.InverseLerp(minTime, maxTime, ramp.w);
+			float x0 = Mathf.Lerp(inner.x, inner.xMax, t0Norm);
+			float x1 = Mathf.Lerp(inner.x, inner.xMax, t1Norm);
 			Handles.color = Colors.handleOrange;
 			Handles.DrawAAPolyLine(2f, new Vector3(x0, inner.y), new Vector3(x0, inner.yMax));
 			Handles.color = Colors.handleBlue;
@@ -197,11 +226,20 @@ namespace Thry.ThryEditor.Drawers
 		{
 			float handleMargin = GUILib.GRAPH_HANDLE_MARGIN;
 
+			// Calculate time range for unclamped z/w mode
+			float minTime = 0f, maxTime = 1f;
+			if (_unclampedZ || _unclampedW)
+			{
+				maxTime = Mathf.Max(t0, t1, 1f);
+			}
+
 			EditorGUIUtility.AddCursorRect(rect, MouseCursor.SlideArrow);
 			// Wider hit zones around handles for easier grabbing
 			Rect inner = new Rect(rect.x + handleMargin, rect.y, Mathf.Max(1f, rect.width - handleMargin * 2f), rect.height);
-			float px0 = Mathf.Lerp(inner.x, inner.xMax, t0);
-			float px1 = Mathf.Lerp(inner.x, inner.xMax, t1);
+			float t0Norm = Mathf.InverseLerp(minTime, maxTime, t0);
+			float t1Norm = Mathf.InverseLerp(minTime, maxTime, t1);
+			float px0 = Mathf.Lerp(inner.x, inner.xMax, t0Norm);
+			float px1 = Mathf.Lerp(inner.x, inner.xMax, t1Norm);
 			Rect h0 = new Rect(px0 - 6f, rect.y, 12f, rect.height);
 			Rect h1 = new Rect(px1 - 6f, rect.y, 12f, rect.height);
 			EditorGUIUtility.AddCursorRect(h0, MouseCursor.SlideArrow);
@@ -238,7 +276,8 @@ namespace Thry.ThryEditor.Drawers
 						const float eps = 0.0005f;
 						if (_activeHandle == 0 || _activeHandle == 1)
 						{
-							float t = Mathf.InverseLerp(inner.x, inner.xMax, Mathf.Clamp(e.mousePosition.x, inner.x, inner.xMax));
+							float tNorm = Mathf.InverseLerp(inner.x, inner.xMax, Mathf.Clamp(e.mousePosition.x, inner.x, inner.xMax));
+							float t = Mathf.Lerp(minTime, maxTime, tNorm);
 							if (_activeHandle == 0) t0 = Mathf.Min(t, t1 - eps);
 							else t1 = Mathf.Max(t, t0 + eps);
 						}

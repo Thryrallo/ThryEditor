@@ -1297,6 +1297,10 @@ namespace Thry.ThryEditor
             // Will still be a massive n2 operation from each line * each property
             foreach (ParsedShaderFile psf in shaderFiles)
             {
+                // Skip files with no lines (these are markers for already-inlined includes)
+                if (psf.lines == null || psf.lines.Length == 0)
+                    continue;
+
                 // replace property names when prop is animated
                 for (int i = 0; i < psf.lines.Length; i++)
                 {
@@ -1874,16 +1878,23 @@ namespace Thry.ThryEditor
                     int lastQuotation = lineParsed.IndexOf('\"',firstQuotation+1);
                     string includeFilename = lineParsed.Substring(firstQuotation+1, lastQuotation-firstQuotation-1);
 
-                    // Skip default includes
+                    // Skip default includes - keep them as #include statements
                     if (DefaultUnityShaderIncludes.Contains(includeFilename) == false)
                     {
                         string includeFullpath = includeFilename;
                         if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal) == false && includeFilename.StartsWith("Packages/", StringComparison.Ordinal) == false) // not absolute
                             includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
-                        if (!ParseShaderFilesRecursive(filesParsed, newTopLevelDirectory, includeFullpath, macros, material, stripTextures))
+                        // Convert Unity asset path to absolute filesystem path for Packages/
+                        if (includeFullpath.StartsWith("Packages/", StringComparison.Ordinal))
+                            includeFullpath = Path.GetFullPath(includeFullpath);
+                        // Inline the include contents instead of keeping the #include
+                        string[] inlinedLines = GetInlinedIncludeLines(includeFullpath, macros, material, stripTextures, filesParsed);
+                        if (inlinedLines == null)
                             return false;
-                        // Change include to be be ralative to only one directory up, because all files are moved into the same folder
-                        fileLines[i] = fileLines[i].Replace(includeFilename, "/"+includeFilename.Split('/').Last());
+                        includedLines.Add($"// [Inlined] {includeFilename}");
+                        includedLines.AddRange(inlinedLines);
+                        includedLines.Add($"// [End Inlined] {includeFilename}");
+                        continue; // Don't add the #include line itself
                     }
                 }
 
@@ -1933,6 +1944,121 @@ namespace Thry.ThryEditor
                 relativePath = relativePath.Remove(0, "../".Length);
             }
             return basePath + '/' + relativePath;
+        }
+
+        // Helper to read and process include file contents for inlining
+        private static string[] GetInlinedIncludeLines(string filePath, List<Macro> macros, Material material, List<string> stripTextures, List<ParsedShaderFile> alreadyProcessed)
+        {
+            // Infinite recursion check
+            if (alreadyProcessed.Exists(x => x.filePath == filePath))
+                return new string[0]; // Already included, return empty to avoid duplicates
+
+            // Mark as processed to prevent infinite recursion
+            ParsedShaderFile marker = new ParsedShaderFile();
+            marker.filePath = filePath;
+            marker.lines = new string[0]; // Empty - we're inlining, not writing separately
+            alreadyProcessed.Add(marker);
+
+            string fileContents = null;
+            try
+            {
+                StreamReader sr = new StreamReader(filePath);
+                fileContents = sr.ReadToEnd();
+                sr.Close();
+            }
+            catch (FileNotFoundException e)
+            {
+                Debug.LogError("[Shader Optimizer] Include file " + filePath + " not found. " + e.ToString());
+                return null;
+            }
+            catch (IOException e)
+            {
+                Debug.LogError("[Shader Optimizer] Error reading include file. " + e.ToString());
+                return null;
+            }
+
+            string[] fileLines = fileContents.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            List<string> resultLines = new List<string>();
+
+            bool isCommentedOut = false;
+            int currentExcludeDepth = 0;
+            bool doExclude = false;
+            int excludeStartDepth = 0;
+
+            for (int i = 0; i < fileLines.Length; i++)
+            {
+                string lineParsed = fileLines[i].TrimStart();
+
+                // Handle comments
+                if (lineParsed.StartsWith("//", StringComparison.Ordinal))
+                {
+                    if (lineParsed.StartsWith("//ifex", StringComparison.Ordinal))
+                    {
+                        if (!doExclude)
+                        {
+                            var condition = DefineableCondition.Parse(lineParsed.Substring(6), material);
+                            if (condition.Test())
+                            {
+                                doExclude = true;
+                                excludeStartDepth = currentExcludeDepth;
+                            }
+                        }
+                        currentExcludeDepth++;
+                    }
+                    else if (lineParsed.StartsWith("//endex", StringComparison.Ordinal))
+                    {
+                        if (currentExcludeDepth > 0)
+                        {
+                            currentExcludeDepth--;
+                            if (currentExcludeDepth == excludeStartDepth) doExclude = false;
+                        }
+                    }
+                    continue;
+                }
+                if (doExclude) continue;
+                if (string.IsNullOrEmpty(lineParsed)) continue;
+
+                // Handle block comments
+                if (isCommentedOut && lineParsed.EndsWith("*/", StringComparison.OrdinalIgnoreCase))
+                {
+                    isCommentedOut = false;
+                    continue;
+                }
+                else if (lineParsed.StartsWith("/*", StringComparison.OrdinalIgnoreCase))
+                {
+                    isCommentedOut = true;
+                    continue;
+                }
+                if (isCommentedOut) continue;
+
+                // Handle nested includes - inline them too
+                if (lineParsed.StartsWith("#include", StringComparison.Ordinal))
+                {
+                    int firstQuotation = lineParsed.IndexOf('\"', 0);
+                    int lastQuotation = lineParsed.IndexOf('\"', firstQuotation + 1);
+                    string includeFilename = lineParsed.Substring(firstQuotation + 1, lastQuotation - firstQuotation - 1);
+
+                    if (DefaultUnityShaderIncludes.Contains(includeFilename) == false)
+                    {
+                        string includeFullpath = includeFilename;
+                        if (includeFilename.StartsWith("Assets/", StringComparison.Ordinal) == false && includeFilename.StartsWith("Packages/", StringComparison.Ordinal) == false)
+                            includeFullpath = GetFullPath(includeFilename, Path.GetDirectoryName(filePath));
+                        if (includeFullpath.StartsWith("Packages/", StringComparison.Ordinal))
+                            includeFullpath = Path.GetFullPath(includeFullpath);
+                        string[] nestedLines = GetInlinedIncludeLines(includeFullpath, macros, material, stripTextures, alreadyProcessed);
+                        if (nestedLines == null)
+                            return null;
+                        resultLines.Add($"// [Inlined] {includeFilename}");
+                        resultLines.AddRange(nestedLines);
+                        resultLines.Add($"// [End Inlined] {includeFilename}");
+                        continue;
+                    }
+                }
+
+                resultLines.Add(fileLines[i]);
+            }
+
+            return resultLines.ToArray();
         }
 
         // Replace properties! The meat of the shader optimization process

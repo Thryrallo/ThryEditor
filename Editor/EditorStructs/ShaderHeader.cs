@@ -152,11 +152,11 @@ namespace Thry.ThryEditor
         private void DrawIcons(Rect rect, PropertyOptions options, Event e)
         {
             Rect buttonRect = new Rect(rect);
-            buttonRect.y += 2;
-            buttonRect.height -= 4;
-            buttonRect.width = buttonRect.height;
+            buttonRect.y = rect.y + 2;
+            buttonRect.width = 16;
+            buttonRect.height = 16;
 
-            float right = rect.x + rect.width;
+            float right = rect.x + rect.width - 2;
             float step = buttonRect.width + 2f;
 
             // Pack from right to left without gaps
