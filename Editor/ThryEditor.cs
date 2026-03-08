@@ -1,4 +1,4 @@
-﻿// Material/Shader Inspector for Unity 2017/2018
+// Material/Shader Inspector for Unity 2017/2018
 // Copyright (C) 2019 Thryrallo
 
 using System.Collections.Generic;
@@ -315,6 +315,40 @@ namespace Thry
             UnityEngine.Object.DestroyImmediate(Editor);
             UnityEngine.Object.DestroyImmediate(material);
         }
+
+        /// <summary>
+        /// ApplyRenderingPresetToMaterial 
+        /// This applies a Rendering Preset (_Mode) value to an existing material by temporarily
+        /// initializing a ShaderEditor Context so that the on_value_actions defined in the
+        /// shader's property attributes are executed (setting blend modes, render queue,
+        /// property values, etc.).
+        /// Use this to apply Rendering Presets outside of the normal Inspector GUI draw loop.
+        /// </summary>
+        public static void ApplyRenderingPresetToMaterial(Material material, float modeValue)
+        {
+            if (material == null || !material.HasProperty(PROPERTY_NAME_IN_SHADER_PRESETS)) return;
+
+            ShaderEditor previousActive = Active;
+            ShaderEditor tempEditor = new ShaderEditor();
+            try
+            {
+                tempEditor.Materials = new Material[] { material };
+                tempEditor.Editor = MaterialEditor.CreateEditor(new UnityEngine.Object[] { material }) as MaterialEditor;
+                tempEditor.Properties = MaterialEditor.GetMaterialProperties(tempEditor.Materials);
+                tempEditor.RenamedPropertySuffix = ShaderOptimizer.GetRenamedPropertySuffix(material);
+                tempEditor.HasCustomRenameSuffix = ShaderOptimizer.HasCustomRenameSuffix(material);
+                Active = tempEditor;
+                tempEditor.SetShader(material.shader);
+                tempEditor.CollectAllProperties();
+
+                if (tempEditor.InShaderPresetsProperty != null) tempEditor.ShaderRenderingPreset = modeValue;
+            }
+            finally
+            {
+                if (tempEditor.Editor != null) UnityEngine.Object.DestroyImmediate(tempEditor.Editor);
+                Active = previousActive;
+            }
+        } 
 
         //finds all properties and headers and stores them in correct order
         private void CollectAllProperties()

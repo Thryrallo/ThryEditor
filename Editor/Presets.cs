@@ -451,8 +451,40 @@ namespace Thry.ThryEditor
 
         public static bool DoesPresetExist(string collection, string presetName)
         {
-            return PresetCollections.ContainsKey(collection) &&
-                 PresetCollections[collection].ContainsName(presetName);
+            return PresetCollections.ContainsKey(collection) && PresetCollections[collection].ContainsName(presetName);
+        }
+
+        public static List<string> GetFullPresetNames()
+        {
+            return FullPresets.Names.ToList();
+        }
+
+        public static List<string> GetFullPresetGuids()
+        {
+            return FullPresets.Guids.ToList();
+        }
+
+        public static string GetFullPresetGuid(string presetName)
+        {
+            if (FullPresets.ContainsName(presetName)) return FullPresets.GetGuid(presetName);
+            return null;
+        }
+
+        public static List<string> GetSectionCollectionKeys()
+        {
+            return PresetCollections.Keys.Where(k => k != "_full_" && PresetCollections[k].Count > 0).ToList();
+        }
+
+        public static List<string> GetSectionPresetNames(string collectionKey)
+        {
+            if (PresetCollections.ContainsKey(collectionKey)) return PresetCollections[collectionKey].Names.ToList();
+            return new List<string>();
+        }
+
+        public static string GetSectionPresetGuid(string collectionKey, string presetName)
+        {
+            if (PresetCollections.ContainsKey(collectionKey) && PresetCollections[collectionKey].ContainsName(presetName)) return PresetCollections[collectionKey].GetGuid(presetName);
+            return null;
         }
 
         private static PresetsPopupGUI window;
