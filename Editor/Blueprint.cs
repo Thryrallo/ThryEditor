@@ -144,9 +144,10 @@ namespace Thry.ThryEditor
                 bool isPresetProp = preset.GetTag(propName + TAG_POSTFIX_IS_PROPERTY_PRESET, false, "") == "true";
                 if (!isPresetProp) continue;
 
-                // Copy the value from preset to target based on property type
+                // Copy the values from the preset to target based on property type
                 ShaderPropertyType propType = shader.GetPropertyType(i);
                 CopyProperty(preset, target, propName, propType);
+                CopyAnimatedTag(preset, target, propName);
             }
 
             // Also check for header/section properties
@@ -161,6 +162,9 @@ namespace Thry.ThryEditor
 
                 // Float and Header properties
                 if (target.HasProperty(propName)) target.SetFloat(propName, preset.GetFloat(propName));
+
+                // Copy the animation tags for Header/Section properties too, if supported.
+                CopyAnimatedTag(preset, target, propName);
             }
 
             // Restore Preset's original shader
@@ -199,6 +203,11 @@ namespace Thry.ThryEditor
                     target.SetTextureScale(propName, source.GetTextureScale(propName));
                     break;
             }
+        }
+        static void CopyAnimatedTag(Material source, Material target, string propName)
+        {
+            string animatedTag = source.GetTag(propName + ShaderOptimizer.AnimatedTagSuffix, false, "");
+            if (!string.IsNullOrEmpty(animatedTag)) target.SetOverrideTag(propName + ShaderOptimizer.AnimatedTagSuffix, animatedTag);
         }
 
         #region Asset Creation Menu
