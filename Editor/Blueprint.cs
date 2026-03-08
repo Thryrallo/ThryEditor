@@ -247,18 +247,20 @@ namespace Thry.ThryEditor
             return Selection.activeObject is Blueprint;
         }
 
-        public static void CreateMaterialFromBlueprintAsset(Blueprint blueprint)
+        public static Material CreateMaterialFromBlueprintAsset(Blueprint blueprint, string savePath = null)
         {
-            if (blueprint == null) return;
+            if (blueprint == null) return null;
 
-            // Default save path: same folder as the blueprint
-            string blueprintPath = AssetDatabase.GetAssetPath(blueprint);
-            string defaultFolder = string.IsNullOrEmpty(blueprintPath) ? "Assets" : Path.GetDirectoryName(blueprintPath);
-            string defaultName = blueprint.name + " Material";
+            if (string.IsNullOrEmpty(savePath))
+            {
+                string blueprintPath = AssetDatabase.GetAssetPath(blueprint);
+                string defaultFolder = string.IsNullOrEmpty(blueprintPath) ? "Assets" : Path.GetDirectoryName(blueprintPath);
+                string defaultName = blueprint.name + " Material";
 
-            string savePath = EditorUtility.SaveFilePanelInProject("Save new Material", defaultName, "mat", "Choose where to save the new material.", defaultFolder);
+                savePath = EditorUtility.SaveFilePanelInProject("Save new Material", defaultName, "mat", "Choose where to save the new material.", defaultFolder);
 
-            if (string.IsNullOrEmpty(savePath)) return;
+                if (string.IsNullOrEmpty(savePath)) return null;
+            }
 
             string createdPath = blueprint.CreateMaterial(savePath);
             if (createdPath != null)
@@ -269,7 +271,9 @@ namespace Thry.ThryEditor
                     Selection.activeObject = created;
                     EditorGUIUtility.PingObject(created);
                 }
+                return created;
             }
+            return null;
         }
 
         #endregion
