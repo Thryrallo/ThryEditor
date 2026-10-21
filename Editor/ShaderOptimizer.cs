@@ -365,18 +365,35 @@ namespace Thry.ThryEditor
                             // Add comment with property name, for easier debug
                             sb.Append(constantValue);
                             break;
-                        case PropertyType.Vector:
-                            sb.Append("float4(");
-                            sb.Append(value.x.ToString(CultureInfo.InvariantCulture));
-                            sb.Append(",");
-                            sb.Append(value.y.ToString(CultureInfo.InvariantCulture));
+                    case PropertyType.Vector:
+                        string[] allowedTypes =
+                        {
+                            "float2", "float3", "float4",
+                            "half2", "half3", "half4",
+                            "fixed2", "fixed3", "fixed4"
+                        };
+
+                        string vectorType = "float4";
+                        if (Array.IndexOf(allowedTypes, lastDeclarationType) >= 0)
+                            vectorType = lastDeclarationType;
+                        int dimensions = vectorType[vectorType.Length - 1] - '0';
+                        sb.Append(vectorType).Append("(");
+                        sb.Append(value.x.ToString(CultureInfo.InvariantCulture));
+                        sb.Append(",");
+                        sb.Append(value.y.ToString(CultureInfo.InvariantCulture));
+                        if (dimensions >= 3)
+                        {
                             sb.Append(",");
                             sb.Append(value.z.ToString(CultureInfo.InvariantCulture));
+                        }
+                        if (dimensions == 4)
+                        {
                             sb.Append(",");
                             sb.Append(value.w.ToString(CultureInfo.InvariantCulture));
-                            sb.Append(")");
-                            break;
-                    }
+                        }
+                        sb.Append(")");
+                        break;
+                }
             }
         }
 
